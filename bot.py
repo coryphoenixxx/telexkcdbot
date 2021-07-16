@@ -5,15 +5,14 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKe
 from aiogram.dispatcher.filters import Text
 from aiogram import Bot, Dispatcher, executor
 
-from parser_ import get_comic, BASE_URL, get_rus_version, get_eng_explanation
+from parser_ import *
 from config import Config
 
 loop = asyncio.get_event_loop()
 bot = Bot(Config.API_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher(bot, loop=loop)
 
-
-LAST = 2486
+LAST = 2489
 CUR_NUM = 0
 
 
@@ -54,25 +53,23 @@ async def hello(message: Message):
 
 
 async def ext_answer(message: Message, data: dict):
-    num, title, img_url, comment = data.values()
+    headline, img_url, comment = data.values()
 
-    await message.answer(text=f"<b>{str(num)}. \"<a href='{BASE_URL + str(num)}'>{title}</a>\"</b>",
-                         disable_web_page_preview=True, disable_notification=True)
-
+    await message.answer(text=headline, disable_web_page_preview=True, disable_notification=True)
     if img_url.endswith(('.png', '.jpg')):
         await message.answer_photo(photo=img_url)
     elif img_url.endswith('.gif'):
         await message.answer_animation(animation=img_url)
     else:
         await message.answer("Can\'t upload pic/gif...\nUse browser to read comic.")
-
-    await message.answer(f'<i>{comment}</i>', reply_markup=get_keyboard(), disable_notification=True)
+    await message.answer(f'<i>{comment}</i>', reply_markup=get_keyboard(), disable_web_page_preview=True,
+                         disable_notification=True)
 
 
 @dp.message_handler(commands="read")
 async def cmd_read(message: Message):
     global CUR_NUM
-    default_num = 404  # 1608, 1190, 1416, 404, 1037, 1538, 1953, 1965(div) - defective
+    default_num = 1488
     CUR_NUM = default_num
     img_data = get_comic(default_num)
     await ext_answer(message, img_data)
@@ -80,6 +77,7 @@ async def cmd_read(message: Message):
 
 @dp.callback_query_handler(Text(startswith='nav_'))
 async def nav(call: CallbackQuery):
+    # TAKE OUT NAV LOGIC
     global CUR_NUM
     action = call.data.split('_')[1]
 
@@ -100,10 +98,11 @@ async def nav(call: CallbackQuery):
 
     CUR_NUM = num
 
-    img_data = get_comic(num)
-    await ext_answer(call.message, img_data)
+    data = get_comic(num)
+    await ext_answer(call.message, data)
 
 
+# GET RUSSIAN VERSION
 @dp.callback_query_handler(Text('rus'))
 async def rus_version(call: CallbackQuery):
     global CUR_NUM
@@ -111,16 +110,18 @@ async def rus_version(call: CallbackQuery):
     if data:
         await ext_answer(call.message, data)
     else:
-        await call.message.answer('There\'s no russian version...(((')
+        await call.message.answer('Unfortunately there\'s no russian version... ;(((')
 
 
+# GET EXPLANATION
 @dp.callback_query_handler(Text('explain'))
 async def explanation(call: CallbackQuery):
     global CUR_NUM
-    text = get_eng_explanation(CUR_NUM)
-    await call.message.answer(text)
+    text = get_explanation(CUR_NUM)
+    await call.message.answer(text, disable_web_page_preview=True)
 
 
+# RANDOM USER INPUT
 @dp.message_handler()
 async def echo(message: Message):
     global CUR_NUM
@@ -135,4 +136,5 @@ async def echo(message: Message):
 
 
 if __name__ == "__main__":
+    # HERE MUST BE MICROSERVICE
     executor.start_polling(dp, on_startup=notify_admin)
