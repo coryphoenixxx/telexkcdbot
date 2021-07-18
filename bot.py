@@ -1,19 +1,18 @@
 import asyncio
 import random
 
+
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from aiogram.dispatcher.filters import Text
 from aiogram import Bot, Dispatcher, executor
 
-from parser_ import *
-from config import Config
+from parser_ import Parser
+from config_ import Config
+from database_ import *
 
 loop = asyncio.get_event_loop()
 bot = Bot(Config.API_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher(bot, loop=loop)
-
-LAST = 2489
-CUR_NUM = 0
 
 
 def get_keyboard():
@@ -40,6 +39,7 @@ async def notify_admin(dp: Dispatcher):
 
 @dp.message_handler(commands=['start', 'help'])
 async def hello(message: Message):
+    add_new_user(message.from_user.id)
     await message.answer("Hey! I'm xkcd bot.\n")
     await asyncio.sleep(1.5)
     await message.answer("Here is my list of commands:\n"
@@ -53,6 +53,10 @@ async def hello(message: Message):
 
 
 async def ext_answer(message: Message, data: dict):
+    # headline = f"<b>{num}. \"<a href='{'https://xkcd.com/' + num}'>{title}</a>\"</b>   <i>({day}-{month}-{year})</i>"
+    # text = f"{first_p}<i><b><a href='{url}'>...continue</a></b></i>"
+
+
     headline, img_url, comment = data.values()
 
     await message.answer(text=headline, disable_web_page_preview=True, disable_notification=True)
@@ -68,9 +72,8 @@ async def ext_answer(message: Message, data: dict):
 
 @dp.message_handler(commands="read")
 async def cmd_read(message: Message):
-    global CUR_NUM
     default_num = 1488
-    CUR_NUM = default_num
+    update_user_current_comic(message.from_user.id, default_num)
     img_data = get_comic(default_num)
     await ext_answer(message, img_data)
 
@@ -78,14 +81,14 @@ async def cmd_read(message: Message):
 @dp.callback_query_handler(Text(startswith='nav_'))
 async def nav(call: CallbackQuery):
     # TAKE OUT NAV LOGIC
-    global CUR_NUM
+    current_comic = get_user_current_comic(call.from_user.id)
     action = call.data.split('_')[1]
 
     actions = {
         'first': 1,
-        'prev': CUR_NUM - 1,
+        'prev': current_comic - 1,
         'random': random.randint(1, LAST),
-        'next': CUR_NUM + 1,
+        'next': current_comic + 1,
         'last': LAST
     }
 
@@ -96,7 +99,7 @@ async def nav(call: CallbackQuery):
     if num > LAST:
         num = 1
 
-    CUR_NUM = num
+    update_user_current_comic(call.from_user.id, num)
 
     data = get_comic(num)
     await ext_answer(call.message, data)
@@ -105,8 +108,8 @@ async def nav(call: CallbackQuery):
 # GET RUSSIAN VERSION
 @dp.callback_query_handler(Text('rus'))
 async def rus_version(call: CallbackQuery):
-    global CUR_NUM
-    data = get_rus_version(CUR_NUM)
+    current_comic = get_user_current_comic(call.from_user.id)
+    data = get_rus_version(current_comic)
     if data:
         await ext_answer(call.message, data)
     else:
@@ -116,20 +119,19 @@ async def rus_version(call: CallbackQuery):
 # GET EXPLANATION
 @dp.callback_query_handler(Text('explain'))
 async def explanation(call: CallbackQuery):
-    global CUR_NUM
-    text = get_explanation(CUR_NUM)
+    current_comic = get_user_current_comic(call.from_user.id)
+    text = get_explanation(current_comic)
     await call.message.answer(text, disable_web_page_preview=True)
 
 
 # RANDOM USER INPUT
 @dp.message_handler()
 async def echo(message: Message):
-    global CUR_NUM
     user_input = message.text
     if user_input.isdigit():
         num = int(user_input)
         comic_data = get_comic(num)
-        CUR_NUM = num
+        update_user_current_comic(message.from_user.id, num)
         await ext_answer(message, data=comic_data)
     else:
         await message.answer('Please, write a number or command!')
@@ -137,4 +139,5 @@ async def echo(message: Message):
 
 if __name__ == "__main__":
     # HERE MUST BE MICROSERVICE
+    create_users_database()
     executor.start_polling(dp, on_startup=notify_admin)
