@@ -94,6 +94,6 @@ class Parser:
 
 if __name__ == "__main__":
     p = Parser()
-    data = p.get_full_comic_data(666)
-    print(data)
+    data = p.get_rus_version(666)
+    print(data.values())
 
