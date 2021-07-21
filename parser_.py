@@ -4,7 +4,6 @@ from datetime import date
 from bs4 import BeautifulSoup
 
 
-
 class Parser:
     """1608, 1190, 1416, 404, 1037, 1538, 1953, 1965 - defective"""
     def __init__(self):
