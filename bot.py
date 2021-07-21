@@ -56,10 +56,12 @@ def get_keyboard():
     return keyboard
 
 
-async def notify_admin(dp: Dispatcher):
+async def on_startup(dp: Dispatcher):
     await dp.skip_updates()
     await users_db.create_users_database()
     await users_db.add_new_user(Config.ADMIN_ID)
+
+    await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
     await bot.send_message(chat_id=Config.ADMIN_ID, text="<b>Bot in Your Power, My Lord...</b>")
 
 
@@ -205,7 +207,7 @@ if __name__ == "__main__":
     start_webhook(
         dispatcher=dp,
         webhook_path=WEBHOOK_PATH,
-        on_startup=notify_admin,
+        on_startup=on_startup,
         # on_shutdown=on_shutdown,
         skip_updates=True,
         host=WEBAPP_HOST,
