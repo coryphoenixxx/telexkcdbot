@@ -1,10 +1,9 @@
 import asyncio
 import random
 
-from aiogram import Bot, Dispatcher, executor
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from aiogram.dispatcher.filters import Text
-from aiogram.utils.executor import start_webhook
+from aiogram import Bot, Dispatcher, executor
 
 from parser_ import Parser
 from config_ import Config
@@ -15,15 +14,6 @@ loop = asyncio.get_event_loop()
 bot = Bot(Config.API_TOKEN, parse_mode=ParseMode.HTML)
 dp = Dispatcher(bot, loop=loop)
 
-
-WEBHOOK_HOST = f'https://{Config.HEROKU_APP_NAME}.herokuapp.com'
-
-WEBHOOK_PATH = f'/webhook/{Config.API_TOKEN}'
-WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
-
-WEBAPP_HOST = '0.0.0.0'
-WEBAPP_PORT = Config.WEBAPP_PORT
-
 parser = Parser()
 users_db = UsersDatabase()
 comics_db = ComicsDatabase()
@@ -32,7 +22,8 @@ help_text = """
 <b><u>Here is my list of commands</u></b>:
  Type in the <b>comic number</b> and I'll find it for you!
  Type in the <b>comic title</b> and I'll try to find it for you!
- <b>/subscribe</b> - I'll notify you whenever a new xkcd comics is released.
+ <b>/read</b> - Read-mode.
+ <b>/subscribe</b> - I'll notify you whenever a new xkcd is released.
  <b>/unsubscribe</b> - I'll stop notifying you when new xkcd comics are released.
  <b>/bookmarks</b> - I'll send you your bookmarks.
  <b>/help</b> - I'll send you this text.
@@ -66,10 +57,9 @@ async def notify_admin(dp: Dispatcher):
 @dp.message_handler(commands='start')
 async def start(message: Message):
     await users_db.add_new_user(message.from_user.id)
-    await message.answer("Hey! I'm tele-xkcd-bot. [¬º-°]¬\n")
+    await message.answer("Hey! I'm xkcd-bot. [¬º-°]¬\n")
     await asyncio.sleep(1)
     await message.answer(help_text)
-    # send latest?
 
 
 @dp.message_handler(commands='help')
@@ -95,6 +85,13 @@ async def mod_answer(message: Message, data: dict):
                          reply_markup=get_keyboard(),
                          disable_web_page_preview=True,
                          disable_notification=True)
+
+
+@dp.message_handler(commands="read")
+async def cmd_read(message: Message):
+    await users_db.update_user_current_comic(message.from_user.id, 1)
+    data = await comics_db.get_comic_data_by_id(1)
+    await mod_answer(message,  data=data)
 
 
 @dp.callback_query_handler(Text(startswith='nav_'))
@@ -200,13 +197,4 @@ def repeat(coro, loop):
 if __name__ == "__main__":
     # loop = asyncio.get_event_loop()
     # loop.call_later(5, repeat, check_last_comic, loop)
-    # executor.start_polling(dp, on_startup=notify_admin)
-    start_webhook(
-        dispatcher=dp,
-        webhook_path=WEBHOOK_PATH,
-        on_startup=notify_admin,
-        # on_shutdown=on_shutdown,
-        skip_updates=True,
-        host=WEBAPP_HOST,
-        port=WEBAPP_PORT,
-    )
+    executor.start_polling(dp, on_startup=notify_admin)

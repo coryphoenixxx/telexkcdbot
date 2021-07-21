@@ -80,7 +80,7 @@ class ComicsDatabase:
                                        rus_title, 
                                        rus_img_url, 
                                        rus_comment)
-                    VALUES(?,?,?,?,?,?,?,?);"""
+                                 VALUES(?,?,?,?,?,?,?,?);"""
         async with sql.connect(comics_db_filename) as db:
             await db.execute(query, comic_values)
             await db.commit()
@@ -134,9 +134,7 @@ class ComicsDatabase:
 
 if __name__ == "__main__":
     pass
-    import pprint
-
-    # from parser_ import Parser
+    from parser_ import Parser
 
     # parser = Parser()
     # latest = parser.get_and_update_latest_comic_id()
@@ -154,7 +152,7 @@ if __name__ == "__main__":
     #     executor.map(parse_and_write_to_db, iter(range(1, latest)))
 
     # db = ComicsDatabase()
-
+    # print(db.get_comic_data_by_title('zeppelin'))
 
 
 
