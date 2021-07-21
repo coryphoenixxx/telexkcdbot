@@ -1,57 +1,61 @@
-import sqlite3 as sql
+import aiosqlite as sql
+
+
+users_db_filename = "users.db"
+comics_db_filename = "comics.db"
 
 
 class UsersDatabase:
     @staticmethod
-    def create_users_database():
+    async def create_users_database():
         query = """CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE,
             current_comic INTEGER DEFAULT 1,
             fav_comics JSON DEFAULT '[]',
             subscribed INTEGER DEFAULT 0, 
-            STATE MESSAGE_TEXT DEFAULT 'default'
+            state MESSAGE_TEXT DEFAULT 'default'
             );"""
-        with sql.connect("users.db") as conn:
+        async with sql.connect(users_db_filename) as db:
+            await db.execute(query)
+            await db.commit()
+
+    @staticmethod
+    async def add_new_user(user_id):
+        query = f"""INSERT or IGNORE INTO users (user_id) VALUES({user_id});"""
+        async with sql.connect(users_db_filename) as db:
+            await db.execute(query)
+            await db.commit()
+
+    @staticmethod
+    async def get_user_current_comic(user_id):
+        query = f"""SELECT current_comic FROM users 
+                    WHERE user_id == {user_id};"""
+        async with sql.connect(users_db_filename) as db:
+            async with db.execute(query) as cur:
+                res = await cur.fetchone()
+                return res[0]
+
+    @staticmethod
+    async def update_user_current_comic(user_id, new_current_comic):
+        query = f"""UPDATE users SET current_comic = {new_current_comic}
+                    WHERE user_id == {user_id};"""
+        async with sql.connect(users_db_filename) as db:
+            await db.execute(query)
+            await db.commit()
+
+    def __len__(self):
+        query = """SELECT COUNT (*) FROM users"""
+        with sql.connect(users_db_filename) as conn:
             cur = conn.cursor()
             cur.execute(query)
-
-    @staticmethod
-    def add_new_user(user_id):
-        add_new_user_query = f"""INSERT INTO users (user_id) VALUES({user_id});"""
-        with sql.connect("users.db") as conn:
-            cur = conn.cursor()
-            cur.execute(add_new_user_query)
-
-    @staticmethod
-    def get_user_current_comic(user_id):
-        query = f"""SELECT current_comic FROM users WHERE user_id == {user_id};"""
-        with sql.connect("users.db") as conn:
-            cur = conn.cursor()
-            cur.execute(query)
-            result = cur.fetchone()[0]
-            return result
-
-    @staticmethod
-    def update_user_current_comic(user_id, new_current_comic):
-        update_user_current_comic_query = f"""UPDATE users SET current_comic = {new_current_comic}
-                                              WHERE user_id == {user_id};"""
-        with sql.connect("users.db") as conn:
-            cur = conn.cursor()
-            cur.execute(update_user_current_comic_query)
-
-
-
-
-
-
-
+            return cur.fetchone()[0]
 
 
 class ComicsDatabase:
     @staticmethod
-    def create_comics_database():
-        create_comics_table_query = """CREATE TABLE IF NOT EXISTS comics (
+    async def create_comics_database():
+        query = """CREATE TABLE IF NOT EXISTS comics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             comic_id INTEGER UNIQUE,
             title MESSAGE_TEXT DEFAULT '',
@@ -60,92 +64,98 @@ class ComicsDatabase:
             public_date DATE DEFAULT '',
             rus_title MESSAGE_TEXT DEFAULT '',
             rus_img_url MESSAGE_TEXT DEFAULT '',
-            rus_comment MESSAGE_TEXT DEFAULT '',
-            explain_text MESSAGE_TEXT DEFAULT '' #remove!!!
+            rus_comment MESSAGE_TEXT DEFAULT ''
             );"""
-        with sql.connect("comics.db") as conn:
-            cur = conn.cursor()
-            cur.execute(create_comics_table_query)
+        async with sql.connect(comics_db_filename) as db:
+            await db.execute(query)
+            await db.commit()
 
     @staticmethod
-    def add_new_comic(comic_values):
-        add_new_user_query = """INSERT INTO comics (comic_id, 
-                                                    title, 
-                                                    img_url, 
-                                                    comment, 
-                                                    public_date, 
-                                                    rus_title, 
-                                                    rus_img_url, 
-                                                    rus_comment, 
-                                                    explain_text)
-                                 VALUES(?,?,?,?,?,?,?,?,?);"""
-        with sql.connect("comics.db") as conn:
-            cur = conn.cursor()
-            cur.execute(add_new_user_query, comic_values)
-
+    async def add_new_comic(comic_values):
+        query = """INSERT INTO comics (comic_id, 
+                                       title, 
+                                       img_url, 
+                                       comment, 
+                                       public_date, 
+                                       rus_title, 
+                                       rus_img_url, 
+                                       rus_comment)
+                                 VALUES(?,?,?,?,?,?,?,?);"""
+        async with sql.connect(comics_db_filename) as db:
+            await db.execute(query, comic_values)
+            await db.commit()
 
     @staticmethod
-    def get_original_comic_data(comic_id):
-        query = f"""SELECT title, img_url, comment, public_date FROM comics WHERE comic_id == {comic_id};"""
-        with sql.connect("comics.db") as conn:
-            cur = conn.cursor()
-            cur.execute(query)
-            result = cur.fetchone()
-            data = dict(zip(('title', 'img_url', 'comment', 'public_date'), result))
-            return data
+    async def get_comic_data_by_id(comic_id):
+        query = f"""SELECT comic_id, title, img_url, comment, public_date FROM comics WHERE comic_id == {comic_id};"""
+        async with sql.connect(comics_db_filename) as db:
+            async with db.execute(query) as cur:
+                result = await cur.fetchone()
+                data = dict(zip(('comic_id', 'title', 'img_url', 'comment', 'public_date'), result))
+                return data
 
     @staticmethod
-    def get_rus_version_data(comic_id):
-        query = f"""SELECT rus_title, rus_img_url, rus_comment, public_date FROM comics WHERE comic_id == {comic_id};"""
-        with sql.connect("comics.db") as conn:
-            cur = conn.cursor()
-            cur.execute(query)
-            result = cur.fetchone()
-            data = dict(zip(('rus_title', 'rus_img_url', 'rus_comment', 'public_date'), result))
-            return data
+    async def get_comic_data_by_title(title):
+        title = title.strip()
+        query = f"""SELECT comic_id, title, img_url, comment, public_date FROM comics WHERE title LIKE '%{title}%';"""
+        async with sql.connect(comics_db_filename) as db:
+            async with db.execute(query) as cur:
+                result = await cur.fetchone()
+                try:
+                    data = dict(zip(('comic_id', 'title', 'img_url', 'comment', 'public_date'), result))
+                except TypeError:
+                    data = None
+                return data
 
     @staticmethod
-    def get_explanation_data(comic_id):
-        query = f"""SELECT explain_text FROM comics WHERE comic_id == {comic_id};"""
-        with sql.connect("comics.db") as conn:
-            cur = conn.cursor()
-            cur.execute(query)
-            result = cur.fetchone()[0]
-            url = f'https://www.explainxkcd.com/{comic_id}'
-            return result, url
+    async def get_rus_version_data(comic_id):
+        query = f"""SELECT comic_id, rus_title, rus_img_url, rus_comment, public_date FROM comics WHERE comic_id == {comic_id};"""
+        async with sql.connect(comics_db_filename) as db:
+            async with db.execute(query) as cur:
+                result = await cur.fetchone()
+                data = dict(zip(('comic_id', 'rus_title', 'rus_img_url', 'rus_comment', 'public_date'), result))
+                return data
 
     @staticmethod
-    def get_last_comic_id():
+    async def get_last_comic_id():
         query = f"""SELECT comic_id FROM comics ORDER BY comic_id DESC;"""
-        with sql.connect("comics.db") as conn:
+        async with sql.connect(comics_db_filename) as db:
+            async with db.execute(query) as cur:
+                res = await cur.fetchone()
+                return res[0]
+
+    def __len__(self):
+        query = """SELECT COUNT (*) FROM comics"""
+        with sql.connect(comics_db_filename) as conn:
             cur = conn.cursor()
             cur.execute(query)
-            result = cur.fetchone()[0]
-            return result
+            return cur.fetchone()[0]
 
 
 if __name__ == "__main__":
-    # from parser_ import Parser
-    #
-    # p = Parser()
-    # last = p.get_last_comic_number()
-    #
-    # comics_db = ComicsDatabase()
-    # comics_db.create_comics_database()
-    #
-    # def parse_and_write_to_db(number):
-    #     data = p.get_full_comic_data(number)
+    pass
+    from parser_ import Parser
+
+    # parser = Parser()
+    # latest = parser.get_and_update_latest_comic_id()
+
+    # db.create_comics_database()
+
+    # def parse_and_write_to_db(comic_id):
+    #     data = parser.get_full_comic_data(comic_id)
     #     comic_values = tuple(data.values())
     #     comics_db.add_new_comic(comic_values)
     #
     #
     # from concurrent.futures import ThreadPoolExecutor
     # with ThreadPoolExecutor(max_workers=20) as executor:
-    #     executor.map(parse_and_write_to_db, iter(range(1, last+1)))
+    #     executor.map(parse_and_write_to_db, iter(range(1, latest)))
 
-    db = ComicsDatabase()
-    id = db.get_last_comic_id()
-    print(id)
+    # db = ComicsDatabase()
+    # print(db.get_comic_data_by_title('zeppelin'))
+
+
+
 
 
 

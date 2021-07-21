@@ -1,60 +1,66 @@
 import requests
+import time
 from datetime import date
 from bs4 import BeautifulSoup
 
 
-# 1608, 1190, 1416, 404, 1037, 1538, 1953, 1965(div) - defective
 
 class Parser:
+    """1608, 1190, 1416, 404, 1037, 1538, 1953, 1965 - defective"""
     def __init__(self):
-        self.last_comic_number = self.get_last_comic_number()
-        self.real_rus_numbers = self.get_real_rus_numbers()
+        self.latest_comic_id = self.get_and_update_latest_comic_id()
+        self._real_rus_ids = self.get_real_rus_ids()
 
-    @staticmethod
-    def get_last_comic_number():
+    def get_and_update_latest_comic_id(self):
         url = 'https://xkcd.com/archive/'
         content = requests.get(url).content
         soup = BeautifulSoup(content, 'lxml')
-        number = int(soup.find('div', {'id': 'middleContainer'}).find('a')['href'][1:-1])
-        return number
+        comic_id = int(soup.find('div', {'id': 'middleContainer'}).find('a')['href'][1:-1])
+        self.latest_comic_id = comic_id
+        return comic_id
 
     @staticmethod
-    def get_real_rus_numbers():
+    def get_real_rus_ids():
         url = 'https://xkcd.ru/num'
         content = requests.get(url).content
         soup = BeautifulSoup(content, 'lxml')
-        li = soup.find('ul', {'class': 'list'}).find_all('li', {'class': 'real'})
+        lis = soup.find('ul', {'class': 'list'}).find_all('li', {'class': 'real'})
         nums = []
-        for i in li:
-            nums.append(int(i.text))
+        for li in lis:
+            nums.append(int(li.text))
         return tuple(nums)
 
     @staticmethod
-    def get_comic(number):
+    def get_comic(comic_id):
+        if comic_id == 404:
+            return {'comic_id': comic_id,
+                    'title': '404 ;DDD',
+                    'img_url': 'https://www.explainxkcd.com/wiki/images/9/92/not_found.png',
+                    'comment': 'Page not found!',
+                    'public_date': date(day=1, month=4, year=2008)
+                    }
+        else:
+            url = f'https://xkcd.com/{comic_id}/info.0.json'
 
-        url = f'https://xkcd.com/{number}/info.0.json'
-        response = requests.get(url)
+            info = requests.get(url).json()
 
-        if not response.ok:
-            pass
+            return {
+                'comic_id': comic_id,
+                'title': info.get('title'),
+                'img_url': info.get('img'),
+                'comment': info.get('alt'),
+                'public_date': date(day=int(info.get('day')),
+                                    month=int(info.get('month')),
+                                    year=int(info.get('year')))
+            }
 
-        info = response.json()
-
-        return {
-            'number': number,
-            'title': info.get('title'),
-            'img_url': info.get('img'),
-            'comment': info.get('alt'),
-            'public_date': date(day=int(info.get('day')), month=int(info.get('month')), year=int(info.get('year')))
-        }
-
-    def get_rus_version(self, number):
+    def get_rus_version(self, comic_id):
         keys = ('rus_title', 'rus_img_url', 'rus_comment')
 
-        if number not in self.real_rus_numbers:
+        if comic_id not in self._real_rus_ids:
             return dict(zip(keys, ['']*3))
         else:
-            url = f"https://xkcd.ru/{number}/"
+            url = f"https://xkcd.ru/{comic_id}"
             content = requests.get(url).content
             soup = BeautifulSoup(content, 'lxml')
             img = soup.find('img', {'border': 0})
@@ -64,36 +70,36 @@ class Parser:
             return dict(zip(keys, values))
 
     @staticmethod
-    def get_explain(number):
-        first_p = ''
-        for _ in range(3):
-            try:
-                url = f'https://www.explainxkcd.com/{number}'
+    def get_explanation(comic_id):
+        text, url = '', ''
+        attempts = 3
+        try:
+            for _ in range(attempts):
+                url = f'https://www.explainxkcd.com/{comic_id}'
                 content = requests.get(url).content
                 soup = BeautifulSoup(content, 'lxml')
-                first_p = soup.find_all('div', {'class': 'mw-parser-output'})[-1].find('p').text
+                first_p = soup.find_all('div', {'class': 'mw-parser-output'})[-1].find('p')
+                text = first_p.text
+                for el in first_p.find_next_siblings()[:12]:
+                    if el.name in ('p', 'li'):
+                        text = text + el.text + '\n'
+                text = text[:1000].strip()
+                time.sleep(0.1)
                 break
-            except Exception as err:
-                print(f'Something went wrong in get_explain for {number} comic: {err}')
-        return first_p
+        except Exception as err:
+            print(f'Something went wrong in get_explanation() for {comic_id} comic: {err}')
 
-    def get_full_comic_data(self, number):
-        try:
-            full_data = self.get_comic(number)
-            rus_data = self.get_rus_version(number)
-            explain_text = self.get_explain(number)
-            if not explain_text:
-                raise Exception('Incorrect getting explain_text!!!')
-            full_data.update(rus_data)
-            full_data['explain_text'] = explain_text
+        return text, url
 
-            return full_data
-        except Exception as e:
-            print(f'Something went wrong with {number} comic handling...: ', e)
+    def get_full_comic_data(self, comic_id):
+        comic_data = self.get_comic(comic_id)
+        rus_data = self.get_rus_version(comic_id)
+        comic_data.update(rus_data)
+        return comic_data
 
 
 if __name__ == "__main__":
-    p = Parser()
-    data = p.get_rus_version(666)
-    print(data.values())
+    pass
+
+
 
