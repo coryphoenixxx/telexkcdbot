@@ -1,10 +1,10 @@
 import asyncio
 import random
 
-from aiogram import Bot, Dispatcher, executor
+from aiogram import Bot, Dispatcher
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, ParseMode
 from aiogram.dispatcher.filters import Text
-from aiogram.utils.executor import start_webhook
+from aiogram.utils.executor import start_webhook, start_polling
 
 from parser_ import Parser
 from config_ import Config
@@ -22,7 +22,7 @@ WEBHOOK_PATH = f'/webhook/{Config.API_TOKEN}'
 WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
 
 WEBAPP_HOST = '0.0.0.0'
-WEBAPP_PORT = Config.WEBAPP_PORT
+PORT = Config.PORT
 
 parser = Parser()
 users_db = UsersDatabase()
@@ -57,6 +57,7 @@ def get_keyboard():
 
 
 async def on_startup(dp: Dispatcher):
+    await bot.delete_webhook()
     await dp.skip_updates()
     await users_db.create_users_database()
     await users_db.add_new_user(Config.ADMIN_ID)
@@ -170,7 +171,7 @@ async def echo(message: Message):
 
 
 def get_users():
-    for user_id in (1219788543,):
+    for user_id in (Config.ADMIN_ID,):
         yield user_id
 
 
@@ -202,14 +203,15 @@ def repeat(coro, loop):
 if __name__ == "__main__":
     # loop = asyncio.get_event_loop()
     # loop.call_later(5, repeat, check_last_comic, loop)
-
-    # executor.start_polling(dp, on_startup=notify_admin)
-    start_webhook(
-        dispatcher=dp,
-        webhook_path=WEBHOOK_PATH,
-        on_startup=on_startup,
-        # on_shutdown=on_shutdown,
-        skip_updates=True,
-        host=WEBAPP_HOST,
-        port=WEBAPP_PORT,
-    )
+    if Config.HEROKU:
+        start_webhook(
+            dispatcher=dp,
+            webhook_path=WEBHOOK_PATH,
+            on_startup=on_startup,
+            # on_shutdown=on_shutdown,
+            skip_updates=True,
+            host=WEBAPP_HOST,
+            port=PORT,
+        )
+    else:
+        start_polling(dp, on_startup=on_startup)

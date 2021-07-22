@@ -133,26 +133,69 @@ class ComicsDatabase:
 
 
 if __name__ == "__main__":
-    pass
+    from concurrent.futures import ThreadPoolExecutor
     from parser_ import Parser
+    import asyncio
 
-    # parser = Parser()
-    # latest = parser.get_and_update_latest_comic_id()
+    parser = Parser()
+    comics_db = ComicsDatabase()
+    latest = parser.get_and_update_latest_comic_id()
+    comics_values = []
 
-    # db.create_comics_database()
+    def parse(comic_id):
+        data = parser.get_full_comic_data(comic_id)
+        comics_values.append(tuple(data.values()))
 
-    # def parse_and_write_to_db(comic_id):
+    async def write_to_db():
+        await comics_db.create_comics_database()
+        for val in comics_values:
+            await comics_db.add_new_comic(val)
+
+
+    with ThreadPoolExecutor(max_workers=20) as executor:
+        executor.map(parse, iter(range(1, latest + 1)))
+
+    event_loop = asyncio.get_event_loop()
+    event_loop.run_until_complete(write_to_db())
+    event_loop.close()
+
+
+
+
+
+
+
+
+    # async def create():
+    #     await comics_db.create_comics_database()
+    #
+    # async def func(comic_id):
     #     data = parser.get_full_comic_data(comic_id)
-    #     comic_values = tuple(data.values())
-    #     comics_db.add_new_comic(comic_values)
+    #     await comics_db.add_new_comic(data)
     #
+    #     import asyncio
+    #     from parser_ import Parser
     #
-    # from concurrent.futures import ThreadPoolExecutor
-    # with ThreadPoolExecutor(max_workers=20) as executor:
-    #     executor.map(parse_and_write_to_db, iter(range(1, latest)))
+    #     parser = Parser()
+    #     latest = parser.get_and_update_latest_comic_id()
+    #
+    #     comics_db = ComicsDatabase()
+    #
+    #     async def func():
+    #         await comics_db.create_comics_database()
+    #         for i in range(1, latest + 1):
+    #             print(i)
+    #             data = parser.get_full_comic_data(i)
+    #             await comics_db.add_new_comic(tuple(data.values()))
+    #
+    #     L = [func()]
+    #     event_loop = asyncio.get_event_loop()
+    #     event_loop.run_until_complete(asyncio.gather(*L))
+    #     event_loop.close()
 
-    # db = ComicsDatabase()
-    # print(db.get_comic_data_by_title('zeppelin'))
+
+
+
 
 
 
