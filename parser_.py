@@ -5,7 +5,6 @@ from bs4 import BeautifulSoup
 
 
 class Parser:
-    """1608, 1190, 1416, 404, 1037, 1538, 1953, 1965 - defective"""
     def __init__(self):
         self.latest_comic_id = self.get_and_update_latest_comic_id()
         self._real_rus_ids = self.get_real_rus_ids()
