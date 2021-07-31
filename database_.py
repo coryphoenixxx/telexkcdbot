@@ -2,18 +2,6 @@ import aiosqlite as aiosql
 import json
 
 
-def add_to_json(s, value):
-    json_obj = json.loads(s)
-    json_obj.append(value)
-    return json.dumps(json_obj)
-
-
-def remove_from_json(s, value):
-    json_obj = json.loads(s)
-    json_obj.remove(value)
-    return json.dumps(json_obj)
-
-
 class UsersDatabase:
     _db_path = "databases/users.db"
 
@@ -201,7 +189,7 @@ if __name__ == "__main__":
 
     parser = Parser()
     comics_db = ComicsDatabase()
-    latest = parser.get_latest_comic_id()
+    latest = parser.latest_comic_id
     comics_values = []
 
 
