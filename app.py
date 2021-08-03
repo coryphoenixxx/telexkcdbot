@@ -1,8 +1,10 @@
 import asyncio
 import aioschedule
 
-from aiogram.utils.executor import start_webhook, start_polling
 from aiogram import Dispatcher
+from aiogram.dispatcher.middlewares import BaseMiddleware
+from aiogram.types import Update
+from aiogram.utils.executor import start_webhook, start_polling
 
 from loader import users_db, bot
 from config_ import *
@@ -18,9 +20,8 @@ async def scheduler():
 
 
 async def on_startup(dp: Dispatcher):
-    await bot.delete_webhook()
     await users_db.create()
-    await users_db.new_user(ADMIN_ID)
+    await users_db.add_user(ADMIN_ID)
     await check_last_comic()
     asyncio.create_task(scheduler())
     await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
@@ -34,6 +35,16 @@ async def on_shutdown(dp: Dispatcher):
 if __name__ == "__main__":
     from handlers import dp
 
+    class BigBrother(BaseMiddleware):
+        @staticmethod
+        async def on_pre_process_update(update: Update, data: dict):
+            if update.message:
+                print(f'Message: {update.message.from_user.id}')
+            if update.callback_query:
+                print(f'Call: {update.callback_query.from_user.id}')
+
+    dp.middleware.setup((BigBrother()))
+
     if HEROKU:
         start_webhook(
             dispatcher=dp,
@@ -45,6 +56,11 @@ if __name__ == "__main__":
             port=PORT,
         )
     else:
+        # run redis locally
+        import subprocess
+
+        DETACHED_PROCESS = 0x00000008
+        subprocess.Popen('./64bit/redis-server.exe', creationflags=DETACHED_PROCESS, close_fds=True)
         start_polling(dispatcher=dp,
                       skip_updates=True,
                       on_startup=on_startup,

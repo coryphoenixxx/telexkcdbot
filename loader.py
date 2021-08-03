@@ -5,7 +5,7 @@ from aiogram import Bot
 from aiogram.types import ParseMode
 
 
-from database_ import ComicsDatabase, UsersDatabase
+from databases import ComicsDatabase, UsersDatabase
 from config_ import API_TOKEN
 
 

@@ -1,11 +1,13 @@
 import requests
+import asyncio
+
 from datetime import date
 from bs4 import BeautifulSoup
 
 
 class Parser:
     def __init__(self):
-        self.real_rus_ids = self._get_real_rus_ids()
+        self.real_ru_ids = self._get_real_ru_ids()
         self._specific_comic_ids = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
                                     1506, 1525, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
 
@@ -24,7 +26,7 @@ class Parser:
         else:
             print(f"Error in _get_soup() for {url}")
 
-    def _get_real_rus_ids(self):
+    def _get_real_ru_ids(self):
         soup = self._get_soup('https://xkcd.ru/num')
         lis = soup.find('ul', {'class': 'list'}).find_all('li', {'class': 'real'})
         nums = []
@@ -60,19 +62,21 @@ class Parser:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png'
             if comic_id == 658:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/1/1c/orbitals.png'
+            if comic_id == 1732:
+                comic_data['img_url'] = 'https://explainxkcd.com/wiki/images/d/dc/earth_temperature_timeline.png'
             return comic_data
 
-    async def get_rus_version(self, comic_id):
-        keys = ('rus_title', 'rus_img_url', 'rus_comment')
+    async def get_ru_version(self, comic_id):
+        keys = ('ru_title', 'ru_img_url', 'ru_comment')
 
-        if comic_id not in self.real_rus_ids:
+        if comic_id not in self.real_ru_ids:
             return dict(zip(keys, ['']*3))
         else:
             soup = self._get_soup(f'https://xkcd.ru/{comic_id}')
             img = soup.find('img', {'border': 0})
             comment = soup.find('div', {'class': 'comics_text'}).text
 
-            values = (img['alt'], img['src'], comment)
+            values = (img['alt'], img['src'], comment if comment else '...')
             return dict(zip(keys, values))
 
     async def get_explanation(self, comic_id):
@@ -96,20 +100,13 @@ class Parser:
 
     async def get_full_comic_data(self, comic_id):
         full_comic_data = await self.get_comic_data(comic_id)
-        rus_data = await self.get_rus_version(comic_id)
-        full_comic_data.update(rus_data)
+        ru_data = await self.get_ru_version(comic_id)
+        full_comic_data.update(ru_data)
         return full_comic_data
 
 
 parser = Parser()
 
-if __name__ == "__main__":
-    # TEST
-    import pprint
-    import asyncio
 
-    async def test():
-        data = await parser.get_full_comic_data(500)
-        pprint.pprint(data)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(test())
+if __name__ == "__main__":
+    pass
