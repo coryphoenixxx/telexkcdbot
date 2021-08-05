@@ -25,3 +25,16 @@ async def preprocess_text(text: str):
     permissible = ascii_letters + digits + ' '
     text = ''.join([c for c in text if c in permissible])
     return text[:30].strip()
+
+
+def rate_limit(limit: int, key=None):
+    """
+    Decorator for configuring rate limit and key in different functions.
+    """
+    def decorator(func):
+        setattr(func, 'throttling_rate_limit', limit)
+        if key:
+            setattr(func, 'throttling_key', key)
+        return func
+
+    return decorator
