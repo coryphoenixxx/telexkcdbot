@@ -1,4 +1,4 @@
-# TELE-XKCD-BOT
+# TELE_XKCD_BOT
 
 Functional telegram bot for convenient reading xkcd comics.
 
