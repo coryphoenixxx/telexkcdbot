@@ -11,7 +11,7 @@ class UsersDatabase:
             user_id INTEGER UNIQUE,
             current_comic INTEGER DEFAULT 1,
             bookmarks JSON DEFAULT '[]',
-            is_subscribed INTEGER DEFAULT 0, 
+            is_subscribed INTEGER DEFAULT 1, 
             lang VARCHAR(3) DEFAULT 'en'
             );"""
         async with aiosql.connect(self._db_path) as db:
@@ -27,6 +27,13 @@ class UsersDatabase:
             await db.execute(query)
             await db.commit()
 
+    async def delete_user(self, user_id):
+        query = f"""DELETE FROM users
+                    WHERE user_id == {user_id};"""
+        async with aiosql.connect(self._db_path) as db:
+            await db.execute(query)
+            await db.commit()
+
     async def get_cur_comic_id(self, user_id):
         query = f"""SELECT current_comic FROM users 
                     WHERE user_id == {user_id};"""
@@ -35,7 +42,18 @@ class UsersDatabase:
                 res = await cur.fetchone()
                 return res[0]
 
+    async def get_all_users_ids(self):
+        query = f"""SELECT user_id FROM users;"""
+        async with aiosql.connect(self._db_path) as db:
+            async with db.execute(query) as cur:
+                res = await cur.fetchall()
+                if not res:
+                    return []
+                else:
+                    return [user_id[0] for user_id in res]
+
     async def get_user_lang(self, user_id):
+        """FOR HANDLING RU BUTTON"""
         query = f"""SELECT lang FROM users
                     WHERE user_id == {user_id};"""
         async with aiosql.connect(self._db_path) as db:
@@ -44,6 +62,7 @@ class UsersDatabase:
                 return res[0]
 
     async def set_user_lang(self, user_id, lang):
+        """FOR HANDLING RU BUTTON"""
         query = f"""UPDATE users SET lang = '{lang}' 
                     WHERE user_id == {user_id};"""
         async with aiosql.connect(self._db_path) as db:
@@ -104,7 +123,7 @@ class UsersDatabase:
             await db.commit()
 
     @property
-    async def len(self):
+    async def length(self):
         query = """SELECT COUNT (*) FROM users;"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(query) as cur:
@@ -126,9 +145,9 @@ class ComicsDatabase:
             comment MESSAGE_TEXT DEFAULT '...',
             public_date DATE DEFAULT '',
             is_specific INTEGER DEFAULT 0,
-            ru_title VARCHAR(128) DEFAULT '',
-            ru_img_url VARCHAR(128) DEFAULT '',
-            ru_comment MESSAGE_TEXT DEFAULT ''
+            ru_title VARCHAR(128) DEFAULT '...',
+            ru_img_url VARCHAR(128) DEFAULT '...',
+            ru_comment MESSAGE_TEXT DEFAULT '...'
             );"""
         async with aiosql.connect(self._db_path) as db:
             await db.execute(query)
@@ -171,7 +190,7 @@ class ComicsDatabase:
                 else:
                     return [el[0] for el in res]
 
-    async def get_ru_version_data(self, comic_id):
+    async def get_ru_comic_data_by_id(self, comic_id):
         query = f"""SELECT comic_id, ru_title, ru_img_url, ru_comment, public_date, is_specific FROM comics
                     WHERE comic_id == {comic_id};"""
         async with aiosql.connect(self._db_path) as db:
@@ -187,8 +206,21 @@ class ComicsDatabase:
                 res = await cur.fetchone()
                 return res[0]
 
+    async def change_spec_status(self, comic_id):
+        get_query = f"""SELECT is_specific FROM comics
+                        WHERE comic_id == {comic_id};"""
+        set_query = """UPDATE comics SET is_specific = {value}
+                       WHERE comic_id == {comic_id};"""
+        async with aiosql.connect(self._db_path) as db:
+            async with db.execute(get_query) as cur:
+                res = await cur.fetchone()
+
+                cur_value = res[0]
+                await db.execute(set_query.format(value=int(not cur_value), comic_id=comic_id))
+                await db.commit()
+
     @property
-    async def len(self):
+    async def length(self):
         query = """SELECT COUNT (*) FROM comics;"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(query) as cur:
@@ -201,6 +233,7 @@ if __name__ == "__main__":
     """FILL COMIC_DB"""
 
     import asyncio
+    from tqdm import trange
     from parser_ import Parser
 
     parser = Parser()
@@ -209,12 +242,14 @@ if __name__ == "__main__":
     comics_values = []
 
     async def parse():
-        for comic_id in range(1, latest + 1):
+        print('Parsing:')
+        for comic_id in trange(1, latest + 1):
             data = await parser.get_full_comic_data(comic_id)
             comics_values.append(tuple(data.values()))
 
     async def write_to_db():
         await comics_db.create_comics_database()
+        print('Writing...')
         for val in comics_values:
             await comics_db.add_new_comic(val)
 

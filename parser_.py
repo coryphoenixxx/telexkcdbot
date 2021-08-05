@@ -4,6 +4,8 @@ import asyncio
 from datetime import date
 from bs4 import BeautifulSoup
 
+from loader import logger
+
 
 class Parser:
     def __init__(self):
@@ -23,8 +25,6 @@ class Parser:
         if response.ok:
             content = response.content
             return BeautifulSoup(content, 'lxml')
-        else:
-            print(f"Error in _get_soup() for {url}")
 
     def _get_real_ru_ids(self):
         soup = self._get_soup('https://xkcd.ru/num')
@@ -57,13 +57,12 @@ class Parser:
                                     year=int(comic_json.get('year'))),
                 'is_specific': 1 if comic_id in self._specific_comic_ids else 0
             }
+
             # I don't know why telegram don't want to upload original image!
             if comic_id == 109:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png'
             if comic_id == 658:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/1/1c/orbitals.png'
-            if comic_id == 1732:
-                comic_data['img_url'] = 'https://explainxkcd.com/wiki/images/d/dc/earth_temperature_timeline.png'
             return comic_data
 
     async def get_ru_version(self, comic_id):
@@ -75,8 +74,9 @@ class Parser:
             soup = self._get_soup(f'https://xkcd.ru/{comic_id}')
             img = soup.find('img', {'border': 0})
             comment = soup.find('div', {'class': 'comics_text'}).text
+            comment = comment if comment else '...'
 
-            values = (img['alt'], img['src'], comment if comment else '...')
+            values = (img['alt'], img['src'], comment)
             return dict(zip(keys, values))
 
     async def get_explanation(self, comic_id):
@@ -90,10 +90,13 @@ class Parser:
                 for el in first_p.find_next_siblings()[:12]:
                     if el.name in ('p', 'li'):
                         text = text + el.text + '\n'
-                text = text[:1000].strip()
+                text = text[:1000].strip().replace('<', '').replace('>', '')
+                text = f"{text}...<i><b><a href='{url}'>\n[continue]</a></b></i>"
                 return text, url
+            except AttributeError:
+                pass
             except Exception as err:
-                print(f'Error in get_explanation() for {comic_id}: {err}')  # TODO: add to log
+                logger.error(f'Error in get_explanation() for {comic_id}: {err}')
                 await asyncio.sleep(0.3)
 
         return "...", url
