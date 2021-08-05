@@ -7,9 +7,17 @@ Functional telegram bot for convenient reading xkcd comics.
 - Russian translation of comic (if it exists).
 - Bookmarking.
 - Searching by number and word.
-- Hidden features for admin)
+ 
+Hidden features for admin:
+- Antiflood.
+- Logging.
+- Broadcasting.
+- Getting logs.
+
 
 ## Tech Stack
 
 - aiogram
 - aiosqlite
+- loguru
+- bs4 and requests
