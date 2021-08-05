@@ -18,3 +18,10 @@ bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
 
 logger.add('actions.log', rotation='5 MB', level='INFO')
 logger.add('errors.log', rotation='500 KB', level='ERROR', backtrace=True, diagnose=True)
+
+
+async def preprocess_text(text: str):
+    from string import ascii_letters, digits
+    permissible = ascii_letters + digits + ' '
+    text = ''.join([c for c in text if c in permissible])
+    return text[:30].strip()

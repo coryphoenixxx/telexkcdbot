@@ -12,10 +12,11 @@ from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTP
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from contextlib import suppress
 
-from loader import comics_db, users_db, bot, loop, logger
+from loader import comics_db, users_db, bot, loop, logger, preprocess_text
 from keyboard_ import kboard
 from parser_ import parser
 from config_ import *
+from app import rate_limit
 
 
 # storage = RedisStorage2('localhost', 6379, db=0)
@@ -50,11 +51,11 @@ async def broadcast_new_comic():
                 await send_comic(user_id, data=comic_data)
                 count += 1
                 if count % 20 == 0:
-                    await asyncio.sleep(0.5)  # 20 messages per second (Limit: 30 messages per second)
+                    await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
         except Exception as err:
             logger.error("Can't send new comic!", err)
         finally:
-            await bot.send_message(int(ADMIN_ID), f"{count} messages were successfully sent.")
+            await bot.send_message(ADMIN_ID, f"{count} messages were successfully sent.")
 
 
 async def send_comic(user_id: int, data: dict, keyboard=kboard.navigation):
@@ -104,6 +105,7 @@ async def send_comic(user_id: int, data: dict, keyboard=kboard.navigation):
 
 
 @dp.message_handler(CommandStart())
+@rate_limit(5)
 async def start(msg: Message):
     user_id = msg.from_user.id
     await users_db.add_user(user_id)
@@ -116,23 +118,8 @@ async def start(msg: Message):
 """MENU"""
 
 
-@dp.callback_query_handler(Text(endswith='subscribe'))
-async def subscriber(call: CallbackQuery):
-    user_id = call.from_user.id
-    await users_db.subscribe(user_id) if call.data == 'subscribe' else await users_db.unsubscribe(user_id)
-
-    with suppress(MessageNotModified):
-        if 'subscribed' in call.message.text:
-            await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
-        else:
-            await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
-
-    inner_text = f"{call.data}d for" if call.data == 'subscribe' else f"{call.data}d from"
-    await call.message.answer(f"❗ <b>You have been {inner_text} notification you whenever a new xkcd is released!</b>",
-                              reply_markup=await kboard.menu(user_id))
-
-
 @dp.message_handler(commands=['menu', 'help'])
+@rate_limit(5)
 async def show_menu(msg: Message):
     help_text = """
 Type in the <u><b>comic number</b></u> and I'll find it for you!
@@ -152,6 +139,34 @@ If something goes wrong or looks strange try to view a comic in your browser (I'
     await msg.answer(help_text, reply_markup=await kboard.menu(msg.from_user.id))
 
 
+@dp.callback_query_handler(Text(endswith='subscribe'))
+async def subscriber(call: CallbackQuery):
+    user_id = call.from_user.id
+    await users_db.subscribe(user_id) if call.data == 'subscribe' else await users_db.unsubscribe(user_id)
+
+    with suppress(MessageNotModified):
+        if 'subscribed' in call.message.text:
+            await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
+        else:
+            await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
+
+    inner_text = f"{call.data}d for" if call.data == 'subscribe' else f"{call.data}d from"
+    await call.message.answer(f"❗ <b>You have been {inner_text} notification you whenever a new xkcd is released!</b>",
+                              reply_markup=await kboard.menu(user_id))
+
+
+@dp.callback_query_handler(Text('user_bookmarks'))
+async def show_bookmarks(call: CallbackQuery, state: FSMContext):
+    bookmarks_list = await users_db.get_bookmarks(call.from_user.id)
+    len_ = len(bookmarks_list)
+    if not len_:
+        await call.message.answer(f"❗ You've no bookmarks.")
+    else:
+        await call.message.answer(f"❗ You've <u><b>{len_}</b></u> bookmarks.")
+        await state.update_data(list=bookmarks_list)
+        await trav_step(call, state)
+
+
 @dp.callback_query_handler(Text(endswith='_ru'))
 async def set_ru_button(call: CallbackQuery):
     action = call.data[:-3]
@@ -167,18 +182,6 @@ async def set_ru_button(call: CallbackQuery):
 async def read_xkcd(msg: Message):
     comic_data = await comics_db.get_comic_data_by_id(1)
     await send_comic(msg.from_user.id, data=comic_data)
-
-
-@dp.callback_query_handler(Text('user_bookmarks'))
-async def show_bookmarks(call: CallbackQuery, state: FSMContext):
-    bookmarks_list = await users_db.get_bookmarks(call.from_user.id)
-    len_ = len(bookmarks_list)
-    if not len_:
-        await call.message.answer(f"❗ You've no bookmarks.")
-    else:
-        await call.message.answer(f"❗ You've <u><b>{len_}</b></u> bookmarks.")
-        await state.update_data(list=bookmarks_list)
-        await trav_step(call, state)
 
 
 """MAIN"""
@@ -309,7 +312,7 @@ async def trav_step(call: (CallbackQuery, Message), state: FSMContext):
 def admin(func):
     async def wrapper(msg: Message):
         if msg.from_user.id != int(ADMIN_ID):
-            await msg.answer('Nope!')
+            await msg.answer('Nope!)))')
         else:
             await func(msg)
     return wrapper
@@ -317,8 +320,8 @@ def admin(func):
 
 @dp.message_handler(commands='admin')
 @admin
-async def admin_panel(message: Message):
-    await bot.send_message(int(ADMIN_ID), '*** ADMIN PANEL ***', reply_markup=await kboard.admin_panel())
+async def admin_panel(msg: Message):
+    await bot.send_message(ADMIN_ID, '*** ADMIN PANEL ***', reply_markup=await kboard.admin_panel())
 
 
 @dp.callback_query_handler(Text('full_test'))
@@ -342,15 +345,15 @@ async def full_test(call: CallbackQuery):
             await asyncio.sleep(3)
         except Exception as err:
             logger.error(f"Error with {comic_id}: {err}")
-            await asyncio.sleep(601)
+            await asyncio.sleep(601)  # telegram blocks bot for 10 minutes for flooding
 
 
 @dp.callback_query_handler(Text('change_spec_status'))
 async def change_spec_status(call: CallbackQuery):
-    cur_comic_id = await users_db.get_cur_comic_id(int(ADMIN_ID))
+    cur_comic_id = await users_db.get_cur_comic_id(ADMIN_ID)
     await comics_db.change_spec_status(cur_comic_id)
     with suppress(MessageNotModified):
-        await bot.edit_message_text(chat_id=int(ADMIN_ID),
+        await bot.edit_message_text(chat_id=ADMIN_ID,
                                     message_id=call.message.message_id,
                                     text=f"It's done {cur_comic_id}, Your Mightiness!",
                                     reply_markup=await kboard.admin_panel())
@@ -364,7 +367,7 @@ async def send_log(call: CallbackQuery):
         filename = 'actions.log' if 'actions' in call.data else 'errors.log'
 
     try:
-        await bot.send_document(int(ADMIN_ID), InputFile(filename))
+        await bot.send_document(ADMIN_ID, InputFile(filename))
     except BadRequest as err:
         logger.error(err)
 
@@ -373,7 +376,7 @@ async def send_log(call: CallbackQuery):
 async def users_num(call: CallbackQuery):
     num = await users_db.length
     with suppress(MessageNotModified):
-        await bot.edit_message_text(chat_id=int(ADMIN_ID),
+        await bot.edit_message_text(chat_id=ADMIN_ID,
                                     message_id=call.message.message_id,
                                     text=f"We already have {num} users caught in our net, Your Grace!",
                                     reply_markup=await kboard.admin_panel())
@@ -394,7 +397,7 @@ async def cancel_handler(msg: Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
         return
-
+    await bot.send_message(ADMIN_ID, 'Canceled.')
     await state.finish()
 
 
@@ -406,7 +409,7 @@ async def process_broadcast_message(msg: Message, state: FSMContext):
             await bot.send_message(user_id, '❗❗❗ <b>ADMIN MESSAGE</b>: ' + msg.text)
             count += 1
             if count % 20 == 0:
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(1)
         except (BotBlocked, UserDeactivated):
             await users_db.delete_user(user_id)
             continue
@@ -419,28 +422,29 @@ async def process_broadcast_message(msg: Message, state: FSMContext):
 
 
 @dp.message_handler()
+@rate_limit(3)
 async def text_input(msg: Message, state: FSMContext):
-    user_input = msg.text.lower()
+    user_input = msg.text
     if user_input.isdigit():
-        latest = parser.latest_comic_id
         comic_id = int(user_input)
+        latest = parser.latest_comic_id
         if (comic_id > latest) or (comic_id <= 0):
-            await msg.answer(f"❗❗❗ Please, enter a number between 1 and {latest}!")
+            await msg.reply(f"❗❗❗ Please, enter a number between 1 and {latest}!")
         else:
             comic_data = await comics_db.get_comic_data_by_id(comic_id)
             await users_db.update_cur_comic_id(msg.from_user.id, comic_id)
             await send_comic(msg.from_user.id, data=comic_data)
     else:
+        user_input = await preprocess_text(user_input)
         found_comics_list = await comics_db.get_comics_ids_by_title(user_input)
-        if not found_comics_list:
-            await msg.answer(f"❗ There's no such comic title!")
+        if not found_comics_list or not user_input:
+            await msg.reply(f"❗ There's no such comic title!")
         else:
             len_ = len(found_comics_list)
             if len_ == 1:
-                await msg.answer(f"❗ I found one:")
+                await msg.reply(f"❗ I found one:")
                 await send_comic(msg.from_user.id, data=found_comics_list[0])
             elif len_ >= 2:
-                await msg.answer(f"❗ I found <u><b>{len_}</b></u> xkcd comics containing "
-                                 f"<b>\"{user_input}\"</b> in their titles.")
+                await msg.reply(f"❗ I found <u><b>{len_}</b></u> xkcd comics")
                 await state.update_data(list=found_comics_list)
                 await trav_step(msg, state)  # dirty, but works!
