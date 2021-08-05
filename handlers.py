@@ -12,11 +12,10 @@ from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTP
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from contextlib import suppress
 
-from loader import comics_db, users_db, bot, loop, logger, preprocess_text
+from loader import comics_db, users_db, bot, loop, logger, preprocess_text, rate_limit
 from keyboard_ import kboard
 from parser_ import parser
 from config_ import *
-from app import rate_limit
 
 
 # storage = RedisStorage2('localhost', 6379, db=0)

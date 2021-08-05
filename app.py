@@ -51,19 +51,6 @@ async def on_startup(dp: Dispatcher):
 """ANTIFLOOD FROM DOC"""
 
 
-def rate_limit(limit: int, key=None):
-    """
-    Decorator for configuring rate limit and key in different functions.
-    """
-    def decorator(func):
-        setattr(func, 'throttling_rate_limit', limit)
-        if key:
-            setattr(func, 'throttling_key', key)
-        return func
-
-    return decorator
-
-
 class BigBrother(BaseMiddleware):
     def __init__(self, limit=DEFAULT_RATE_LIMIT, key_prefix='antiflood_'):
         self.rate_limit = limit+5
