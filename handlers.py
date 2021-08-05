@@ -1,11 +1,13 @@
 import asyncio
 
 from random import randint
+
 from aiogram.types import Message, CallbackQuery, InputFile
 from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text, CommandStart
-from aiogram.contrib.fsm_storage.redis import RedisStorage2
+# from aiogram.contrib.fsm_storage.redis import RedisStorage2
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from contextlib import suppress
@@ -16,7 +18,8 @@ from parser_ import parser
 from config_ import *
 
 
-storage = RedisStorage2('localhost', 6379, db=0)
+# storage = RedisStorage2('localhost', 6379, db=0)
+storage = MemoryStorage()
 dp = Dispatcher(bot, loop=loop, storage=storage)
 
 
