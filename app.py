@@ -5,14 +5,50 @@ from aiogram import Dispatcher
 from aiogram.types import Update, Message
 from aiogram.dispatcher import DEFAULT_RATE_LIMIT
 from aiogram.dispatcher.handler import CancelHandler, current_handler
+
 from aiogram.dispatcher.middlewares import BaseMiddleware
-from aiogram.utils.exceptions import Throttled
+from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated
 from aiogram.utils.executor import start_webhook, start_polling
 from pathlib import Path
 
-from loader import users_db, bot, logger, preprocess_text
+from loader import users_db, comics_db, bot, logger, preprocess_text
+from parser_ import parser
 from config_ import *
-from handlers import broadcast_new_comic
+from handlers import send_comic
+
+
+async def broadcast_new_comic():
+    async def get_subscribed_users():
+        for user_id in (await users_db.subscribed_users):
+            yield user_id
+
+    db_last_comic_id = await comics_db.get_last_comic_id()
+    real_last_comic_id = parser.latest_comic_id
+
+    if real_last_comic_id > db_last_comic_id:
+        for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
+            data = await parser.get_full_comic_data(comic_id)
+            comic_values = tuple(data.values())
+            await comics_db.add_new_comic(comic_values)
+
+        count = 0
+        try:
+            async for user_id in get_subscribed_users():
+                try:
+                    await bot.send_message(user_id, "<b>🔥 And here\'s new comic!</b> 🔥")
+                except (BotBlocked, UserDeactivated):
+                    await users_db.delete_user(user_id)
+                    continue
+
+                comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
+                await send_comic(user_id, data=comic_data)
+                count += 1
+                if count % 20 == 0:
+                    await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
+        except Exception as err:
+            logger.error("Can't send new comic!", err)
+        finally:
+            await bot.send_message(ADMIN_ID, f"{count} messages were successfully sent.")
 
 
 async def checker():
@@ -41,10 +77,15 @@ async def cleaner():
 async def on_startup(dp: Dispatcher):
     await users_db.create()
     await users_db.add_user(ADMIN_ID)
+
     asyncio.create_task(checker())
     asyncio.create_task(cleaner())
-    await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+
+    if HEROKU:
+        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+
     await bot.send_message(chat_id=ADMIN_ID, text="<b>I'm here, in Your Power, My Lord...</b>")
+
     logger.info("Bot started.")
 
 
@@ -53,7 +94,7 @@ async def on_startup(dp: Dispatcher):
 
 class BigBrother(BaseMiddleware):
     def __init__(self, limit=DEFAULT_RATE_LIMIT, key_prefix='antiflood_'):
-        self.rate_limit = limit+5
+        self.rate_limit = limit
         self.prefix = key_prefix
         super(BigBrother, self).__init__()
 

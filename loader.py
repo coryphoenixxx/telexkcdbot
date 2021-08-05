@@ -2,12 +2,13 @@ import asyncio
 
 
 from aiogram import Bot
-from aiogram.types import ParseMode
+from aiogram.types import ParseMode, Message
 
 
 from databases import ComicsDatabase, UsersDatabase
-from config_ import API_TOKEN
+from config_ import API_TOKEN, ADMIN_ID
 from loguru import logger
+from string import ascii_letters, digits
 
 
 users_db = UsersDatabase()
@@ -21,10 +22,10 @@ logger.add('errors.log', rotation='500 KB', level='ERROR', backtrace=True, diagn
 
 
 async def preprocess_text(text: str):
-    from string import ascii_letters, digits
-    permissible = ascii_letters + digits + ' '
-    text = ''.join([c for c in text if c in permissible])
-    return text[:30].strip()
+    text = text.strip()
+    permitted = ascii_letters + digits + 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя' + ' '
+    text = ''.join([ch for ch in text if ch in permitted])
+    return text[:30]
 
 
 def rate_limit(limit: int, key=None):
@@ -36,5 +37,13 @@ def rate_limit(limit: int, key=None):
         if key:
             setattr(func, 'throttling_key', key)
         return func
+    return decorator
 
+
+def admin(func):
+    async def decorator(msg: Message):
+        if msg.from_user.id != int(ADMIN_ID):
+            await msg.answer('Nope!)))')
+        else:
+            await func(msg)
     return decorator

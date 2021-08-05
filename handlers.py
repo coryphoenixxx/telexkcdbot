@@ -6,55 +6,20 @@ from aiogram.types import Message, CallbackQuery, InputFile
 from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text, CommandStart
-# from aiogram.contrib.fsm_storage.redis import RedisStorage2
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from contextlib import suppress
 
-from loader import comics_db, users_db, bot, loop, logger, preprocess_text, rate_limit
+from loader import comics_db, users_db, bot, loop, logger, preprocess_text, rate_limit, admin
 from keyboard_ import kboard
 from parser_ import parser
 from config_ import *
 
-
+# from aiogram.contrib.fsm_storage.redis import RedisStorage2
 # storage = RedisStorage2('localhost', 6379, db=0)
 storage = MemoryStorage()
 dp = Dispatcher(bot, loop=loop, storage=storage)
-
-
-async def broadcast_new_comic():
-    async def get_subscribed_users():
-        for user_id in (await users_db.subscribed_users):
-            yield user_id
-
-    db_last_comic_id = await comics_db.get_last_comic_id()
-    real_last_comic_id = parser.latest_comic_id
-
-    if real_last_comic_id > db_last_comic_id:
-        for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
-            data = await parser.get_full_comic_data(comic_id)
-            comic_values = tuple(data.values())
-            await comics_db.add_new_comic(comic_values)
-
-        count = 0
-        try:
-            async for user_id in get_subscribed_users():
-                try:
-                    await bot.send_message(user_id, "<b>🔥 And here\'s new comic!</b> 🔥")
-                except (BotBlocked, UserDeactivated):
-                    await users_db.delete_user(user_id)
-                    continue
-
-                comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
-                await send_comic(user_id, data=comic_data)
-                count += 1
-                if count % 20 == 0:
-                    await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
-        except Exception as err:
-            logger.error("Can't send new comic!", err)
-        finally:
-            await bot.send_message(ADMIN_ID, f"{count} messages were successfully sent.")
 
 
 async def send_comic(user_id: int, data: dict, keyboard=kboard.navigation):
@@ -128,7 +93,7 @@ Type in the <u><b>comic title</b></u> and I'll try to find it for you!
 <u><b>In menu you can:</b></u>
 — subscribe for a new comic.
 — read comics from your bookmarks.
-— remove RU button if you don't need it.
+— remove RU button (under the comic) if you don't need it.
 — start xkcding!
 
 ***
@@ -143,7 +108,7 @@ async def subscriber(call: CallbackQuery):
     user_id = call.from_user.id
     await users_db.subscribe(user_id) if call.data == 'subscribe' else await users_db.unsubscribe(user_id)
 
-    with suppress(MessageNotModified):
+    with suppress(AttributeError, MessageNotModified):
         if 'subscribed' in call.message.text:
             await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
         else:
@@ -166,12 +131,12 @@ async def show_bookmarks(call: CallbackQuery, state: FSMContext):
         await trav_step(call, state)
 
 
-@dp.callback_query_handler(Text(endswith='_ru'))
+@dp.callback_query_handler(Text(equals=('add_ru', 'remove_ru')))
 async def set_ru_button(call: CallbackQuery):
     action = call.data[:-3]
     lang = 'ru' if action == 'add' else 'en'
     await users_db.set_user_lang(call.from_user.id, lang)
-    with suppress(MessageNotModified):
+    with suppress(AttributeError, MessageNotModified):
         await bot.edit_message_reply_markup(call.from_user.id,
                                             message_id=call.message.message_id,
                                             reply_markup=await kboard.menu(call.from_user.id))
@@ -188,7 +153,7 @@ async def read_xkcd(msg: Message):
 
 @dp.callback_query_handler(Text(startswith='nav_'))
 async def nav(call: CallbackQuery):
-    with suppress(MessageNotModified):
+    with suppress(AttributeError, MessageNotModified):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
 
     cur_comic_id = await users_db.get_cur_comic_id(call.from_user.id)
@@ -215,9 +180,9 @@ async def nav(call: CallbackQuery):
     await send_comic(call.from_user.id, data=comic_data)
 
 
-@dp.callback_query_handler(Text(endswith='ru'))
+@dp.callback_query_handler(Text(equals=('ru', 'trav_ru')))
 async def ru_version(call: CallbackQuery, keyboard=kboard.navigation):
-    with suppress(MessageNotModified):
+    with suppress(AttributeError, MessageNotModified):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
 
     if 'trav' in call.data:
@@ -233,7 +198,7 @@ async def explanation(call: CallbackQuery, keyboard=kboard.navigation):
     if 'trav' in call.data:
         keyboard = kboard.traversal
 
-    with suppress(MessageNotModified):
+    with suppress(AttributeError, MessageNotModified):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
 
     user_id = call.from_user.id
@@ -266,7 +231,7 @@ async def bookmark(call: CallbackQuery, keyboard=kboard.navigation):
 
     await users_db.update_bookmarks(user_id, user_bookmarks_list)
 
-    with suppress(MessageNotModified):
+    with suppress(AttributeError, MessageNotModified):
         if 'your bookmarks' in call.message.text:
             await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
         else:
@@ -283,38 +248,29 @@ async def trav_stop(call: CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
     cur_comic_id = await users_db.get_cur_comic_id(user_id)
 
-    with suppress(MessageNotModified):
+    with suppress(AttributeError, MessageNotModified):
         await bot.edit_message_reply_markup(user_id,
-                                            message_id=call.message.message_id,
-                                            reply_markup=await kboard.navigation(user_id, cur_comic_id))
+                                            message_id=call.message.message_id)
     await state.reset_data()
 
 
 @dp.callback_query_handler(Text('trav_step'))
 async def trav_step(call: (CallbackQuery, Message), state: FSMContext):
     with suppress(AttributeError, MessageNotModified):
-        await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
+        await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
 
     list_ = (await state.get_data())['list']
-    try:
-        comic_data = await comics_db.get_comic_data_by_id(list_.pop(0))
-    except IndexError:
-        await trav_stop(call, state)
-    else:
+    comic_data = await comics_db.get_comic_data_by_id(list_.pop(0))
+    await state.update_data(list=list_)
+
+    if len(list_) > 0:
         await send_comic(call.from_user.id, data=comic_data, keyboard=kboard.traversal)
-        await state.update_data(list=list_)
+    else:
+        await send_comic(call.from_user.id, data=comic_data, keyboard=kboard.navigation)
+        await trav_stop(call, state)
 
 
 """ADMIN'S"""
-
-
-def admin(func):
-    async def wrapper(msg: Message):
-        if msg.from_user.id != int(ADMIN_ID):
-            await msg.answer('Nope!)))')
-        else:
-            await func(msg)
-    return wrapper
 
 
 @dp.message_handler(commands='admin')
@@ -351,7 +307,7 @@ async def full_test(call: CallbackQuery):
 async def change_spec_status(call: CallbackQuery):
     cur_comic_id = await users_db.get_cur_comic_id(ADMIN_ID)
     await comics_db.change_spec_status(cur_comic_id)
-    with suppress(MessageNotModified):
+    with suppress(AttributeError, MessageNotModified):
         await bot.edit_message_text(chat_id=ADMIN_ID,
                                     message_id=call.message.message_id,
                                     text=f"It's done {cur_comic_id}, Your Mightiness!",
@@ -374,7 +330,7 @@ async def send_log(call: CallbackQuery):
 @dp.callback_query_handler(Text('users_num'))
 async def users_num(call: CallbackQuery):
     num = await users_db.length
-    with suppress(MessageNotModified):
+    with suppress(AttributeError, MessageNotModified):
         await bot.edit_message_text(chat_id=ADMIN_ID,
                                     message_id=call.message.message_id,
                                     text=f"We already have {num} users caught in our net, Your Grace!",
@@ -423,6 +379,10 @@ async def process_broadcast_message(msg: Message, state: FSMContext):
 @dp.message_handler()
 @rate_limit(3)
 async def text_input(msg: Message, state: FSMContext):
+    with suppress(AttributeError, MessageNotModified):
+        prev_msg_id = msg.message_id - 1
+        await bot.edit_message_reply_markup(msg.from_user.id, prev_msg_id)
+
     user_input = msg.text
     if user_input.isdigit():
         comic_id = int(user_input)
@@ -442,7 +402,9 @@ async def text_input(msg: Message, state: FSMContext):
             len_ = len(found_comics_list)
             if len_ == 1:
                 await msg.reply(f"❗ I found one:")
-                await send_comic(msg.from_user.id, data=found_comics_list[0])
+                comic_id = found_comics_list[0]
+                comic_data = await comics_db.get_comic_data_by_id(comic_id)
+                await send_comic(msg.from_user.id, data=comic_data)
             elif len_ >= 2:
                 await msg.reply(f"❗ I found <u><b>{len_}</b></u> xkcd comics")
                 await state.update_data(list=found_comics_list)

@@ -6,7 +6,7 @@ class UsersDatabase:
     _db_path = "databases/users.db"
 
     async def create(self):
-        query = """CREATE TABLE IF NOT EXISTS users (
+        query = f"""CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE,
             current_comic INTEGER DEFAULT 1,
@@ -124,7 +124,7 @@ class UsersDatabase:
 
     @property
     async def length(self):
-        query = """SELECT COUNT (*) FROM users;"""
+        query = f"""SELECT COUNT (*) FROM users;"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(query) as cur:
                 res = await cur.fetchone()
@@ -178,9 +178,8 @@ class ComicsDatabase:
                 return dict(zip(self.eng_cols, res))
 
     async def get_comics_ids_by_title(self, title):
-        title = title.strip()
         query = f"""SELECT comic_id FROM comics
-                    WHERE title LIKE '%{title}%'
+                    WHERE title LIKE '%{title}%' OR ru_title LIKE '%{title}%'
                     ORDER BY comic_id DESC;"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(query) as cur:
