@@ -23,4 +23,4 @@ Hidden features for admin:
 - aiogram
 - aiosqlite
 - loguru
-- bs4 and requests
+- BeautifulSoup4 and requests
