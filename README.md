@@ -15,7 +15,7 @@ Hidden features for admin:
 - Antiflood.
 - Logging.
 - Broadcasting.
-- Getting logs.
+- Telemetry.
 
 
 ## Tech Stack
