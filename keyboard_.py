@@ -14,6 +14,7 @@ class Keyboard:
         'bookmarked': InlineKeyboardButton(text='💔Unbookmark', callback_data='unbookmark'),
         'explain': InlineKeyboardButton(text='Explain', callback_data='explain'),
         'ru': InlineKeyboardButton(text='RU', callback_data='ru'),
+        'en': InlineKeyboardButton(text='EN', callback_data='en'),
 
         'trav_stop': InlineKeyboardButton(text='Stop', callback_data='trav_stop'),
         'trav_step': InlineKeyboardButton(text='Next>', callback_data='trav_step'),
@@ -21,12 +22,13 @@ class Keyboard:
         'trav_bookmarked': InlineKeyboardButton(text='💔Unbookmark', callback_data='trav_unbookmark'),
         'trav_explain': InlineKeyboardButton(text='Explain', callback_data='trav_explain'),
         'trav_ru': InlineKeyboardButton(text='RU', callback_data='trav_ru'),
+        'trav_en': InlineKeyboardButton(text='EN', callback_data='trav_en'),
 
         'subscribe': InlineKeyboardButton(text='🔔Subscribe', callback_data='subscribe'),
         'unsubscribe': InlineKeyboardButton(text='🔕Unsubscribe', callback_data='unsubscribe'),
         'user_bookmarks': InlineKeyboardButton(text='🔖My Bookmarks', callback_data='user_bookmarks'),
-        'remove_ru': InlineKeyboardButton(text='Remove 🇷🇺RU button', callback_data='remove_ru'),
         'add_ru': InlineKeyboardButton(text='Add 🇷🇺RU Button', callback_data='add_ru'),
+        'remove_ru': InlineKeyboardButton(text='Remove 🇷🇺RU button', callback_data='remove_ru'),
         'read_xkcd': InlineKeyboardButton(text='Read xkcd!', callback_data='read_xkcd'),
 
         'full_test': InlineKeyboardButton(text='FULL TEST', callback_data='full_test'),
@@ -51,26 +53,32 @@ class Keyboard:
 
         return await self._create_keyboard(buttons_names, row_width=1)
 
-    async def navigation(self, user_id, comic_id):
+    async def navigation(self, user_id, comic_id, comic_lang):
         bookmark_btn_type = 'bookmarked' if comic_id in await users_db.get_bookmarks(user_id) else 'not_bookmarked'
         buttons_names = ['nav_first', 'nav_prev', 'nav_random', 'nav_next', 'nav_last', 'explain', bookmark_btn_type]
 
-        # adding/removing RU button
+        # adding/removing lang button
         if (await users_db.get_user_lang(user_id)) == 'ru':
             if comic_id in parser.real_ru_ids:
-                buttons_names.append('ru')
+                if comic_lang == 'en':
+                    buttons_names.append('ru')
+                else:
+                    buttons_names.append('en')
 
         return await self._create_keyboard(buttons_names, row_width=5)
 
-    async def traversal(self, user_id, comic_id):
+    async def traversal(self, user_id, comic_id, comic_lang):
         bookmark_btn_type = 'trav_bookmarked' if comic_id in await users_db.get_bookmarks(user_id) \
             else 'trav_not_bookmarked'
         buttons_names = [bookmark_btn_type, 'trav_explain', 'trav_stop', 'trav_step']
 
-        # adding/removing RU button
+        # adding/removing lang button
         if (await users_db.get_user_lang(user_id)) == 'ru':
             if comic_id in parser.real_ru_ids:
-                buttons_names.insert(2, 'trav_ru')
+                if comic_lang == 'en':
+                    buttons_names.insert(2, 'trav_ru')
+                else:
+                    buttons_names.insert(2, 'trav_en')
 
         row_width = 2 if len(buttons_names) == 4 else 3
 

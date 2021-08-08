@@ -20,10 +20,18 @@ bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
 logger.add('actions.log', rotation='5 MB', level='INFO')
 logger.add('errors.log', rotation='500 KB', level='ERROR', backtrace=True, diagnose=True)
 
+cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
+
+
+def is_cyrillic(text):
+    cyr_set = set(cyrillic)
+    set_text = set(text)
+    return set_text.issubset(cyr_set)
+
 
 async def preprocess_text(text: str):
     text = text.strip()
-    permitted = ascii_letters + digits + 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя' + ' '
+    permitted = ascii_letters + digits + cyrillic + ' '
     text = ''.join([ch for ch in text if ch in permitted])
     return text[:30]
 

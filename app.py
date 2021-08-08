@@ -17,81 +17,6 @@ from config_ import *
 from handlers import send_comic
 
 
-async def broadcast_new_comic():
-    async def get_subscribed_users():
-        for user_id in (await users_db.subscribed_users):
-            yield user_id
-
-    db_last_comic_id = await comics_db.get_last_comic_id()
-    real_last_comic_id = parser.latest_comic_id
-
-    if real_last_comic_id > db_last_comic_id:
-        for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
-            data = await parser.get_full_comic_data(comic_id)
-            comic_values = tuple(data.values())
-            await comics_db.add_new_comic(comic_values)
-
-        count = 0
-        try:
-            async for user_id in get_subscribed_users():
-                try:
-                    await bot.send_message(user_id, "<b>🔥 And here\'s new comic!</b> 🔥")
-                except (BotBlocked, UserDeactivated):
-                    await users_db.delete_user(user_id)
-                    continue
-
-                comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
-                await send_comic(user_id, data=comic_data)
-                count += 1
-                if count % 20 == 0:
-                    await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
-        except Exception as err:
-            logger.error("Can't send new comic!", err)
-        finally:
-            await bot.send_message(ADMIN_ID, f"{count} messages were successfully sent.")
-
-
-async def checker():
-    await broadcast_new_comic()
-    delay = 15
-    aioschedule.every(delay).minutes.do(broadcast_new_comic)
-    while True:
-        await aioschedule.run_pending()
-        await asyncio.sleep(60)
-
-
-async def cleaner():
-    async def clean():
-        logs = list(Path.cwd().glob('*.log'))
-        for log in logs:
-            if log.name not in ('actions.log', 'errors.log'):
-                log.unlink()
-    await clean()
-    delay = 12
-    aioschedule.every(delay).hours.do(clean)
-    while True:
-        await aioschedule.run_pending()
-        await asyncio.sleep(3600)
-
-
-async def on_startup(dp: Dispatcher):
-    await users_db.create()
-    await users_db.add_user(ADMIN_ID)
-
-    asyncio.create_task(checker())
-    asyncio.create_task(cleaner())
-
-    if HEROKU:
-        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
-
-    await bot.send_message(chat_id=ADMIN_ID, text="<b>I'm here, in Your Power, My Lord...</b>")
-
-    logger.info("Bot started.")
-
-
-"""ANTIFLOOD FROM DOC"""
-
-
 class BigBrother(BaseMiddleware):
     def __init__(self, limit=DEFAULT_RATE_LIMIT, key_prefix='antiflood_'):
         self.rate_limit = limit
@@ -104,12 +29,13 @@ class BigBrother(BaseMiddleware):
             msg = update.message
             text = await preprocess_text(msg.text)
             logger.info(f"{msg.from_user.id} | {msg.from_user.username} | {msg.from_user.language_code} | "
-                        f"text:'{text}' | utc: {msg.date.utcnow()}")
+                        f"text:'{text}'")
         if update.callback_query:
             call = update.callback_query
             logger.info(f"{call.from_user.id} | {call.from_user.username} | {call.from_user.language_code} | "
-                        f"call:'{call.data}' | utc: {call.message.date.utcnow()}")
+                        f"call:'{call.data}'")
 
+    """ANTIFLOOD"""
     async def on_process_message(self, message: Message, data: dict):
         handler = current_handler.get()
         dispatcher = Dispatcher.get_current()
@@ -155,6 +81,79 @@ class BigBrother(BaseMiddleware):
         if thr.exceeded_count == throttled.exceeded_count:
             await asyncio.sleep(2)
             await message.reply('Unlocked.')
+
+
+async def broadcast_new_comic():
+    async def get_subscribed_users():
+        for user_id in (await users_db.subscribed_users):
+            yield user_id
+
+    db_last_comic_id = await comics_db.get_last_comic_id()
+    real_last_comic_id = parser.latest_comic_id
+
+    if real_last_comic_id > db_last_comic_id:
+        for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
+            data = await parser.get_full_comic_data(comic_id)
+            comic_values = tuple(data.values())
+            await comics_db.add_new_comic(comic_values)
+
+        count = 0
+        try:
+            async for user_id in get_subscribed_users():
+                try:
+                    await bot.send_message(user_id, "<b>🔥 And here\'s new comic!</b> 🔥")
+                except (BotBlocked, UserDeactivated):
+                    await users_db.delete_user(user_id)
+                    continue
+
+                comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
+                await send_comic(user_id, data=comic_data)
+                count += 1
+                if count % 20 == 0:
+                    await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
+        except Exception as err:
+            logger.error("Can't send new comic!", err)
+        finally:
+            await bot.send_message(ADMIN_ID, f"{count} messages were successfully sent.")
+
+
+async def checker():
+    await broadcast_new_comic()
+    delay = 20
+    aioschedule.every(delay).minutes.do(broadcast_new_comic)
+    while True:
+        await aioschedule.run_pending()
+        await asyncio.sleep(60)
+
+
+async def cleaner():
+    async def clean():
+        logs = list(Path.cwd().glob('*.log'))
+        for log in logs:
+            if log.name not in ('actions.log', 'errors.log'):
+                log.unlink()
+
+    await clean()
+    delay = 12
+    aioschedule.every(delay).hours.do(clean)
+    while True:
+        await aioschedule.run_pending()
+        await asyncio.sleep(3600)
+
+
+async def on_startup(dp: Dispatcher):
+    await users_db.create()
+    await users_db.add_user(ADMIN_ID)
+
+    asyncio.create_task(checker())
+    asyncio.create_task(cleaner())
+
+    if HEROKU:
+        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+
+    await bot.send_message(chat_id=ADMIN_ID, text="<b>I'm here, in Your Power, My Lord...</b>")
+
+    logger.info("Bot started.")
 
 
 if __name__ == "__main__":

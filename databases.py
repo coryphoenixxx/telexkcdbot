@@ -12,7 +12,7 @@ class UsersDatabase:
             current_comic INTEGER DEFAULT 1,
             bookmarks JSON DEFAULT '[]',
             is_subscribed INTEGER DEFAULT 1, 
-            lang VARCHAR(3) DEFAULT 'en'
+            lang VARCHAR(3) DEFAULT 'ru'
             );"""
         async with aiosql.connect(self._db_path) as db:
             await db.execute(query)
@@ -205,10 +205,10 @@ class ComicsDatabase:
                 res = await cur.fetchone()
                 return res[0]
 
-    async def change_spec_status(self, comic_id):
+    async def change_spec_status(self, comic_id, value):
         get_query = f"""SELECT is_specific FROM comics
                         WHERE comic_id == {comic_id};"""
-        set_query = """UPDATE comics SET is_specific = {value}
+        set_query = f"""UPDATE comics SET is_specific = {value}
                        WHERE comic_id == {comic_id};"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(get_query) as cur:

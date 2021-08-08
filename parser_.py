@@ -91,7 +91,7 @@ class Parser:
                     if el.name in ('p', 'li'):
                         text = text + el.text + '\n'
                 text = text[:1000].strip().replace('<', '').replace('>', '')
-                text = f"{text}...<i><b><a href='{url}'>\n[continue]</a></b></i>"
+                text = f"{text}<a href='{url}'>...</a>"
                 return text, url
             except AttributeError:
                 pass
