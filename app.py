@@ -7,7 +7,7 @@ from aiogram.dispatcher import DEFAULT_RATE_LIMIT
 from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound
-from aiogram.utils.executor import start_polling
+from aiogram.utils.executor import start_webhook, start_polling
 
 from pathlib import Path
 from datetime import date
@@ -162,7 +162,6 @@ if __name__ == "__main__":
     from handlers import dp
 
     dp.middleware.setup(BigBrother())
-
     start_polling(dispatcher=dp,
                   skip_updates=True,
                   on_startup=on_startup)

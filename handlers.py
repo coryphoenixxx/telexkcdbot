@@ -17,8 +17,7 @@ from keyboard_ import kboard
 from parser_ import parser
 from config_ import *
 
-# from aiogram.contrib.fsm_storage.redis import RedisStorage2
-# storage = RedisStorage2('localhost', 6379, db=0)
+
 storage = MemoryStorage()
 dp = Dispatcher(bot, loop=loop, storage=storage)
 
