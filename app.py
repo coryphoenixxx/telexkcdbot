@@ -148,14 +148,14 @@ async def cleaner():
 
 
 async def on_startup(dp: Dispatcher):
+    if HEROKU:
+        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+
     await users_db.create()
     await users_db.add_user(ADMIN_ID)
 
     asyncio.create_task(checker())
     asyncio.create_task(cleaner())
-
-    if HEROKU:
-        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
 
     await bot.send_message(ADMIN_ID, text="<b>❗ I'm here, in Your Power, My Lord...</b>")
     logger.info("Bot started.")

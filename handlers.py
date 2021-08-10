@@ -15,7 +15,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from loader import comics_db, users_db, bot, loop, logger, preprocess_text, rate_limit, admin, is_cyrillic
 from keyboard_ import kboard
 from parser_ import parser
-from config_ import *
+from config_ import ADMIN_ID
 
 
 storage = MemoryStorage()
