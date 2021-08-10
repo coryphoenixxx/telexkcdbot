@@ -166,16 +166,16 @@ if __name__ == "__main__":
 
     dp.middleware.setup(BigBrother())
 
-    if HEROKU:
-        start_webhook(
-            dispatcher=dp,
-            webhook_path=WEBHOOK_PATH,
-            on_startup=on_startup,
-            skip_updates=True,
-            host=WEBAPP_HOST,
-            port=PORT
-        )
-    else:
-        start_polling(dispatcher=dp,
+    # if HEROKU:
+    #     start_webhook(
+    #         dispatcher=dp,
+    #         webhook_path=WEBHOOK_PATH,
+    #         on_startup=on_startup,
+    #         skip_updates=True,
+    #         host=WEBAPP_HOST,
+    #         port=PORT
+    #     )
+    # else:
+    start_polling(dispatcher=dp,
                       skip_updates=True,
                       on_startup=on_startup)
