@@ -154,6 +154,9 @@ async def on_startup(dp: Dispatcher):
     asyncio.create_task(checker())
     asyncio.create_task(cleaner())
 
+    if HEROKU:
+        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+
     await bot.send_message(ADMIN_ID, text="<b>❗ I'm here, in Your Power, My Lord...</b>")
     logger.info("Bot started.")
 
@@ -162,6 +165,17 @@ if __name__ == "__main__":
     from handlers import dp
 
     dp.middleware.setup(BigBrother())
-    start_polling(dispatcher=dp,
-                  skip_updates=True,
-                  on_startup=on_startup)
+
+    if HEROKU:
+        start_webhook(
+            dispatcher=dp,
+            webhook_path=WEBHOOK_PATH,
+            on_startup=on_startup,
+            skip_updates=True,
+            host=WEBAPP_HOST,
+            port=PORT
+        )
+    else:
+        start_polling(dispatcher=dp,
+                      skip_updates=True,
+                      on_startup=on_startup)
