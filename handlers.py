@@ -104,7 +104,7 @@ Type in the <u><b>comic title</b></u> and I'll try to find it for you!
 <u><b>In menu you can:</b></u>
 — subscribe for a new comic.
 — read comics from your bookmarks.
-— remove RU button (under the comic, which have russian translation) if you don't need it.
+— remove language button (under the comic, which have russian translation) if you don't need it.
 — start xkcding!
 
 ***
@@ -201,15 +201,19 @@ async def nav(call: CallbackQuery):
     await send_comic(call.from_user.id, data=comic_data)
 
 
-@dp.callback_query_handler(Text(equals=('ru', 'trav_ru')))
+@dp.callback_query_handler(Text(equals=('ru', 'trav_ru', 'en', 'trav_en')))
 async def ru_version(call: CallbackQuery, keyboard=kboard.navigation):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
 
     comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
 
-    comic_lang = 'ru'
-    comic_data = await comics_db.get_ru_comic_data_by_id(comic_id)
+    if 'en' in call.data:
+        comic_lang = 'en'
+        comic_data = await comics_db.get_comic_data_by_id(comic_id)
+    else:
+        comic_lang = 'ru'
+        comic_data = await comics_db.get_ru_comic_data_by_id(comic_id)
 
     if 'trav' in call.data:
         keyboard = kboard.traversal

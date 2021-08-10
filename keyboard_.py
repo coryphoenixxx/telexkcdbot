@@ -14,6 +14,7 @@ class Keyboard:
         'bookmarked': InlineKeyboardButton(text='💔Unbookmark', callback_data='unbookmark'),
         'explain': InlineKeyboardButton(text='Explain', callback_data='explain'),
         'ru': InlineKeyboardButton(text='🇷🇺RU', callback_data='ru'),
+        'en': InlineKeyboardButton(text='🇬🇧EN', callback_data='en'),
 
         'trav_stop': InlineKeyboardButton(text='Stop', callback_data='trav_stop'),
         'trav_step': InlineKeyboardButton(text='Next>', callback_data='trav_step'),
@@ -21,12 +22,13 @@ class Keyboard:
         'trav_bookmarked': InlineKeyboardButton(text='💔Unbookmark', callback_data='trav_unbookmark'),
         'trav_explain': InlineKeyboardButton(text='Explain', callback_data='trav_explain'),
         'trav_ru': InlineKeyboardButton(text='🇷🇺RU', callback_data='trav_ru'),
+        'trav_en': InlineKeyboardButton(text='🇬🇧EN', callback_data='trav_en'),
 
         'subscribe': InlineKeyboardButton(text='🔔Subscribe', callback_data='subscribe'),
         'unsubscribe': InlineKeyboardButton(text='🔕Unsubscribe', callback_data='unsubscribe'),
         'user_bookmarks': InlineKeyboardButton(text='🔖My Bookmarks', callback_data='user_bookmarks'),
         'add_ru': InlineKeyboardButton(text='Add 🇷🇺RU Button', callback_data='add_ru'),
-        'remove_ru': InlineKeyboardButton(text='Remove 🇷🇺RU button', callback_data='remove_ru'),
+        'remove_ru': InlineKeyboardButton(text='Remove 🇷🇺LANG🇬🇧 Button', callback_data='remove_ru'),
         'start_xkcding': InlineKeyboardButton(text='Start xkcding!', callback_data='start_xkcding'),
         'continue_xkcding': InlineKeyboardButton(text='Continue xkcding!', callback_data='continue_xkcding'),
 
@@ -63,6 +65,8 @@ class Keyboard:
             if comic_id in parser.real_ru_ids:
                 if comic_lang == 'en':
                     buttons_names.append('ru')
+                if comic_lang == 'ru':
+                    buttons_names.append('en')
 
         return await self._create_keyboard(buttons_names, row_width=5)
 
@@ -75,6 +79,8 @@ class Keyboard:
             if comic_id in parser.real_ru_ids:
                 if comic_lang == 'en':
                     buttons_names.insert(2, 'trav_ru')
+                if comic_lang == 'ru':
+                    buttons_names.insert(2, 'trav_en')
 
         row_width = 2 if len(buttons_names) == 4 else 3
 

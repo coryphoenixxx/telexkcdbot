@@ -7,7 +7,7 @@ from aiogram.dispatcher import DEFAULT_RATE_LIMIT
 from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound
-from aiogram.utils.executor import start_webhook, start_polling
+from aiogram.utils.executor import start_polling
 
 from pathlib import Path
 from datetime import date
@@ -154,9 +154,6 @@ async def on_startup(dp: Dispatcher):
     asyncio.create_task(checker())
     asyncio.create_task(cleaner())
 
-    if HEROKU:
-        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
-
     await bot.send_message(ADMIN_ID, text="<b>❗ I'm here, in Your Power, My Lord...</b>")
     logger.info("Bot started.")
 
@@ -166,22 +163,6 @@ if __name__ == "__main__":
 
     dp.middleware.setup(BigBrother())
 
-    if HEROKU:
-        start_webhook(
-            dispatcher=dp,
-            webhook_path=WEBHOOK_PATH,
-            on_startup=on_startup,
-            skip_updates=True,
-            host=WEBAPP_HOST,
-            port=PORT
-        )
-    else:
-        # run redis locally on windows (https://github.com/downloads/dmajkic/redis/redis-2.4.5-win32-win64.zip)
-
-        # import subprocess
-        #
-        # DETACHED_PROCESS = 0x00000008
-        # subprocess.Popen('./redis/redis-server.exe', creationflags=DETACHED_PROCESS, close_fds=True)
-        start_polling(dispatcher=dp,
-                      skip_updates=True,
-                      on_startup=on_startup)
+    start_polling(dispatcher=dp,
+                  skip_updates=True,
+                  on_startup=on_startup)
