@@ -99,7 +99,7 @@ class Parser:
                 logger.error(f'Error in get_explanation() for {comic_id}: {err}')
                 await asyncio.sleep(0.3)
 
-        return "...", url
+        return "There's no explanation yet. Try it later.", url
 
     async def get_full_comic_data(self, comic_id):
         full_comic_data = await self.get_comic_data(comic_id)

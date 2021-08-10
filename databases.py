@@ -1,6 +1,8 @@
 import aiosqlite as aiosql
 import json
 
+from datetime import date, datetime, timedelta
+
 
 class UsersDatabase:
     _db_path = "databases/users.db"
@@ -9,11 +11,11 @@ class UsersDatabase:
         query = f"""CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER UNIQUE,
-            current_comic INTEGER DEFAULT 1,
+            cur_comic_info VARCHAR(10) DEFAULT '0_en', 
             bookmarks JSON DEFAULT '[]',
             is_subscribed INTEGER DEFAULT 1, 
-            lang VARCHAR(3) DEFAULT 'ru'
-            );"""
+            user_lang VARCHAR(2) DEFAULT 'ru',
+            last_action_date VARCHAR(10) DEFAULT '{str(date.today())}');"""
         async with aiosql.connect(self._db_path) as db:
             await db.execute(query)
             await db.commit()
@@ -34,13 +36,14 @@ class UsersDatabase:
             await db.execute(query)
             await db.commit()
 
-    async def get_cur_comic_id(self, user_id):
-        query = f"""SELECT current_comic FROM users 
+    async def get_cur_comic_info(self, user_id):
+        query = f"""SELECT cur_comic_info FROM users 
                     WHERE user_id == {user_id};"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(query) as cur:
                 res = await cur.fetchone()
-                return res[0]
+                comic_id, comic_lang = res[0].split('_')
+                return int(comic_id), comic_lang
 
     async def get_all_users_ids(self):
         query = f"""SELECT user_id FROM users;"""
@@ -54,7 +57,7 @@ class UsersDatabase:
 
     async def get_user_lang(self, user_id):
         """FOR HANDLING RU BUTTON"""
-        query = f"""SELECT lang FROM users
+        query = f"""SELECT user_lang FROM users
                     WHERE user_id == {user_id};"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(query) as cur:
@@ -63,18 +66,37 @@ class UsersDatabase:
 
     async def set_user_lang(self, user_id, lang):
         """FOR HANDLING RU BUTTON"""
-        query = f"""UPDATE users SET lang = '{lang}' 
+        query = f"""UPDATE users SET user_lang = '{lang}' 
                     WHERE user_id == {user_id};"""
         async with aiosql.connect(self._db_path) as db:
             await db.execute(query)
             await db.commit()
 
-    async def update_cur_comic_id(self, user_id, new_current_comic):
-        query = f"""UPDATE users SET current_comic = {new_current_comic}
+    async def update_cur_comic_info(self, user_id, new_current_comic_id, new_current_comic_lang='en'):
+        new_info = str(new_current_comic_id) + '_' + new_current_comic_lang
+        query = f"""UPDATE users SET cur_comic_info = '{new_info}'
                     WHERE user_id == {user_id};"""
         async with aiosql.connect(self._db_path) as db:
             await db.execute(query)
             await db.commit()
+
+    async def update_last_action_date(self, user_id, date):
+        query = f"""UPDATE users SET last_action_date = '{date}'
+                    WHERE user_id == {user_id}"""
+        async with aiosql.connect(self._db_path) as db:
+            await db.execute(query)
+            await db.commit()
+
+    async def get_last_month_active_users(self):
+        def less_month(dates_list):
+            return sum([date.today() - date.fromisoformat(d) < timedelta(days=30) for d in dates_list])
+        date_ = datetime.today().date()
+        query = f"""SELECT last_action_date FROM users"""
+        async with aiosql.connect(self._db_path) as db:
+            async with db.execute(query) as cur:
+                res = await cur.fetchall()
+                active_users = [user_id[0] for user_id in res]
+                return less_month(active_users)
 
     """BOOKMARKS"""
 
@@ -179,8 +201,15 @@ class ComicsDatabase:
 
     async def get_comics_ids_by_title(self, title):
         query = f"""SELECT comic_id FROM comics
-                    WHERE title LIKE '%{title}%' OR ru_title LIKE '%{title}%'
-                    ORDER BY comic_id DESC;"""
+                    WHERE title LIKE '% {title} %'
+                    OR title LIKE '%{title} %'
+                    OR title LIKE '% {title}%'
+                    OR title = '{title}'
+                    OR ru_title LIKE '% {title} %'
+                    OR ru_title LIKE '%{title} %'
+                    OR ru_title LIKE '% {title}%'
+                    OR ru_title = '{title}'
+                    ORDER BY comic_id;"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(query) as cur:
                 res = await cur.fetchall()
@@ -205,15 +234,14 @@ class ComicsDatabase:
                 res = await cur.fetchone()
                 return res[0]
 
-    async def change_spec_status(self, comic_id, value):
+    async def change_spec_status(self, comic_id):
         get_query = f"""SELECT is_specific FROM comics
                         WHERE comic_id == {comic_id};"""
-        set_query = f"""UPDATE comics SET is_specific = {value}
+        set_query = """UPDATE comics SET is_specific = {value} /* not a bug */
                        WHERE comic_id == {comic_id};"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(get_query) as cur:
                 res = await cur.fetchone()
-
                 cur_value = res[0]
                 await db.execute(set_query.format(value=int(not cur_value), comic_id=comic_id))
                 await db.commit()

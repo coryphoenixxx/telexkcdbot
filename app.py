@@ -5,11 +5,12 @@ from aiogram import Dispatcher
 from aiogram.types import Update, Message
 from aiogram.dispatcher import DEFAULT_RATE_LIMIT
 from aiogram.dispatcher.handler import CancelHandler, current_handler
-
 from aiogram.dispatcher.middlewares import BaseMiddleware
-from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated
+from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound
 from aiogram.utils.executor import start_webhook, start_polling
+
 from pathlib import Path
+from datetime import date
 
 from loader import users_db, comics_db, bot, logger, preprocess_text
 from parser_ import parser
@@ -25,15 +26,20 @@ class BigBrother(BaseMiddleware):
 
     @staticmethod
     async def on_pre_process_update(update: Update, data: dict):
+        action_date = date.today()
+
         if update.message:
             msg = update.message
+            user_id = msg.from_user.id
             text = await preprocess_text(msg.text)
-            logger.info(f"{msg.from_user.id} | {msg.from_user.username} | {msg.from_user.language_code} | "
-                        f"text:'{text}'")
+            await users_db.update_last_action_date(user_id, action_date)
+            logger.info(f"{user_id} | {msg.from_user.username} | {msg.from_user.language_code} | text:'{text}'")
+
         if update.callback_query:
             call = update.callback_query
-            logger.info(f"{call.from_user.id} | {call.from_user.username} | {call.from_user.language_code} | "
-                        f"call:'{call.data}'")
+            user_id = call.from_user.id
+            await users_db.update_last_action_date(user_id, action_date)
+            logger.info(f"{user_id} | {call.from_user.username} | {call.from_user.language_code} | call:'{call.data}'")
 
     """ANTIFLOOD"""
     async def on_process_message(self, message: Message, data: dict):
@@ -71,7 +77,7 @@ class BigBrother(BaseMiddleware):
 
         # Prevent flooding
         if throttled.exceeded_count <= 2:
-            await message.reply('❗❗❗ Too many requests! ')
+            await message.reply('❗❗❗ <b>Too many requests!</b>')
 
         await asyncio.sleep(delta)
 
@@ -80,7 +86,7 @@ class BigBrother(BaseMiddleware):
         # If current message is not last with current key - do not send message
         if thr.exceeded_count == throttled.exceeded_count:
             await asyncio.sleep(2)
-            await message.reply('Unlocked.')
+            await message.reply('❗ <b>Unlocked.</b>')
 
 
 async def broadcast_new_comic():
@@ -101,8 +107,8 @@ async def broadcast_new_comic():
         try:
             async for user_id in get_subscribed_users():
                 try:
-                    await bot.send_message(user_id, "<b>🔥 And here\'s new comic!</b> 🔥")
-                except (BotBlocked, UserDeactivated):
+                    await bot.send_message(user_id, "🔥 <b>And here\'s new comic!</b> 🔥")
+                except (BotBlocked, UserDeactivated, ChatNotFound):
                     await users_db.delete_user(user_id)
                     continue
 
@@ -114,7 +120,7 @@ async def broadcast_new_comic():
         except Exception as err:
             logger.error("Can't send new comic!", err)
         finally:
-            await bot.send_message(ADMIN_ID, f"{count} messages were successfully sent.")
+            await bot.send_message(ADMIN_ID, f"❗ <b>{count} messages were successfully sent.</b>")
 
 
 async def checker():
@@ -151,8 +157,7 @@ async def on_startup(dp: Dispatcher):
     if HEROKU:
         await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
 
-    await bot.send_message(chat_id=ADMIN_ID, text="<b>I'm here, in Your Power, My Lord...</b>")
-
+    await bot.send_message(ADMIN_ID, text="<b>❗ I'm here, in Your Power, My Lord...</b>")
     logger.info("Bot started.")
 
 

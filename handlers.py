@@ -9,7 +9,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text, CommandStart
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTPUrlContent, BotBlocked, \
-                                     UserDeactivated, MessageToEditNotFound
+    UserDeactivated, MessageToEditNotFound, ChatNotFound, MessageCantBeEdited
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from loader import comics_db, users_db, bot, loop, logger, preprocess_text, rate_limit, admin, is_cyrillic
@@ -22,8 +22,10 @@ from config_ import *
 storage = MemoryStorage()
 dp = Dispatcher(bot, loop=loop, storage=storage)
 
+suppress_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 
-async def send_comic(user_id: int, data: dict, keyboard=kboard.navigation, comic_lang='en'):
+
+async def send_comic(user_id: int, data: dict, keyboard=kboard.navigation, comic_lang: str = 'en'):
     (comic_id,
      title,
      img_url,
@@ -31,7 +33,7 @@ async def send_comic(user_id: int, data: dict, keyboard=kboard.navigation, comic
      public_date,
      is_specific) = data.values()
 
-    await users_db.update_cur_comic_id(user_id, comic_id)
+    await users_db.update_cur_comic_info(user_id, comic_id, comic_lang)
 
     link = f'https://xkcd.com/{comic_id}' if comic_id != 880 else 'https://xk3d.xkcd.com/880/'
     headline = f"<b>{comic_id}. \"<a href='{link}'>{title}</a>\"</b>   <i>({public_date})</i>"
@@ -39,13 +41,16 @@ async def send_comic(user_id: int, data: dict, keyboard=kboard.navigation, comic
 
     await bot.send_message(user_id, headline, disable_web_page_preview=True)
 
+    if is_specific:
+        await asyncio.sleep(0.05)
+        await bot.send_message(user_id,
+                               text=f"❗❗❗ It's a peculiar comic! ^^ It's preferable to view it "
+                                    f"in <a href='{link}'>your browser</a>.",
+                               disable_web_page_preview=True,
+                               disable_notification=True)
+
+    await asyncio.sleep(0.05)
     try:
-        if is_specific:
-            await bot.send_message(user_id,
-                                   text=f"❗❗❗ It's a peculiar comic! ^^ It's preferable to view it "
-                                        f"in <a href='{link}'>your browser</a>.",
-                                   disable_web_page_preview=True,
-                                   disable_notification=True)
         if img_url.endswith(('.png', '.jpg', '.jpeg')):
             await bot.send_photo(user_id, photo=img_url, disable_notification=True)
         elif img_url.endswith('.gif'):
@@ -54,11 +59,12 @@ async def send_comic(user_id: int, data: dict, keyboard=kboard.navigation, comic
             await bot.send_photo(user_id, InputFile('static/no_image.png'), disable_notification=True)
     except (InvalidHTTPUrlContent, BadRequest) as err:
         await bot.send_message(user_id,
-                               text=f"❗❗❗ Can't get image, try your brower!",
+                               text=f"❗❗❗ Can't get image, try your browser!",
                                disable_web_page_preview=True,
                                disable_notification=True)
         logger.error(f"Cant't send {comic_id} to {user_id} comic!", err)
 
+    await asyncio.sleep(0.05)
     await bot.send_message(user_id,
                            text=f"<i>{comment}</i>",
                            reply_markup=await keyboard(user_id, comic_id, comic_lang),
@@ -72,6 +78,8 @@ async def send_comic(user_id: int, data: dict, keyboard=kboard.navigation, comic
 @dp.message_handler(CommandStart())
 @rate_limit(5)
 async def start(msg: Message):
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
     user_id = msg.from_user.id
     await users_db.add_user(user_id)
     bot_name = (await bot.me).username
@@ -86,6 +94,8 @@ async def start(msg: Message):
 @dp.message_handler(commands=['menu', 'help'])
 @rate_limit(5)
 async def show_menu(msg: Message):
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
     help_text = """
 Type in the <u><b>comic number</b></u> and I'll find it for you!
 Type in the <u><b>comic title</b></u> and I'll try to find it for you!
@@ -109,7 +119,7 @@ async def subscriber(call: CallbackQuery):
     user_id = call.from_user.id
     await users_db.subscribe(user_id) if call.data == 'subscribe' else await users_db.unsubscribe(user_id)
 
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
+    with suppress(*suppress_exceptions):
         if 'subscribed' in call.message.text:
             await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
         else:
@@ -137,16 +147,27 @@ async def set_ru_button(call: CallbackQuery):
     action = call.data[:-3]
     lang = 'ru' if action == 'add' else 'en'
     await users_db.set_user_lang(call.from_user.id, lang)
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
+    with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(call.from_user.id,
                                             message_id=call.message.message_id,
                                             reply_markup=await kboard.menu(call.from_user.id))
 
 
-@dp.callback_query_handler(Text('read_xkcd'))
-async def read_xkcd(msg: Message):
+@dp.callback_query_handler(Text('start_xkcding'))
+async def start_xkcding(call: CallbackQuery):
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
     comic_data = await comics_db.get_comic_data_by_id(1)
-    await send_comic(msg.from_user.id, data=comic_data)
+    await send_comic(call.from_user.id, data=comic_data)
+
+
+@dp.callback_query_handler(Text('continue_xkcding'))
+async def continue_xkcding(call: CallbackQuery):
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
+    comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
+    comic_data = await comics_db.get_comic_data_by_id(comic_id)
+    await send_comic(call.from_user.id, data=comic_data)
 
 
 """MAIN"""
@@ -154,18 +175,18 @@ async def read_xkcd(msg: Message):
 
 @dp.callback_query_handler(Text(startswith='nav_'))
 async def nav(call: CallbackQuery):
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
+    with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
 
-    cur_comic_id = await users_db.get_cur_comic_id(call.from_user.id)
+    comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
     action = call.data.split('_')[1]
     latest = parser.latest_comic_id
 
     actions = {
         'first': 1,
-        'prev': cur_comic_id - 1,
+        'prev': comic_id - 1,
         'random': randint(1, latest),
-        'next': cur_comic_id + 1,
+        'next': comic_id + 1,
         'last': latest
     }
 
@@ -176,24 +197,19 @@ async def nav(call: CallbackQuery):
     if new_comic_id > latest:
         new_comic_id = 1
 
-    await users_db.update_cur_comic_id(call.from_user.id, new_comic_id)
     comic_data = await comics_db.get_comic_data_by_id(new_comic_id)
     await send_comic(call.from_user.id, data=comic_data)
 
 
-@dp.callback_query_handler(Text(equals=('ru', 'trav_ru', 'en', 'trav_en')))
+@dp.callback_query_handler(Text(equals=('ru', 'trav_ru')))
 async def ru_version(call: CallbackQuery, keyboard=kboard.navigation):
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
+    with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
 
-    cur_comic_id = await users_db.get_cur_comic_id(call.from_user.id)
+    comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
 
-    if 'en' in call.data:
-        comic_lang = 'en'
-        comic_data = await comics_db.get_comic_data_by_id(cur_comic_id)
-    else:
-        comic_lang = 'ru'
-        comic_data = await comics_db.get_ru_comic_data_by_id(cur_comic_id)
+    comic_lang = 'ru'
+    comic_data = await comics_db.get_ru_comic_data_by_id(comic_id)
 
     if 'trav' in call.data:
         keyboard = kboard.traversal
@@ -202,50 +218,48 @@ async def ru_version(call: CallbackQuery, keyboard=kboard.navigation):
 
 @dp.callback_query_handler(Text(equals=('explain', 'trav_explain')))
 async def explanation(call: CallbackQuery, keyboard=kboard.navigation):
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
+    with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
+
+    user_id = call.from_user.id
+    comic_id, comic_lang = await users_db.get_cur_comic_info(user_id)
+
+    try:
+        text, url = await parser.get_explanation(comic_id)
+    except Exception as err:
+        logger.error(f"Can't get explanation of {comic_id} for {user_id}: {err}")
+        text = "❗ <b>Can't get explanation... try again later!"
 
     if 'trav' in call.data:
         keyboard = kboard.traversal
-
-    user_id = call.from_user.id
-    cur_comic_id = await users_db.get_cur_comic_id(user_id)
-
-    try:
-        text, url = await parser.get_explanation(cur_comic_id)
-    except Exception as err:
-        logger.error(f"Can't get explanation of {cur_comic_id} for {user_id}: {err}")
-        text = "❗ Can't get explanation... try again!"
-
     await call.message.answer(text,
-                              reply_markup=await keyboard(user_id, cur_comic_id, comic_lang='en'))
+                              reply_markup=await keyboard(user_id, comic_id, comic_lang=comic_lang))
 
 
 @dp.callback_query_handler(Text(endswith='bookmark'))
 async def bookmark(call: CallbackQuery, keyboard=kboard.navigation):
-    if 'trav' in call.data:
-        keyboard = kboard.traversal
-
     user_id = call.from_user.id
-    cur_comic_id = await users_db.get_cur_comic_id(user_id)
+    comic_id, comic_lang = await users_db.get_cur_comic_info(user_id)
     user_bookmarks_list = await users_db.get_bookmarks(user_id)
 
-    if cur_comic_id in user_bookmarks_list:
-        user_bookmarks_list.remove(cur_comic_id)
-        text = f"❗ <b>Comic {cur_comic_id} has been <u>removed</u> from your bookmarks!</b>"
+    if comic_id in user_bookmarks_list:
+        user_bookmarks_list.remove(comic_id)
+        text = f"❗ <b>Comic {comic_id} has been <u>removed</u> from your bookmarks!</b>"
     else:
-        user_bookmarks_list.append(cur_comic_id)
-        text = f"❗ <b>Comic {cur_comic_id} has been <u>added</u> to your bookmarks!</b>"
+        user_bookmarks_list.append(comic_id)
+        text = f"❗ <b>Comic {comic_id} has been <u>added</u> to your bookmarks!</b>"
 
     await users_db.update_bookmarks(user_id, user_bookmarks_list)
 
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
+    with suppress(*suppress_exceptions):
         if 'your bookmarks' in call.message.text:
             await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
         else:
             await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
 
-    await call.message.answer(text, reply_markup=await keyboard(user_id, cur_comic_id))
+    if 'trav' in call.data:
+        keyboard = kboard.traversal
+    await call.message.answer(text, reply_markup=await keyboard(user_id, comic_id, comic_lang=comic_lang))
 
 
 """TRAVERSAL"""
@@ -253,15 +267,18 @@ async def bookmark(call: CallbackQuery, keyboard=kboard.navigation):
 
 @dp.callback_query_handler(Text('trav_stop'))
 async def trav_stop(call: CallbackQuery, state: FSMContext):
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
-        await bot.edit_message_reply_markup(call.from_user.id,
-                                            message_id=call.message.message_id)
+    user_id = call.from_user.id
+    comic_id, comic_lang = await users_db.get_cur_comic_info(user_id)
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(user_id,
+                                            message_id=call.message.message_id,
+                                            reply_markup=await kboard.navigation(user_id, comic_id, comic_lang))
     await state.reset_data()
 
 
 @dp.callback_query_handler(Text('trav_step'))
 async def trav_step(call: (CallbackQuery, Message), state: FSMContext):
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
+    with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
 
     try:
@@ -273,16 +290,18 @@ async def trav_step(call: (CallbackQuery, Message), state: FSMContext):
             (await state.get_data())['lang']
         except KeyError:
             comic_data = await comics_db.get_comic_data_by_id(list_.pop(0))
+            comic_lang = 'en'
         else:
             comic_data = await comics_db.get_ru_comic_data_by_id(list_.pop(0))
+            comic_lang = 'ru'
         finally:
             await state.update_data(list=list_)
 
-        if len(list_) > 0:
-            await send_comic(call.from_user.id, data=comic_data, keyboard=kboard.traversal)
+        if list_:
+            await send_comic(call.from_user.id, data=comic_data, keyboard=kboard.traversal, comic_lang=comic_lang)
         else:
-            await send_comic(call.from_user.id, data=comic_data, keyboard=kboard.navigation)
-            await trav_stop(call, state)
+            await send_comic(call.from_user.id, data=comic_data, keyboard=kboard.navigation, comic_lang=comic_lang)
+            await state.reset_data()
 
 
 """ADMIN'S"""
@@ -291,7 +310,7 @@ async def trav_step(call: (CallbackQuery, Message), state: FSMContext):
 @dp.message_handler(commands='admin')
 @admin
 async def admin_panel(msg: Message):
-    await bot.send_message(ADMIN_ID, '*** ADMIN PANEL ***', reply_markup=await kboard.admin_panel())
+    await bot.send_message(ADMIN_ID, '<b>*** ADMIN PANEL ***</b>', reply_markup=await kboard.admin_panel())
 
 
 @dp.callback_query_handler(Text('full_test'))
@@ -315,18 +334,15 @@ async def full_test(call: CallbackQuery):
             await asyncio.sleep(3)
         except Exception as err:
             logger.error(f"Error with {comic_id}: {err}")
-            await asyncio.sleep(601)  # telegram blocks bot for 10 minutes for flooding
+            await asyncio.sleep(601)  # telegram blocks bot for 10 min for flooding
 
 
 @dp.callback_query_handler(Text('change_spec_status'))
 async def change_spec_status(call: CallbackQuery):
-    cur_comic_id = await users_db.get_cur_comic_id(ADMIN_ID)
+    cur_comic_id, _ = await users_db.get_cur_comic_info(ADMIN_ID)
     await comics_db.change_spec_status(cur_comic_id)
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
-        await bot.edit_message_text(chat_id=ADMIN_ID,
-                                    message_id=call.message.message_id,
-                                    text=f"It's done {cur_comic_id}, Your Mightiness!",
-                                    reply_markup=await kboard.admin_panel())
+    with suppress(*suppress_exceptions):
+        await bot.send_message(ADMIN_ID, text=f"❗ <b>It's done for {cur_comic_id}, Your Mightiness!</b>")
 
 
 @dp.callback_query_handler(Text(startswith='send_'))
@@ -342,14 +358,14 @@ async def send_log(call: CallbackQuery):
         logger.error(err)
 
 
-@dp.callback_query_handler(Text('users_num'))
-async def users_num(call: CallbackQuery):
-    num = await users_db.length
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
-        await bot.edit_message_text(chat_id=ADMIN_ID,
-                                    message_id=call.message.message_id,
-                                    text=f"We already have {num} users caught in our net, Your Grace!",
-                                    reply_markup=await kboard.admin_panel())
+@dp.callback_query_handler(Text('users_info'))
+async def users_info(call: CallbackQuery):
+    all_users_num = await users_db.length
+    active_users_num = await users_db.get_last_month_active_users()
+    with suppress(*suppress_exceptions):
+        await bot.send_message(ADMIN_ID,
+                               text=f"❗ <b>We already have {all_users_num} users caught in our net, Your Grace!\n"
+                                    f"And {active_users_num} were active in the last month!</b>")
 
 
 class Broadcast(StatesGroup):
@@ -359,7 +375,7 @@ class Broadcast(StatesGroup):
 @dp.callback_query_handler(Text('broadcast'))
 async def broadcast(call: CallbackQuery):
     await Broadcast.waiting_for_input.set()
-    await bot.send_message(ADMIN_ID, 'Type in a broadcast message (or /cancel):')
+    await bot.send_message(ADMIN_ID, text='❗ <b>Type in a broadcast message (or /cancel):</b>')
 
 
 @dp.message_handler(state=Broadcast.waiting_for_input, commands='cancel')
@@ -367,7 +383,7 @@ async def cancel_handler(msg: Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
         return
-    await bot.send_message(ADMIN_ID, 'Canceled.')
+    await bot.send_message(ADMIN_ID, text='❗ <b>Canceled.</b>.')
     await state.finish()
 
 
@@ -376,55 +392,59 @@ async def process_broadcast_message(msg: Message, state: FSMContext):
     count = 0
     for user_id in (await users_db.get_all_users_ids()):
         try:
-            await bot.send_message(user_id, '❗❗❗ <b>ADMIN MESSAGE</b>: ' + msg.text)
+            await bot.send_message(user_id, text=f'❗❗❗ <b>ADMIN MESSAGE:</b>  {msg.text}')
             count += 1
             if count % 20 == 0:
                 await asyncio.sleep(1)
-        except (BotBlocked, UserDeactivated):
+        except (BotBlocked, UserDeactivated, ChatNotFound):
             await users_db.delete_user(user_id)
             continue
 
-    await bot.send_message(ADMIN_ID, f"Sent the broadcast message to {count} users!")
+    await bot.send_message(ADMIN_ID, f"❗ <b>Sent the broadcast message to {count} users!</b>")
     await state.finish()
 
 
-"""TEXT INPUT"""
+"""TYPING"""
 
 
 @dp.message_handler()
-@rate_limit(3)
-async def text_input(msg: Message, state: FSMContext):
-    with suppress(AttributeError, MessageNotModified, MessageToEditNotFound):
-        prev_msg_id = msg.message_id - 1
-        await bot.edit_message_reply_markup(msg.from_user.id, prev_msg_id)
+@rate_limit(2)
+async def typing(msg: Message, state: FSMContext):
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
+
+    await state.reset_data()
 
     user_input = msg.text
+
     if user_input.isdigit():
         comic_id = int(user_input)
         latest = parser.latest_comic_id
         if (comic_id > latest) or (comic_id <= 0):
-            await msg.reply(f"❗❗❗ Please, enter a number between 1 and {latest}!")
+            await msg.reply(f"❗❗❗ <b>Please, enter a number between 1 and {latest}!</b>")
         else:
             comic_data = await comics_db.get_comic_data_by_id(comic_id)
-            await users_db.update_cur_comic_id(msg.from_user.id, comic_id)
             await send_comic(msg.from_user.id, data=comic_data)
     else:
         user_input = await preprocess_text(user_input)
         found_comics_list = await comics_db.get_comics_ids_by_title(user_input)
         if not found_comics_list or not user_input:
-            await msg.reply(f"❗ There's no such comic title!")
+            await msg.reply(f"❗ <b>There's no such comic title!</b>")
         else:
             len_ = len(found_comics_list)
             if len_ == 1:
-                await msg.reply(f"❗ I found one:")
+                await msg.reply(f"❗ <b>I found one:</b>")
                 comic_id = found_comics_list[0]
                 if is_cyrillic(user_input):
+                    await state.update_data(lang='ru')
                     comic_data = await comics_db.get_ru_comic_data_by_id(comic_id)
+                    await send_comic(msg.from_user.id, data=comic_data, comic_lang='ru')
                 else:
                     comic_data = await comics_db.get_comic_data_by_id(comic_id)
-                await send_comic(msg.from_user.id, data=comic_data)
+                    await send_comic(msg.from_user.id, data=comic_data)
+
             elif len_ >= 2:
-                await msg.reply(f"❗ I found <u><b>{len_}</b></u> xkcd comics")
+                await msg.reply(f"❗ <b>I found <u><b>{len_}</b></u> comics. </b>")
                 await state.update_data(list=found_comics_list)
                 if is_cyrillic(user_input):
                     await state.update_data(lang='ru')
