@@ -14,7 +14,7 @@ class Parser:
                                     1506, 1525, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
 
     @property
-    def latest_comic_id(self):
+    def actual_latest_comic_id(self):
         url = f'https://xkcd.com/info.0.json'
         comic_json = requests.get(url).json()
         return int(comic_json.get('num'))
@@ -91,15 +91,15 @@ class Parser:
                     if el.name in ('p', 'li'):
                         text = text + el.text + '\n'
                 text = text[:1000].strip().replace('<', '').replace('>', '')
-                text = f"{text}<a href='{url}'>...</a>"
+                text = f"{text}...\n<a href='{url}'>[FULL TEXT]</a>"
                 return text, url
             except AttributeError:
                 pass
             except Exception as err:
                 logger.error(f'Error in get_explanation() for {comic_id}: {err}')
-                await asyncio.sleep(0.3)
+                await asyncio.sleep(0.1)
 
-        return "There's no explanation yet. Try it later.", url
+        return "❗ <b>There's no explanation yet. Try it later.</b>", url
 
     async def get_full_comic_data(self, comic_id):
         full_comic_data = await self.get_comic_data(comic_id)

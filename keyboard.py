@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from loader import users_db
-from parser_ import parser
+from xkcd_parser import parser
 
 
 class Keyboard:

@@ -13,8 +13,8 @@ from pathlib import Path
 from datetime import date
 
 from loader import users_db, comics_db, bot, logger, preprocess_text
-from parser_ import parser
-from config_ import *
+from xkcd_parser import parser
+from config import *
 from handlers import send_comic
 
 
@@ -95,7 +95,7 @@ async def broadcast_new_comic():
             yield user_id
 
     db_last_comic_id = await comics_db.get_last_comic_id()
-    real_last_comic_id = parser.latest_comic_id
+    real_last_comic_id = parser.actual_latest_comic_id
 
     if real_last_comic_id > db_last_comic_id:
         for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
@@ -125,7 +125,7 @@ async def broadcast_new_comic():
 
 async def checker():
     await broadcast_new_comic()
-    delay = 20
+    delay = 10
     aioschedule.every(delay).minutes.do(broadcast_new_comic)
     while True:
         await aioschedule.run_pending()

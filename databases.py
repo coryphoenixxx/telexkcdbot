@@ -261,11 +261,11 @@ if __name__ == "__main__":
 
     import asyncio
     from tqdm import trange
-    from parser_ import Parser
+    from xkcd_parser import Parser
 
     parser = Parser()
     comics_db = ComicsDatabase()
-    latest = parser.latest_comic_id
+    latest = parser.actual_latest_comic_id
     comics_values = []
 
     async def parse():

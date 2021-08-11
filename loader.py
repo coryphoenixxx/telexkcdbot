@@ -1,12 +1,10 @@
 import asyncio
 
-
 from aiogram import Bot
 from aiogram.types import ParseMode, Message
 
-
 from databases import ComicsDatabase, UsersDatabase
-from config_ import API_TOKEN, ADMIN_ID
+from config import API_TOKEN, ADMIN_ID
 from loguru import logger
 from string import ascii_letters, digits
 
