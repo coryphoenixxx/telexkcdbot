@@ -96,6 +96,8 @@ async def show_menu(msg: Message):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
     help_text = """
+<b>*** MENU ***</b>
+
 Type in the <u><b>comic number</b></u> and I'll find it for you!
 Type in the <u><b>comic title</b></u> and I'll try to find it for you!
 
@@ -103,12 +105,13 @@ Type in the <u><b>comic title</b></u> and I'll try to find it for you!
 <u><b>In menu you can:</b></u>
 — subscribe for a new comic.
 — read comics from your bookmarks.
-— remove language button (under the comic, which have russian translation) if you don't need it.
+— remove language button <i>(under the comic, which have russian translation)</i> if you don't need it.
 — start xkcding!
 
 
 ❗❗❗
-If something goes wrong or looks strange try to view a comic in your browser (I'll give you a link).
+
+If something goes wrong or looks strange try to view a comic in your browser <i>(I'll give you a link)</i>.
 """
     await msg.answer(help_text, reply_markup=await kboard.menu(msg.from_user.id))
 
@@ -134,9 +137,9 @@ async def show_bookmarks(call: CallbackQuery, state: FSMContext):
     bookmarks_list = await users_db.get_bookmarks(call.from_user.id)
     len_ = len(bookmarks_list)
     if not len_:
-        await call.message.answer(f"❗ You've no bookmarks.")
+        await call.message.answer(f"❗ <b>You've no bookmarks.</b>")
     else:
-        await call.message.answer(f"❗ You've <u><b>{len_}</b></u> bookmarks.")
+        await call.message.answer(f"❗ <b>You've <u><b>{len_}</b></u> bookmarks.</b>")
         await state.update_data(list=bookmarks_list)
         await trav_step(call, state)
 
