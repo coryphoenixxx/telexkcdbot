@@ -27,7 +27,7 @@ class Keyboard:
         'subscribe': InlineKeyboardButton(text='🔔Subscribe', callback_data='subscribe'),
         'unsubscribe': InlineKeyboardButton(text='🔕Unsubscribe', callback_data='unsubscribe'),
         'user_bookmarks': InlineKeyboardButton(text='🔖My Bookmarks', callback_data='user_bookmarks'),
-        'add_ru': InlineKeyboardButton(text='Add 🇷🇺RU Button', callback_data='add_ru'),
+        'add_ru': InlineKeyboardButton(text='Add 🇷🇺LANG🇬🇧 Button', callback_data='add_ru'),
         'remove_ru': InlineKeyboardButton(text='Remove 🇷🇺LANG🇬🇧 Button', callback_data='remove_ru'),
         'start_xkcding': InlineKeyboardButton(text='Start xkcding!', callback_data='start_xkcding'),
         'continue_xkcding': InlineKeyboardButton(text='Continue xkcding!', callback_data='continue_xkcding'),
