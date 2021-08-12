@@ -152,6 +152,7 @@ async def on_startup(dp: Dispatcher):
         await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
 
     await users_db.create()
+    await asyncio.sleep(1)  # wait for creating db
     await users_db.add_user(ADMIN_ID)
 
     asyncio.create_task(checker())

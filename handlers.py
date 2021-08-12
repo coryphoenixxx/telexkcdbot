@@ -17,7 +17,6 @@ from keyboard import kboard
 from xkcd_parser import parser
 from config import ADMIN_ID
 
-
 storage = MemoryStorage()
 dp = Dispatcher(bot, loop=loop, storage=storage)
 
@@ -81,12 +80,11 @@ async def start(msg: Message, state: FSMContext):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
 
-    user_id = msg.from_user.id
-    await users_db.add_user(user_id)
-    bot_name = (await bot.me).username
-    await msg.answer(f"Hey! The <b>{bot_name}</b> at your disposal!\t\t\t<b>[¬º-°]¬</b>")
+    await users_db.add_user(msg.from_user.id)
+    await msg.answer(f"Hey! The <b>{(await bot.me).username}</b> at your disposal!\t\t\t<b>[¬º-°]¬</b>")
     await msg.answer_photo(InputFile('static/bot_image.png'))
-    await show_menu(msg)
+    await asyncio.sleep(3)
+    await show_menu(msg, state)
 
 
 """MENU"""
@@ -123,27 +121,34 @@ If something goes wrong or looks strange try to view a comic in your browser <i>
 @dp.callback_query_handler(Text(endswith='subscribe'))
 async def subscriber(call: CallbackQuery):
     with suppress(*suppress_exceptions):
-        if 'subscribed' in call.message.text:
+        if 'MENU' not in call.message.text:
             await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
         else:
             await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
 
-    user_id = call.from_user.id
-    await users_db.subscribe(user_id) if call.data == 'subscribe' else await users_db.unsubscribe(user_id)
-
-    inner_text = f"{call.data}d for" if call.data == 'subscribe' else f"{call.data}d from"
-    await call.message.answer(f"❗ <b>You have been {inner_text} notification you whenever a new xkcd is released!</b>",
-                              reply_markup=await kboard.menu(user_id))
+    await users_db.subscribe(call.from_user.id) if call.data == 'subscribe' \
+        else await users_db.unsubscribe(call.from_user.id)
+    inner_text = f"<u>{call.data}d</u> for" if call.data == 'subscribe' else f"<u>{call.data}d</u> from"
+    await call.message.answer(f"❗ <b>You have been {inner_text} "
+                              f"notification you whenever a new xkcd is released!</b>",
+                              reply_markup=await kboard.menu(call.from_user.id))
 
 
 @dp.callback_query_handler(Text('user_bookmarks'))
 async def show_bookmarks(call: CallbackQuery, state: FSMContext):
+    with suppress(*suppress_exceptions):
+        if 'MENU' not in call.message.text:
+            await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
+        else:
+            await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
+
     bookmarks_list = await users_db.get_bookmarks(call.from_user.id)
     len_ = len(bookmarks_list)
     if not len_:
-        await call.message.answer(f"❗ <b>You've no bookmarks.</b>")
+        await call.message.answer(f"❗ <b>You have no bookmarks. You can bookmark the comic with the ❤ press.</b>",
+                                  reply_markup=await kboard.menu(call.from_user.id))
     else:
-        await call.message.answer(f"❗ <b>You've <u><b>{len_}</b></u> bookmarks.</b>")
+        await call.message.answer(f"❗ <b>You have <u><b>{len_}</b></u> bookmarks.</b>")
         await state.update_data(list=bookmarks_list)
         await trav_step(call, state)
 
