@@ -76,9 +76,11 @@ async def send_comic(user_id: int, data: dict, keyboard=kboard.navigation, comic
 
 @dp.message_handler(CommandStart())
 @rate_limit(5)
-async def start(msg: Message):
+async def start(msg: Message, state: FSMContext):
+    await state.reset_data()
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
+
     user_id = msg.from_user.id
     await users_db.add_user(user_id)
     bot_name = (await bot.me).username
@@ -92,9 +94,11 @@ async def start(msg: Message):
 
 @dp.message_handler(commands=['menu', 'help'])
 @rate_limit(5)
-async def show_menu(msg: Message):
+async def show_menu(msg: Message, state: FSMContext):
+    await state.reset_data()
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
+
     help_text = """
 <b>*** MENU ***</b>
 
@@ -312,7 +316,8 @@ async def trav_step(call: (CallbackQuery, Message), state: FSMContext):
 
 @dp.message_handler(commands='admin')
 @admin
-async def admin_panel(msg: Message):
+async def admin_panel(msg: Message, state: FSMContext):
+    await state.reset_data()
     await bot.send_message(ADMIN_ID, '<b>*** ADMIN PANEL ***</b>', reply_markup=await kboard.admin_panel())
 
 

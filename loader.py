@@ -1,6 +1,7 @@
 import asyncio
 
 from aiogram import Bot
+from aiogram.dispatcher import FSMContext
 from aiogram.types import ParseMode, Message
 
 from databases import ComicsDatabase, UsersDatabase
@@ -47,9 +48,9 @@ def rate_limit(limit: int, key=None):
 
 
 def admin(func):
-    async def decorator(msg: Message):
+    async def decorator(msg: Message, state: FSMContext):
         if msg.from_user.id != int(ADMIN_ID):
             await msg.answer('Nope!)))')
         else:
-            await func(msg)
+            await func(msg, state)
     return decorator
