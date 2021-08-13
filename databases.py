@@ -1,7 +1,7 @@
 import aiosqlite as aiosql
 import json
 
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
 
 
 class UsersDatabase:
@@ -45,18 +45,19 @@ class UsersDatabase:
                 comic_id, comic_lang = res[0].split('_')
                 return int(comic_id), comic_lang
 
-    async def get_all_users_ids(self):
+    @property
+    async def all_users_ids(self):
         query = f"""SELECT user_id FROM users;"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(query) as cur:
                 res = await cur.fetchall()
                 if not res:
-                    return []
+                    return ()
                 else:
-                    return [user_id[0] for user_id in res]
+                    return (user_id[0] for user_id in res)
 
     async def get_user_lang(self, user_id):
-        """FOR HANDLING RU BUTTON"""
+        """FOR HANDLING LANG BUTTON"""
         query = f"""SELECT user_lang FROM users
                     WHERE user_id == {user_id};"""
         async with aiosql.connect(self._db_path) as db:
@@ -65,7 +66,7 @@ class UsersDatabase:
                 return res[0]
 
     async def set_user_lang(self, user_id, lang):
-        """FOR HANDLING RU BUTTON"""
+        """FOR HANDLING LANG BUTTON"""
         query = f"""UPDATE users SET user_lang = '{lang}' 
                     WHERE user_id == {user_id};"""
         async with aiosql.connect(self._db_path) as db:
@@ -90,7 +91,6 @@ class UsersDatabase:
     async def get_last_month_active_users(self):
         def less_month(dates_list):
             return sum([date.today() - date.fromisoformat(d) < timedelta(days=30) for d in dates_list])
-        date_ = datetime.today().date()
         query = f"""SELECT last_action_date FROM users"""
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(query) as cur:
@@ -126,7 +126,7 @@ class UsersDatabase:
             async with db.execute(query) as cur:
                 res = await cur.fetchall()
                 if not res:
-                    return []
+                    return ()
                 else:
                     return (user_id[0] for user_id in res)
 
@@ -158,7 +158,7 @@ class ComicsDatabase:
     eng_cols = ('comic_id', 'title', 'img_url', 'comment', 'public_date', 'is_specific')
     ru_cols = ('comic_id', 'ru_title', 'ru_img_url', 'ru_comment', 'public_date', 'is_specific')
 
-    async def create_comics_database(self):
+    async def create(self):
         query = """CREATE TABLE IF NOT EXISTS comics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             comic_id INTEGER UNIQUE,
@@ -197,7 +197,15 @@ class ComicsDatabase:
         async with aiosql.connect(self._db_path) as db:
             async with db.execute(query) as cur:
                 res = await cur.fetchone()
-                return dict(zip(self.eng_cols, res))
+                return res
+
+    async def get_ru_comic_data_by_id(self, comic_id):
+        query = f"""SELECT comic_id, ru_title, ru_img_url, ru_comment, public_date, is_specific FROM comics
+                       WHERE comic_id == {comic_id};"""
+        async with aiosql.connect(self._db_path) as db:
+            async with db.execute(query) as cur:
+                res = await cur.fetchone()
+                return res
 
     async def get_comics_ids_by_title(self, title):
         query = f"""SELECT comic_id FROM comics
@@ -218,15 +226,8 @@ class ComicsDatabase:
                 else:
                     return [el[0] for el in res]
 
-    async def get_ru_comic_data_by_id(self, comic_id):
-        query = f"""SELECT comic_id, ru_title, ru_img_url, ru_comment, public_date, is_specific FROM comics
-                    WHERE comic_id == {comic_id};"""
-        async with aiosql.connect(self._db_path) as db:
-            async with db.execute(query) as cur:
-                res = await cur.fetchone()
-                return dict(zip(self.ru_cols, res))
-
-    async def get_last_comic_id(self):
+    @property
+    async def latest_comic_id(self):
         query = f"""SELECT comic_id FROM comics 
                     ORDER BY comic_id DESC;"""
         async with aiosql.connect(self._db_path) as db:
@@ -256,7 +257,7 @@ class ComicsDatabase:
 
 
 if __name__ == "__main__":
-
+    # needs envs
     """FILL COMIC_DB"""
 
     import asyncio
@@ -265,23 +266,44 @@ if __name__ == "__main__":
 
     parser = Parser()
     comics_db = ComicsDatabase()
-    latest = parser.actual_latest_comic_id
-    comics_values = []
+    comics_data = []
+    sem = asyncio.Semaphore(60)  # limit simultaneous connections on windows
 
-    async def parse():
-        print('Parsing:')
-        for comic_id in trange(1, latest + 1):
+
+    async def safe_parse(comic_id):
+        async with sem:
             data = await parser.get_full_comic_data(comic_id)
-            comics_values.append(tuple(data.values()))
+        comics_data.append(data)
+
 
     async def write_to_db():
-        await comics_db.create_comics_database()
-        print('Writing...')
-        for val in comics_values:
-            await comics_db.add_new_comic(val)
+        comics_data.sort(key=lambda x: x[0])
+        for _ in range(len(comics_data)):
+            await comics_db.add_new_comic(comics_data.pop(0))
 
 
-    event_loop = asyncio.get_event_loop()
-    event_loop.run_until_complete(parse())
-    event_loop.run_until_complete(write_to_db())
-    event_loop.close()
+    async def gather(start, end):
+        tasks = []
+        for i in range(start, end):
+            task = asyncio.create_task(safe_parse(i))
+            tasks.append(task)
+
+        await asyncio.gather(*tasks)
+
+
+    async def main():
+        await comics_db.create()
+        await parser.create()
+
+        latest = await parser.xkcd_latest_comic_id
+        for i in trange(1, latest + 1, 50):
+            end = i + 50
+            if end > latest:
+                end = latest + 1
+            await gather(i, end)
+            await write_to_db()
+
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
+

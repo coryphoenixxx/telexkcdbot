@@ -62,7 +62,7 @@ class Keyboard:
         buttons_names = ['nav_first', 'nav_prev', 'nav_random', 'nav_next', 'nav_last', 'explain', bookmark_btn_type]
 
         if (await users_db.get_user_lang(user_id)) == 'ru':
-            if comic_id in parser.real_ru_ids:
+            if comic_id in parser.real_ru_comics_ids:
                 if comic_lang == 'en':
                     buttons_names.append('ru')
                 if comic_lang == 'ru':
@@ -76,7 +76,7 @@ class Keyboard:
         buttons_names = [bookmark_btn_type, 'trav_explain', 'trav_stop', 'trav_step']
 
         if (await users_db.get_user_lang(user_id)) == 'ru':
-            if comic_id in parser.real_ru_ids:
+            if comic_id in parser.real_ru_comics_ids:
                 if comic_lang == 'en':
                     buttons_names.insert(2, 'trav_ru')
                 if comic_lang == 'ru':

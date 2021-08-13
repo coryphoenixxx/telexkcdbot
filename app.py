@@ -1,21 +1,19 @@
-import asyncio
 import aioschedule
-
-from aiogram import Dispatcher
-from aiogram.types import Update, Message
-from aiogram.dispatcher import DEFAULT_RATE_LIMIT
-from aiogram.dispatcher.handler import CancelHandler, current_handler
-from aiogram.dispatcher.middlewares import BaseMiddleware
-from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound
-from aiogram.utils.executor import start_webhook, start_polling
 
 from pathlib import Path
 from datetime import date
 
-from loader import users_db, comics_db, bot, logger, preprocess_text
+from aiogram import Dispatcher
+from aiogram.types import Update
+from aiogram.dispatcher import DEFAULT_RATE_LIMIT
+from aiogram.dispatcher.handler import CancelHandler, current_handler
+from aiogram.dispatcher.middlewares import BaseMiddleware
+from aiogram.utils.exceptions import Throttled
+from aiogram.utils.executor import start_webhook, start_polling
+
 from xkcd_parser import parser
 from config import *
-from handlers import send_comic
+from funcs import *
 
 
 class BigBrother(BaseMiddleware):
@@ -54,7 +52,6 @@ class BigBrother(BaseMiddleware):
             limit = self.rate_limit
             key = f"{self.prefix}_message"
 
-        # Use Dispatcher.throttle method.
         try:
             await dispatcher.throttle(key, rate=limit)
         except Throttled as t:
@@ -90,37 +87,19 @@ class BigBrother(BaseMiddleware):
 
 
 async def broadcast_new_comic():
-    async def get_subscribed_users():
-        for user_id in (await users_db.subscribed_users):
-            yield user_id
-
-    db_last_comic_id = await comics_db.get_last_comic_id()
-    real_last_comic_id = parser.actual_latest_comic_id
+    db_last_comic_id = await comics_db.latest_comic_id
+    real_last_comic_id = await parser.xkcd_latest_comic_id
 
     if real_last_comic_id > db_last_comic_id:
         for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
-            data = await parser.get_full_comic_data(comic_id)
-            comic_values = tuple(data.values())
-            await comics_db.add_new_comic(comic_values)
+            comic_data = await parser.get_full_comic_data(comic_id)
+            await comics_db.add_new_comic(comic_data)
 
-        count = 0
-        try:
-            async for user_id in get_subscribed_users():
-                try:
-                    await bot.send_message(user_id, "🔥 <b>And here\'s new comic!</b> 🔥")
-                except (BotBlocked, UserDeactivated, ChatNotFound):
-                    await users_db.delete_user(user_id)
-                    continue
-
-                comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
-                await send_comic(user_id, data=comic_data)
-                count += 1
-                if count % 20 == 0:
-                    await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
-        except Exception as err:
-            logger.error("Can't send new comic!", err)
-        finally:
-            await bot.send_message(ADMIN_ID, f"❗ <b>{count} messages were successfully sent.</b>")
+        comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
+        subscribed_users_ids = (await users_db.subscribed_users)
+        await broadcast(subscribed_users_ids,
+                        text="🔥 <b>And here\'s new comic!</b> 🔥",
+                        comic_data=comic_data)
 
 
 async def checker():
@@ -134,7 +113,7 @@ async def checker():
 
 async def cleaner():
     async def clean():
-        logs = list(Path.cwd().glob('*.log'))
+        logs = list(Path.cwd().glob('./logs/*.log'))
         for log in logs:
             if log.name not in ('actions.log', 'errors.log'):
                 log.unlink()
@@ -152,14 +131,14 @@ async def on_startup(dp: Dispatcher):
         await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
 
     await users_db.create()
-    await asyncio.sleep(1)  # wait for creating db
-    await users_db.add_user(ADMIN_ID)
-
+    await parser.create()
     asyncio.create_task(checker())
     asyncio.create_task(cleaner())
 
+    await users_db.add_user(ADMIN_ID)
+
     await bot.send_message(ADMIN_ID, text="<b>❗ I'm here, in Your Power, My Lord...</b>")
-    logger.info("Bot started.")
+    logger.error("Bot started.")  # create log files
 
 
 if __name__ == "__main__":
