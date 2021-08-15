@@ -18,14 +18,12 @@ class UsersDatabase:
     async def create():
         query = f"""CREATE TABLE IF NOT EXISTS users (
                       id SERIAL NOT NULL,
-                      user_id INTEGER UNIQUE ,
+                      user_id INTEGER UNIQUE,
                       cur_comic_info VARCHAR(10) DEFAULT '0_en', 
                       bookmarks JSON DEFAULT '[]',
                       is_subscribed INTEGER DEFAULT 1, 
                       user_lang VARCHAR(2) DEFAULT 'ru',
-                      last_action_date DATE DEFAULT CURRENT_DATE);
-
-                    ALTER TABLE users OWNER TO postgres;
+                      last_action_date DATE DEFAULT CURRENT_DATE);                    
 
                     CREATE UNIQUE INDEX IF NOT EXISTS user_id_uindex ON users (id);"""
 
