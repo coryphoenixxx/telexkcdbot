@@ -145,7 +145,7 @@ if __name__ == "__main__":
     loop.run_until_complete(fill_comic_db())
 
     if HEROKU:
-        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+        loop.run_until_complete(bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True))
         start_webhook(
             dispatcher=dp,
             webhook_path=WEBHOOK_PATH,
