@@ -165,8 +165,6 @@ class ComicsDatabase:
                         ru_title VARCHAR(128) DEFAULT '...',
                         ru_img_url VARCHAR(128) DEFAULT '...',
                         ru_comment TEXT DEFAULT '...');
-                
-                ALTER TABLE comics OWNER TO postgres;
     
                 CREATE UNIQUE INDEX IF NOT EXISTS comic_id_uindex ON comics (comic_id);"""
 
