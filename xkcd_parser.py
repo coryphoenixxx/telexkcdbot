@@ -8,8 +8,9 @@ from loader import logger
 
 
 class Parser:
-    real_ru_comics_ids: tuple = None
-    _specific_comic_ids: set = None
+    def __init__(self):
+        self.real_ru_comics_ids: tuple = None
+        self._specific_comic_ids: set = None
 
     async def create(self):
         self.real_ru_comics_ids = await self._get_real_ru_ids()
@@ -114,9 +115,6 @@ class Parser:
         ru_comic_data = await self.get_ru_comic_data(comic_id)
         full_comic_data.update(ru_comic_data)
         return tuple(full_comic_data.values())
-
-
-parser = Parser()
 
 
 if __name__ == "__main__":

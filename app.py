@@ -11,7 +11,6 @@ from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.utils.exceptions import Throttled
 from aiogram.utils.executor import start_webhook, start_polling
 
-from xkcd_parser import parser
 from config import *
 from funcs import *
 
@@ -86,7 +85,7 @@ class BigBrother(BaseMiddleware):
             await message.reply('❗ <b>Unlocked.</b>')
 
 
-async def broadcast_new_comic():
+async def get_and_broadcast_new_comic():
     db_last_comic_id = await comics_db.latest_comic_id
     real_last_comic_id = await parser.xkcd_latest_comic_id
 
@@ -103,21 +102,22 @@ async def broadcast_new_comic():
 
 
 async def checker():
-    await broadcast_new_comic()
+    await get_and_broadcast_new_comic()
     delay = 10
-    aioschedule.every(delay).minutes.do(broadcast_new_comic)
+    aioschedule.every(delay).minutes.do(get_and_broadcast_new_comic)
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(60)
 
 
-async def cleaner():
-    async def clean():
-        logs = list(Path.cwd().glob('./logs/*.log'))
-        for log in logs:
-            if log.name not in ('actions.log', 'errors.log'):
-                log.unlink()
+async def clean():
+    logs = list(Path.cwd().glob('./logs/*.log'))
+    for log in logs:
+        if log.name not in ('actions.log', 'errors.log'):
+            log.unlink()
 
+
+async def cleaner():
     await clean()
     delay = 12
     aioschedule.every(delay).hours.do(clean)
@@ -127,9 +127,6 @@ async def cleaner():
 
 
 async def on_startup(dp: Dispatcher):
-    if HEROKU:
-        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
-
     await users_db.create()
     await parser.create()
     asyncio.create_task(checker())
@@ -138,15 +135,17 @@ async def on_startup(dp: Dispatcher):
     await users_db.add_user(ADMIN_ID)
 
     await bot.send_message(ADMIN_ID, text="<b>❗ I'm here, in Your Power, My Lord...</b>")
-    logger.error("Bot started.")  # create log files
+    logger.error("Bot started.")  # Creates log files (both)
 
 
 if __name__ == "__main__":
     from handlers import dp
 
     dp.middleware.setup(BigBrother())
+    loop.run_until_complete(fill_comic_db())
 
     if HEROKU:
+        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
         start_webhook(
             dispatcher=dp,
             webhook_path=WEBHOOK_PATH,

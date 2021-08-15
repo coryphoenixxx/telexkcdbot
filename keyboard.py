@@ -1,6 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from loader import users_db
-from xkcd_parser import parser
+from loader import *
 
 
 class Keyboard:
@@ -36,7 +35,6 @@ class Keyboard:
         'change_spec_status': InlineKeyboardButton(text='CHANGE SPEC STATUS', callback_data='change_spec_status'),
         'send_actions': InlineKeyboardButton(text='SEND ACTLOG', callback_data='send_actions'),
         'send_errors': InlineKeyboardButton(text='SEND ERRLOG', callback_data='send_errors'),
-        'send_users_db': InlineKeyboardButton(text='SEND USERS DB', callback_data='send_users_db'),
         'users_info': InlineKeyboardButton(text='USERS INFO', callback_data='users_info'),
         'broadcast': InlineKeyboardButton(text='BROADCAST', callback_data='broadcast')
     }
@@ -57,7 +55,7 @@ class Keyboard:
 
         return await self._create_keyboard(buttons_names, row_width=1)
 
-    async def navigation(self, user_id, comic_id, comic_lang):
+    async def navigation(self, user_id, comic_id, comic_lang='en'):
         bookmark_btn_type = 'bookmarked' if comic_id in await users_db.get_bookmarks(user_id) else 'not_bookmarked'
         buttons_names = ['nav_first', 'nav_prev', 'nav_random', 'nav_next', 'nav_last', 'explain', bookmark_btn_type]
 
@@ -88,7 +86,7 @@ class Keyboard:
 
     async def admin_panel(self):
         buttons_names = ['full_test', 'users_info', 'change_spec_status',
-                         'send_actions', 'send_errors', 'send_users_db', 'broadcast']
+                         'send_actions', 'send_errors', 'broadcast']
         return await self._create_keyboard(buttons_names, row_width=1)
 
 

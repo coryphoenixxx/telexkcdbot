@@ -3,15 +3,18 @@ import asyncio
 from aiogram import Bot
 from aiogram.types import ParseMode
 
-from databases import ComicsDatabase, UsersDatabase
+from databases import ComicsDatabase, UsersDatabase, create_pool
 from config import API_TOKEN
 from loguru import logger
-
-
-users_db = UsersDatabase()
-comics_db = ComicsDatabase()
+from xkcd_parser import Parser
 
 loop = asyncio.get_event_loop()
+pool = loop.run_until_complete(create_pool())
+
+users_db = UsersDatabase(pool)
+comics_db = ComicsDatabase(pool)
+parser = Parser()
+
 bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
 
 logger.add('./logs/actions.log', rotation='5 MB', level='INFO')
