@@ -166,7 +166,7 @@ async def fill_comic_db():
     async def main():
         logger.info("Start filling the comics db.")
         latest = (await parser.xkcd_latest_comic_id)
-        chunk = 10
+        chunk = 20
         for i in trange(1, latest + 1, chunk):
             end = i + chunk
             if end > latest:

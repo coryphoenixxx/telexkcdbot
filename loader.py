@@ -15,6 +15,10 @@ users_db = UsersDatabase(pool)
 comics_db = ComicsDatabase(pool)
 parser = Parser()
 
+loop.run_until_complete(users_db.create())
+loop.run_until_complete(comics_db.create())
+loop.run_until_complete(parser.create())
+
 bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
 
 logger.add('./logs/actions.log', rotation='5 MB', level='INFO')

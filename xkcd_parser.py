@@ -9,13 +9,13 @@ from loader import logger
 
 class Parser:
     def __init__(self):
-        self.real_ru_comics_ids: tuple = None
-        self._specific_comic_ids: set = None
+        self.real_ru_comics_ids = None
+        self._specific_comic_ids = None
 
     async def create(self):
-        self.real_ru_comics_ids = await self._get_real_ru_ids()
-        self._specific_comic_ids = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
-                                    1506, 1525, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
+        self.real_ru_comics_ids: tuple = await self._get_real_ru_ids()
+        self._specific_comic_ids: set = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
+                                         1506, 1525, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
 
     @property
     async def xkcd_latest_comic_id(self) -> int:

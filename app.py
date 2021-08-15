@@ -127,8 +127,6 @@ async def cleaner():
 
 
 async def on_startup(dp: Dispatcher):
-    await users_db.create()
-    await parser.create()
     asyncio.create_task(checker())
     asyncio.create_task(cleaner())
 
