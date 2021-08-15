@@ -7,7 +7,7 @@ from config import DATABASE_URL
 
 
 async def create_pool() -> asyncpg.Pool:
-    return await asyncpg.create_pool(DATABASE_URL, sslmode='require')
+    return await asyncpg.create_pool(DATABASE_URL)
 
 
 class UsersDatabase:
@@ -27,7 +27,7 @@ class UsersDatabase:
 
                     CREATE UNIQUE INDEX IF NOT EXISTS user_id_uindex ON users (id);"""
 
-        conn: asyncpg.Connection = await asyncpg.connect(DATABASE_URL, sslmode='require')
+        conn: asyncpg.Connection = await asyncpg.connect(DATABASE_URL)
         await conn.execute(query)
         await conn.close()
 
@@ -168,7 +168,7 @@ class ComicsDatabase:
     
                 CREATE UNIQUE INDEX IF NOT EXISTS comic_id_uindex ON comics (comic_id);"""
 
-        conn: asyncpg.Connection = await asyncpg.connect(DATABASE_URL, sslmode='require')
+        conn: asyncpg.Connection = await asyncpg.connect(DATABASE_URL)
         await conn.execute(query)
         await conn.close()
 
