@@ -3,7 +3,7 @@ import os
 
 API_TOKEN = os.getenv('API_TOKEN')
 ADMIN_ID = os.getenv('ADMIN_ID')
-DATABASE_URL = os.getenv('DATABASE_URL')
+DATABASE_URL = os.getenv('DATABASE_URL') + '?sslmode=require'
 HEROKU_APP_NAME = os.getenv('HEROKU_APP_NAME')
 HEROKU = os.getenv('HEROKU')
 WEBHOOK_HOST = f'https://{HEROKU_APP_NAME}.herokuapp.com'
