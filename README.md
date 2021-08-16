@@ -7,6 +7,9 @@ Functional telegram bot for convenient reading xkcd comics.
 ## Try it
 https://t.me/telexkcdbot
 
+## Presentation
+https://www.youtube.com/watch?v=BW7dkHN6fsg
+
 ## Features
 - Notification for the new comic.
 - Russian translation of comic _(if it exists)_.
