@@ -10,6 +10,7 @@ from config import ADMIN_ID
 from keyboard import kboard
 
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
+punctuation = ' -(),.:;!?#+'
 suppress_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 
 
@@ -36,14 +37,14 @@ async def get_comics_list_text(comics_ids, titles, comic_lang):
 
 
 async def is_cyrillic(text: str) -> bool:
-    cyr_set = set(cyrillic)
+    cyr_set = set(cyrillic + punctuation)
     set_text = set(text)
     return set_text.issubset(cyr_set)
 
 
 async def preprocess_text(text: str) -> str:
     text = text.strip()
-    permitted = ascii_letters + digits + cyrillic + ' -(),.:;!?#'
+    permitted = ascii_letters + digits + cyrillic + punctuation
     text = ''.join([ch for ch in text if ch in permitted])
     return text[:30]
 
