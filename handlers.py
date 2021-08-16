@@ -24,7 +24,7 @@ async def start(msg: Message, state: FSMContext):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
 
     await users_db.add_user(msg.from_user.id)
-    await msg.answer(f"<b>❗ Hey! The <u>{(await bot.me).username}</u> at your disposal!   [¬º-°]¬</b>")
+    await msg.answer(f"<b>❗ Hey!    [¬º-°]¬\nThe <u>{(await bot.me).username}</u> at your disposal!</b>")
     await msg.answer_photo(InputFile('static/bot_image.png'))
     await asyncio.sleep(3)
     await show_menu(msg, state)
