@@ -67,8 +67,8 @@ async def send_comic(user_id: int, data: tuple, keyboard=kboard.navigation, comi
 
     if is_specific:
         await bot.send_message(user_id,
-                               text=f"❗❗❗ <b>It's a peculiar comic! It's preferable to view it "
-                                    f"in <a href='{link}'>your browser</a>.</b>",
+                               text=f"❗❗❗ <b>It's a peculiar comic!\nIt's preferable to view it "
+                                    f"in your browser.</b>",
                                disable_web_page_preview=True,
                                disable_notification=True)
 
