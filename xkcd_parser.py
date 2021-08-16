@@ -83,6 +83,7 @@ class Parser:
             soup = await self._get_soup(f'https://xkcd.ru/{comic_id}')
             img = soup.find('img', {'border': 0})
             comment = soup.find('div', {'class': 'comics_text'}).text
+            comment = comment.replace('<', '').replace('>', '').strip()
             comment = comment if comment else '...'
 
             values = (img['alt'], img['src'], comment)

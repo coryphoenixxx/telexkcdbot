@@ -61,7 +61,6 @@ async def send_comic(user_id: int, data: tuple, keyboard=kboard.navigation, comi
 
     link = await get_link(comic_id, comic_lang, title)
     headline = f"<b>{comic_id}. \"{link}\"</b>   <i>({public_date})</i>"
-    comment = comment.replace('<', '').replace('>', '')
 
     await bot.send_message(user_id, headline, disable_web_page_preview=True)
 
