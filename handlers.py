@@ -353,7 +353,7 @@ async def cancel_handler(msg: Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
         return
-    await bot.send_message(ADMIN_ID, text='❗ <b>Canceled.</b>.')
+    await bot.send_message(ADMIN_ID, text='❗ <b>Canceled.</b>')
     await state.finish()
 
 
