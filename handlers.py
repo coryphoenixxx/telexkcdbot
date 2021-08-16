@@ -89,7 +89,7 @@ async def show_bookmarks(call: CallbackQuery, state: FSMContext):
         await call.message.answer(f"❗ <b>You have no bookmarks. You can bookmark the comic with the ❤ press.</b>",
                                   reply_markup=await kboard.menu(call.from_user.id))
     else:
-        await call.message.answer(f"❗ <b>You have <u><b>{_len}</b></u> bookmarks.</b>:")
+        await call.message.answer(f"❗ <b>You have <u><b>{_len}</b></u> bookmarks</b>:")
 
         comics_ids, titles = [], []
         for comic_id in bookmarks_list:
