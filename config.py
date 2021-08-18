@@ -4,8 +4,8 @@ import os
 API_TOKEN = os.getenv('API_TOKEN')
 ADMIN_ID = os.getenv('ADMIN_ID')
 DATABASE_URL = os.getenv('DATABASE_URL') + '?sslmode=require'  # comment sslmode for localhost
-HEROKU_APP_NAME = os.getenv('HEROKU_APP_NAME')
 HEROKU = os.getenv('HEROKU')
+HEROKU_APP_NAME = os.getenv('HEROKU_APP_NAME')
 WEBHOOK_HOST = f'https://{HEROKU_APP_NAME}.herokuapp.com'
 PORT = int(os.getenv('PORT'))
 WEBHOOK_PATH = f'/webhook/{API_TOKEN}'

@@ -17,7 +17,7 @@ dp = Dispatcher(bot, loop=loop, storage=storage)
 
 
 @dp.message_handler(CommandStart())
-@rate_limit(5)
+@rate_limit(2)
 async def start(msg: Message, state: FSMContext):
     await state.reset_data()
     with suppress(*suppress_exceptions):
@@ -34,7 +34,7 @@ async def start(msg: Message, state: FSMContext):
 
 
 @dp.message_handler(commands=['menu', 'help'])
-@rate_limit(5)
+@rate_limit(2)
 async def show_menu(msg: Message, state: FSMContext):
     await state.reset_data()
     with suppress(*suppress_exceptions):
@@ -369,7 +369,7 @@ async def send_broadcast_admin_message(msg: Message, state: FSMContext):
 
 
 @dp.message_handler()
-@rate_limit(2)
+@rate_limit(1)
 async def typing(msg: Message, state: FSMContext):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)

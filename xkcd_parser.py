@@ -56,11 +56,13 @@ class Parser:
             async with aiohttp.ClientSession() as session:
                 comic_json = await (await session.get(url)).json()
 
+            comment = comic_json.get('alt').replace('<', '').replace('>', '').strip()
+
             comic_data = {
                 'comic_id': comic_id,
                 'title': comic_json.get('safe_title') if comic_json.get('safe_title') else '...',
                 'img_url': comic_json.get('img'),
-                'comment': comic_json.get('alt') if comic_json.get('alt') else '...',
+                'comment': comment if comment else '...',
                 'public_date': date(day=int(comic_json.get('day')),
                                     month=int(comic_json.get('month')),
                                     year=int(comic_json.get('year'))),

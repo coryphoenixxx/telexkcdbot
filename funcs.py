@@ -61,6 +61,7 @@ async def send_comic(user_id: int, data: tuple, keyboard=kboard.navigation, comi
 
     link = await get_link(comic_id, comic_lang, title)
     headline = f"<b>{comic_id}. \"{link}\"</b>   <i>({public_date})</i>"
+    comment = comment.replace('<', '').replace('>', '').strip()
 
     await bot.send_message(user_id, headline, disable_web_page_preview=True)
 
@@ -117,13 +118,9 @@ def admin(func):
 
 
 async def broadcast(user_ids: tuple, text: str, comic_data: tuple = None):
-    async def users_ids_gen():
-        for _id in user_ids:
-            yield _id
-
     count = 0
     try:
-        async for user_id in users_ids_gen():
+        for user_id in user_ids:
             try:
                 await bot.send_message(user_id, text=text)
             except (BotBlocked, UserDeactivated, ChatNotFound):
