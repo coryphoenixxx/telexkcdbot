@@ -128,6 +128,9 @@ async def cleaner():
 
 
 async def on_startup(dp: Dispatcher):
+    if HEROKU:
+        bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+
     asyncio.create_task(checker())
     asyncio.create_task(cleaner())
 
@@ -144,7 +147,6 @@ if __name__ == "__main__":
     loop.run_until_complete(fill_comic_db())
 
     if HEROKU:
-        loop.run_until_complete(bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True))
         start_webhook(
             dispatcher=dp,
             webhook_path=WEBHOOK_PATH,
