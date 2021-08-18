@@ -128,11 +128,13 @@ async def broadcast(user_ids: tuple, text: str, comic_data: tuple = None):
             else:
                 if not comic_data:
                     await bot.send_message(user_id, text=text)
+                    count += 1
                 else:
                     if user_id in subscribed_users_ids:
                         await bot.send_message(user_id, text=text)
                         await send_comic(user_id, data=comic_data)
-                count += 1
+                        count += 1
+
                 if count % 20 == 0:
                     await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
     except Exception as err:
