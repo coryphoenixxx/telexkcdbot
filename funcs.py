@@ -1,6 +1,6 @@
 from string import ascii_letters, digits
 
-from aiogram.types import Message, InputFile
+from aiogram.types import Message, InputFile, ChatActions
 from aiogram.dispatcher import FSMContext
 from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTPUrlContent, BotBlocked, \
     UserDeactivated, MessageToEditNotFound, ChatNotFound, MessageCantBeEdited
@@ -97,7 +97,6 @@ def rate_limit(limit: int, key=None):
     """
     Decorator for configuring rate limit and key in different functions.
     """
-
     def decorator(func):
         setattr(func, 'throttling_rate_limit', limit)
         if key:
@@ -119,16 +118,20 @@ def admin(func):
 
 async def broadcast(user_ids: tuple, text: str, comic_data: tuple = None):
     count = 0
+    subscribed_users_ids = await users_db.subscribed_users
     try:
         for user_id in user_ids:
             try:
-                await bot.send_message(user_id, text=text)
+                await bot.send_chat_action(user_id, ChatActions.TYPING)
             except (BotBlocked, UserDeactivated, ChatNotFound):
                 await users_db.delete_user(user_id)
-                continue
             else:
-                if comic_data:
-                    await send_comic(user_id, data=comic_data)
+                if not comic_data:
+                    await bot.send_message(user_id, text=text)
+                else:
+                    if user_id in subscribed_users_ids:
+                        await bot.send_message(user_id, text=text)
+                        await send_comic(user_id, data=comic_data)
                 count += 1
                 if count % 20 == 0:
                     await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)

@@ -43,7 +43,7 @@ class Parser:
         return tuple(nums)
 
     async def get_comic_data(self, comic_id: int) -> dict:
-        if comic_id == 404:
+        if comic_id == 404:  # 404 comic doesn't exist
             return {'comic_id': comic_id,
                     'title': '404',
                     'img_url': 'https://www.explainxkcd.com/wiki/images/9/92/not_found.png',
@@ -69,7 +69,7 @@ class Parser:
                 'is_specific': 1 if comic_id in self._specific_comic_ids else 0
             }
 
-            # I don't know why telegram don't want to upload original image!
+            # I don't know why telegram doesn't want to upload original image!
             if comic_id == 109:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png'
             if comic_id == 658:
