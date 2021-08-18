@@ -129,7 +129,7 @@ async def cleaner():
 
 async def on_startup(dp: Dispatcher):
     if HEROKU:
-        bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
 
     asyncio.create_task(checker())
     asyncio.create_task(cleaner())
