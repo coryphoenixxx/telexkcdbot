@@ -14,41 +14,6 @@ punctuation = ' -(),.:;!?#+'
 suppress_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 
 
-async def get_link(comic_id, comic_lang, title):
-    link = "<a href='{url}'>{title}</a>"
-    if comic_lang == 'ru':
-        url = f'https://xkcd.ru/{comic_id}'
-    else:
-        url = f'https://xkcd.com/{comic_id}' if comic_id != 880 else 'https://xk3d.xkcd.com/880/'
-
-    return link.format(url=url, title=title)
-
-
-async def get_comics_list_text(comics_ids, titles, comic_lang):
-    headers_list = [f"<b>{str(i[0]) + '.':7}</b>\"{await get_link(i[0], comic_lang, i[1])}\"" \
-                    for i in zip(comics_ids, titles)]
-    if len(headers_list) > 50:
-        headers_list = headers_list[:50]
-        headers_list.append('...')
-
-    text = '\n'.join(headers_list)
-
-    return text
-
-
-async def is_cyrillic(text: str) -> bool:
-    cyr_set = set(cyrillic + punctuation)
-    set_text = set(text)
-    return set_text.issubset(cyr_set)
-
-
-async def preprocess_text(text: str) -> str:
-    text = text.strip()
-    permitted = ascii_letters + digits + cyrillic + punctuation
-    text = ''.join([ch for ch in text if ch in permitted])
-    return text[:30]
-
-
 async def send_comic(user_id: int, data: tuple, keyboard=kboard.navigation, comic_lang: str = 'en'):
     (comic_id,
      title,
@@ -61,14 +26,13 @@ async def send_comic(user_id: int, data: tuple, keyboard=kboard.navigation, comi
 
     link = await get_link(comic_id, comic_lang, title)
     headline = f"<b>{comic_id}. \"{link}\"</b>   <i>({public_date})</i>"
-    comment = comment.replace('<', '').replace('>', '').strip()
 
     await bot.send_message(user_id, headline, disable_web_page_preview=True)
 
     if is_specific:
         await bot.send_message(user_id,
-                               text=f"❗❗❗ <b>It's a peculiar comic!\nIt's preferable to view it "
-                                    f"in your browser.</b>",
+                               text=f"❗❗❗ <b>It's a peculiar comic!\n"
+                                    f"It's preferable to view it in your browser.</b>",
                                disable_web_page_preview=True,
                                disable_notification=True)
 
@@ -93,10 +57,59 @@ async def send_comic(user_id: int, data: tuple, keyboard=kboard.navigation, comi
                            disable_notification=True)
 
 
+async def get_link(comic_id, comic_lang, title):
+    link = "<a href='{url}'>{title}</a>"
+
+    if comic_lang == 'ru':
+        url = f'https://xkcd.ru/{comic_id}'
+    else:
+        url = f'https://xkcd.com/{comic_id}' if comic_id != 880 \
+            else 'https://xk3d.xkcd.com/880/'  # Original image is broken
+
+    return link.format(url=url, title=title)
+
+
+async def get_comics_list_text(comics_ids, titles, comic_lang):
+    headers_list = [f"<b>{str(i[0]) + '.':7}</b>\"{await get_link(i[0], comic_lang, i[1])}\"" \
+                    for i in zip(comics_ids, titles)]
+
+    if len(comics_ids) >= 50:
+        headers_list.append('...')
+
+    text = '\n'.join(headers_list)
+
+    return text
+
+
+async def send_comics_list_text_in_bunches(user_id, comics_ids, titles, comic_lang='en'):
+    for i in range(0, len(comics_ids) + 1, 50):
+        end = i + 50
+        if end > len(comics_ids):
+            end = len(comics_ids)
+
+        text = await get_comics_list_text(comics_ids[i:end], titles[i:end], comic_lang)
+        await bot.send_message(user_id, text, disable_web_page_preview=True)
+        await asyncio.sleep(0.5)
+
+
+async def is_cyrillic(text: str) -> bool:
+    cyr_set = set(cyrillic + punctuation)
+    set_text = set(text)
+    return set_text.issubset(cyr_set)
+
+
+async def preprocess_text(text: str) -> str:
+    text = text.strip()
+    permitted = ascii_letters + digits + cyrillic + punctuation
+    text = ''.join([ch for ch in text if ch in permitted])
+    return text[:30]
+
+
 def rate_limit(limit: int, key=None):
     """
     Decorator for configuring rate limit and key in different functions.
     """
+
     def decorator(func):
         setattr(func, 'throttling_rate_limit', limit)
         if key:
@@ -141,46 +154,3 @@ async def broadcast(user_ids: tuple, text: str, comic_data: tuple = None):
         logger.error("Couldn't broadcast!", err)
     finally:
         await bot.send_message(ADMIN_ID, f"❗ <b>{count} messages were successfully sent.</b>")
-
-
-async def fill_comic_db():
-    from tqdm import trange
-
-    async def parse(comic_id):
-        async with sem:
-            data = await parser.get_full_comic_data(comic_id)
-        comics_data.append(data)
-
-    async def write_to_db():
-        comics_data.sort(key=lambda x: x[0])
-        while comics_data:
-            await comics_db.add_new_comic(comics_data.pop(0))
-
-    async def gather(start, end):
-        tasks = []
-        for comic_id in range(start, end):
-            if comic_id not in all_comics_ids:
-                task = asyncio.create_task(parse(comic_id))
-                tasks.append(task)
-
-        await asyncio.gather(*tasks)
-
-    async def main():
-        logger.info("Start filling the comics db.")
-        latest = (await parser.xkcd_latest_comic_id)
-        chunk = 20
-        for i in trange(1, latest + 1, chunk):
-            end = i + chunk
-            if end > latest:
-                end = latest + 1
-            await gather(i, end)
-            await write_to_db()
-        logger.info("Finish filling the comics db.")
-
-    comics_data = []
-    sem = asyncio.Semaphore(64)  # limits simultaneous connections on windows
-
-    await comics_db.create()
-    all_comics_ids = await comics_db.all_comics_ids
-
-    await main()

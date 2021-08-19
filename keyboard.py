@@ -26,8 +26,8 @@ class Keyboard:
         'subscribe': InlineKeyboardButton(text='🔔Subscribe', callback_data='subscribe'),
         'unsubscribe': InlineKeyboardButton(text='🔕Unsubscribe', callback_data='unsubscribe'),
         'user_bookmarks': InlineKeyboardButton(text='🔖My Bookmarks', callback_data='user_bookmarks'),
-        'add_ru': InlineKeyboardButton(text='Add 🇷🇺LANG🇬🇧 Button', callback_data='add_ru'),
-        'remove_ru': InlineKeyboardButton(text='Remove 🇷🇺LANG🇬🇧 Button', callback_data='remove_ru'),
+        'add_lang_btn': InlineKeyboardButton(text='Add 🇷🇺LANG🇬🇧 Button', callback_data='add_lang_btn'),
+        'remove_lang_btn': InlineKeyboardButton(text='Remove 🇷🇺LANG🇬🇧 Button', callback_data='remove_lang_btn'),
         'start_xkcding': InlineKeyboardButton(text='Start xkcding!', callback_data='start_xkcding'),
         'continue_xkcding': InlineKeyboardButton(text='Continue xkcding!', callback_data='continue_xkcding'),
 
@@ -47,7 +47,7 @@ class Keyboard:
         return keyboard
 
     async def menu(self, user_id):
-        ru_btn = 'remove_ru' if (await users_db.get_user_lang(user_id)) == 'ru' else 'add_ru'
+        ru_btn = 'remove_lang_btn' if (await users_db.get_user_lang(user_id)) == 'ru' else 'add_lang_btn'
         sub_btn = 'unsubscribe' if user_id in (await users_db.subscribed_users) else 'subscribe'
         comic_id, _ = await users_db.get_cur_comic_info(user_id)
         xkcding_btn = 'start_xkcding' if comic_id == 0 else 'continue_xkcding'

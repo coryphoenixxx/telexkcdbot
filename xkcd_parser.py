@@ -93,6 +93,7 @@ class Parser:
 
     async def get_explanation(self, comic_id: int) -> str:
         url = f'https://www.explainxkcd.com/{comic_id}'
+        no_explanation_text = "❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it later.</b>"
         attempts = 10
         for _ in range(attempts):
             try:
@@ -103,7 +104,10 @@ class Parser:
                     if el.name in ('p', 'li'):
                         text = text + el.text + '\n'
                 text = text[:1000].strip().replace('<', '').replace('>', '')
-                text = f"{text}...\n<a href='{url}'>[FULL TEXT]</a>"
+                if not text:
+                    text = no_explanation_text
+                else:
+                    text = f"{text}...\n<a href='{url}'>[FULL TEXT]</a>"
                 return text
             except AttributeError:
                 pass
@@ -111,7 +115,7 @@ class Parser:
                 logger.error(f'Error in get_explanation() for {comic_id}: {err}')
                 await asyncio.sleep(0.1)
 
-        return "❗ <b>There's no explanation yet. Try it later.</b>"
+        return no_explanation_text
 
     async def get_full_comic_data(self, comic_id: int) -> tuple:
         full_comic_data = await self.get_comic_data(comic_id)

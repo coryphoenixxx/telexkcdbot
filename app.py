@@ -13,6 +13,7 @@ from aiogram.utils.executor import start_webhook, start_polling
 
 from config import *
 from funcs import *
+from fill_comics_db import fill_comics_db
 
 
 class BigBrother(BaseMiddleware):
@@ -133,10 +134,10 @@ async def on_startup(dp: Dispatcher):
 
     asyncio.create_task(checker())
     asyncio.create_task(cleaner())
-
     await users_db.add_user(ADMIN_ID)
 
     await bot.send_message(ADMIN_ID, text="<b>❗ I'm here, in Your Power, My Lord...</b>")
+
     logger.error("Bot started.")  # Creates log files (both)
 
 
@@ -144,7 +145,7 @@ if __name__ == "__main__":
     from handlers import dp
 
     dp.middleware.setup(BigBrother())
-    loop.run_until_complete(fill_comic_db())
+    loop.run_until_complete(fill_comics_db())
 
     if HEROKU:
         start_webhook(
