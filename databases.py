@@ -74,7 +74,7 @@ class UsersDatabase:
         query = """UPDATE users SET user_lang = $1
                    WHERE user_id = $2;"""
 
-        await self.pool.execute(query, user_id, user_lang)
+        await self.pool.execute(query, user_lang, user_id)
 
     async def update_cur_comic_info(self, user_id: int, new_cur_comic_id: int, new_cur_comic_lang: str):
         query = """UPDATE users SET cur_comic_info = $1

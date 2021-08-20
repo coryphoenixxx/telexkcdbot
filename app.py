@@ -96,7 +96,7 @@ async def get_and_broadcast_new_comic():
             await comics_db.add_new_comic(comic_data)
 
         comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
-        all_users_ids = await users_db.get_all_users_ids
+        all_users_ids = await users_db.get_all_users_ids()
 
         await broadcast(all_users_ids,
                         text="🔥 <b>And here\'s new comic!</b> 🔥",

@@ -388,7 +388,7 @@ async def cancel_handler(msg: Message, state: FSMContext):
 @dp.message_handler(state=Broadcast.waiting_for_input)
 async def send_broadcast_admin_message(msg: Message, state: FSMContext):
     text = f'❗❗❗ <b>ADMIN MESSAGE:\n</b>  {msg.text}'
-    all_users_ids = await users_db.get_all_users_ids
+    all_users_ids = await users_db.get_all_users_ids()
     await broadcast(all_users_ids, text=text)
     await state.finish()
 
