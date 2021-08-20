@@ -30,6 +30,7 @@ class Keyboard:
         'remove_lang_btn': InlineKeyboardButton(text='Remove 🇷🇺LANG🇬🇧 Button', callback_data='remove_lang_btn'),
         'start_xkcding': InlineKeyboardButton(text='Start xkcding!', callback_data='start_xkcding'),
         'continue_xkcding': InlineKeyboardButton(text='Continue xkcding!', callback_data='continue_xkcding'),
+        'menu': InlineKeyboardButton(text='Menu', callback_data='menu'),
 
         'full_test': InlineKeyboardButton(text='FULL TEST', callback_data='full_test'),
         'change_spec_status': InlineKeyboardButton(text='CHANGE SPEC STATUS', callback_data='change_spec_status'),
@@ -51,43 +52,48 @@ class Keyboard:
         sub_btn = 'unsubscribe' if user_id in (await users_db.get_subscribed_users()) else 'subscribe'
         comic_id, _ = await users_db.get_cur_comic_info(user_id)
         xkcding_btn = 'start_xkcding' if comic_id == 0 else 'continue_xkcding'
-        buttons_names = [sub_btn, 'user_bookmarks', ru_btn, xkcding_btn]
+        btns_names = [sub_btn, 'user_bookmarks', ru_btn, xkcding_btn]
 
-        return await self._create_keyboard(buttons_names, row_width=1)
+        return await self._create_keyboard(btns_names, row_width=1)
 
     async def navigation(self, user_id, comic_id, comic_lang='en'):
         bookmark_btn_type = 'bookmarked' if comic_id in await users_db.get_bookmarks(user_id) else 'not_bookmarked'
-        buttons_names = ['nav_first', 'nav_prev', 'nav_random', 'nav_next', 'nav_last', 'explain', bookmark_btn_type]
+        btns_names = ['nav_first', 'nav_prev', 'nav_random', 'nav_next', 'nav_last', 'explain', bookmark_btn_type]
 
         if (await users_db.get_user_lang(user_id)) == 'ru':
             if comic_id in parser.real_ru_comics_ids:
                 if comic_lang == 'en':
-                    buttons_names.append('ru')
+                    btns_names.append('ru')
                 if comic_lang == 'ru':
-                    buttons_names.append('en')
+                    btns_names.append('en')
 
-        return await self._create_keyboard(buttons_names, row_width=5)
+        return await self._create_keyboard(btns_names, row_width=5)
 
     async def traversal(self, user_id, comic_id, comic_lang):
         bookmark_btn_type = 'trav_bookmarked' if comic_id in await users_db.get_bookmarks(user_id) \
             else 'trav_not_bookmarked'
-        buttons_names = [bookmark_btn_type, 'trav_explain', 'trav_stop', 'trav_step']
+        btns_names = [bookmark_btn_type, 'trav_explain', 'trav_stop', 'trav_step']
 
         if (await users_db.get_user_lang(user_id)) == 'ru':
             if comic_id in parser.real_ru_comics_ids:
                 if comic_lang == 'en':
-                    buttons_names.insert(2, 'trav_ru')
+                    btns_names.insert(2, 'trav_ru')
                 if comic_lang == 'ru':
-                    buttons_names.insert(2, 'trav_en')
+                    btns_names.insert(2, 'trav_en')
 
-        row_width = 2 if len(buttons_names) == 4 else 3
+        row_width = 2 if len(btns_names) == 4 else 3
 
-        return await self._create_keyboard(buttons_names, row_width=row_width)
+        return await self._create_keyboard(btns_names, row_width=row_width)
+
+    async def menu_or_continue(self):
+        btns_names = ['menu', 'continue_xkcding']
+
+        return await self._create_keyboard(btns_names, row_width=2)
 
     async def admin_panel(self):
-        buttons_names = ['full_test', 'users_info', 'change_spec_status',
-                         'send_actions', 'send_errors', 'broadcast']
-        return await self._create_keyboard(buttons_names, row_width=1)
+        btns_names = ['full_test', 'users_info', 'change_spec_status', 'send_actions', 'send_errors', 'broadcast']
+
+        return await self._create_keyboard(btns_names, row_width=1)
 
 
 kboard = Keyboard()

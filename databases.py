@@ -123,7 +123,7 @@ class UsersDatabase:
 
     async def change_subscription_status(self, user_id: int):
         get_query = """SELECT is_subscribed FROM users
-                        WHERE user_id = $1;"""
+                       WHERE user_id = $1;"""
 
         set_query = """UPDATE users SET is_subscribed = $1
                        WHERE user_id = $2;"""
@@ -178,7 +178,7 @@ class ComicsDatabase:
 
     async def get_last_comic_id(self) -> int:
         query = """SELECT comic_id FROM comics
-                    ORDER BY comic_id DESC;"""
+                   ORDER BY comic_id DESC;"""
 
         res = await self.pool.fetchval(query)
 
@@ -186,7 +186,7 @@ class ComicsDatabase:
 
     async def get_comic_data_by_id(self, comic_id: int) -> tuple:
         query = """SELECT comic_id, title, img_url, comment, public_date, is_specific FROM comics
-                    WHERE comic_id = $1;"""
+                   WHERE comic_id = $1;"""
 
         res = await self.pool.fetchrow(query, comic_id)
 
@@ -194,7 +194,7 @@ class ComicsDatabase:
 
     async def get_ru_comic_data_by_id(self, comic_id: int) -> tuple:
         query = """SELECT comic_id, ru_title, ru_img_url, ru_comment, public_date, is_specific FROM comics
-                    WHERE comic_id = $1;"""
+                   WHERE comic_id = $1;"""
 
         res = await self.pool.fetchrow(query, comic_id)
 
@@ -226,7 +226,8 @@ class ComicsDatabase:
 
     async def change_spec_status(self, comic_id: int):
         get_query = """SELECT is_specific FROM comics
-                        WHERE comic_id = $1;"""
+                       WHERE comic_id = $1;"""
+
         set_query = """UPDATE comics SET is_specific = $1
                        WHERE comic_id = $2;"""
 
@@ -236,7 +237,7 @@ class ComicsDatabase:
 
 
 if __name__ == "__main__":
-    # needs envs
+    # Needs envs
     import asyncio
     from fill_comics_db import fill_comics_db
 

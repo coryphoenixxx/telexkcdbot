@@ -33,15 +33,8 @@ async def start(msg: Message, state: FSMContext):
 """MENU"""
 
 
-@dp.message_handler(commands=['menu', 'help'])
-@rate_limit(2)
-async def show_menu(msg: Message, state: FSMContext):
-    await state.reset_data()
-    with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
-
-    help_text = """
-<b>*** MENU ***</b>
+async def send_menu(user_id):
+    help_text = """<b>*** MENU ***</b>
 
 Type in the <u><b>number</b></u> and I'll find a comic with this number!
 Type in the <u><b>word</b></u> and I'll find a comic with this word in the title! 
@@ -55,9 +48,28 @@ Type in the <u><b>word</b></u> and I'll find a comic with this word in the title
 
 
 ❗❗❗
-If something goes wrong or looks strange try to view a comic in your browser <i>(I'll give you a link)</i>.
-"""
-    await msg.answer(help_text, reply_markup=await kboard.menu(msg.from_user.id))
+If something goes wrong or looks strange try to view a comic in your browser <i>(I'll give you a link)</i>."""
+
+    await bot.send_message(user_id, help_text, reply_markup=await kboard.menu(user_id))
+
+
+@dp.message_handler(commands=['menu', 'help'])
+@rate_limit(2)
+async def show_menu(msg: Message, state: FSMContext):
+    await state.reset_data()
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
+
+    await send_menu(msg.from_user.id)
+
+
+@dp.callback_query_handler(Text(equals='menu'))
+async def show_menu(call: CallbackQuery, state: FSMContext):
+    await state.reset_data()
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(call.from_user.id, call.message.message_id)
+
+    await send_menu(call.from_user.id)
 
 
 @dp.callback_query_handler(Text(endswith='subscribe'))
@@ -84,9 +96,8 @@ async def show_bookmarks(user_id, message_id, state, keyboard=None):
         if keyboard:
             await bot.send_message(user_id, text, reply_markup=keyboard)
         else:
-            await bot.send_message(user_id, text)
-            await asyncio.sleep(2)
-            await continue_xkcding(user_id)
+            await bot.send_message(user_id, text, reply_markup=await kboard.menu_or_continue())
+
     else:
         await bot.send_message(user_id, f"❗ <b>You have <u><b>{_len}</b></u> bookmarks</b>:")
 
@@ -152,6 +163,7 @@ async def continue_xkcding(user_id):
         comic_data = await comics_db.get_ru_comic_data_by_id(comic_id)
     else:
         comic_data = await comics_db.get_comic_data_by_id(comic_id)
+
     await send_comic(user_id, data=comic_data, comic_lang=comic_lang)
 
 
@@ -159,6 +171,7 @@ async def continue_xkcding(user_id):
 async def call_continue_xkcding(call: CallbackQuery):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
+
     await continue_xkcding(call.from_user.id)
 
 
@@ -410,7 +423,8 @@ async def typing(msg: Message, state: FSMContext):
         latest = await comics_db.get_last_comic_id()
 
         if (comic_id > latest) or (comic_id <= 0):
-            await msg.reply(f"❗❗❗\n<b>Please, enter a number between 1 and {latest}!</b> <i> /menu </i>")
+            await msg.reply(f"❗❗❗\n<b>Please, enter a number between 1 and {latest}!</b>",
+                            reply_markup=await kboard.menu_or_continue())
         else:
             comic_data = await comics_db.get_comic_data_by_id(comic_id)
             await send_comic(msg.from_user.id, data=comic_data)
@@ -424,7 +438,8 @@ async def typing(msg: Message, state: FSMContext):
             found_comics_list = await comics_db.get_comics_info_by_title(user_input)
 
             if not found_comics_list or not user_input:
-                await msg.reply(f"❗❗❗\n<b>There's no such comic title or command!</b> <i> /menu </i>")
+                await msg.reply(f"❗❗❗\n<b>There's no such comic title or command!</b>",
+                                reply_markup=await kboard.menu_or_continue())
             else:
                 comic_lang = 'en'
                 if is_cyr:

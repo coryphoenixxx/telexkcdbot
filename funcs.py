@@ -9,6 +9,7 @@ from loader import *
 from config import ADMIN_ID
 from keyboard import kboard
 
+
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
 punctuation = ' -(),.:;!?#+'
 suppress_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
