@@ -73,9 +73,6 @@ async def get_comics_list_text(comics_ids, titles, comic_lang):
     headers_list = [f"<b>{str(i[0]) + '.':7}</b>\"{await get_link(i[0], comic_lang, i[1])}\"" \
                     for i in zip(comics_ids, titles)]
 
-    if len(comics_ids) >= 50:
-        headers_list.append('...')
-
     text = '\n'.join(headers_list)
 
     return text
@@ -131,7 +128,7 @@ def admin(func):
 
 async def broadcast(user_ids: tuple, text: str, comic_data: tuple = None):
     count = 0
-    subscribed_users_ids = await users_db.subscribed_users
+    subscribed_users_ids = await users_db.get_subscribed_users()
     try:
         for user_id in user_ids:
             try:

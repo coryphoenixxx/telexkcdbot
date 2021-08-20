@@ -87,7 +87,7 @@ class BigBrother(BaseMiddleware):
 
 
 async def get_and_broadcast_new_comic():
-    db_last_comic_id = await comics_db.latest_comic_id
+    db_last_comic_id = await comics_db.get_last_comic_id()
     real_last_comic_id = await parser.xkcd_latest_comic_id
 
     if real_last_comic_id > db_last_comic_id:
@@ -96,7 +96,7 @@ async def get_and_broadcast_new_comic():
             await comics_db.add_new_comic(comic_data)
 
         comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
-        all_users_ids = await users_db.all_users_ids
+        all_users_ids = await users_db.get_all_users_ids
 
         await broadcast(all_users_ids,
                         text="🔥 <b>And here\'s new comic!</b> 🔥",

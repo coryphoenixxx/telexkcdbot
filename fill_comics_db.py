@@ -32,7 +32,7 @@ async def gather(start, end, all_comics_ids):
 async def main():
     logger.info("Start filling the comics db.")
 
-    all_comics_ids = await comics_db.all_comics_ids
+    all_comics_ids = await comics_db.get_all_comics_ids()
     latest = await parser.xkcd_latest_comic_id
     chunk = 20
     for i in trange(1, latest + 1, chunk):

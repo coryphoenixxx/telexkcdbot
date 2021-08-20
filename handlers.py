@@ -43,8 +43,8 @@ async def show_menu(msg: Message, state: FSMContext):
     help_text = """
 <b>*** MENU ***</b>
 
-Type in the <u><b>comic number</b></u> and I'll find it for you!
-Type in the <u><b>comic title</b></u> and I'll try to find it for you!
+Type in the <u><b>number</b></u> and I'll find it for you!
+Type in the <u><b>word</b></u> and I'll try to find it for you! 
 
 
 <u><b>In menu you can:</b></u>
@@ -124,8 +124,8 @@ async def msg_show_bookmarks(msg: Message, state: FSMContext):
 @dp.callback_query_handler(Text(equals=('add_lang_btn', 'remove_lang_btn')))
 async def set_ru_button(call: CallbackQuery):
     action = call.data[:3]
-    lang = 'ru' if action == 'add' else 'en'
-    await users_db.set_user_lang(call.from_user.id, lang)
+    user_lang = 'ru' if action == 'add' else 'en'
+    await users_db.set_user_lang(call.from_user.id, user_lang)
 
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(call.from_user.id,
@@ -144,6 +144,10 @@ async def start_xkcding(call: CallbackQuery):
 
 async def continue_xkcding(user_id):
     comic_id, comic_lang = await users_db.get_cur_comic_info(user_id)
+
+    if comic_id == 0:
+        comic_id = 1
+
     if comic_lang == 'ru':
         comic_data = await comics_db.get_ru_comic_data_by_id(comic_id)
     else:
@@ -168,7 +172,7 @@ async def nav(call: CallbackQuery):
 
     comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
     action = call.data.split('_')[1]
-    latest = await comics_db.latest_comic_id
+    latest = await comics_db.get_last_comic_id()
 
     actions = {
         'first': 1,
@@ -309,7 +313,7 @@ async def admin(msg: Message, state: FSMContext):
 
 @dp.callback_query_handler(Text('full_test'))
 async def full_test(call: CallbackQuery):
-    latest = await comics_db.latest_comic_id
+    latest = await comics_db.get_last_comic_id()
     for comic_id in range(1, latest + 1):
         try:
             comic_data = await comics_db.get_comic_data_by_id(comic_id)
@@ -352,8 +356,8 @@ async def send_log(call: CallbackQuery):
 
 @dp.callback_query_handler(Text('users_info'))
 async def users_info(call: CallbackQuery):
-    all_users_num = len(await users_db.all_users_ids)
-    subscribed_users_num = len(await users_db.subscribed_users)
+    all_users_num = len(await users_db.get_all_users_ids())
+    subscribed_users_num = len(await users_db.get_subscribed_users())
     active_users_num = await users_db.get_last_month_active_users_num()
     with suppress(*suppress_exceptions):
         await call.message.answer(f"❗\n"
@@ -384,7 +388,7 @@ async def cancel_handler(msg: Message, state: FSMContext):
 @dp.message_handler(state=Broadcast.waiting_for_input)
 async def send_broadcast_admin_message(msg: Message, state: FSMContext):
     text = f'❗❗❗ <b>ADMIN MESSAGE:\n</b>  {msg.text}'
-    all_users_ids = await users_db.all_users_ids
+    all_users_ids = await users_db.get_all_users_ids
     await broadcast(all_users_ids, text=text)
     await state.finish()
 
@@ -403,7 +407,7 @@ async def typing(msg: Message, state: FSMContext):
 
     if user_input.isdigit():
         comic_id = int(user_input)
-        latest = await comics_db.latest_comic_id
+        latest = await comics_db.get_last_comic_id()
 
         if (comic_id > latest) or (comic_id <= 0):
             await msg.reply(f"❗❗❗\n<b>Please, enter a number between 1 and {latest}!</b> <i> /menu </i>")

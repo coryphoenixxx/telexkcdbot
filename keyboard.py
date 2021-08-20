@@ -48,7 +48,7 @@ class Keyboard:
 
     async def menu(self, user_id):
         ru_btn = 'remove_lang_btn' if (await users_db.get_user_lang(user_id)) == 'ru' else 'add_lang_btn'
-        sub_btn = 'unsubscribe' if user_id in (await users_db.subscribed_users) else 'subscribe'
+        sub_btn = 'unsubscribe' if user_id in (await users_db.get_subscribed_users()) else 'subscribe'
         comic_id, _ = await users_db.get_cur_comic_info(user_id)
         xkcding_btn = 'start_xkcding' if comic_id == 0 else 'continue_xkcding'
         buttons_names = [sub_btn, 'user_bookmarks', ru_btn, xkcding_btn]
