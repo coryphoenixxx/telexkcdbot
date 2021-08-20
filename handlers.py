@@ -43,8 +43,8 @@ async def show_menu(msg: Message, state: FSMContext):
     help_text = """
 <b>*** MENU ***</b>
 
-Type in the <u><b>number</b></u> and I'll find it for you!
-Type in the <u><b>word</b></u> and I'll try to find it for you! 
+Type in the <u><b>number</b></u> and I'll find a comic with this number!
+Type in the <u><b>word</b></u> and I'll find a comic with this word in the title! 
 
 
 <u><b>In menu you can:</b></u>
