@@ -17,8 +17,8 @@ class Parser:
         self._specific_comic_ids: set = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
                                          1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
 
-    @property
-    async def xkcd_latest_comic_id(self) -> int:
+    @staticmethod
+    async def get_xkcd_latest_comic_id() -> int:
         url = f'https://xkcd.com/info.0.json'
         async with aiohttp.ClientSession() as session:
             comic_json = (await session.get(url)).json()
@@ -103,15 +103,20 @@ class Parser:
                     soup = await self._get_soup(url)
                     first_p = soup.find_all('div', {'class': 'mw-parser-output'})[-1].find('p')
                     text = first_p.text
+
                     for el in first_p.find_next_siblings()[:12]:
                         if el.name in ('p', 'li'):
                             text = text + el.text + '\n'
+
                     text = text[:1000].strip().replace('<', '').replace('>', '')
+
                     if not text:
                         text = no_explanation_text
                     else:
                         text = f"{text}...\n<a href='{url}'>[FULL TEXT]</a>"
+
                     return text
+
                 except AttributeError:
                     pass
         except Exception as err:

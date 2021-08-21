@@ -45,6 +45,7 @@ class BigBrother(BaseMiddleware):
             await users_db.update_last_action_date(user_id, action_date)
 
     """ANTIFLOOD"""
+
     async def on_process_message(self, message: Message, data: dict):
         handler = current_handler.get()
         dispatcher = Dispatcher.get_current()
@@ -93,7 +94,7 @@ class BigBrother(BaseMiddleware):
 
 async def get_and_broadcast_new_comic():
     db_last_comic_id = await comics_db.get_last_comic_id()
-    real_last_comic_id = await parser.xkcd_latest_comic_id
+    real_last_comic_id = await parser.get_xkcd_latest_comic_id()
 
     if real_last_comic_id > db_last_comic_id:
         for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):

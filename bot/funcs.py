@@ -9,19 +9,18 @@ from bot.loader import *
 from bot.config import ADMIN_ID
 from bot.keyboards import kboard
 
-
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
 punctuation = ' -(),.:;!?#+'
 suppress_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 
 
-async def send_comic(user_id: int, data: tuple, keyboard=kboard.navigation, comic_lang: str = 'en'):
+async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation, comic_lang: str = 'en'):
     (comic_id,
      title,
      img_url,
      comment,
      public_date,
-     is_specific) = data
+     is_specific) = comic_data
 
     await users_db.update_cur_comic_info(user_id, comic_id, comic_lang)
 
@@ -58,7 +57,7 @@ async def send_comic(user_id: int, data: tuple, keyboard=kboard.navigation, comi
                            disable_notification=True)
 
 
-async def get_link(comic_id, comic_lang, title):
+async def get_link(comic_id: int, comic_lang: str, title: str) -> str:
     link = "<a href='{url}'>{title}</a>"
 
     if comic_lang == 'ru':
@@ -70,7 +69,7 @@ async def get_link(comic_id, comic_lang, title):
     return link.format(url=url, title=title)
 
 
-async def get_comics_list_text(comics_ids, titles, comic_lang):
+async def get_comics_list_text(comics_ids: list, titles: list, comic_lang: str) -> str:
     headers_list = [f"<b>{str(i[0]) + '.':7}</b>\"{await get_link(i[0], comic_lang, i[1])}\"" \
                     for i in zip(comics_ids, titles)]
 
@@ -79,7 +78,7 @@ async def get_comics_list_text(comics_ids, titles, comic_lang):
     return text
 
 
-async def send_comics_list_text_in_bunches(user_id, comics_ids, titles, comic_lang='en'):
+async def send_comics_list_text_in_bunches(user_id: int, comics_ids: list, titles: list, comic_lang: str = 'en'):
     for i in range(0, len(comics_ids) + 1, 50):
         end = i + 50
         if end > len(comics_ids):
@@ -143,7 +142,7 @@ async def broadcast(user_ids: tuple, text: str, comic_data: tuple = None):
                 else:
                     if user_id in subscribed_users_ids:
                         await bot.send_message(user_id, text=text)
-                        await send_comic(user_id, data=comic_data)
+                        await send_comic(user_id, comic_data=comic_data)
                         count += 1
 
                 if count % 20 == 0:

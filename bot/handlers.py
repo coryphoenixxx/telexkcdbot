@@ -18,7 +18,7 @@ dp = Dispatcher(bot, loop=loop, storage=storage)
 
 @dp.message_handler(CommandStart())
 @rate_limit(2)
-async def start(msg: Message, state: FSMContext):
+async def cmd_start(msg: Message, state: FSMContext):
     await state.reset_data()
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
@@ -27,17 +27,17 @@ async def start(msg: Message, state: FSMContext):
     await msg.answer(f"<b>❗ Hey!    [¬º-°]¬\nThe <u>{(await bot.me).username}</u> at your disposal!</b>")
     await msg.answer_photo(InputFile(image_path.joinpath('bot_image.png')))
     await asyncio.sleep(2)
-    await show_menu(msg, state)
+    await send_menu(msg.from_user.id)
 
 
 """MENU"""
 
 
-async def send_menu(user_id):
+async def send_menu(user_id: int):
     help_text = """<b>*** MENU ***</b>
 
 Type in the <u><b>number</b></u> and I'll find a comic with this number!
-Type in the <u><b>word</b></u> and I'll find comics, which contain this word! 
+Type in the <u><b>word</b></u> and I'll find comics whose title contains this word! 
 
 
 <u><b>In menu you can:</b></u>
@@ -55,7 +55,7 @@ If something goes wrong or looks strange try to view a comic in your browser <i>
 
 @dp.message_handler(commands=['menu', 'help'])
 @rate_limit(2)
-async def show_menu(msg: Message, state: FSMContext):
+async def cmd_menu(msg: Message, state: FSMContext):
     await state.reset_data()
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
@@ -64,7 +64,7 @@ async def show_menu(msg: Message, state: FSMContext):
 
 
 @dp.callback_query_handler(Text(equals='menu'))
-async def show_menu(call: CallbackQuery, state: FSMContext):
+async def cb_menu(call: CallbackQuery, state: FSMContext):
     await state.reset_data()
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(call.from_user.id, call.message.message_id)
@@ -73,21 +73,21 @@ async def show_menu(call: CallbackQuery, state: FSMContext):
 
 
 @dp.callback_query_handler(Text(endswith='subscribe'))
-async def subscriber(call: CallbackQuery):
+async def cb_toggle_subscription_status(call: CallbackQuery):
     with suppress(*suppress_exceptions):
         if 'MENU' in call.message.text:
             await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
         else:
             await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
 
-    await users_db.change_subscription_status(call.from_user.id)
+    await users_db.toggle_subscription_status(call.from_user.id)
     inner_text = f"<u>{call.data}d</u> for" if call.data == 'subscribe' else f"<u>{call.data}d</u> from"
     await call.message.answer(f"❗ <b>You have been {inner_text} "
                               f"notification you whenever a new xkcd is released!</b>",
                               reply_markup=await kboard.menu(call.from_user.id))
 
 
-async def show_bookmarks(user_id, message_id, state, keyboard=None):
+async def send_user_bookmarks(user_id: int, message_id: int, state: FSMContext, keyboard=None):
     bookmarks_list = await users_db.get_bookmarks(user_id)
     _len = len(bookmarks_list)
 
@@ -114,26 +114,26 @@ async def show_bookmarks(user_id, message_id, state, keyboard=None):
 
 
 @dp.callback_query_handler(Text('user_bookmarks'))
-async def call_show_bookmarks(call: CallbackQuery, state: FSMContext):
+async def cb_user_bookmarks(call: CallbackQuery, state: FSMContext):
     if 'MENU' in call.message.text:
         await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
     else:
         await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
-    await show_bookmarks(call.from_user.id,
-                         call.message.message_id,
-                         state,
-                         keyboard=await kboard.menu(call.from_user.id))
+    await send_user_bookmarks(call.from_user.id,
+                              call.message.message_id,
+                              state,
+                              keyboard=await kboard.menu(call.from_user.id))
 
 
 @dp.message_handler(commands=['bookmarks'])
-async def msg_show_bookmarks(msg: Message, state: FSMContext):
+async def cmd_bookmarks(msg: Message, state: FSMContext):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
-    await show_bookmarks(msg.from_user.id, msg.message_id, state)
+    await send_user_bookmarks(msg.from_user.id, msg.message_id, state)
 
 
 @dp.callback_query_handler(Text(equals=('add_lang_btn', 'remove_lang_btn')))
-async def set_ru_button(call: CallbackQuery):
+async def cb_toggle_lang_btn(call: CallbackQuery):
     action = call.data[:3]
     user_lang = 'ru' if action == 'add' else 'en'
     await users_db.set_user_lang(call.from_user.id, user_lang)
@@ -145,41 +145,34 @@ async def set_ru_button(call: CallbackQuery):
 
 
 @dp.callback_query_handler(Text('start_xkcding'))
-async def start_xkcding(call: CallbackQuery):
+async def cb_start_xkcding(call: CallbackQuery):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
 
     comic_data = await comics_db.get_comic_data_by_id(1)
-    await send_comic(call.from_user.id, data=comic_data)
+    await send_comic(call.from_user.id, comic_data=comic_data)
 
 
-async def continue_xkcding(user_id):
-    comic_id, comic_lang = await users_db.get_cur_comic_info(user_id)
+@dp.callback_query_handler(Text('continue_xkcding'))
+async def cb_continue_xkcding(call: CallbackQuery):
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
 
-    if comic_id == 0:
-        comic_id = 1
+    comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
 
     if comic_lang == 'ru':
         comic_data = await comics_db.get_ru_comic_data_by_id(comic_id)
     else:
         comic_data = await comics_db.get_comic_data_by_id(comic_id)
 
-    await send_comic(user_id, data=comic_data, comic_lang=comic_lang)
-
-
-@dp.callback_query_handler(Text('continue_xkcding'))
-async def call_continue_xkcding(call: CallbackQuery):
-    with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
-
-    await continue_xkcding(call.from_user.id)
+    await send_comic(call.from_user.id, comic_data=comic_data, comic_lang=comic_lang)
 
 
 """MAIN"""
 
 
 @dp.callback_query_handler(Text(startswith='nav_'))
-async def nav(call: CallbackQuery):
+async def cb_navigation(call: CallbackQuery):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
 
@@ -203,11 +196,11 @@ async def nav(call: CallbackQuery):
         new_comic_id = 1
 
     comic_data = await comics_db.get_comic_data_by_id(new_comic_id)
-    await send_comic(call.from_user.id, data=comic_data)
+    await send_comic(call.from_user.id, comic_data=comic_data)
 
 
 @dp.callback_query_handler(Text(equals=('ru', 'trav_ru', 'en', 'trav_en')))
-async def ru_version(call: CallbackQuery, keyboard=kboard.navigation):
+async def cb_toggle_versions(call: CallbackQuery, keyboard=kboard.navigation):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
 
@@ -222,11 +215,11 @@ async def ru_version(call: CallbackQuery, keyboard=kboard.navigation):
 
     if 'trav' in call.data:
         keyboard = kboard.traversal
-    await send_comic(call.from_user.id, data=comic_data, keyboard=keyboard, comic_lang=comic_lang)
+    await send_comic(call.from_user.id, comic_data=comic_data, keyboard=keyboard, comic_lang=comic_lang)
 
 
 @dp.callback_query_handler(Text(equals=('explain', 'trav_explain')))
-async def explanation(call: CallbackQuery, keyboard=kboard.navigation):
+async def cb_explain(call: CallbackQuery, keyboard=kboard.navigation):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
 
@@ -242,7 +235,13 @@ async def explanation(call: CallbackQuery, keyboard=kboard.navigation):
 
 
 @dp.callback_query_handler(Text(endswith='bookmark'))
-async def bookmark(call: CallbackQuery, keyboard=kboard.navigation):
+async def cb_toggle_bookmark_status(call: CallbackQuery, keyboard=kboard.navigation):
+    with suppress(*suppress_exceptions):
+        if 'your bookmarks' in call.message.text:
+            await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
+        else:
+            await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
+
     comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
     user_bookmarks_list = await users_db.get_bookmarks(call.from_user.id)
 
@@ -254,12 +253,6 @@ async def bookmark(call: CallbackQuery, keyboard=kboard.navigation):
         text = f"❗ <b>Comic №{comic_id} has been <u>added</u> to your bookmarks!</b>"
 
     await users_db.update_bookmarks(call.from_user.id, user_bookmarks_list)
-
-    with suppress(*suppress_exceptions):
-        if 'your bookmarks' in call.message.text:
-            await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
-        else:
-            await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
 
     if 'trav' in call.data:
         keyboard = kboard.traversal
@@ -284,15 +277,15 @@ async def trav_step(user_id: int, message_id: int, state: FSMContext):
             comic_data = await comics_db.get_ru_comic_data_by_id(list_.pop(0))
 
         if list_:
-            await send_comic(user_id, data=comic_data, keyboard=kboard.traversal, comic_lang=comic_lang)
+            await send_comic(user_id, comic_data=comic_data, keyboard=kboard.traversal, comic_lang=comic_lang)
             await state.update_data(list=list_)
         else:
-            await send_comic(user_id, data=comic_data, keyboard=kboard.navigation, comic_lang=comic_lang)
+            await send_comic(user_id, comic_data=comic_data, keyboard=kboard.navigation, comic_lang=comic_lang)
             await state.reset_data()
 
 
 @dp.callback_query_handler(Text('trav_step'))
-async def call_trav_step(call: CallbackQuery, state: FSMContext):
+async def cb_trav_step(call: CallbackQuery, state: FSMContext):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
     await trav_step(call.from_user.id, call.message.message_id, state)
@@ -303,14 +296,12 @@ async def trav_stop(user_id: int, message_id: int, state: FSMContext):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(user_id,
                                             message_id=message_id,
-                                            reply_markup=await kboard.navigation(user_id,
-                                                                                 comic_id,
-                                                                                 comic_lang))
+                                            reply_markup=await kboard.navigation(user_id, comic_id, comic_lang))
     await state.reset_data()
 
 
 @dp.callback_query_handler(Text('trav_stop'))
-async def call_trav_stop(call: CallbackQuery, state: FSMContext):
+async def cb_trav_stop(call: CallbackQuery, state: FSMContext):
     await trav_stop(call.from_user.id, call.message.message_id, state)
 
 
@@ -319,25 +310,25 @@ async def call_trav_stop(call: CallbackQuery, state: FSMContext):
 
 @dp.message_handler(commands='admin')
 @admin
-async def admin(msg: Message, state: FSMContext):
+async def cmd_admin(msg: Message, state: FSMContext):
     await state.reset_data()
     await msg.answer('<b>*** ADMIN PANEL ***</b>',
                      reply_markup=await kboard.admin_panel())
 
 
 @dp.callback_query_handler(Text('change_spec_status'))
-async def change_spec_status(call: CallbackQuery):
+async def cb_toggle_spec_status(call: CallbackQuery):
     with suppress(*suppress_exceptions):
         await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
 
     cur_comic_id, _ = await users_db.get_cur_comic_info(ADMIN_ID)
-    await comics_db.change_spec_status(cur_comic_id)
+    await comics_db.toggle_spec_status(cur_comic_id)
     await call.message.answer(text=f"<b>*** ADMIN PANEL ***</b>\n❗ <b>It's done for {cur_comic_id}</b>",
                               reply_markup=await kboard.admin_panel())
 
 
 @dp.callback_query_handler(Text(startswith='send_'))
-async def send_log(call: CallbackQuery):
+async def cb_send_log(call: CallbackQuery):
     filename = logs_path.joinpath('actions.log') if 'actions' in call.data else logs_path.joinpath('errors.log')
 
     try:
@@ -347,7 +338,7 @@ async def send_log(call: CallbackQuery):
 
 
 @dp.callback_query_handler(Text('users_info'))
-async def users_info(call: CallbackQuery):
+async def cb_users_info(call: CallbackQuery):
     with suppress(*suppress_exceptions):
         await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
 
@@ -366,14 +357,14 @@ class Broadcast(StatesGroup):
     waiting_for_input = State()
 
 
-@dp.callback_query_handler(Text('broadcast'))
-async def type_broadcast_message(call: CallbackQuery):
+@dp.callback_query_handler(Text('broadcast_admin_msg'))
+async def cb_type_broadcast_message(call: CallbackQuery):
     await Broadcast.waiting_for_input.set()
     await call.message.answer(text='❗ <b>Type in a broadcast message (or /cancel):</b>')
 
 
 @dp.message_handler(state=Broadcast.waiting_for_input, commands='cancel')
-async def cancel_handler(msg: Message, state: FSMContext):
+async def cmd_cancel(msg: Message, state: FSMContext):
     current_state = await state.get_state()
 
     if current_state is None:
@@ -384,7 +375,7 @@ async def cancel_handler(msg: Message, state: FSMContext):
 
 
 @dp.message_handler(state=Broadcast.waiting_for_input)
-async def send_broadcast_admin_message(msg: Message, state: FSMContext):
+async def broadcast_admin_msg(msg: Message, state: FSMContext):
     text = f'❗❗❗ <b>ADMIN MESSAGE:\n</b>  {msg.text}'
     all_users_ids = await users_db.get_all_users_ids()
     await broadcast(all_users_ids, text=text)
@@ -396,7 +387,7 @@ async def send_broadcast_admin_message(msg: Message, state: FSMContext):
 
 @dp.message_handler()
 @rate_limit(1)
-async def typing(msg: Message, state: FSMContext):
+async def process_user_typing(msg: Message, state: FSMContext):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
     await state.reset_data()
@@ -412,7 +403,7 @@ async def typing(msg: Message, state: FSMContext):
                             reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
         else:
             comic_data = await comics_db.get_comic_data_by_id(comic_id)
-            await send_comic(msg.from_user.id, data=comic_data)
+            await send_comic(msg.from_user.id, comic_data=comic_data)
     else:
         user_input = await preprocess_text(user_input)
         is_cyr = await is_cyrillic(user_input)
@@ -441,7 +432,7 @@ async def typing(msg: Message, state: FSMContext):
                         comic_data = await comics_db.get_ru_comic_data_by_id(comic_id)
                     else:
                         comic_data = await comics_db.get_comic_data_by_id(comic_id)
-                    await send_comic(msg.from_user.id, data=comic_data, comic_lang=comic_lang)
+                    await send_comic(msg.from_user.id, comic_data=comic_data, comic_lang=comic_lang)
 
                 elif found_comics_num >= 2:
                     comics_ids, comics_titles, ru_comics_titles = found_comics_list

@@ -121,7 +121,7 @@ class UsersDatabase:
         res = await self.pool.fetchval(query)
         return tuple(res) if res else ()
 
-    async def change_subscription_status(self, user_id: int):
+    async def toggle_subscription_status(self, user_id: int):
         get_query = """SELECT is_subscribed FROM users
                        WHERE user_id = $1;"""
 
@@ -208,12 +208,18 @@ class ComicsDatabase:
                      OR title ILIKE format('%s%s', $1, '%')
                      OR title ILIKE format('%s%s %s', '%', $1, '%')
                      OR title ILIKE format('%s%s', '%', $1)
+                     OR title ILIKE format('%s%s, %s', '%', $1, '%')
+                     OR title ILIKE format('%s%s-%s', '%', $1, '%')
+                     OR title ILIKE format('%s-%s%s', '%', $1, '%')
 
                      OR ru_title = $1
                      OR ru_title ILIKE format('%s %s%s', '%', $1, '%')
                      OR ru_title ILIKE format('%s%s', $1, '%')
                      OR ru_title ILIKE format('%s%s %s', '%', $1, '%')
-                     OR ru_title ILIKE format('%s%s', '%', $1);"""
+                     OR ru_title ILIKE format('%s%s', '%', $1)
+                     OR ru_title ILIKE format('%s%s, %s', '%', $1, '%')
+                     OR ru_title ILIKE format('%s%s-%s', '%', $1, '%')
+                     OR ru_title ILIKE format('%s-%s%s', '%', $1, '%');"""
 
         res = await self.pool.fetchrow(query, title)
 
@@ -224,7 +230,7 @@ class ComicsDatabase:
             info = [(_id, title, ru_title) for _id, title, ru_title in sorted(z, key=lambda x: len(x[1]))]
             return list(zip(*info))
 
-    async def change_spec_status(self, comic_id: int):
+    async def toggle_spec_status(self, comic_id: int):
         get_query = """SELECT is_specific FROM comics
                        WHERE comic_id = $1;"""
 
@@ -239,7 +245,7 @@ class ComicsDatabase:
 if __name__ == "__main__":
     # Needs envs
     import asyncio
-    from fill_comics_db import fill_comics_db
+    from bot.fill_comics_db import fill_comics_db
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(fill_comics_db())

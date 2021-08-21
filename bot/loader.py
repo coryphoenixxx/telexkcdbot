@@ -30,5 +30,5 @@ if HEROKU:
     image_path = Path.cwd().joinpath('img')
     logs_path = Path.cwd().joinpath('logs')
 else:
-    image_path = Path.cwd().joinpath('..img')
-    logs_path = Path.cwd().joinpath('..logs')
+    image_path = Path.cwd().joinpath('../img')
+    logs_path = Path.cwd().joinpath('../logs')

@@ -37,7 +37,7 @@ class Keyboard:
         'send_actions': InlineKeyboardButton(text='SEND ACTLOG', callback_data='send_actions'),
         'send_errors': InlineKeyboardButton(text='SEND ERRLOG', callback_data='send_errors'),
         'users_info': InlineKeyboardButton(text='USERS\' INFO', callback_data='users_info'),
-        'broadcast': InlineKeyboardButton(text='BROADCAST', callback_data='broadcast')
+        'broadcast_admin_msg': InlineKeyboardButton(text='BROADCAST', callback_data='broadcast_admin_msg')
     }
 
     async def _create_keyboard(self, btns_keys: list, row_width: int) -> InlineKeyboardMarkup:
@@ -110,7 +110,8 @@ class Keyboard:
         comic_id, _ = await users_db.get_cur_comic_info(ADMIN_ID)
         xkcding_btn_key = 'start_xkcding' if comic_id == 0 else 'continue_xkcding'
 
-        btns_keys = ['users_info', 'change_spec_status', 'send_actions', 'send_errors', 'broadcast', xkcding_btn_key]
+        btns_keys = ['users_info', 'change_spec_status', 'send_actions',
+                     'send_errors', 'broadcast_admin_msg', xkcding_btn_key]
 
         return await self._create_keyboard(btns_keys, row_width=1)
 
