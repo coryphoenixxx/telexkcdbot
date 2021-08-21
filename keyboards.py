@@ -1,5 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from loader import *
+from config import ADMIN_ID
 
 
 class Keyboard:
@@ -106,7 +107,10 @@ class Keyboard:
         return await self._create_keyboard(btns_keys, row_width=2)
 
     async def admin_panel(self) -> InlineKeyboardMarkup:
-        btns_keys = ['users_info', 'change_spec_status', 'send_actions', 'send_errors', 'broadcast']
+        comic_id, _ = await users_db.get_cur_comic_info(ADMIN_ID)
+        xkcding_btn_key = 'start_xkcding' if comic_id == 0 else 'continue_xkcding'
+
+        btns_keys = ['users_info', 'change_spec_status', 'send_actions', 'send_errors', 'broadcast', xkcding_btn_key]
 
         return await self._create_keyboard(btns_keys, row_width=1)
 

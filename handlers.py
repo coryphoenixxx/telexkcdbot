@@ -37,7 +37,7 @@ async def send_menu(user_id):
     help_text = """<b>*** MENU ***</b>
 
 Type in the <u><b>number</b></u> and I'll find a comic with this number!
-Type in the <u><b>word</b></u> and I'll find a comic with this word in the title! 
+Type in the <u><b>word</b></u> and I'll find comics, which contains this word! 
 
 
 <u><b>In menu you can:</b></u>
@@ -321,40 +321,19 @@ async def call_trav_stop(call: CallbackQuery, state: FSMContext):
 @admin
 async def admin(msg: Message, state: FSMContext):
     await state.reset_data()
-    await msg.answer('<b>*** ADMIN PANEL ***</b>', reply_markup=await kboard.admin_panel())
-
-
-@dp.callback_query_handler(Text('full_test'))
-async def full_test(call: CallbackQuery):
-    latest = await comics_db.get_last_comic_id()
-    for comic_id in range(1, latest + 1):
-        try:
-            comic_data = await comics_db.get_comic_data_by_id(comic_id)
-            await send_comic(ADMIN_ID, data=comic_data)
-            await asyncio.sleep(1)
-
-            if comic_id in parser.real_ru_comics_ids:
-                comic_data = await comics_db.get_ru_comic_data_by_id(comic_id)
-                await send_comic(ADMIN_ID, data=comic_data)
-                await asyncio.sleep(1)
-
-            text = await parser.get_explanation(comic_id)
-            await call.message.answer(text,
-                                      reply_markup=await kboard.navigation(ADMIN_ID, comic_id),
-                                      disable_web_page_preview=True)
-
-            await asyncio.sleep(3)
-        except Exception as err:
-            logger.error(f"Error with {comic_id}: {err}")
-            await asyncio.sleep(601)  # Telegram blocks bot for 10 min for flooding
+    await msg.answer('<b>*** ADMIN PANEL ***</b>',
+                     reply_markup=await kboard.admin_panel())
 
 
 @dp.callback_query_handler(Text('change_spec_status'))
 async def change_spec_status(call: CallbackQuery):
+    with suppress(*suppress_exceptions):
+        await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
+
     cur_comic_id, _ = await users_db.get_cur_comic_info(ADMIN_ID)
     await comics_db.change_spec_status(cur_comic_id)
-    with suppress(*suppress_exceptions):
-        await call.message.answer(text=f"❗ <b>It's done for {cur_comic_id}</b>")
+    await call.message.answer(text=f"<b>*** ADMIN PANEL ***</b>\n❗ <b>It's done for {cur_comic_id}</b>",
+                              reply_markup=await kboard.admin_panel())
 
 
 @dp.callback_query_handler(Text(startswith='send_'))
@@ -369,14 +348,18 @@ async def send_log(call: CallbackQuery):
 
 @dp.callback_query_handler(Text('users_info'))
 async def users_info(call: CallbackQuery):
+    with suppress(*suppress_exceptions):
+        await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
+
     all_users_num = len(await users_db.get_all_users_ids())
     subscribed_users_num = len(await users_db.get_subscribed_users())
     active_users_num = await users_db.get_last_month_active_users_num()
-    with suppress(*suppress_exceptions):
-        await call.message.answer(f"❗\n"
-                                  f"<b>Total</b>: <i>{all_users_num}</i>\n"
-                                  f"<b>Subs</b>: <i>{subscribed_users_num}</i>\n"
-                                  f"<b>Active</b>: <i>{active_users_num}</i>")
+    text = f"""<b>*** ADMIN PANEL ***</b>
+❗ <b>Total</b>: <i>{all_users_num}</i>
+        <b>Subs</b>: <i>{subscribed_users_num}</i>
+        <b>Active</b>: <i>{active_users_num}</i>"""
+    await call.message.answer(text,
+                              reply_markup=await kboard.admin_panel())
 
 
 class Broadcast(StatesGroup):
@@ -392,8 +375,10 @@ async def type_broadcast_message(call: CallbackQuery):
 @dp.message_handler(state=Broadcast.waiting_for_input, commands='cancel')
 async def cancel_handler(msg: Message, state: FSMContext):
     current_state = await state.get_state()
+
     if current_state is None:
         return
+
     await msg.answer(text='❗ <b>Canceled.</b>')
     await state.finish()
 

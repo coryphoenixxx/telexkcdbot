@@ -29,18 +29,23 @@ class BigBrother(BaseMiddleware):
         if update.message:
             msg = update.message
             user_id = msg.from_user.id
-            text = await preprocess_text(msg.text)
+
+            if user_id != ADMIN_ID:
+                text = await preprocess_text(msg.text)
+                logger.info(f"{user_id}|{msg.from_user.username}|{msg.from_user.language_code}|text:'{text}'")
+
             await users_db.update_last_action_date(user_id, action_date)
-            logger.info(f"{user_id} | {msg.from_user.username} | {msg.from_user.language_code} | text:'{text}'")
 
         if update.callback_query:
             call = update.callback_query
             user_id = call.from_user.id
+
+            if user_id != ADMIN_ID:
+                logger.info(f"{user_id}|{call.from_user.username}|{call.from_user.language_code}|call:'{call.data}'")
+
             await users_db.update_last_action_date(user_id, action_date)
-            logger.info(f"{user_id} | {call.from_user.username} | {call.from_user.language_code} | call:'{call.data}'")
 
     """ANTIFLOOD"""
-
     async def on_process_message(self, message: Message, data: dict):
         handler = current_handler.get()
         dispatcher = Dispatcher.get_current()
@@ -137,7 +142,7 @@ async def on_startup(dp: Dispatcher):
     asyncio.create_task(cleaner())
     await users_db.add_user(ADMIN_ID)
 
-    await bot.send_message(ADMIN_ID, text="<b>❗ I'm here, in Your Power, My Lord...</b>")
+    await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>")
 
     logger.error("Bot started.")  # Creates log files (both)
 
