@@ -7,7 +7,7 @@ from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTP
 
 from loader import *
 from config import ADMIN_ID
-from keyboard import kboard
+from keyboards import kboard
 
 
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'

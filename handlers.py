@@ -96,7 +96,7 @@ async def show_bookmarks(user_id, message_id, state, keyboard=None):
         if keyboard:
             await bot.send_message(user_id, text, reply_markup=keyboard)
         else:
-            await bot.send_message(user_id, text, reply_markup=await kboard.menu_or_continue())
+            await bot.send_message(user_id, text, reply_markup=await kboard.menu_or_xkcding(user_id))
 
     else:
         await bot.send_message(user_id, f"❗ <b>You have <u><b>{_len}</b></u> bookmarks</b>:")
@@ -424,7 +424,7 @@ async def typing(msg: Message, state: FSMContext):
 
         if (comic_id > latest) or (comic_id <= 0):
             await msg.reply(f"❗❗❗\n<b>Please, enter a number between 1 and {latest}!</b>",
-                            reply_markup=await kboard.menu_or_continue())
+                            reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
         else:
             comic_data = await comics_db.get_comic_data_by_id(comic_id)
             await send_comic(msg.from_user.id, data=comic_data)
@@ -439,7 +439,7 @@ async def typing(msg: Message, state: FSMContext):
 
             if not found_comics_list or not user_input:
                 await msg.reply(f"❗❗❗\n<b>There's no such comic title or command!</b>",
-                                reply_markup=await kboard.menu_or_continue())
+                                reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
             else:
                 comic_lang = 'en'
                 if is_cyr:

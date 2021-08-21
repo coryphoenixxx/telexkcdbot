@@ -40,6 +40,7 @@ class BigBrother(BaseMiddleware):
             logger.info(f"{user_id} | {call.from_user.username} | {call.from_user.language_code} | call:'{call.data}'")
 
     """ANTIFLOOD"""
+
     async def on_process_message(self, message: Message, data: dict):
         handler = current_handler.get()
         dispatcher = Dispatcher.get_current()
