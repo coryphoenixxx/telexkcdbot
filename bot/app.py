@@ -1,6 +1,5 @@
 import aioschedule
 
-from pathlib import Path
 from datetime import date
 
 from aiogram import Dispatcher
@@ -118,28 +117,11 @@ async def checker():
         await asyncio.sleep(60)
 
 
-async def clean():
-    logs = list(Path.cwd().glob('../logs/*.log'))
-    for log in logs:
-        if log.name not in ('actions.log', 'errors.log'):
-            log.unlink()
-
-
-async def cleaner():
-    await clean()
-    delay = 12
-    aioschedule.every(delay).hours.do(clean)
-    while True:
-        await aioschedule.run_pending()
-        await asyncio.sleep(3600)
-
-
 async def on_startup(dp: Dispatcher):
     if HEROKU:
         await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
 
     asyncio.create_task(checker())
-    asyncio.create_task(cleaner())
     await users_db.add_user(ADMIN_ID)
 
     await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>")

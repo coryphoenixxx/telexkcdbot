@@ -7,7 +7,7 @@ from loguru import logger
 from pathlib import Path
 
 from bot.databases import ComicsDatabase, UsersDatabase, create_pool
-from bot.config import API_TOKEN, DATABASE_URL
+from bot.config import API_TOKEN, DATABASE_URL, HEROKU
 from bot.xkcd_parser import Parser
 
 loop = asyncio.get_event_loop()
@@ -26,5 +26,9 @@ bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
 logger.add('./logs/actions.log', rotation='5 MB', level='INFO')
 logger.add('./logs/errors.log', rotation='500 KB', level='ERROR', backtrace=True, diagnose=True)
 
-image_path = Path.cwd().joinpath('../img')
-logs_path = Path.cwd().joinpath('../logs')
+if HEROKU:
+    image_path = Path.cwd().joinpath('img')
+    logs_path = Path.cwd().joinpath('logs')
+else:
+    image_path = Path.cwd().joinpath('..img')
+    logs_path = Path.cwd().joinpath('..logs')
