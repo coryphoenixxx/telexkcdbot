@@ -22,5 +22,5 @@ loop.run_until_complete(parser.create())
 
 bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
 
-logger.add('../logs/actions.log', rotation='5 MB', level='INFO')
-logger.add('../logs/errors.log', rotation='500 KB', level='ERROR', backtrace=True, diagnose=True)
+logger.add('./logs/actions.log', rotation='5 MB', level='INFO')
+logger.add('./logs/errors.log', rotation='500 KB', level='ERROR', backtrace=True, diagnose=True)
