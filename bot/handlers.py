@@ -25,7 +25,7 @@ async def start(msg: Message, state: FSMContext):
 
     await users_db.add_user(msg.from_user.id)
     await msg.answer(f"<b>❗ Hey!    [¬º-°]¬\nThe <u>{(await bot.me).username}</u> at your disposal!</b>")
-    await msg.answer_photo(InputFile('bot/static/bot_image.png'))
+    await msg.answer_photo(InputFile(image_path.joinpath('bot_image.png')))
     await asyncio.sleep(2)
     await show_menu(msg, state)
 
@@ -338,7 +338,7 @@ async def change_spec_status(call: CallbackQuery):
 
 @dp.callback_query_handler(Text(startswith='send_'))
 async def send_log(call: CallbackQuery):
-    filename = '../logs/actions.log' if 'actions' in call.data else '../logs/errors.log'
+    filename = logs_path.joinpath('actions.log') if 'actions' in call.data else logs_path.joinpath('errors.log')
 
     try:
         await call.message.answer_document(InputFile(filename))

@@ -43,7 +43,7 @@ async def send_comic(user_id: int, data: tuple, keyboard=kboard.navigation, comi
         elif img_url.endswith('.gif'):
             await bot.send_animation(user_id, img_url, disable_notification=True)
         else:
-            await bot.send_photo(user_id, InputFile('static/no_image.png'), disable_notification=True)
+            await bot.send_photo(user_id, InputFile(image_path.joinpath('no_image.png')), disable_notification=True)
     except (InvalidHTTPUrlContent, BadRequest) as err:
         await bot.send_message(user_id,
                                text=f"❗❗❗ <b>Can't get image, try it in your browser!</b>",

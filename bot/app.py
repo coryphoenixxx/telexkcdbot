@@ -119,7 +119,7 @@ async def checker():
 
 
 async def clean():
-    logs = list(Path.cwd().glob('./logs/*.log'))
+    logs = list(Path.cwd().glob('../logs/*.log'))
     for log in logs:
         if log.name not in ('actions.log', 'errors.log'):
             log.unlink()
@@ -148,7 +148,7 @@ async def on_startup(dp: Dispatcher):
 
 
 if __name__ == "__main__":
-    from handlers import dp
+    from bot.handlers import dp
 
     dp.middleware.setup(BigBrother())
     loop.run_until_complete(fill_comics_db())
