@@ -24,25 +24,30 @@ class BigBrother(BaseMiddleware):
     @staticmethod
     async def on_pre_process_update(update: Update, data: dict):
         action_date = date.today()
+        user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
 
-        if update.message:
-            msg = update.message
-            user_id = msg.from_user.id
+        try:
+            await bot.send_chat_action(user_id, ChatActions.TYPING)
+        except (BotBlocked, UserDeactivated, ChatNotFound):
+            pass
+        else:
+            if update.message:
+                msg = update.message
 
-            if user_id != ADMIN_ID:
-                text = await preprocess_text(msg.text)
-                logger.info(f"{user_id}|{msg.from_user.username}|{msg.from_user.language_code}|text:'{text}'")
+                if msg.text:
+                    if user_id != ADMIN_ID:
+                        text = await preprocess_text(msg.text)
+                        logger.info(f"{user_id}|{msg.from_user.username}|{msg.from_user.language_code}|text:'{text}'")
 
-            await users_db.update_last_action_date(user_id, action_date)
+                    await users_db.update_last_action_date(user_id, action_date)
 
-        if update.callback_query:
-            call = update.callback_query
-            user_id = call.from_user.id
+            if update.callback_query:
+                call = update.callback_query
 
-            if user_id != ADMIN_ID:
-                logger.info(f"{user_id}|{call.from_user.username}|{call.from_user.language_code}|call:'{call.data}'")
+                if user_id != ADMIN_ID:
+                    logger.info(f"{user_id}|{call.from_user.username}|{call.from_user.language_code}|call:'{call.data}'")
 
-            await users_db.update_last_action_date(user_id, action_date)
+                await users_db.update_last_action_date(user_id, action_date)
 
     """ANTIFLOOD"""
 
