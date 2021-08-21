@@ -1,1 +1,1 @@
-web: newrelic-admin run-program python bot/app.py
+web: newrelic-admin run-program python ../bot/app.py

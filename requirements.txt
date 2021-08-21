@@ -1,7 +1,6 @@
 aiogram==2.14.3
 aiohttp==3.7.4.post0
 aioschedule==0.5.2
-aiosqlite==0.17.0
 async-timeout==3.0.1
 asyncpg==0.24.0
 attrs==21.2.0
