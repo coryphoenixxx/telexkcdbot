@@ -37,19 +37,19 @@ class BigBrother(BaseMiddleware):
                     msg = update.message
 
                     if msg.text:
-                        # if user_id != ADMIN_ID:
-                        text = await preprocess_text(msg.text)
-                        logger.info(f"{user_id}|{msg.from_user.username}|"
-                                    f"{msg.from_user.language_code}|text:'{text}'")
+                        if user_id != ADMIN_ID:
+                            text = await preprocess_text(msg.text)
+                            logger.info(f"{user_id}|{msg.from_user.username}|"
+                                        f"{msg.from_user.language_code}|text:'{text}'")
 
                         await users_db.update_last_action_date(user_id, action_date)
 
                 if update.callback_query:
                     call = update.callback_query
 
-                    # if user_id != ADMIN_ID:
-                    logger.info(f"{user_id}|{call.from_user.username}"
-                                f"|{call.from_user.language_code}|call:'{call.data}'")
+                    if user_id != ADMIN_ID:
+                        logger.info(f"{user_id}|{call.from_user.username}"
+                                    f"|{call.from_user.language_code}|call:'{call.data}'")
 
                     await users_db.update_last_action_date(user_id, action_date)
 
