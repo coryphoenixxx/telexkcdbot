@@ -33,10 +33,10 @@ class Keyboard:
         'continue_xkcding': InlineKeyboardButton(text='Continue xkcding!', callback_data='continue_xkcding'),
         'menu': InlineKeyboardButton(text='Menu', callback_data='menu'),
 
+        'users_info': InlineKeyboardButton(text='USERS\' INFO', callback_data='users_info'),
         'change_spec_status': InlineKeyboardButton(text='CHANGE SPEC STATUS', callback_data='change_spec_status'),
         'send_actions': InlineKeyboardButton(text='SEND ACTLOG', callback_data='send_actions'),
         'send_errors': InlineKeyboardButton(text='SEND ERRLOG', callback_data='send_errors'),
-        'users_info': InlineKeyboardButton(text='USERS\' INFO', callback_data='users_info'),
         'broadcast_admin_msg': InlineKeyboardButton(text='BROADCAST', callback_data='broadcast_admin_msg')
     }
 
@@ -48,15 +48,17 @@ class Keyboard:
         return keyboard
 
     @staticmethod
-    async def _lang_btn_insertion(row: list, user_id: int, comic_id: int, comic_lang: str) -> list:
+    async def _lang_btn_insertion(row: list, user_id: int, comic_id: int, comic_lang: str, kb: str = 'nav') -> list:
         user_lang = await users_db.get_user_lang(user_id)
 
         if user_lang == 'ru':
             if comic_id in parser.real_ru_comics_ids:
                 if comic_lang == 'en':
-                    row.insert(1, 'ru')
+                    lang_btn = 'ru' if kb == 'nav' else 'trav_ru'
+                    row.insert(1, lang_btn)
                 else:
-                    row.insert(1, 'en')
+                    lang_btn = 'en' if kb == 'nav' else 'trav_en'
+                    row.insert(1, lang_btn)
 
         return row
 
@@ -92,7 +94,7 @@ class Keyboard:
 
         bookmark_btn_key = 'trav_bookmarked' if comic_id in user_bookmarks else 'trav_not_bookmarked'
         btns_keys = [bookmark_btn_key, 'trav_explain', 'trav_stop', 'trav_step']
-        btns_keys = await self._lang_btn_insertion(btns_keys, user_id, comic_id, comic_lang)
+        btns_keys = await self._lang_btn_insertion(btns_keys, user_id, comic_id, comic_lang, kb='trav')
 
         row_width = 2 if len(btns_keys) == 4 else 3
 

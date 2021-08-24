@@ -205,17 +205,16 @@ async def cb_toggle_versions(call: CallbackQuery, keyboard=kboard.navigation):
         await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
 
     comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
+    requested_comic_lang = call.data[-2:]
 
-    if 'en' in call.data:
-        comic_lang = 'en'
+    if requested_comic_lang == 'en':
         comic_data = await comics_db.get_comic_data_by_id(comic_id)
     else:
-        comic_lang = 'ru'
         comic_data = await comics_db.get_ru_comic_data_by_id(comic_id)
 
     if 'trav' in call.data:
         keyboard = kboard.traversal
-    await send_comic(call.from_user.id, comic_data=comic_data, keyboard=keyboard, comic_lang=comic_lang)
+    await send_comic(call.from_user.id, comic_data=comic_data, keyboard=keyboard, comic_lang=requested_comic_lang)
 
 
 @dp.callback_query_handler(Text(equals=('explain', 'trav_explain')))
@@ -269,6 +268,7 @@ async def trav_step(user_id: int, message_id: int, state: FSMContext):
         await trav_stop(user_id, message_id, state)
     else:
         lang = (await state.get_data()).get('lang')
+
         if not lang:
             comic_lang = 'en'
             comic_data = await comics_db.get_comic_data_by_id(list_.pop(0))
@@ -311,7 +311,10 @@ async def cb_trav_stop(call: CallbackQuery, state: FSMContext):
 @dp.message_handler(commands='admin')
 @admin
 async def cmd_admin(msg: Message, state: FSMContext):
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
     await state.reset_data()
+
     await msg.answer('<b>*** ADMIN PANEL ***</b>',
                      reply_markup=await kboard.admin_panel())
 
@@ -346,9 +349,11 @@ async def cb_users_info(call: CallbackQuery):
     subscribed_users_num = len(await users_db.get_subscribed_users())
     active_users_num = await users_db.get_last_month_active_users_num()
     text = f"""<b>*** ADMIN PANEL ***</b>
-❗ <b>Total</b>: <i>{all_users_num}</i>
-        <b>Subs</b>: <i>{subscribed_users_num}</i>
-        <b>Active</b>: <i>{active_users_num}</i>"""
+❗
+<b>Total</b>: <i>{all_users_num}</i>
+<b>Subs</b>: <i>{subscribed_users_num}</i>
+<b>Active</b>: <i>{active_users_num}</i>"""
+
     await call.message.answer(text,
                               reply_markup=await kboard.admin_panel())
 
@@ -378,6 +383,7 @@ async def cmd_cancel(msg: Message, state: FSMContext):
 async def broadcast_admin_msg(msg: Message, state: FSMContext):
     text = f'❗❗❗ <b>ADMIN MESSAGE:\n</b>  {msg.text}'
     all_users_ids = await users_db.get_all_users_ids()
+
     await broadcast(all_users_ids, text=text)
     await state.finish()
 
