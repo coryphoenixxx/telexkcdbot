@@ -11,7 +11,9 @@ https://t.me/telexkcdbot
 https://www.youtube.com/watch?v=BW7dkHN6fsg
 
 ![alt text](https://i.ibb.co/grc9jmZ/1.jpg)
+
 ![alt text](https://i.ibb.co/b2T0FjY/2.jpg)
+
 ![alt text](https://i.ibb.co/bQmCS2R/3.jpg)
 
 ## Features
