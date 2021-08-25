@@ -10,9 +10,9 @@ https://t.me/telexkcdbot
 ## Presentation
 https://www.youtube.com/watch?v=BW7dkHN6fsg
 
-![alt text](https://ibb.co/S6Zys5w)
-![alt text](https://ibb.co/3M23v5V)
-![alt text](https://ibb.co/mbT2LXF)
+![alt text](https://i.ibb.co/grc9jmZ/1.jpg)
+![alt text](https://i.ibb.co/b2T0FjY/2.jpg)
+![alt text](https://i.ibb.co/bQmCS2R/3.jpg)
 
 ## Features
 - Notification for the new comic.
