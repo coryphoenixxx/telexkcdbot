@@ -102,11 +102,11 @@ class Parser:
                 try:
                     soup = await self._get_soup(url)
                     first_p = soup.find_all('div', {'class': 'mw-parser-output'})[-1].find('p')
-                    text = first_p.text
+                    text = first_p.text + '\n'
 
                     for el in first_p.find_next_siblings()[:12]:
                         if el.name in ('p', 'li'):
-                            text = text + el.text + '\n'
+                            text = text + el.text.strip() + '\n\n'
 
                     text = text[:1000].strip().replace('<', '').replace('>', '')
 
