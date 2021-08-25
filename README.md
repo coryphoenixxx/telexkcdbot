@@ -10,6 +10,10 @@ https://t.me/telexkcdbot
 ## Presentation
 https://www.youtube.com/watch?v=BW7dkHN6fsg
 
+![alt text](https://ibb.co/S6Zys5w)
+![alt text](https://ibb.co/3M23v5V)
+![alt text](https://ibb.co/mbT2LXF)
+
 ## Features
 - Notification for the new comic.
 - Russian translation of comic _(if it exists)_.
