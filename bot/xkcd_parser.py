@@ -1,7 +1,9 @@
 import asyncio
 import aiohttp
+import re
 
 from datetime import date
+from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
 
 from bot.loader import logger
@@ -9,11 +11,9 @@ from bot.loader import logger
 
 class Parser:
     def __init__(self):
-        self.real_ru_comics_ids = None
         self._specific_comic_ids = None
 
     async def create(self):
-        self.real_ru_comics_ids: tuple = await self._get_real_ru_ids()
         self._specific_comic_ids: set = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
                                          1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
 
@@ -25,22 +25,24 @@ class Parser:
         return int((await comic_json).get('num'))
 
     @staticmethod
-    async def _get_soup(url: str) -> BeautifulSoup or None:
-        async with aiohttp.ClientSession() as session:
-            response = await session.get(url)
-            if response.ok:
-                content = await response.content.read()
-                return BeautifulSoup(content, 'lxml')
-            else:
-                logger.error(f"Could not get soup for {url}.")
+    async def _get_soup(url: str) -> BeautifulSoup:
+        attempts = 10
 
-    async def _get_real_ru_ids(self) -> tuple:
-        soup = await self._get_soup('https://xkcd.ru/num')
-        lis = soup.find('ul', {'class': 'list'}).find_all('li', {'class': 'real'})
-        nums = []
-        for li in lis:
-            nums.append(int(li.text))
-        return tuple(nums)
+        for _ in range(attempts):
+            async with aiohttp.ClientSession() as session:
+                try:
+                    response = await session.get(url)
+                except ClientConnectorError:
+                    await asyncio.sleep(2)
+                    continue
+                else:
+                    if response.ok:
+                        content = await response.content.read()
+                        return BeautifulSoup(content, 'lxml')
+                    else:
+                        logger.error(f"Couldn't get soup for {url}.")
+
+        logger.error(f"Couldn't get soup for {url} after 10 attempts!")
 
     async def get_comic_data(self, comic_id: int) -> dict:
         if comic_id == 404:  # 404 comic doesn't exist
@@ -80,16 +82,22 @@ class Parser:
     async def get_ru_comic_data(self, comic_id: int) -> dict:
         keys = ('ru_title', 'ru_img_url', 'ru_comment')
 
-        if comic_id not in self.real_ru_comics_ids:
-            return dict(zip(keys, ['']*3))
-        else:
-            soup = await self._get_soup(f'https://xkcd.ru/{comic_id}')
-            img = soup.find('img', {'border': 0})
-            comment = soup.find('div', {'class': 'comics_text'}).text
-            comment = comment.replace('<', '').replace('>', '').strip()
-            comment = comment if comment else '...'
+        url = f'https://xkcd.su/finished/{comic_id}'
+        soup = await self._get_soup(url)
+        finished = soup.find('div', {'class': 'finished_check'})
 
-            values = (img['alt'], img['src'], comment)
+        if not finished:
+            return dict(zip(keys, [''] * 3))
+        else:
+            ru_title = soup.find('div', {'class': 'finished_title'}).text
+            ru_title = re.search('«(.*)»', ru_title).group(1)
+            ru_img_url = soup.find('div', {'class': 'comics_img'}).find('img')['src']
+            ru_comment = soup.find('div', {'class': 'finished_alt'}).text
+            ru_comment = ru_comment.replace('<', '').replace('>', '').strip()
+            ru_comment = ru_comment if ru_comment else '...'
+
+            values = (ru_title, ru_img_url, ru_comment)
+
             return dict(zip(keys, values))
 
     async def get_explanation(self, comic_id: int) -> str:
@@ -99,9 +107,12 @@ class Parser:
 
         try:
             for _ in range(attempts):
+                soup = await self._get_soup(url)
                 try:
-                    soup = await self._get_soup(url)
                     first_p = soup.find_all('div', {'class': 'mw-parser-output'})[-1].find('p')
+                except AttributeError:
+                    pass
+                else:
                     text = first_p.text + '\n'
 
                     for el in first_p.find_next_siblings()[:12]:
@@ -117,8 +128,6 @@ class Parser:
 
                     return text
 
-                except AttributeError:
-                    pass
         except Exception as err:
             logger.error(f'Error in get_explanation() for {comic_id}: {err}')
             await asyncio.sleep(0.1)

@@ -52,7 +52,8 @@ class Keyboard:
         user_lang = await users_db.get_user_lang(user_id)
 
         if user_lang == 'ru':
-            if comic_id in parser.real_ru_comics_ids:
+            has_rus_comic_data = (await comics_db.get_ru_comic_data_by_id(comic_id))[1]  # Check title column
+            if has_rus_comic_data:
                 if comic_lang == 'en':
                     lang_btn = 'ru' if kb == 'nav' else 'trav_ru'
                     row.insert(1, lang_btn)

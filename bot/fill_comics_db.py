@@ -7,7 +7,7 @@ comics_data = []
 sem = asyncio.Semaphore(64)  # Limits simultaneous connections on Windows
 
 
-async def get_comics_data(comic_id):
+async def collect_comic_data(comic_id):
     async with sem:
         comic_data = await parser.get_full_comic_data(comic_id)
     comics_data.append(comic_data)
@@ -25,13 +25,13 @@ async def gather(start, end, all_comics_ids):
 
     for comic_id in range(start, end):
         if comic_id not in all_comics_ids:
-            task = asyncio.create_task(get_comics_data(comic_id))
+            task = asyncio.create_task(collect_comic_data(comic_id))
             tasks.append(task)
 
     await asyncio.gather(*tasks)
 
 
-async def main():
+async def fill_comics_db():
     logger.info("Start filling the comics db.")
 
     all_comics_ids = await comics_db.get_all_comics_ids()
@@ -47,7 +47,3 @@ async def main():
         await write_to_db()
 
     logger.info("Finish filling the comics db.")
-
-
-async def fill_comics_db():
-    await main()
