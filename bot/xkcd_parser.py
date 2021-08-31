@@ -39,8 +39,6 @@ class Parser:
                     if response.ok:
                         content = await response.content.read()
                         return BeautifulSoup(content, 'lxml')
-                    else:
-                        logger.error(f"Couldn't get soup for {url}.")
 
         logger.error(f"Couldn't get soup for {url} after 10 attempts!")
 
@@ -103,34 +101,32 @@ class Parser:
     async def get_explanation(self, comic_id: int) -> str:
         url = f'https://www.explainxkcd.com/{comic_id}'
         no_explanation_text = "❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it later.</b>"
-        attempts = 10
 
         try:
-            for _ in range(attempts):
-                soup = await self._get_soup(url)
-                try:
-                    first_p = soup.find_all('div', {'class': 'mw-parser-output'})[-1].find('p')
-                except AttributeError:
-                    pass
+            soup = await self._get_soup(url)
+
+            try:
+                first_p = soup.find_all('div', {'class': 'mw-parser-output'})[-1].find('p')
+            except AttributeError:
+                pass
+            else:
+                text = first_p.text + '\n'
+
+                for el in first_p.find_next_siblings()[:12]:
+                    if el.name in ('p', 'li'):
+                        text = text + el.text.strip() + '\n\n'
+
+                text = text[:1000].strip().replace('<', '').replace('>', '')
+
+                if not text:
+                    text = no_explanation_text
                 else:
-                    text = first_p.text + '\n'
+                    text = f"{text}...\n<a href='{url}'>[FULL TEXT]</a>"
 
-                    for el in first_p.find_next_siblings()[:12]:
-                        if el.name in ('p', 'li'):
-                            text = text + el.text.strip() + '\n\n'
-
-                    text = text[:1000].strip().replace('<', '').replace('>', '')
-
-                    if not text:
-                        text = no_explanation_text
-                    else:
-                        text = f"{text}...\n<a href='{url}'>[FULL TEXT]</a>"
-
-                    return text
+                return text
 
         except Exception as err:
             logger.error(f'Error in get_explanation() for {comic_id}: {err}')
-            await asyncio.sleep(0.1)
 
         return no_explanation_text
 
@@ -138,8 +134,5 @@ class Parser:
         full_comic_data = await self.get_comic_data(comic_id)
         ru_comic_data = await self.get_ru_comic_data(comic_id)
         full_comic_data.update(ru_comic_data)
+
         return tuple(full_comic_data.values())
-
-
-if __name__ == "__main__":
-    pass

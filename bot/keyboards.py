@@ -120,6 +120,3 @@ class Keyboard:
 
 
 kboard = Keyboard()
-
-if __name__ == '__main__':
-    pass

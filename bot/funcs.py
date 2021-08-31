@@ -1,4 +1,5 @@
 from string import ascii_letters, digits
+from typing import Tuple, Union
 
 from aiogram.types import Message, InputFile, ChatActions
 from aiogram.dispatcher import FSMContext
@@ -126,7 +127,7 @@ def admin(func):
     return decorator
 
 
-async def broadcast(user_ids: tuple, text: str, comic_data: tuple = None):
+async def broadcast(user_ids: tuple, text: str, comic_data: Union[Tuple, None] = None):
     count = 0
     subscribed_users_ids = await users_db.get_subscribed_users()
     try:

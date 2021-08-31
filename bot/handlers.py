@@ -37,7 +37,7 @@ async def send_menu(user_id: int):
     help_text = """<b>*** MENU ***</b>
 
 Type in the <u><b>number</b></u> and I'll find a comic with this number!
-Type in the <u><b>word</b></u> and I'll find comics whose title contains this word! 
+Type in the <u><b>word</b></u> and I'll find comics whose titles contains this word! 
 
 
 <u><b>In menu you can:</b></u>
