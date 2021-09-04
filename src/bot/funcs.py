@@ -9,6 +9,7 @@ from aiogram.types import Message, InputFile, ChatActions
 from aiogram.dispatcher import FSMContext
 from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTPUrlContent, BotBlocked, \
     UserDeactivated, MessageToEditNotFound, ChatNotFound, MessageCantBeEdited
+from aiohttp import InvalidURL
 
 from .loader import *
 from .config import ADMIN_ID
@@ -53,25 +54,24 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
             await bot.send_photo(user_id,
                                  photo=InputFile(static_path.joinpath('img/no_image.png')),
                                  disable_notification=True)
-    except (InvalidHTTPUrlContent, BadRequest):
-        try:
-            local_img_filename = await get_local_img_filename(img_url)
-            local_file = InputFile(local_img_filename)
-            msg_info = await bot.send_photo(user_id, photo=local_file, disable_notification=True)
+    except (InvalidHTTPUrlContent, BadRequest, InvalidURL):
+        local_img_filename = await get_local_img_filename(img_url)
+        local_file = InputFile(local_img_filename)
+        msg_info = await bot.send_photo(user_id, photo=local_file, disable_notification=True)
 
-            await aiofiles.os.remove(local_img_filename)
+        await aiofiles.os.remove(local_img_filename)
 
-            file_id = msg_info['photo'][0]['file_id'] + '.fileid'
-            if comic_lang == 'ru':
-                await comics_db.update_ru_img_url(comic_id=comic_id, new_ru_img_url=file_id)
-            else:
-                await comics_db.update_img_url(comic_id=comic_id, new_img_url=file_id)
-        except Exception as err:
-            await bot.send_message(user_id,
-                                   text=f"❗❗❗ <b>Can't get image, try it in your browser!</b>",
-                                   disable_web_page_preview=True,
-                                   disable_notification=True)
-            logger.error(f"Cant't send {comic_id} to {user_id} comic! {err}")
+        file_id = msg_info['photo'][0]['file_id'] + '.fileid'
+        if comic_lang == 'ru':
+            await comics_db.update_ru_img_url(comic_id=comic_id, new_ru_img_url=file_id)
+        else:
+            await comics_db.update_img_url(comic_id=comic_id, new_img_url=file_id)
+    except Exception as err:
+        await bot.send_message(user_id,
+                               text=f"❗❗❗ <b>Can't get image, try it in your browser!</b>",
+                               disable_web_page_preview=True,
+                               disable_notification=True)
+        logger.error(f"Cant't send {comic_id} to {user_id} comic! {err}")
 
     await bot.send_message(user_id,
                            text=f"<i>{comment}</i>",
@@ -81,8 +81,7 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
 
 
 async def get_local_img_filename(img_url: str) -> str:
-    img_url = img_url.split('/')[-1]
-    filename = img_url[-30:]
+    filename = img_url[-30:].split('/')[-1]
     async with aiohttp.ClientSession() as session:
         async with session.get(img_url) as response:
             if response.ok:
