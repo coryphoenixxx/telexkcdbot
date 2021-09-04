@@ -10,9 +10,9 @@ from aiogram.dispatcher import FSMContext
 from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTPUrlContent, BotBlocked, \
     UserDeactivated, MessageToEditNotFound, ChatNotFound, MessageCantBeEdited
 
-from src.bot.loader import *
-from src.bot.config import ADMIN_ID
-from src.bot.keyboards import kboard
+from .loader import *
+from .config import ADMIN_ID
+from .keyboards import kboard
 
 
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
@@ -51,7 +51,7 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
             await bot.send_photo(user_id, photo=img_url[:-7], disable_notification=True)
         else:
             await bot.send_photo(user_id,
-                                 photo=InputFile(image_path.joinpath('no_image.png')),
+                                 photo=InputFile(static_path.joinpath('img/no_image.png')),
                                  disable_notification=True)
     except (InvalidHTTPUrlContent, BadRequest):
         try:

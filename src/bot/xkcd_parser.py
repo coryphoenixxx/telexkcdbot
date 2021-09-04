@@ -7,7 +7,7 @@ from datetime import date
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
 
-from src.bot.loader import logger, path_to_json
+from .loader import logger, path_to_json
 
 
 class Parser:

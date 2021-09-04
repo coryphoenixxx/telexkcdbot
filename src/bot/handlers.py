@@ -10,11 +10,11 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.exceptions import BadRequest
 
-from src.bot.loader import *
-from src.bot.funcs import suppress_exceptions, rate_limit, send_comics_list_text_in_bunches, send_comic, admin, \
+from .loader import *
+from .funcs import suppress_exceptions, rate_limit, send_comics_list_text_in_bunches, send_comic, admin, \
     preprocess_text, is_cyrillic, broadcast
-from src.bot.keyboards import kboard
-from src.bot.config import ADMIN_ID
+from .keyboards import kboard
+from .config import ADMIN_ID
 
 storage = MemoryStorage()
 dp = Dispatcher(bot, loop=loop, storage=storage)
@@ -31,7 +31,7 @@ async def cmd_start(msg: Message, state: FSMContext):
 
     await users_db.add_user(msg.from_user.id)
     await msg.answer(f"<b>❗ Hey!    [¬º-°]¬\nThe <u>{(await bot.me).username}</u> at your disposal!</b>")
-    await msg.answer_photo(InputFile(image_path.joinpath('bot_image.png')))
+    await msg.answer_photo(InputFile(static_path.joinpath('img/bot_image.png')))
     await asyncio.sleep(2)
     await send_menu(msg.from_user.id)
 
