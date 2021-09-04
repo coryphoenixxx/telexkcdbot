@@ -1,21 +1,31 @@
 import asyncio
 import aiohttp
 import re
+import json
+from pathlib import Path
 
 from datetime import date
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
 
-from bot.loader import logger
+from src.bot.loader import logger
 
 
 class Parser:
     def __init__(self):
-        self._specific_comic_ids = None
+        self._specific_comic_ids: set = set()
+        self.aux_ru_comics_data: dict = {}
 
     async def create(self):
-        self._specific_comic_ids: set = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
-                                         1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
+        path_to_json: str = str(Path.cwd().parent.parent.joinpath('static/ru_data_from_xkcd_ru_tg_channel.json'))
+
+        with open(path_to_json, 'r', encoding='utf8') as f:
+            ru_data_from_xkcd_ru_tg_channel = json.load(f)
+
+        self._specific_comic_ids = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
+                                    1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
+
+        self.aux_ru_comics_data = ru_data_from_xkcd_ru_tg_channel
 
     @staticmethod
     async def get_xkcd_latest_comic_id() -> int:
@@ -85,21 +95,25 @@ class Parser:
         finished = soup.find('div', {'class': 'finished_check'})
 
         if not finished:
-            return dict(zip(keys, ('',) * 3))
+            comic_id = str(comic_id)
+            if comic_id not in self.aux_ru_comics_data.keys():
+                return dict(zip(keys, ('',) * 3))
+            else:
+                return self.aux_ru_comics_data[comic_id]
         else:
             ru_title = soup.find('div', {'class': 'finished_title'}).text
             ru_title = re.search('«(.*)»', ru_title).group(1)
+
             ru_img_url = soup.find('div', {'class': 'comics_img'}).find('img')['src']
+
             ru_comment = soup.find('div', {'class': 'finished_alt'}).text
             ru_comment = ru_comment.replace('<', '').replace('>', '').strip()
             ru_comment = ru_comment if ru_comment else '...'
 
             if comic_id == 384:
-                ru_img_url = 'https://xkcd.ru/i/384_v1.png'  # image from .su is broken
+                ru_img_url = 'https://xkcd.ru/i/384_v1.png'  # Image from .su is broken
 
-            values = (ru_title, ru_img_url, ru_comment)
-
-            return dict(zip(keys, values))
+            return dict(zip(keys, (ru_title, ru_img_url, ru_comment)))
 
     async def get_explanation(self, comic_id: int) -> str:
         url = f'https://www.explainxkcd.com/{comic_id}'

@@ -1,6 +1,6 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from bot.loader import *
-from bot.config import ADMIN_ID
+from src.bot.loader import *
+from src.bot.config import ADMIN_ID
 
 
 class Keyboard:

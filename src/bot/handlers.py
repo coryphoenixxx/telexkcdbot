@@ -10,11 +10,11 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.exceptions import BadRequest
 
-from bot.loader import *
-from bot.funcs import suppress_exceptions, rate_limit, send_comics_list_text_in_bunches, send_comic, admin, \
+from src.bot.loader import *
+from src.bot.funcs import suppress_exceptions, rate_limit, send_comics_list_text_in_bunches, send_comic, admin, \
     preprocess_text, is_cyrillic, broadcast
-from bot.keyboards import kboard
-from bot.config import ADMIN_ID
+from src.bot.keyboards import kboard
+from src.bot.config import ADMIN_ID
 
 storage = MemoryStorage()
 dp = Dispatcher(bot, loop=loop, storage=storage)

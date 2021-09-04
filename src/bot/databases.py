@@ -3,7 +3,7 @@ import json
 
 from datetime import date, timedelta
 
-from bot.config import HEROKU
+from src.bot.config import HEROKU
 
 
 async def create_pool(db_url) -> asyncpg.Pool:
@@ -67,6 +67,7 @@ class UsersDatabase:
                    WHERE user_id = $1;"""
 
         res = await self.pool.fetchval(query, user_id)
+
         return res
 
     async def set_user_lang(self, user_id: int, user_lang: str):
@@ -103,6 +104,7 @@ class UsersDatabase:
                    WHERE user_id = $1;"""
 
         res = await self.pool.fetchval(query, user_id)
+
         return json.loads(res)
 
     async def update_bookmarks(self, user_id: int, new_bookmarks: list):
@@ -119,6 +121,7 @@ class UsersDatabase:
                    WHERE is_subscribed = 1;"""
 
         res = await self.pool.fetchval(query)
+
         return tuple(res) if res else ()
 
     async def toggle_subscription_status(self, user_id: int):
@@ -142,12 +145,12 @@ class ComicsDatabase:
                      id SERIAL NOT NULL,
                      comic_id INTEGER NOT NULL UNIQUE,
                      title VARCHAR(128) DEFAULT '...',
-                     img_url VARCHAR(128) DEFAULT '',
+                     img_url VARCHAR(512) DEFAULT '',
                      comment TEXT DEFAULT '...',
                      public_date DATE NOT NULL DEFAULT CURRENT_DATE,
                      is_specific INTEGER NOT NULL DEFAULT 0,
                      ru_title VARCHAR(128) DEFAULT '...',
-                     ru_img_url VARCHAR(128) DEFAULT '...',
+                     ru_img_url VARCHAR(512) DEFAULT '...',
                      ru_comment TEXT DEFAULT '...');
     
                    CREATE UNIQUE INDEX IF NOT EXISTS comic_id_uindex ON comics (comic_id);"""
@@ -241,11 +244,23 @@ class ComicsDatabase:
             cur_value = await conn.fetchval(get_query, comic_id)
             await conn.execute(set_query, not cur_value, comic_id)
 
+    async def update_img_url(self, comic_id: int, new_img_url: str):
+        query = """UPDATE comics SET img_url = $1
+                   WHERE comic_id = $2;"""
+
+        await self.pool.execute(query, new_img_url, comic_id)
+
+    async def update_ru_img_url(self, comic_id: int, new_ru_img_url: str):
+        query = """UPDATE comics SET ru_img_url = $1
+                   WHERE comic_id = $2;"""
+
+        await self.pool.execute(query, new_ru_img_url, comic_id)
+
 
 if __name__ == "__main__":
     # Needs envs
     import asyncio
-    from bot.fill_comics_db import fill_comics_db
+    from src.bot.fill_comics_db import fill_comics_db
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(fill_comics_db())

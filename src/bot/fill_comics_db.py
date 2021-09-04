@@ -1,6 +1,6 @@
 from tqdm import trange
 
-from bot.loader import *
+from src.bot.loader import *
 
 
 comics_data = []
@@ -45,5 +45,7 @@ async def fill_comics_db():
 
         await gather(i, end, all_comics_ids)
         await write_to_db()
+
+    del parser.aux_ru_comics_data
 
     logger.info("Finish filling the comics db.")

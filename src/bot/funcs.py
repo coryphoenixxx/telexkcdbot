@@ -1,3 +1,7 @@
+import aiofiles
+import aiofiles.os
+import aiohttp
+
 from string import ascii_letters, digits
 from typing import Tuple, Union
 
@@ -6,9 +10,10 @@ from aiogram.dispatcher import FSMContext
 from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTPUrlContent, BotBlocked, \
     UserDeactivated, MessageToEditNotFound, ChatNotFound, MessageCantBeEdited
 
-from bot.loader import *
-from bot.config import ADMIN_ID
-from bot.keyboards import kboard
+from src.bot.loader import *
+from src.bot.config import ADMIN_ID
+from src.bot.keyboards import kboard
+
 
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
 punctuation = ' -(),.:;!?#+'
@@ -42,14 +47,31 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
             await bot.send_photo(user_id, photo=img_url, disable_notification=True)
         elif img_url.endswith('.gif'):
             await bot.send_animation(user_id, img_url, disable_notification=True)
+        elif img_url.endswith('.fileid'):
+            await bot.send_photo(user_id, photo=img_url[:-7], disable_notification=True)
         else:
-            await bot.send_photo(user_id, InputFile(image_path.joinpath('no_image.png')), disable_notification=True)
-    except (InvalidHTTPUrlContent, BadRequest) as err:
-        await bot.send_message(user_id,
-                               text=f"❗❗❗ <b>Can't get image, try it in your browser!</b>",
-                               disable_web_page_preview=True,
-                               disable_notification=True)
-        logger.error(f"Cant't send {comic_id} to {user_id} comic! ({err})")
+            await bot.send_photo(user_id,
+                                 photo=InputFile(image_path.joinpath('no_image.png')),
+                                 disable_notification=True)
+    except (InvalidHTTPUrlContent, BadRequest):
+        try:
+            local_img_filename = await get_local_img_filename(img_url)
+            local_file = InputFile(local_img_filename)
+            msg_info = await bot.send_photo(user_id, photo=local_file, disable_notification=True)
+
+            await aiofiles.os.remove(local_img_filename)
+
+            file_id = msg_info['photo'][0]['file_id'] + '.fileid'
+            if comic_lang == 'ru':
+                await comics_db.update_ru_img_url(comic_id=comic_id, new_ru_img_url=file_id)
+            else:
+                await comics_db.update_img_url(comic_id=comic_id, new_img_url=file_id)
+        except Exception as err:
+            await bot.send_message(user_id,
+                                   text=f"❗❗❗ <b>Can't get image, try it in your browser!</b>",
+                                   disable_web_page_preview=True,
+                                   disable_notification=True)
+            logger.error(f"Cant't send {comic_id} to {user_id} comic! {err}")
 
     await bot.send_message(user_id,
                            text=f"<i>{comment}</i>",
@@ -58,8 +80,20 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
                            disable_notification=True)
 
 
+async def get_local_img_filename(img_url: str) -> str:
+    img_url = img_url.split('/')[-1]
+    filename = img_url[-30:]
+    async with aiohttp.ClientSession() as session:
+        async with session.get(img_url) as response:
+            if response.ok:
+                async with aiofiles.open(filename, mode='wb') as f:
+                    await f.write(await response.read())
+
+    return filename
+
+
 async def get_link(comic_id: int, comic_lang: str, title: str) -> str:
-    link = "<a href='{url}'>{title}</a>"
+    link_template = "<a href='{url}'>{title}</a>"
 
     if comic_lang == 'ru':
         url = f'https://xkcd.su/{comic_id}'
@@ -67,7 +101,7 @@ async def get_link(comic_id: int, comic_lang: str, title: str) -> str:
         url = f'https://xkcd.com/{comic_id}' if comic_id != 880 \
             else 'https://xk3d.xkcd.com/880/'  # Original image is broken
 
-    return link.format(url=url, title=title)
+    return link_template.format(url=url, title=title)
 
 
 async def get_comics_list_text(comics_ids: list, titles: list, comic_lang: str) -> str:
@@ -113,7 +147,6 @@ def rate_limit(limit: int, key=None):
         if key:
             setattr(func, 'throttling_key', key)
         return func
-
     return decorator
 
 
@@ -123,13 +156,13 @@ def admin(func):
             await msg.answer('Nope!)))')
         else:
             await func(msg, state)
-
     return decorator
 
 
 async def broadcast(user_ids: tuple, text: str, comic_data: Union[Tuple, None] = None):
     count = 0
     subscribed_users_ids = await users_db.get_subscribed_users()
+
     try:
         for user_id in user_ids:
             try:

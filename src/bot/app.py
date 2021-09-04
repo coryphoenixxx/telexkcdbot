@@ -11,10 +11,10 @@ from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, Cha
 from aiogram.utils.executor import start_webhook, start_polling
 from asyncpg import CannotConnectNowError
 
-from bot.config import HEROKU, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL, PORT, ADMIN_ID
-from bot.funcs import preprocess_text, broadcast
-from bot.loader import *
-from bot.fill_comics_db import fill_comics_db
+from src.bot.config import HEROKU, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL, PORT, ADMIN_ID
+from src.bot.funcs import preprocess_text, broadcast
+from src.bot.loader import *
+from src.bot.fill_comics_db import fill_comics_db
 
 
 class BigBrother(BaseMiddleware):
@@ -142,7 +142,7 @@ async def on_startup(dp: Dispatcher):
 
 
 if __name__ == "__main__":
-    from bot.handlers import dp
+    from src.bot.handlers import dp
 
     dp.middleware.setup(BigBrother())
     loop.run_until_complete(fill_comics_db())
