@@ -2,13 +2,12 @@ import asyncio
 import aiohttp
 import re
 import json
-from pathlib import Path
 
 from datetime import date
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
 
-from src.bot.loader import logger
+from src.bot.loader import logger, path_to_json
 
 
 class Parser:
@@ -17,9 +16,6 @@ class Parser:
         self.aux_ru_comics_data: dict = {}
 
     async def create(self):
-        path_to_json: str = 'app/static/ru_data_from_xkcd_ru_tg_channel.json'
-        print(path_to_json)
-
         with open(path_to_json, 'r', encoding='utf8') as f:
             ru_data_from_xkcd_ru_tg_channel = json.load(f)
 
