@@ -17,8 +17,8 @@ class Parser:
         self.aux_ru_comics_data: dict = {}
 
     async def create(self):
-        print(Path.cwd())
-        path_to_json: str = str(Path.cwd().parent.parent.joinpath('static/ru_data_from_xkcd_ru_tg_channel.json'))
+        path_to_json: str = str(Path.cwd().parent.parent / 'static/ru_data_from_xkcd_ru_tg_channel.json')
+        print(path_to_json)
 
         with open(path_to_json, 'r', encoding='utf8') as f:
             ru_data_from_xkcd_ru_tg_channel = json.load(f)

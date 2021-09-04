@@ -17,6 +17,8 @@ pool = loop.run_until_complete(create_pool(DATABASE_URL))
 
 image_path = Path.cwd().parent.parent.joinpath('static/img')
 logs_path = Path.cwd().parent.parent.joinpath('logs')
+print(image_path)
+print(logs_path)
 
 users_db = UsersDatabase(pool)
 comics_db = ComicsDatabase(pool)
