@@ -49,7 +49,7 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
                                text=f"❗❗❗ <b>Can't get image, try it in your browser!</b>",
                                disable_web_page_preview=True,
                                disable_notification=True)
-        logger.error(f"Cant't send {comic_id} to {user_id} comic!", err)
+        logger.error(f"Cant't send {comic_id} to {user_id} comic! ({err})")
 
     await bot.send_message(user_id,
                            text=f"<i>{comment}</i>",
@@ -62,7 +62,7 @@ async def get_link(comic_id: int, comic_lang: str, title: str) -> str:
     link = "<a href='{url}'>{title}</a>"
 
     if comic_lang == 'ru':
-        url = f'https://xkcd.ru/{comic_id}'
+        url = f'https://xkcd.su/{comic_id}'
     else:
         url = f'https://xkcd.com/{comic_id}' if comic_id != 880 \
             else 'https://xk3d.xkcd.com/880/'  # Original image is broken

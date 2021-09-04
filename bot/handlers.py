@@ -2,13 +2,19 @@ from random import randint
 
 from contextlib import suppress
 
-from aiogram.types import CallbackQuery
 from aiogram import Dispatcher
+from aiogram.types import Message, CallbackQuery, InputFile
+from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text, CommandStart
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.utils.exceptions import BadRequest
 
-from bot.funcs import *
+from bot.loader import *
+from bot.funcs import suppress_exceptions, rate_limit, send_comics_list_text_in_bunches, send_comic, admin, \
+    preprocess_text, is_cyrillic, broadcast
+from bot.keyboards import kboard
+from bot.config import ADMIN_ID
 
 storage = MemoryStorage()
 dp = Dispatcher(bot, loop=loop, storage=storage)

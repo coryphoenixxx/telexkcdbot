@@ -85,7 +85,7 @@ class Parser:
         finished = soup.find('div', {'class': 'finished_check'})
 
         if not finished:
-            return dict(zip(keys, [''] * 3))
+            return dict(zip(keys, ('',) * 3))
         else:
             ru_title = soup.find('div', {'class': 'finished_title'}).text
             ru_title = re.search('«(.*)»', ru_title).group(1)
@@ -93,6 +93,9 @@ class Parser:
             ru_comment = soup.find('div', {'class': 'finished_alt'}).text
             ru_comment = ru_comment.replace('<', '').replace('>', '').strip()
             ru_comment = ru_comment if ru_comment else '...'
+
+            if comic_id == 384:
+                ru_img_url = 'https://xkcd.ru/i/384_v1.png'  # image from .su is broken
 
             values = (ru_title, ru_img_url, ru_comment)
 

@@ -3,15 +3,17 @@ import aioschedule
 from datetime import date
 
 from aiogram import Dispatcher
-from aiogram.types import Update
+from aiogram.types import Update, ChatActions, Message
 from aiogram.dispatcher import DEFAULT_RATE_LIMIT
 from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
-from aiogram.utils.exceptions import Throttled
+from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound
 from aiogram.utils.executor import start_webhook, start_polling
+from asyncpg import CannotConnectNowError
 
-from bot.config import *
-from bot.funcs import *
+from bot.config import HEROKU, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL, PORT, ADMIN_ID
+from bot.funcs import preprocess_text, broadcast
+from bot.loader import *
 from bot.fill_comics_db import fill_comics_db
 
 
@@ -28,30 +30,30 @@ class BigBrother(BaseMiddleware):
         if update.message or update.callback_query:
             user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
 
-            try:
-                await bot.send_chat_action(user_id, ChatActions.TYPING)
-            except (BotBlocked, UserDeactivated, ChatNotFound):
-                pass
-            else:
-                if update.message:
-                    msg = update.message
+            if user_id != ADMIN_ID:
+                try:
+                    await bot.send_chat_action(user_id, ChatActions.TYPING)
+                except (BotBlocked, UserDeactivated, ChatNotFound):
+                    pass
+                else:
+                    if update.message:
+                        msg = update.message
 
-                    if msg.text:
-                        if user_id != ADMIN_ID:
+                        if msg.text:
                             text = await preprocess_text(msg.text)
                             logger.info(f"{user_id}|{msg.from_user.username}|"
                                         f"{msg.from_user.language_code}|text:'{text}'")
 
-                        await users_db.update_last_action_date(user_id, action_date)
+                    if update.callback_query:
+                        call = update.callback_query
 
-                if update.callback_query:
-                    call = update.callback_query
-
-                    if user_id != ADMIN_ID:
                         logger.info(f"{user_id}|{call.from_user.username}"
                                     f"|{call.from_user.language_code}|call:'{call.data}'")
 
-                    await users_db.update_last_action_date(user_id, action_date)
+                    try:
+                        await users_db.update_last_action_date(user_id, action_date)
+                    except CannotConnectNowError:
+                        pass
 
     """ANTIFLOOD"""
 
