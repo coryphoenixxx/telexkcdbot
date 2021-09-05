@@ -10,11 +10,9 @@ from .databases import ComicsDatabase, UsersDatabase, create_pool
 from .config import API_TOKEN, DATABASE_URL
 
 root = Path(__file__).parent.parent.parent
-static_path = root.joinpath('static')
+img_path = root.joinpath('static/img')
 logs_path = root.joinpath('logs')
-path_to_json = root.joinpath('static/ru_data_from_xkcd_ru_tg_channel.json')
-
-from .xkcd_parser import Parser
+path_to_json = root.joinpath('static/aux_ru_comic_data.json')
 
 bot = Bot(API_TOKEN, parse_mode=ParseMode.HTML)
 loop = asyncio.get_event_loop()
@@ -23,6 +21,7 @@ pool = loop.run_until_complete(create_pool(DATABASE_URL))
 users_db = UsersDatabase(pool)
 comics_db = ComicsDatabase(pool)
 
+from .xkcd_parser import Parser
 parser = Parser()
 
 loop.run_until_complete(users_db.create())

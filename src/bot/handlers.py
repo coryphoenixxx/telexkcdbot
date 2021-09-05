@@ -31,7 +31,7 @@ async def cmd_start(msg: Message, state: FSMContext):
 
     await users_db.add_user(msg.from_user.id)
     await msg.answer(f"<b>❗ Hey!    [¬º-°]¬\nThe <u>{(await bot.me).username}</u> at your disposal!</b>")
-    await msg.answer_photo(InputFile(static_path.joinpath('img/bot_image.png')))
+    await msg.answer_photo(InputFile(img_path.joinpath('bot_image.png')))
     await asyncio.sleep(2)
     await send_menu(msg.from_user.id)
 

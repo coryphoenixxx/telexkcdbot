@@ -1,7 +1,3 @@
-import aiofiles
-import aiofiles.os
-import aiohttp
-
 from string import ascii_letters, digits
 from typing import Tuple, Union
 
@@ -9,7 +5,6 @@ from aiogram.types import Message, InputFile, ChatActions
 from aiogram.dispatcher import FSMContext
 from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTPUrlContent, BotBlocked, \
     UserDeactivated, MessageToEditNotFound, ChatNotFound, MessageCantBeEdited
-from aiohttp import InvalidURL
 
 from .loader import *
 from .config import ADMIN_ID
@@ -44,29 +39,18 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
                                disable_notification=True)
 
     try:
-        if img_url.endswith(('.png', '.jpg', '.jpeg')):
+        if 'http' not in img_url:
+            local_img = InputFile(img_path.joinpath(img_url))
+            await bot.send_photo(user_id, photo=local_img, disable_notification=True)
+        elif img_url.endswith(('.png', '.jpg', '.jpeg')):
             await bot.send_photo(user_id, photo=img_url, disable_notification=True)
         elif img_url.endswith('.gif'):
             await bot.send_animation(user_id, img_url, disable_notification=True)
-        elif img_url.endswith('.fileid'):
-            await bot.send_photo(user_id, photo=img_url[:-7], disable_notification=True)
         else:
             await bot.send_photo(user_id,
-                                 photo=InputFile(static_path.joinpath('img/no_image.png')),
+                                 photo=InputFile(img_path.joinpath('no_image.png')),
                                  disable_notification=True)
-    except (InvalidHTTPUrlContent, BadRequest, InvalidURL):
-        local_img_filename = await get_local_img_filename(img_url)
-        local_file = InputFile(local_img_filename)
-        msg_info = await bot.send_photo(user_id, photo=local_file, disable_notification=True)
-
-        await aiofiles.os.remove(local_img_filename)
-
-        file_id = msg_info['photo'][0]['file_id'] + '.fileid'
-        if comic_lang == 'ru':
-            await comics_db.update_ru_img_url(comic_id=comic_id, new_ru_img_url=file_id)
-        else:
-            await comics_db.update_img_url(comic_id=comic_id, new_img_url=file_id)
-    except Exception as err:
+    except (InvalidHTTPUrlContent, BadRequest) as err:
         await bot.send_message(user_id,
                                text=f"❗❗❗ <b>Can't get image, try it in your browser!</b>",
                                disable_web_page_preview=True,
@@ -78,17 +62,6 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
                            reply_markup=await keyboard(user_id, comic_id, comic_lang),
                            disable_web_page_preview=True,
                            disable_notification=True)
-
-
-async def get_local_img_filename(img_url: str) -> str:
-    filename = img_url[-30:].split('/')[-1]
-    async with aiohttp.ClientSession() as session:
-        async with session.get(img_url) as response:
-            if response.ok:
-                async with aiofiles.open(filename, mode='wb') as f:
-                    await f.write(await response.read())
-
-    return filename
 
 
 async def get_link(comic_id: int, comic_lang: str, title: str) -> str:

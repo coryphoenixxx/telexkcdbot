@@ -19,10 +19,10 @@ class Parser:
         with open(path_to_json, 'r', encoding='utf8') as f:
             ru_data_from_xkcd_ru_tg_channel = json.load(f)
 
+        self.aux_ru_comics_data = ru_data_from_xkcd_ru_tg_channel
         self._specific_comic_ids = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
                                     1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
 
-        self.aux_ru_comics_data = ru_data_from_xkcd_ru_tg_channel
 
     @staticmethod
     async def get_xkcd_latest_comic_id() -> int:
