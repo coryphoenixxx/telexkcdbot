@@ -26,14 +26,18 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
 
     await users_db.update_cur_comic_info(user_id, comic_id, comic_lang)
 
-    link = await get_link(comic_id, comic_lang, title)
+    if 'http' in img_url:
+        link = await get_link(comic_id, comic_lang, title)
+    else:
+        link = title
+
     headline = f"<b>{comic_id}. \"{link}\"</b>   <i>({public_date})</i>"
 
     await bot.send_message(user_id, headline, disable_web_page_preview=True)
 
     if is_specific:
         await bot.send_message(user_id,
-                               text=f"❗❗❗ <b>It's a peculiar comic!\n"
+                               text=f"❗❗❗ <b>This comic is peculiar!\n"
                                     f"It's preferable to view it in your browser.</b>",
                                disable_web_page_preview=True,
                                disable_notification=True)
