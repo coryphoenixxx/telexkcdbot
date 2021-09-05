@@ -244,18 +244,6 @@ class ComicsDatabase:
             cur_value = await conn.fetchval(get_query, comic_id)
             await conn.execute(set_query, not cur_value, comic_id)
 
-    async def update_img_url(self, comic_id: int, new_img_url: str):
-        query = """UPDATE comics SET img_url = $1
-                   WHERE comic_id = $2;"""
-
-        await self.pool.execute(query, new_img_url, comic_id)
-
-    async def update_ru_img_url(self, comic_id: int, new_ru_img_url: str):
-        query = """UPDATE comics SET ru_img_url = $1
-                   WHERE comic_id = $2;"""
-
-        await self.pool.execute(query, new_ru_img_url, comic_id)
-
 
 if __name__ == "__main__":
     # Needs envs
