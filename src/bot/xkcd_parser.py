@@ -93,10 +93,11 @@ class Parser:
 
         if not finished:
             comic_id = str(comic_id)
-            if comic_id not in self.aux_ru_comics_data.keys():
-                return dict(zip(keys, ('',) * 3))
-            else:
+
+            if 'aux_ru_comics_data' in self.__dict__.keys() and comic_id in self.aux_ru_comics_data.keys():
                 return self.aux_ru_comics_data[comic_id]
+            else:
+                return dict(zip(keys, ('',) * 3))
         else:
             ru_title = soup.find('div', {'class': 'finished_title'}).text
             ru_title = re.search('«(.*)»', ru_title).group(1)

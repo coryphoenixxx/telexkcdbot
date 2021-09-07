@@ -114,7 +114,6 @@ async def get_and_broadcast_new_comic():
 
         comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
         all_users_ids = await users_db.get_all_users_ids()
-
         await broadcast(all_users_ids,
                         text="🔥 <b>And here\'s new comic!</b> 🔥",
                         comic_data=comic_data)
@@ -122,7 +121,7 @@ async def get_and_broadcast_new_comic():
 
 async def checker():
     await get_and_broadcast_new_comic()
-    delay = 5
+    delay = 3
     aioschedule.every(delay).minutes.do(get_and_broadcast_new_comic)
     while True:
         await aioschedule.run_pending()
@@ -133,10 +132,9 @@ async def on_startup(dp: Dispatcher):
     if HEROKU:
         await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
 
-    asyncio.create_task(checker())
     await users_db.add_user(ADMIN_ID)
-
     await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>")
+    asyncio.create_task(checker())
 
     logger.error("Bot started.")  # Creates log files (both)
 
