@@ -79,7 +79,7 @@ class Parser:
             # I don't know why telegram doesn't want to upload original image!
             if comic_id == 109:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png'
-            if comic_id == 658:
+            elif comic_id == 658:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/1/1c/orbitals.png'
 
             return comic_data

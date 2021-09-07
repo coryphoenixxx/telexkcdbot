@@ -90,12 +90,12 @@ class UsersDatabase:
 
         await self.pool.execute(query, action_date, user_id)
 
-    async def get_last_month_active_users_num(self) -> int:
+    async def get_last_week_active_users_num(self) -> int:
         query = """SELECT array_agg(last_action_date) FROM users;"""
 
         res = await self.pool.fetchval(query)
 
-        return sum(((date.today() - d) < timedelta(days=30) for d in res))
+        return sum(((date.today() - d) < timedelta(days=7) for d in res))
 
     """BOOKMARKS"""
 
@@ -187,50 +187,40 @@ class ComicsDatabase:
 
         return res
 
-    async def get_comic_data_by_id(self, comic_id: int) -> tuple:
-        query = """SELECT comic_id, title, img_url, comment, public_date, is_specific FROM comics
-                   WHERE comic_id = $1;"""
+    async def get_comic_data_by_id(self, comic_id: int, comic_lang='en') -> tuple:
+        if comic_lang == 'en':
+            query = """SELECT comic_id, title, img_url, comment, public_date, is_specific FROM comics
+                       WHERE comic_id = $1;"""
+        else:
+            query = """SELECT comic_id, ru_title, ru_img_url, ru_comment, public_date, is_specific FROM comics
+                       WHERE comic_id = $1;"""
 
         res = await self.pool.fetchrow(query, comic_id)
 
         return tuple(res)
 
-    async def get_ru_comic_data_by_id(self, comic_id: int) -> tuple:
-        query = """SELECT comic_id, ru_title, ru_img_url, ru_comment, public_date, is_specific FROM comics
-                   WHERE comic_id = $1;"""
+    async def get_comics_info_by_title(self, title: str, lang: str = 'en') -> list:
+        assert lang in ('ru', 'en')
 
-        res = await self.pool.fetchrow(query, comic_id)
+        title_col, img_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
 
-        return tuple(res)
-
-    async def get_comics_info_by_title(self, title: str) -> list:
-        query = """SELECT array_agg(comic_id), array_agg(title), array_agg(ru_title) FROM comics
+        query = f"""SELECT array_agg(comic_id), array_agg({title_col}), array_agg({img_col}) FROM comics
                     
-                     WHERE title = $1
-                     OR title ILIKE format('%s %s%s', '%', $1, '%')
-                     OR title ILIKE format('%s%s', $1, '%')
-                     OR title ILIKE format('%s%s %s', '%', $1, '%')
-                     OR title ILIKE format('%s%s', '%', $1)
-                     OR title ILIKE format('%s%s, %s', '%', $1, '%')
-                     OR title ILIKE format('%s%s-%s', '%', $1, '%')
-                     OR title ILIKE format('%s-%s%s', '%', $1, '%')
-
-                     OR ru_title = $1
-                     OR ru_title ILIKE format('%s %s%s', '%', $1, '%')
-                     OR ru_title ILIKE format('%s%s', $1, '%')
-                     OR ru_title ILIKE format('%s%s %s', '%', $1, '%')
-                     OR ru_title ILIKE format('%s%s', '%', $1)
-                     OR ru_title ILIKE format('%s%s, %s', '%', $1, '%')
-                     OR ru_title ILIKE format('%s%s-%s', '%', $1, '%')
-                     OR ru_title ILIKE format('%s-%s%s', '%', $1, '%');"""
+                     WHERE {title_col} = $1
+                     OR {title_col} ILIKE format('%s %s%s', '%', $1, '%')
+                     OR {title_col} ILIKE format('%s%s', $1, '%')
+                     OR {title_col} ILIKE format('%s%s %s', '%', $1, '%')
+                     OR {title_col} ILIKE format('%s%s', '%', $1)
+                     OR {title_col} ILIKE format('%s%s, %s', '%', $1, '%')
+                     OR {title_col} ILIKE format('%s%s-%s', '%', $1, '%')
+                     OR {title_col} ILIKE format('%s-%s%s', '%', $1, '%')"""
 
         res = await self.pool.fetchrow(query, title)
 
         if not res[0]:
             return []
         else:
-            z = zip(res[0], res[1], res[2])
-            info = [(_id, title, ru_title) for _id, title, ru_title in sorted(z, key=lambda x: len(x[1]))]
+            info = sorted(zip(*res), key=lambda x: len(x[1]))  # Sort by title length
             return list(zip(*info))
 
     async def toggle_spec_status(self, comic_id: int):
@@ -243,12 +233,3 @@ class ComicsDatabase:
         async with self.pool.acquire() as conn:
             cur_value = await conn.fetchval(get_query, comic_id)
             await conn.execute(set_query, not cur_value, comic_id)
-
-
-if __name__ == "__main__":
-    # Needs envs
-    import asyncio
-    from src.bot.fill_comics_db import fill_comics_db
-
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(fill_comics_db())

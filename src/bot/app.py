@@ -25,8 +25,6 @@ class BigBrother(BaseMiddleware):
 
     @staticmethod
     async def on_pre_process_update(update: Update, data: dict):
-        action_date = date.today()
-
         if update.message or update.callback_query:
             user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
 
@@ -36,24 +34,25 @@ class BigBrother(BaseMiddleware):
                 except (BotBlocked, UserDeactivated, ChatNotFound):
                     pass
                 else:
-                    if update.message:
-                        msg = update.message
-
-                        if msg.text:
-                            text = await preprocess_text(msg.text)
-                            logger.info(f"{user_id}|{msg.from_user.username}|"
-                                        f"{msg.from_user.language_code}|text:'{text}'")
+                    action_date = date.today()
 
                     if update.callback_query:
                         call = update.callback_query
+                        username = call.from_user.username
+                        user_lang = call.from_user.language_code
+                        action = f"call: {call.data}"
+                    elif update.message.text:
+                        msg = update.message
+                        username = msg.from_user.username
+                        user_lang = msg.from_user.language_code
+                        action = f"text: {await preprocess_text(msg.text)}"
 
-                        logger.info(f"{user_id}|{call.from_user.username}"
-                                    f"|{call.from_user.language_code}|call:'{call.data}'")
+                    logger.info(f"{user_id}|{username}|{user_lang}|{action}")
 
                     try:
                         await users_db.update_last_action_date(user_id, action_date)
                     except CannotConnectNowError:
-                        pass
+                        logger.error(f"Couldn't update last action date ({user_id}, {action_date})")
 
     """ANTIFLOOD"""
 
