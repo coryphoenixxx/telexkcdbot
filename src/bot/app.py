@@ -12,7 +12,7 @@ from aiogram.utils.executor import start_webhook, start_polling
 from asyncpg import CannotConnectNowError
 
 from src.bot.config import HEROKU, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL, PORT, ADMIN_ID
-from src.bot.funcs import preprocess_text, broadcast
+from src.bot.utils import preprocess_text, broadcast
 from src.bot.loader import *
 from src.bot.fill_comics_db import fill_comics_db
 
@@ -27,15 +27,15 @@ class BigBrother(BaseMiddleware):
     async def on_pre_process_update(update: Update, data: dict):
         if update.message or update.callback_query:
             user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
+            action_date = date.today()
 
             if user_id != ADMIN_ID:
+                username, user_lang, action = ('',) * 3
                 try:
                     await bot.send_chat_action(user_id, ChatActions.TYPING)
                 except (BotBlocked, UserDeactivated, ChatNotFound):
                     pass
                 else:
-                    action_date = date.today()
-
                     if update.callback_query:
                         call = update.callback_query
                         username = call.from_user.username
@@ -49,10 +49,10 @@ class BigBrother(BaseMiddleware):
 
                     logger.info(f"{user_id}|{username}|{user_lang}|{action}")
 
-                    try:
-                        await users_db.update_last_action_date(user_id, action_date)
-                    except CannotConnectNowError:
-                        logger.error(f"Couldn't update last action date ({user_id}, {action_date})")
+            try:
+                await users_db.update_last_action_date(user_id, action_date)
+            except CannotConnectNowError:
+                logger.error(f"Couldn't update last action date ({user_id}, {action_date})")
 
     """ANTIFLOOD"""
 
@@ -104,6 +104,10 @@ class BigBrother(BaseMiddleware):
 
 async def get_and_broadcast_new_comic():
     db_last_comic_id = await comics_db.get_last_comic_id()
+
+    if not db_last_comic_id:
+        return  # While heroku database is down, skip the check
+
     real_last_comic_id = await parser.get_xkcd_latest_comic_id()
 
     if real_last_comic_id > db_last_comic_id:
@@ -114,7 +118,7 @@ async def get_and_broadcast_new_comic():
         comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
         all_users_ids = await users_db.get_all_users_ids()
         await broadcast(all_users_ids,
-                        text="🔥 <b>And here\'s new comic!</b> 🔥",
+                        text="🔥 <b>And here comes the new comic!</b> 🔥",
                         comic_data=comic_data)
 
 

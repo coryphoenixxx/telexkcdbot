@@ -11,7 +11,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.exceptions import BadRequest
 
 from .loader import *
-from .funcs import suppress_exceptions, rate_limit, send_comics_list_text_in_bunches, send_comic, admin, \
+from .utils import suppress_exceptions, rate_limit, send_comics_list_text_in_bunches, send_comic, admin, \
     preprocess_text, is_cyrillic, broadcast
 from .keyboards import kboard
 from .config import ADMIN_ID
