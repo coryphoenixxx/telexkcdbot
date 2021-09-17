@@ -7,7 +7,7 @@ from aiogram.types import Update, ChatActions, Message
 from aiogram.dispatcher import DEFAULT_RATE_LIMIT
 from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
-from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound
+from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound, InvalidPeerID
 from aiogram.utils.executor import start_webhook, start_polling
 from asyncpg import CannotConnectNowError
 
@@ -33,7 +33,7 @@ class BigBrother(BaseMiddleware):
                 username, user_lang, action = ('',) * 3
                 try:
                     await bot.send_chat_action(user_id, ChatActions.TYPING)
-                except (BotBlocked, UserDeactivated, ChatNotFound):
+                except (BotBlocked, UserDeactivated, ChatNotFound, InvalidPeerID):
                     pass
                 else:
                     if update.callback_query:

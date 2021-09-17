@@ -314,7 +314,7 @@ async def cmd_admin(msg: Message, state: FSMContext):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
     await state.reset_data()
 
-    await msg.answer('<b>*** ADMIN PANEL ***</b>',
+    await msg.answer("<b>*** ADMIN PANEL ***</b>",
                      reply_markup=await kboard.admin_panel())
 
 
@@ -364,7 +364,7 @@ class Broadcast(StatesGroup):
 @dp.callback_query_handler(Text('broadcast_admin_msg'))
 async def cb_type_broadcast_message(call: CallbackQuery):
     await Broadcast.waiting_for_input.set()
-    await call.message.answer(text='❗ <b>Type in a broadcast message (or /cancel):</b>')
+    await call.message.answer(text="❗ <b>Type in a broadcast message (or /cancel):</b>")
 
 
 @dp.message_handler(state=Broadcast.waiting_for_input, commands='cancel')
@@ -372,13 +372,13 @@ async def cmd_cancel(msg: Message, state: FSMContext):
     if await state.get_state() is None:
         return
 
-    await msg.answer(text='❗ <b>Canceled.</b>')
+    await msg.answer(text="❗ <b>Canceled.</b>")
     await state.finish()
 
 
 @dp.message_handler(state=Broadcast.waiting_for_input)
 async def broadcast_admin_msg(msg: Message, state: FSMContext):
-    text = f'❗❗❗ <b>ADMIN MESSAGE:\n</b>  {msg.text}'
+    text = f"❗❗❗ <b>ADMIN MESSAGE:\n</b>  {msg.text}"
     all_users_ids = await users_db.get_all_users_ids()
     await broadcast(all_users_ids, text=text)
     await state.finish()
