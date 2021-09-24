@@ -124,8 +124,7 @@ async def get_and_broadcast_new_comic():
 
 async def checker():
     await get_and_broadcast_new_comic()
-    delay = 3
-    aioschedule.every(delay).minutes.do(get_and_broadcast_new_comic)
+    aioschedule.every(3).minutes.do(get_and_broadcast_new_comic)
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(60)

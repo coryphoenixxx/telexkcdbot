@@ -52,6 +52,9 @@ Type in the <u><b>word</b></u> and I'll find comics whose titles contains this w
 — remove language button <i>(under the comic, which have russian translation)</i> if you don't need it.
 — start xkcding!
 
+If the sound of the notification annoys you, you can <b><u>mute</u></b> the bot 
+<i>(click on the three dots in the upper right corner)</i>
+
 
 ❗❗❗
 If something goes wrong or looks strange try to view a comic in your browser <i>(I'll give you a link)</i>."""

@@ -59,7 +59,7 @@ async def main():
         ru_comment = ru_comment.replace('>', '')
 
         style_text = msg.find_next('a', class_='tgme_widget_message_photo_wrap')['style']
-        ru_img_url = re.search('\(\'(.*)\'\)', style_text).group(1)
+        ru_img_url = re.search("\(\'(.*)\'\)", style_text).group(1)
         new_ru_img_url = await get_image_path(comic_id, ru_img_url)
 
         ru_comic_data_dict[comic_id] = {'ru_title': ru_title,
