@@ -81,6 +81,8 @@ class Parser:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png'
             elif comic_id == 658:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/1/1c/orbitals.png'
+            elif comic_id == 2522:
+                comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/b/bf/two_factor_security_key.png'
 
             return comic_data
 
