@@ -382,8 +382,7 @@ async def cmd_cancel(msg: Message, state: FSMContext):
 @dp.message_handler(state=Broadcast.waiting_for_input)
 async def broadcast_admin_msg(msg: Message, state: FSMContext):
     text = f"❗❗❗ <b>ADMIN MESSAGE:\n</b>  {msg.text}"
-    all_users_ids = await users_db.get_all_users_ids()
-    await broadcast(all_users_ids, text=text)
+    await broadcast(text=text)
     await state.finish()
 
 

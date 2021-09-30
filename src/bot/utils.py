@@ -126,22 +126,23 @@ def admin(func):
     return decorator
 
 
-async def broadcast(user_ids: tuple, text: str, comic_data: Union[Tuple, None] = None):
+async def broadcast(text: str, comic_data: Union[Tuple, None] = None):
     count = 0
+    all_users_ids = await users_db.get_all_users_ids()  # Uses for delete users
     subscribed_users = await users_db.get_subscribed_users()
 
     try:
-        for user_id in user_ids:
+        for user_id in all_users_ids:
             try:
                 await bot.send_chat_action(user_id, ChatActions.TYPING)
             except (BotBlocked, UserDeactivated, ChatNotFound):
                 await users_db.delete_user(user_id)
             else:
                 if user_id in subscribed_users:
-                    count += 1
                     await bot.send_message(user_id, text=text)
                     if comic_data:
                         await send_comic(user_id, comic_data=comic_data)
+                    count += 1
                 if count % 20 == 0:
                     await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
     except Exception as err:
