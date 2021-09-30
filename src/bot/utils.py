@@ -137,15 +137,11 @@ async def broadcast(user_ids: tuple, text: str, comic_data: Union[Tuple, None] =
             except (BotBlocked, UserDeactivated, ChatNotFound):
                 await users_db.delete_user(user_id)
             else:
-                if not comic_data:
-                    await bot.send_message(user_id, text=text)
+                if user_id in subscribed_users:
                     count += 1
-                else:
-                    if user_id in subscribed_users:
-                        await bot.send_message(user_id, text=text)
+                    await bot.send_message(user_id, text=text)
+                    if comic_data:
                         await send_comic(user_id, comic_data=comic_data)
-                        count += 1
-
                 if count % 20 == 0:
                     await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
     except Exception as err:
