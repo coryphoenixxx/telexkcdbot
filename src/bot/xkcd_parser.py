@@ -91,29 +91,33 @@ class Parser:
 
         url = f'https://xkcd.su/finished/{comic_id}'
         soup = await self._get_soup(url)
-        finished = soup.find('div', {'class': 'finished_check'})
 
-        if not finished:
-            comic_id = str(comic_id)
-
-            if 'aux_ru_comics_data' in self.__dict__.keys() and comic_id in self.aux_ru_comics_data.keys():
-                return self.aux_ru_comics_data[comic_id]
-            else:
-                return dict(zip(keys, ('',) * 3))
+        if not soup:
+            return dict(zip(keys, ('',) * 3))
         else:
-            ru_title = soup.find('div', {'class': 'finished_title'}).text
-            ru_title = re.search('«(.*)»', ru_title).group(1)
+            finished = soup.find('div', {'class': 'finished_check'})
 
-            ru_img_url = soup.find('div', {'class': 'comics_img'}).find('img')['src']
+            if not finished:
+                comic_id = str(comic_id)
 
-            ru_comment = soup.find('div', {'class': 'finished_alt'}).text
-            ru_comment = ru_comment.replace('<', '').replace('>', '').strip()
-            ru_comment = ru_comment if ru_comment else '...'
+                if 'aux_ru_comics_data' in self.__dict__.keys() and comic_id in self.aux_ru_comics_data.keys():
+                    return self.aux_ru_comics_data[comic_id]
+                else:
+                    return dict(zip(keys, ('',) * 3))
+            else:
+                ru_title = soup.find('div', {'class': 'finished_title'}).text
+                ru_title = re.search('«(.*)»', ru_title).group(1)
 
-            if comic_id == 384:
-                ru_img_url = 'https://xkcd.ru/i/384_v1.png'  # Image from .su is broken
+                ru_img_url = soup.find('div', {'class': 'comics_img'}).find('img')['src']
 
-            return dict(zip(keys, (ru_title, ru_img_url, ru_comment)))
+                ru_comment = soup.find('div', {'class': 'finished_alt'}).text
+                ru_comment = ru_comment.replace('<', '').replace('>', '').strip()
+                ru_comment = ru_comment if ru_comment else '...'
+
+                if comic_id == 384:
+                    ru_img_url = 'https://xkcd.ru/i/384_v1.png'  # Image from .su is broken
+
+                return dict(zip(keys, (ru_title, ru_img_url, ru_comment)))
 
     async def get_explanation(self, comic_id: int) -> str:
         url = f'https://www.explainxkcd.com/{comic_id}'

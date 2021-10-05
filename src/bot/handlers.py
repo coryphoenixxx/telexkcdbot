@@ -53,7 +53,7 @@ Type in the <u><b>word</b></u> and I'll find comics whose titles contains this w
 — start xkcding!
 
 If the sound of the notification annoys you, you can <b><u>mute</u></b> the bot 
-<i>(click on the three dots in the upper right corner)</i>
+<i>(click on the three dots in the upper right corner)</i>.
 
 
 ❗❗❗
