@@ -139,7 +139,7 @@ async def broadcast(text: str, comic_data: Union[Tuple, None] = None):
                 await users_db.delete_user(user_id)
             else:
                 if user_id in subscribed_users:
-                    await bot.send_message(user_id, text=text)
+                    await bot.send_message(user_id, text=text, disable_notification=True)
                     if comic_data:
                         await send_comic(user_id, comic_data=comic_data)
                     count += 1
