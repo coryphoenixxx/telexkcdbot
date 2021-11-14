@@ -11,10 +11,12 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.exceptions import BadRequest
 
 from .loader import *
+from .logger import logger
 from .utils import suppress_exceptions, rate_limit, send_comics_list_text_in_bunches, send_comic, admin, \
     preprocess_text, is_cyrillic, broadcast
 from .keyboards import kboard
 from .config import ADMIN_ID
+from paths import IMG_PATH, LOGS_PATH
 
 storage = MemoryStorage()
 dp = Dispatcher(bot, loop=loop, storage=storage)
@@ -31,7 +33,7 @@ async def cmd_start(msg: Message, state: FSMContext):
 
     await users_db.add_user(msg.from_user.id)
     await msg.answer(f"<b>❗ Hey!    [¬º-°]¬\nThe <u>{(await bot.me).username}</u> at your disposal!</b>")
-    await msg.answer_photo(InputFile(img_path.joinpath('bot_image.png')))
+    await msg.answer_photo(InputFile(IMG_PATH.joinpath('bot_image.png')))
     await asyncio.sleep(2)
     await send_menu(msg.from_user.id)
 
@@ -59,7 +61,7 @@ If the sound of the notification annoys you, you can <b><u>mute</u></b> the bot
 ❗❗❗
 If something goes wrong or looks strange try to view a comic in your browser <i>(I'll give you a link)</i>."""
 
-    await bot.send_message(user_id, help_text, reply_markup=await kboard.menu(user_id))
+    await bot.send_message(user_id, help_text, reply_markup=await kboard.menu(user_id), disable_notification=True)
 
 
 @dp.message_handler(commands=['menu', 'help'])
@@ -335,7 +337,7 @@ async def cb_toggle_spec_status(call: CallbackQuery):
 
 @dp.callback_query_handler(Text(startswith='send_'))
 async def cb_send_log(call: CallbackQuery):
-    filename = logs_path.joinpath('actions.log') if 'actions' in call.data else logs_path.joinpath('errors.log')
+    filename = LOGS_PATH.joinpath('actions.log') if 'actions' in call.data else LOGS_PATH.joinpath('errors.log')
 
     try:
         await call.message.answer_document(InputFile(filename))
@@ -395,6 +397,8 @@ async def process_user_typing(msg: Message, state: FSMContext):
     with suppress(*suppress_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
     await state.reset_data()
+
+    # TODO: а что если в названии цифра?
 
     user_input = await preprocess_text(msg.text)
 

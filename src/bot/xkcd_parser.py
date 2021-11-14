@@ -1,28 +1,20 @@
 import asyncio
 import aiohttp
-import re
-import json
 
 from datetime import date
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
 
-from .loader import logger, path_to_json
+from .logger import logger
 
 
 class Parser:
     def __init__(self):
         self._specific_comic_ids: set = set()
-        self.aux_ru_comics_data: dict = {}
 
     async def create(self):
-        with open(path_to_json, 'r', encoding='utf8') as f:
-            ru_data_from_xkcd_ru_tg_channel = json.load(f)
-
-        self.aux_ru_comics_data = ru_data_from_xkcd_ru_tg_channel
-        self._specific_comic_ids = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
+        self._specific_comic_ids = {826, 880, 980, 1037, 1110, 1190, 1193, 1335, 1350, 1416,
                                     1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
-
 
     @staticmethod
     async def get_xkcd_latest_comic_id() -> int:
@@ -33,23 +25,22 @@ class Parser:
 
     @staticmethod
     async def _get_soup(url: str) -> BeautifulSoup:
-        attempts = 10
-
+        attempts = 3
         for _ in range(attempts):
             async with aiohttp.ClientSession() as session:
                 try:
                     response = await session.get(url)
                 except ClientConnectorError:
-                    await asyncio.sleep(2)
+                    await asyncio.sleep(1)
                     continue
                 else:
                     if response.ok:
                         content = await response.content.read()
                         return BeautifulSoup(content, 'lxml')
 
-        logger.error(f"Couldn't get soup for {url} after 10 attempts!")
+        logger.error(f"Couldn't get soup for {url} after 3 attempts!")
 
-    async def get_comic_data(self, comic_id: int) -> dict:
+    async def get_en_comic_data_by_id(self, comic_id: int) -> dict:
         if comic_id == 404:  # 404 comic doesn't exist
             return {'comic_id': comic_id,
                     'title': '404',
@@ -76,6 +67,7 @@ class Parser:
                 'is_specific': 1 if comic_id in self._specific_comic_ids else 0
             }
 
+            # TODO: отдельной функцией
             # I don't know why telegram doesn't want to upload original image!
             if comic_id == 109:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png'
@@ -84,40 +76,11 @@ class Parser:
             elif comic_id == 2522:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/b/bf/two_factor_security_key.png'
 
+            # Substitute original .png to .gif
+            elif comic_id == 1331:
+                comic_data['img_url'] = 'https://i.imgur.com/SuH6qS6.gif'
+
             return comic_data
-
-    async def get_ru_comic_data(self, comic_id: int) -> dict:
-        keys = ('ru_title', 'ru_img_url', 'ru_comment')
-
-        url = f'https://xkcd.su/finished/{comic_id}'
-        soup = await self._get_soup(url)
-
-        if not soup:
-            return dict(zip(keys, ('',) * 3))
-        else:
-            finished = soup.find('div', {'class': 'finished_check'})
-
-            if not finished:
-                comic_id = str(comic_id)
-
-                if 'aux_ru_comics_data' in self.__dict__.keys() and comic_id in self.aux_ru_comics_data.keys():
-                    return self.aux_ru_comics_data[comic_id]
-                else:
-                    return dict(zip(keys, ('',) * 3))
-            else:
-                ru_title = soup.find('div', {'class': 'finished_title'}).text
-                ru_title = re.search('«(.*)»', ru_title).group(1)
-
-                ru_img_url = soup.find('div', {'class': 'comics_img'}).find('img')['src']
-
-                ru_comment = soup.find('div', {'class': 'finished_alt'}).text
-                ru_comment = ru_comment.replace('<', '').replace('>', '').strip()
-                ru_comment = ru_comment if ru_comment else '...'
-
-                if comic_id == 384:
-                    ru_img_url = 'https://xkcd.ru/i/384_v1.png'  # Image from .su is broken
-
-                return dict(zip(keys, (ru_title, ru_img_url, ru_comment)))
 
     async def get_explanation(self, comic_id: int) -> str:
         url = f'https://www.explainxkcd.com/{comic_id}'
@@ -150,10 +113,3 @@ class Parser:
             logger.error(f'Error in get_explanation() for {comic_id}: {err}')
 
         return no_explanation_text
-
-    async def get_full_comic_data(self, comic_id: int) -> tuple:
-        full_comic_data = await self.get_comic_data(comic_id)
-        ru_comic_data = await self.get_ru_comic_data(comic_id)
-        full_comic_data.update(ru_comic_data)
-
-        return tuple(full_comic_data.values())

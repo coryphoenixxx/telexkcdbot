@@ -24,6 +24,7 @@ class Keyboard:
         'trav_ru': InlineKeyboardButton(text='🇷🇺RU', callback_data='trav_ru'),
         'trav_en': InlineKeyboardButton(text='🇬🇧EN', callback_data='trav_en'),
 
+        # TODO: Disable notification sound
         'subscribe': InlineKeyboardButton(text='🔔Subscribe', callback_data='subscribe'),
         'unsubscribe': InlineKeyboardButton(text='🔕Unsubscribe', callback_data='unsubscribe'),
         'user_bookmarks': InlineKeyboardButton(text='🔖My Bookmarks', callback_data='user_bookmarks'),
@@ -46,7 +47,7 @@ class Keyboard:
         keyboard.add(*btns)
 
         return keyboard
-
+    # TODO: где-то лишний вызов бд
     @staticmethod
     async def _lang_btn_insertion(row: list, user_id: int, comic_id: int, comic_lang: str, kb: str = 'nav') -> list:
         user_lang = await users_db.get_user_lang(user_id)
@@ -93,7 +94,7 @@ class Keyboard:
 
     async def traversal(self, user_id: int, comic_id: int, comic_lang: str) -> InlineKeyboardMarkup:
         user_bookmarks = await users_db.get_bookmarks(user_id)
-
+        # TODO: перепутаны кнопки закладки и объяснения
         bookmark_btn_key = 'trav_bookmarked' if comic_id in user_bookmarks else 'trav_not_bookmarked'
         btns_keys = [bookmark_btn_key, 'trav_explain', 'trav_stop', 'trav_step']
         btns_keys = await self._lang_btn_insertion(btns_keys, user_id, comic_id, comic_lang, kb='trav')

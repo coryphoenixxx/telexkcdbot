@@ -122,7 +122,7 @@ class UsersDatabase:
 
         res = await self.pool.fetchval(query)
 
-        return tuple(res) if res else ()
+        return tuple(res) if res else ()  # TODO: namedtuple
 
     async def toggle_subscription_status(self, user_id: int):
         get_query = """SELECT is_subscribed FROM users
@@ -214,6 +214,9 @@ class ComicsDatabase:
                      OR {title_col} ILIKE format('%s%s, %s', '%', $1, '%')
                      OR {title_col} ILIKE format('%s%s-%s', '%', $1, '%')
                      OR {title_col} ILIKE format('%s-%s%s', '%', $1, '%')"""
+
+        # TODO: не находит RTL
+        # TODO: по superm не находит Bird/Plane/Superman
 
         res = await self.pool.fetchrow(query, title)
 

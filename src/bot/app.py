@@ -14,7 +14,8 @@ from asyncpg import CannotConnectNowError
 from src.bot.config import HEROKU, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL, PORT, ADMIN_ID
 from src.bot.utils import preprocess_text, broadcast
 from src.bot.loader import *
-from src.bot.fill_comics_db import fill_comics_db
+from src.bot.fill_comics_db import initial_filling_of_comics_db
+from src.bot.logger import logger
 
 
 class BigBrother(BaseMiddleware):
@@ -112,7 +113,7 @@ async def get_and_broadcast_new_comic():
 
     if real_last_comic_id > db_last_comic_id:
         for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
-            comic_data = await parser.get_full_comic_data(comic_id)
+            comic_data = tuple((await parser.get_en_comic_data_by_id(comic_id)).values()) + ('',)*3
             await comics_db.add_new_comic(comic_data)
 
         comic_data = await comics_db.get_comic_data_by_id(real_last_comic_id)
@@ -122,7 +123,7 @@ async def get_and_broadcast_new_comic():
 
 async def checker():
     await get_and_broadcast_new_comic()
-    aioschedule.every(3).minutes.do(get_and_broadcast_new_comic)
+    aioschedule.every(15).minutes.do(get_and_broadcast_new_comic)
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(60)
@@ -133,7 +134,7 @@ async def on_startup(dp: Dispatcher):
         await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
 
     await users_db.add_user(ADMIN_ID)
-    await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>")
+    await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>", disable_notification=True)
     asyncio.create_task(checker())
 
     logger.error("Bot started.")  # Creates log files (both)
@@ -143,7 +144,7 @@ if __name__ == "__main__":
     from src.bot.handlers import dp
 
     dp.middleware.setup(BigBrother())
-    loop.run_until_complete(fill_comics_db())
+    loop.run_until_complete(initial_filling_of_comics_db())
 
     if HEROKU:
         start_webhook(

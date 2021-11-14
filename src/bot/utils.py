@@ -9,6 +9,8 @@ from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTP
 from .loader import *
 from .config import ADMIN_ID
 from .keyboards import kboard
+from .paths import IMG_PATH, BASE_DIR
+from .logger import logger
 
 
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
@@ -30,7 +32,7 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
 
     headline = f"<b>{comic_id}. \"{link}\"</b>   <i>({public_date})</i>"
 
-    await bot.send_message(user_id, headline, disable_web_page_preview=True)
+    await bot.send_message(user_id, headline, disable_web_page_preview=True, disable_notification=True)
 
     if is_specific:
         await bot.send_message(user_id,
@@ -41,15 +43,15 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
 
     try:
         if 'http' not in img_url:
-            local_img = InputFile(img_path.joinpath(img_url))
+            local_img = InputFile(BASE_DIR.joinpath(img_url))
             await bot.send_photo(user_id, photo=local_img, disable_notification=True)
         elif img_url.endswith(('.png', '.jpg', '.jpeg')):
             await bot.send_photo(user_id, photo=img_url, disable_notification=True)
         elif img_url.endswith('.gif'):
-            await bot.send_animation(user_id, img_url, disable_notification=True)
+            await bot.send_animation(user_id, photo=img_url, disable_notification=True)
         else:
             await bot.send_photo(user_id,
-                                 photo=InputFile(img_path.joinpath('no_image.png')),
+                                 photo=InputFile(IMG_PATH.joinpath('no_image.png')),
                                  disable_notification=True)
     except (InvalidHTTPUrlContent, BadRequest) as err:
         await bot.send_message(user_id,
