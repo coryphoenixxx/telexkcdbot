@@ -1,6 +1,8 @@
+import asyncio
 import aioschedule
 
 from datetime import date
+from asyncpg import CannotConnectNowError
 
 from aiogram import Dispatcher
 from aiogram.types import Update, ChatActions, Message
@@ -9,13 +11,16 @@ from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound, InvalidPeerID
 from aiogram.utils.executor import start_webhook, start_polling
-from asyncpg import CannotConnectNowError
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 from src.bot.config import HEROKU, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL, PORT, ADMIN_ID
 from src.bot.utils import preprocess_text, broadcast
-from src.bot.loader import *
+from src.bot.loader import bot, loop, users_db, comics_db, parser
 from src.bot.fill_comics_db import initial_filling_of_comics_db
 from src.bot.logger import logger
+from src.bot.handlers.admin import register_admin_handlers
+from src.bot.handlers.callbacks import register_callbacks
+from src.bot.handlers.default import register_default_commands
 
 
 class BigBrother(BaseMiddleware):
@@ -106,8 +111,8 @@ class BigBrother(BaseMiddleware):
 async def get_and_broadcast_new_comic():
     db_last_comic_id = await comics_db.get_last_comic_id()
 
-    if not db_last_comic_id:
-        return  # While heroku database is down, skip the check
+    if not db_last_comic_id:  # While heroku database is down, skip the check
+        return
 
     real_last_comic_id = await parser.get_xkcd_latest_comic_id()
 
@@ -123,7 +128,7 @@ async def get_and_broadcast_new_comic():
 
 async def checker():
     await get_and_broadcast_new_comic()
-    aioschedule.every(15).minutes.do(get_and_broadcast_new_comic)
+    aioschedule.every(2).minutes.do(get_and_broadcast_new_comic)
     while True:
         await aioschedule.run_pending()
         await asyncio.sleep(60)
@@ -141,9 +146,15 @@ async def on_startup(dp: Dispatcher):
 
 
 if __name__ == "__main__":
-    from src.bot.handlers import dp
+    storage = MemoryStorage()
+    dp = Dispatcher(bot, loop=loop, storage=storage)
 
     dp.middleware.setup(BigBrother())
+
+    register_admin_handlers(dp)
+    register_callbacks(dp)
+    register_default_commands(dp)
+
     loop.run_until_complete(initial_filling_of_comics_db())
 
     if HEROKU:

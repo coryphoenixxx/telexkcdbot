@@ -1,11 +1,12 @@
-from tqdm import trange
-from .loader import *
-from .logger import logger
-
-from .paths import PATH_TO_RU_COMICS_DATA
-from tqdm import tqdm
-import csv
 import asyncio
+import csv
+
+from tqdm import trange, tqdm
+
+from src.bot.loader import comics_db, parser
+from src.bot.logger import logger
+from src.bot.paths import PATH_TO_RU_COMICS_DATA
+
 
 buffer = []
 sem = asyncio.Semaphore(64)  # Limits simultaneous connections on Windows

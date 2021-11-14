@@ -3,7 +3,7 @@ import json
 
 from datetime import date, timedelta
 
-from .config import HEROKU
+from src.bot.config import HEROKU
 
 
 async def create_pool(db_url) -> asyncpg.Pool:

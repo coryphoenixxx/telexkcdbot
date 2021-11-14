@@ -1,21 +1,31 @@
+import asyncio
 from string import ascii_letters, digits
 from typing import Tuple, Union
+from aiogram.types import InputFile, ChatActions
+from aiogram.utils.exceptions import BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated, ChatNotFound
 
-from aiogram.types import Message, InputFile, ChatActions
-from aiogram.dispatcher import FSMContext
-from aiogram.utils.exceptions import MessageNotModified, BadRequest, InvalidHTTPUrlContent, BotBlocked, \
-    UserDeactivated, MessageToEditNotFound, ChatNotFound, MessageCantBeEdited
-
-from .loader import *
-from .config import ADMIN_ID
-from .keyboards import kboard
-from .paths import IMG_PATH, BASE_DIR
-from .logger import logger
+from src.bot.loader import bot, users_db
+from src.bot.config import ADMIN_ID
+from src.bot.keyboards import kboard
+from src.bot.paths import IMG_PATH, BASE_DIR
+from src.bot.logger import logger
 
 
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
 punctuation = ' -(),.:;!?#+'
-suppress_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
+
+
+async def get_link(comic_id: int, title: str, img_url: str, comic_lang: str) -> str:
+    if 'http' not in img_url:
+        return title
+    else:
+        if comic_lang == 'ru':
+            # TODO: переделать, мы больше не юзаем xkcd.su
+            url = f'https://xkcd.su/{comic_id}'
+        else:
+            # Original image is broken
+            url = f'https://xkcd.com/{comic_id}' if comic_id != 880 else 'https://xk3d.xkcd.com/880/'
+        return f"<a href='{url}'>{title}</a>"
 
 
 async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation, comic_lang: str = 'en'):
@@ -29,7 +39,6 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
     await users_db.update_cur_comic_info(user_id, comic_id, comic_lang)
 
     link = await get_link(comic_id, title, img_url, comic_lang)
-
     headline = f"<b>{comic_id}. \"{link}\"</b>   <i>({public_date})</i>"
 
     await bot.send_message(user_id, headline, disable_web_page_preview=True, disable_notification=True)
@@ -55,10 +64,10 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
                                  disable_notification=True)
     except (InvalidHTTPUrlContent, BadRequest) as err:
         await bot.send_message(user_id,
-                               text=f"❗❗❗ <b>Can't get image, try it in your browser!</b>",
+                               text=f"❗❗❗ <b>Couldn't get image. Press on title to view comic in your browser!</b>",
                                disable_web_page_preview=True,
                                disable_notification=True)
-        logger.error(f"Cant't send {comic_id} to {user_id} comic! {err}")
+        logger.error(f"Couldn't send {comic_id} to {user_id} comic! {err}")
 
     await bot.send_message(user_id,
                            text=f"<i>{comment}</i>",
@@ -67,65 +76,10 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
                            disable_notification=True)
 
 
-async def get_link(comic_id: int, title: str, img_url: str, comic_lang: str) -> str:
-    if 'http' not in img_url:
-        return title
-    else:
-        if comic_lang == 'ru':
-            url = f'https://xkcd.su/{comic_id}'
-        else:
-            url = f'https://xkcd.com/{comic_id}' if comic_id != 880 \
-                                                 else 'https://xk3d.xkcd.com/880/'  # Original image is broken
-        return f"<a href='{url}'>{title}</a>"
-
-
-async def get_headline_text(*args) -> str:
-    return f"<b>{str(args[0]) + '.':7}</b>\"{await get_link(*args)}\""
-
-
-async def send_comics_list_text_in_bunches(user_id: int, comics_info: list, comic_lang: str = 'en'):
-    ids, titles, img_urls = comics_info
-    for i in range(0, len(ids) + 1, 50):
-        end = i + 50
-        if end > len(ids):
-            end = len(ids)
-
-        zipped_info = zip(ids[i:end], titles[i:end], img_urls[i:end])
-        headlines = [await get_headline_text(*z, comic_lang) for z in zipped_info]
-        text = '\n'.join(headlines)
-        await bot.send_message(user_id, text, disable_web_page_preview=True)
-        await asyncio.sleep(0.5)
-
-
-async def is_cyrillic(text: str) -> bool:
-    return set(text).issubset(cyrillic + punctuation)
-
-
 async def preprocess_text(text: str) -> str:
     permitted = ascii_letters + digits + cyrillic + punctuation
     processed_text = ''.join([ch for ch in text.strip() if ch in permitted])[:30]
     return processed_text
-
-
-def rate_limit(limit: int, key=None):
-    """
-    Decorator for configuring rate limit and key in different functions.
-    """
-    def decorator(func):
-        setattr(func, 'throttling_rate_limit', limit)
-        if key:
-            setattr(func, 'throttling_key', key)
-        return func
-    return decorator
-
-
-def admin(func):
-    async def decorator(msg: Message, state: FSMContext):
-        if msg.from_user.id != int(ADMIN_ID):
-            await msg.answer('Nope!)))')
-        else:
-            await func(msg, state)
-    return decorator
 
 
 async def broadcast(text: str, comic_data: Union[Tuple, None] = None):

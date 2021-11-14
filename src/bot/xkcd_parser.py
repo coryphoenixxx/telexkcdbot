@@ -5,16 +5,13 @@ from datetime import date
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
 
-from .logger import logger
+from src.bot.logger import logger
 
 
 class Parser:
     def __init__(self):
-        self._specific_comic_ids: set = set()
-
-    async def create(self):
-        self._specific_comic_ids = {826, 880, 980, 1037, 1110, 1190, 1193, 1335, 1350, 1416,
-                                    1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
+        self._specific_comic_ids: set = {826, 880, 980, 1037, 1110, 1190, 1193, 1335, 1350, 1416,
+                                         1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
 
     @staticmethod
     async def get_xkcd_latest_comic_id() -> int:
