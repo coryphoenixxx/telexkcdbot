@@ -4,7 +4,6 @@ It was used to parse xkcd.su and add new russian comics data to csv and download
 Saved for history.
 """
 
-
 import re
 import csv
 import aiofiles

@@ -3,9 +3,10 @@ import csv
 
 from tqdm import trange, tqdm
 
-from src.bot.loader import comics_db, parser
-from src.bot.logger import logger
-from src.bot.paths import PATH_TO_RU_COMICS_DATA
+from src.telexkcdbot.databases.comics import comics_db
+from src.telexkcdbot.xkcd_parser import parser
+from src.telexkcdbot.logger import logger
+from src.telexkcdbot.paths import PATH_TO_RU_COMICS_DATA
 
 
 buffer = []

@@ -4,11 +4,12 @@ from typing import Tuple, Union
 from aiogram.types import InputFile, ChatActions
 from aiogram.utils.exceptions import BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated, ChatNotFound
 
-from src.bot.loader import bot, users_db
-from src.bot.config import ADMIN_ID
-from src.bot.keyboards import kboard
-from src.bot.paths import IMG_PATH, BASE_DIR
-from src.bot.logger import logger
+from src.telexkcdbot.bot import bot
+from src.telexkcdbot.databases.users import users_db
+from src.telexkcdbot.config import ADMIN_ID
+from src.telexkcdbot.keyboards import kboard
+from src.telexkcdbot.paths import IMG_PATH, BASE_DIR
+from src.telexkcdbot.logger import logger
 
 
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
@@ -53,11 +54,14 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
     try:
         if 'http' not in img_url:
             local_img = InputFile(BASE_DIR.joinpath(img_url))
-            await bot.send_photo(user_id, photo=local_img, disable_notification=True)
+            if img_url.endswith('.gif'):
+                await bot.send_animation(user_id, animation=local_img, disable_notification=True)
+            else:
+                await bot.send_photo(user_id, photo=local_img, disable_notification=True)
         elif img_url.endswith(('.png', '.jpg', '.jpeg')):
             await bot.send_photo(user_id, photo=img_url, disable_notification=True)
         elif img_url.endswith('.gif'):
-            await bot.send_animation(user_id, photo=img_url, disable_notification=True)
+            await bot.send_animation(user_id, animation=img_url, disable_notification=True)
         else:
             await bot.send_photo(user_id,
                                  photo=InputFile(IMG_PATH.joinpath('no_image.png')),

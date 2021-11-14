@@ -7,13 +7,14 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-from src.bot.keyboards import kboard
-from src.bot.loader import bot, users_db, comics_db
-from src.bot.logger import logger
-from src.bot.utils import broadcast
-from src.bot.handlers.utils import suppress_exceptions
-from src.bot.config import ADMIN_ID
-from src.bot.paths import LOGS_PATH
+from src.telexkcdbot.keyboards import kboard
+from src.telexkcdbot.databases.users import users_db
+from src.telexkcdbot.databases.comics import comics_db
+from src.telexkcdbot.logger import logger
+from src.telexkcdbot.utils import broadcast
+from src.telexkcdbot.handlers.utils import suppress_exceptions, remove_kb_of_prev_message
+from src.telexkcdbot.config import ADMIN_ID
+from src.telexkcdbot.paths import LOGS_PATH
 
 
 class Broadcast(StatesGroup):
@@ -24,8 +25,7 @@ async def cmd_admin(msg: Message, state: FSMContext):
     if msg.from_user.id != int(ADMIN_ID):
         await msg.answer("❗ <b>For admin only!</b>")
     else:
-        with suppress(*suppress_exceptions):
-            await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
+        await remove_kb_of_prev_message(msg)
         await state.reset_data()
 
         await msg.answer("<b>*** ADMIN PANEL ***</b>",
@@ -34,7 +34,7 @@ async def cmd_admin(msg: Message, state: FSMContext):
 
 async def cb_toggle_spec_status(call: CallbackQuery):
     with suppress(*suppress_exceptions):
-        await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
+        await call.message.delete()
 
     cur_comic_id, _ = await users_db.get_cur_comic_info(ADMIN_ID)
     await comics_db.toggle_spec_status(cur_comic_id)
@@ -54,7 +54,7 @@ async def cb_send_log(call: CallbackQuery):
 
 async def cb_users_info(call: CallbackQuery):
     with suppress(*suppress_exceptions):
-        await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
+        await call.message.delete()
 
     all_users_num = len(await users_db.get_all_users_ids())
     subscribed_users_num = len(await users_db.get_subscribed_users())
@@ -63,8 +63,8 @@ async def cb_users_info(call: CallbackQuery):
 ❗
 <b>Total</b>: <i>{all_users_num}</i>
 <b>Subs</b>: <i>{subscribed_users_num}</i>
-<b>Active</b>: <i>{active_users_num}</i>"""
-
+<b>Active</b>: <i>{active_users_num}</i>
+"""
     await call.message.answer(text, reply_markup=await kboard.admin_panel())
 
 

@@ -1,7 +1,7 @@
 """
 The app does not use the script while it is running.
 It was used for extracting russian comics data
-from xkcd_ru_tg_channel.html (get from "fully scrolled" https://t.me/s/xkcdru).
+from xkcd_ru_tg_channel.html (get by "fully scrolled" https://t.me/s/xkcdru).
 (The images urls are relevant only for a day!)
 Saved for history.
 """

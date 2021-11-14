@@ -2,14 +2,22 @@ import asyncio
 
 from aiogram.dispatcher import FSMContext
 from aiogram.utils.exceptions import MessageNotModified, MessageToEditNotFound, MessageCantBeEdited
+from aiogram.types import Message
 from contextlib import suppress
 
-from src.bot.loader import users_db, comics_db, bot
-from src.bot.utils import send_comic, cyrillic, punctuation
-from src.bot.keyboards import kboard
+from src.telexkcdbot.bot import bot
+from src.telexkcdbot.databases.users import users_db
+from src.telexkcdbot.databases.comics import comics_db
+from src.telexkcdbot.utils import send_comic, cyrillic, punctuation
+from src.telexkcdbot.keyboards import kboard
 
 
 suppress_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
+
+
+async def remove_kb_of_prev_message(msg: Message):
+    with suppress(*suppress_exceptions):
+        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
 
 
 async def is_cyrillic(text: str) -> bool:
@@ -48,11 +56,12 @@ async def get_link(comic_id: int, title: str, img_url: str, comic_lang: str) -> 
 
 
 async def send_user_bookmarks(user_id: int, message_id: int, state: FSMContext, keyboard=None):
+    # TODO: what if 1 bookmarks
     bookmarks_list = await users_db.get_bookmarks(user_id)
     _len = len(bookmarks_list)
 
     if not _len:
-        text = f"❗ <b>You have no bookmarks. You can bookmark a comic with the ❤ press.</b>"
+        text = f"❗ <b>You have no bookmarks.\nYou can bookmark a comic with the ❤ press.</b>"
         if keyboard:
             await bot.send_message(user_id, text, reply_markup=keyboard)
         else:
@@ -87,7 +96,7 @@ Type in the <u><b>word</b></u> and I'll find comics whose titles contains this w
 — remove language button <i>(under the comic, which have russian translation)</i> if you don't need it.
 — start xkcding!
 
-If the sound of the notification annoys you, you can <b><u>mute</u></b> the bot 
+If the sound of the notification annoys you, you can <b><u>mute</u></b> the telexkcdbot 
 <i>(click on the three dots in the upper right corner)</i>.
 
 

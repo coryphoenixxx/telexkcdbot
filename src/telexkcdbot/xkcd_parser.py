@@ -5,13 +5,12 @@ from datetime import date
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
 
-from src.bot.logger import logger
+from src.telexkcdbot.logger import logger
 
 
 class Parser:
-    def __init__(self):
-        self._specific_comic_ids: set = {826, 880, 980, 1037, 1110, 1190, 1193, 1335, 1350, 1416,
-                                         1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
+    _specific_comic_ids: set = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
+                                1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
 
     @staticmethod
     async def get_xkcd_latest_comic_id() -> int:
@@ -73,10 +72,6 @@ class Parser:
             elif comic_id == 2522:
                 comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/b/bf/two_factor_security_key.png'
 
-            # Substitute original .png to .gif
-            elif comic_id == 1331:
-                comic_data['img_url'] = 'https://i.imgur.com/SuH6qS6.gif'
-
             return comic_data
 
     async def get_explanation(self, comic_id: int) -> str:
@@ -110,3 +105,6 @@ class Parser:
             logger.error(f'Error in get_explanation() for {comic_id}: {err}')
 
         return no_explanation_text
+
+
+parser = Parser()

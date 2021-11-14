@@ -6,26 +6,25 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from contextlib import suppress
 
-from src.bot.loader import comics_db, users_db, bot, parser
-from src.bot.utils import send_comic
-from src.bot.keyboards import kboard
-from src.bot.handlers.utils import send_menu, send_user_bookmarks, trav_step, trav_stop, suppress_exceptions
+from src.telexkcdbot.databases.users import users_db
+from src.telexkcdbot.databases.comics import comics_db
+from src.telexkcdbot.utils import send_comic
+from src.telexkcdbot.keyboards import kboard
+from src.telexkcdbot.xkcd_parser import parser
+from src.telexkcdbot.handlers.utils import send_menu, send_user_bookmarks, trav_step, trav_stop, suppress_exceptions
 
 
 async def cb_menu(call: CallbackQuery, state: FSMContext):
     await state.reset_data()
     with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(call.from_user.id, call.message.message_id)
+        await call.message.delete()
 
     await send_menu(call.from_user.id)
 
 
 async def cb_toggle_subscription_status(call: CallbackQuery):
     with suppress(*suppress_exceptions):
-        if 'MENU' in call.message.text:
-            await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
-        else:
-            await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
+        await call.message.edit_reply_markup() if 'MENU' in call.message.text else await call.message.delete()
 
     await users_db.toggle_subscription_status(call.from_user.id)
     inner_text = f"<u>{call.data}d</u> for" if call.data == 'subscribe' else f"<u>{call.data}d</u> from"
@@ -35,10 +34,8 @@ async def cb_toggle_subscription_status(call: CallbackQuery):
 
 
 async def cb_user_bookmarks(call: CallbackQuery, state: FSMContext):
-    if 'MENU' in call.message.text:
-        await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
-    else:
-        await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
+    with suppress(*suppress_exceptions):
+        await call.message.edit_reply_markup() if 'MENU' in call.message.text else await call.message.delete()
     await send_user_bookmarks(call.from_user.id,
                               call.message.message_id,
                               state,
@@ -51,23 +48,20 @@ async def cb_toggle_lang_btn(call: CallbackQuery):
     await users_db.set_user_lang(call.from_user.id, user_lang)
 
     with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(call.from_user.id,
-                                            message_id=call.message.message_id,
-                                            reply_markup=await kboard.menu(call.from_user.id))
+        await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
 
 
 async def cb_start_xkcding(call: CallbackQuery):
     with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
+        await call.message.edit_reply_markup()
 
     comic_data = await comics_db.get_comic_data_by_id(1)
-
     await send_comic(call.from_user.id, comic_data=comic_data)
 
 
 async def cb_continue_xkcding(call: CallbackQuery):
     with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
+        await call.message.edit_reply_markup()
 
     comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
     comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang=comic_lang)
@@ -77,7 +71,7 @@ async def cb_continue_xkcding(call: CallbackQuery):
 
 async def cb_navigation(call: CallbackQuery):
     with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
+        await call.message.edit_reply_markup()
 
     comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
     action = call.data.split('_')[1]
@@ -105,7 +99,7 @@ async def cb_navigation(call: CallbackQuery):
 
 async def cb_toggle_versions(call: CallbackQuery, keyboard=kboard.navigation):
     with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
+        await call.message.edit_reply_markup()
 
     comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
     new_comic_lang = call.data[-2:]
@@ -118,7 +112,7 @@ async def cb_toggle_versions(call: CallbackQuery, keyboard=kboard.navigation):
 
 async def cb_explain(call: CallbackQuery, keyboard=kboard.navigation):
     with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(chat_id=call.from_user.id, message_id=call.message.message_id)
+        await call.message.edit_reply_markup()
 
     comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
 
@@ -134,10 +128,7 @@ async def cb_explain(call: CallbackQuery, keyboard=kboard.navigation):
 
 async def cb_toggle_bookmark_status(call: CallbackQuery, keyboard=kboard.navigation):
     with suppress(*suppress_exceptions):
-        if 'your bookmarks' in call.message.text:
-            await bot.delete_message(call.from_user.id, message_id=call.message.message_id)
-        else:
-            await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
+        await call.message.delete() if 'your bookmarks' in call.message.text else await call.message.edit_reply_markup()
 
     comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
     user_bookmarks_list = await users_db.get_bookmarks(call.from_user.id)
@@ -159,7 +150,7 @@ async def cb_toggle_bookmark_status(call: CallbackQuery, keyboard=kboard.navigat
 
 async def cb_trav_step(call: CallbackQuery, state: FSMContext):
     with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(call.from_user.id, message_id=call.message.message_id)
+        await call.message.edit_reply_markup()
     await trav_step(call.from_user.id, call.message.message_id, state)
 
 

@@ -4,24 +4,23 @@ from aiogram import Dispatcher
 from aiogram.types import Message, InputFile
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import CommandStart
-from contextlib import suppress
 
-from src.bot.loader import comics_db, users_db, bot
-from src.bot.utils import preprocess_text
-from src.bot.handlers.utils import (is_cyrillic, send_comics_list_text_in_bunches, suppress_exceptions,
-                                    send_menu, send_user_bookmarks, trav_step, rate_limit, send_comic)
-from src.bot.keyboards import kboard
-from src.bot.paths import IMG_PATH
+from src.telexkcdbot.databases.users import users_db
+from src.telexkcdbot.databases.comics import comics_db
+from src.telexkcdbot.utils import preprocess_text
+from src.telexkcdbot.handlers.utils import (is_cyrillic, send_comics_list_text_in_bunches, remove_kb_of_prev_message,
+                                            send_menu, send_user_bookmarks, trav_step, rate_limit, send_comic)
+from src.telexkcdbot.keyboards import kboard
+from src.telexkcdbot.paths import IMG_PATH
 
 
 @rate_limit(2)
 async def cmd_start(msg: Message, state: FSMContext):
     await state.reset_data()
-    with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
+    await remove_kb_of_prev_message(msg)
 
     await users_db.add_user(msg.from_user.id)
-    await msg.answer(f"<b>❗ The <u>{(await bot.me).username}</u> at your disposal!</b>")
+    await msg.answer(f"<b>❗ The <u>telexkcdbot</u> at your disposal!</b>")
     await msg.answer_photo(InputFile(IMG_PATH.joinpath('bot_image.png')))
     await asyncio.sleep(2)
     await send_menu(msg.from_user.id)
@@ -30,23 +29,18 @@ async def cmd_start(msg: Message, state: FSMContext):
 @rate_limit(2)
 async def cmd_menu(msg: Message, state: FSMContext):
     await state.reset_data()
-    with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
-
+    await remove_kb_of_prev_message(msg)
     await send_menu(msg.from_user.id)
 
 
 async def cmd_bookmarks(msg: Message, state: FSMContext):
-    with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
-
+    await remove_kb_of_prev_message(msg)
     await send_user_bookmarks(msg.from_user.id, msg.message_id, state)
 
 
 @rate_limit(1)
 async def process_user_typing(msg: Message, state: FSMContext):
-    with suppress(*suppress_exceptions):
-        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
+    await remove_kb_of_prev_message(msg)
     await state.reset_data()
 
     # TODO: а что если в названии цифра?
