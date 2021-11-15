@@ -8,11 +8,16 @@ from contextlib import suppress
 from src.telexkcdbot.bot import bot
 from src.telexkcdbot.databases.users import users_db
 from src.telexkcdbot.databases.comics import comics_db
-from src.telexkcdbot.utils import send_comic, cyrillic, punctuation
+from src.telexkcdbot.utils import send_comic, cyrillic, punctuation, make_headline
 from src.telexkcdbot.keyboards import kboard
 
 
 suppress_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
+
+
+def cut_into_chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
 
 
 async def remove_kb_of_prev_message(msg: Message):
@@ -24,35 +29,14 @@ async def is_cyrillic(text: str) -> bool:
     return set(text).issubset(cyrillic + punctuation)
 
 
-async def get_headline_text(*args) -> str:
-    return f"<b>{str(args[0]) + '.':7}</b>\"{await get_link(*args)}\""
-
-
-async def send_comics_list_text_in_bunches(user_id: int, comics_info: list, comic_lang: str = 'en'):
-    ids, titles, img_urls = comics_info
-    for i in range(0, len(ids) + 1, 50):
-        end = i + 50
-        if end > len(ids):
-            end = len(ids)
-
-        zipped_info = zip(ids[i:end], titles[i:end], img_urls[i:end])
-        headlines = [await get_headline_text(*z, comic_lang) for z in zipped_info]
+async def send_comics_list_as_text(user_id: int, comics_list: list):
+    for chunk in cut_into_chunks(comics_list, 35):
+        headlines = []
+        for comic_id, title, img_url in chunk:
+            headlines.append(await make_headline(comic_id, title, img_url))
         text = '\n'.join(headlines)
         await bot.send_message(user_id, text, disable_web_page_preview=True)
-        await asyncio.sleep(0.5)
-
-
-async def get_link(comic_id: int, title: str, img_url: str, comic_lang: str) -> str:
-    if 'http' not in img_url:
-        return title
-    else:
-        if comic_lang == 'ru':
-            # TODO: переделать, мы больш не юзаем xkcd.su
-            url = f'https://xkcd.su/{comic_id}'
-        else:
-            url = f'https://xkcd.com/{comic_id}' if comic_id != 880 \
-                                                 else 'https://xk3d.xkcd.com/880/'  # Original image is broken
-        return f"<a href='{url}'>{title}</a>"
+        await asyncio.sleep(0.8)
 
 
 async def send_user_bookmarks(user_id: int, message_id: int, state: FSMContext, keyboard=None):
@@ -77,7 +61,7 @@ async def send_user_bookmarks(user_id: int, message_id: int, state: FSMContext, 
             titles.append(comic_data[1])
             img_urls.append(comic_data[2])
 
-        await send_comics_list_text_in_bunches(user_id, comics_info=[comics_ids, titles, img_urls])
+        await send_comics_list_as_text(user_id, comics_list=[comics_ids, titles, img_urls])
         await state.update_data(list=bookmarks_list)
 
         await trav_step(user_id, message_id, state)

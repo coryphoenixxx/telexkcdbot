@@ -16,17 +16,17 @@ cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПп
 punctuation = ' -(),.:;!?#+'
 
 
-async def get_link(comic_id: int, title: str, img_url: str, comic_lang: str) -> str:
+async def make_headline(comic_id: int, title: str, img_url: str, public_date: str = '') -> str:
     if 'http' not in img_url:
-        return title
+        link = title
     else:
-        if comic_lang == 'ru':
-            # TODO: переделать, мы больше не юзаем xkcd.su
-            url = f'https://xkcd.su/{comic_id}'
-        else:
-            # Original image is broken
-            url = f'https://xkcd.com/{comic_id}' if comic_id != 880 else 'https://xk3d.xkcd.com/880/'
-        return f"<a href='{url}'>{title}</a>"
+        url = f'https://xkcd.com/{comic_id}' if comic_id != 880 \
+                                             else 'https://xk3d.xkcd.com/880/'  # Original link is incorrect
+        link = f"<a href='{url}'>{title}</a>"
+
+    if public_date:
+        return f"<b>{str(comic_id)}. \"{link}\"</b>   <i>({public_date})</i>"
+    return f"<b>{str(comic_id) + '.':7}</b>\"{link}\""
 
 
 async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation, comic_lang: str = 'en'):
@@ -39,8 +39,7 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
 
     await users_db.update_cur_comic_info(user_id, comic_id, comic_lang)
 
-    link = await get_link(comic_id, title, img_url, comic_lang)
-    headline = f"<b>{comic_id}. \"{link}\"</b>   <i>({public_date})</i>"
+    headline = await make_headline(comic_id, title, img_url, public_date)
 
     await bot.send_message(user_id, headline, disable_web_page_preview=True, disable_notification=True)
 

@@ -1,4 +1,12 @@
 from asyncpg import Pool
+from dataclasses import dataclass
+
+
+@dataclass
+class SearchResult:
+    comic_id: int
+    title: str
+    img_url: str
 
 
 class ComicsDatabase:
@@ -65,11 +73,12 @@ class ComicsDatabase:
         return tuple(res)
 
     async def get_comics_info_by_title(self, title: str, lang: str = 'en') -> list:
+
         assert lang in ('ru', 'en')
 
         title_col, img_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
 
-        query = f"""SELECT array_agg(comic_id), array_agg({title_col}), array_agg({img_col}) FROM comics
+        query = f"""SELECT comic_id, {title_col}, {img_col} FROM comics
 
                      WHERE {title_col} = $1
                      OR {title_col} ILIKE format('%s %s%s', '%', $1, '%')
@@ -83,13 +92,10 @@ class ComicsDatabase:
         # TODO: не находит RTL
         # TODO: по superm не находит Bird/Plane/Superman
 
-        res = await self.pool.fetchrow(query, title)
-
-        if not res[0]:
+        res = await self.pool.fetch(query, title)
+        if not res:
             return []
-        else:
-            info = sorted(zip(*res), key=lambda x: len(x[1]))  # Sort by title length
-            return list(zip(*info))
+        return sorted(res, key=lambda x: len(x[title_col]))
 
     async def toggle_spec_status(self, comic_id: int):
         get_query = """SELECT is_specific FROM comics

@@ -20,6 +20,19 @@ class Parser:
         return int((await comic_json).get('num'))
 
     @staticmethod
+    async def url_fixer(url: str, comic_id: int) -> str:
+        # Telegram doesn't want to upload original image!
+        correct_urls = {
+            '109': 'https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png',
+            '658': 'https://www.explainxkcd.com/wiki/images/1/1c/orbitals.png',
+            '2522': 'https://www.explainxkcd.com/wiki/images/b/bf/two_factor_security_key.png'
+        }
+
+        if str(comic_id) in correct_urls.keys():
+            return correct_urls[str(comic_id)]
+        return url
+
+    @staticmethod
     async def _get_soup(url: str) -> BeautifulSoup:
         attempts = 3
         for _ in range(attempts):
@@ -55,22 +68,13 @@ class Parser:
             comic_data = {
                 'comic_id': comic_id,
                 'title': comic_json.get('safe_title') if comic_json.get('safe_title') else '...',
-                'img_url': comic_json.get('img'),
+                'img_url': await self.url_fixer(comic_json.get('img'), comic_id),
                 'comment': comment if comment else '...',
                 'public_date': date(day=int(comic_json.get('day')),
                                     month=int(comic_json.get('month')),
                                     year=int(comic_json.get('year'))),
                 'is_specific': 1 if comic_id in self._specific_comic_ids else 0
             }
-
-            # TODO: отдельной функцией
-            # I don't know why telegram doesn't want to upload original image!
-            if comic_id == 109:
-                comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png'
-            elif comic_id == 658:
-                comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/1/1c/orbitals.png'
-            elif comic_id == 2522:
-                comic_data['img_url'] = 'https://www.explainxkcd.com/wiki/images/b/bf/two_factor_security_key.png'
 
             return comic_data
 

@@ -8,7 +8,7 @@ from aiogram.dispatcher.filters import CommandStart
 from src.telexkcdbot.databases.users import users_db
 from src.telexkcdbot.databases.comics import comics_db
 from src.telexkcdbot.utils import preprocess_text
-from src.telexkcdbot.handlers.utils import (is_cyrillic, send_comics_list_text_in_bunches, remove_kb_of_prev_message,
+from src.telexkcdbot.handlers.utils import (is_cyrillic, send_comics_list_as_text, remove_kb_of_prev_message,
                                             send_menu, send_user_bookmarks, trav_step, rate_limit, send_comic)
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.paths import IMG_PATH
@@ -43,16 +43,16 @@ async def process_user_typing(msg: Message, state: FSMContext):
     await remove_kb_of_prev_message(msg)
     await state.reset_data()
 
-    # TODO: а что если в названии цифра?
-
     user_input = await preprocess_text(msg.text)
+
+    # TODO: что если номер в названии?
 
     if user_input.isdigit():
         comic_id = int(user_input)
         latest = await comics_db.get_last_comic_id()
 
         if (comic_id > latest) or (comic_id <= 0):
-            await msg.reply(f"❗❗❗\n<b>Please, enter a number between 1 and {latest}!</b>",
+            await msg.reply(f"❗❗❗\n<b>Please, enter a number from 1 to {latest}!</b>",
                             reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
         else:
             comic_data = await comics_db.get_comic_data_by_id(comic_id)
@@ -80,11 +80,10 @@ async def process_user_typing(msg: Message, state: FSMContext):
                     comic_id = found_comics_list[0][0]
                     comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang=lang)
                     await send_comic(msg.from_user.id, comic_data=comic_data, comic_lang=lang)
-
-                elif found_comics_num >= 2:
-                    comics_ids, _, _ = found_comics_list
+                else:
+                    comics_ids = [row['comic_id'] for row in found_comics_list]
                     await msg.reply(f"❗ <b>I found <u><b>{found_comics_num}</b></u> comics:</b>")
-                    await send_comics_list_text_in_bunches(msg.from_user.id, found_comics_list, lang)
+                    await send_comics_list_as_text(msg.from_user.id, found_comics_list)
                     await state.update_data(list=list(comics_ids))
                     await trav_step(msg.from_user.id, msg.message_id, state)
 
