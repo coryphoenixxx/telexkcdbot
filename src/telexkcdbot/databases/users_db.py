@@ -97,7 +97,6 @@ class UsersDatabase:
                    WHERE user_id = $1;"""
 
         res = await self.pool.fetchval(query, user_id)
-
         return json.loads(res)
 
     async def update_bookmarks(self, user_id: int, new_bookmarks: list):

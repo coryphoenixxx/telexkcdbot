@@ -10,11 +10,11 @@ from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound, InvalidPeerID
 
-from src.telexkcdbot.utils import preprocess_text
+from src.telexkcdbot.common_utils import preprocess_text
 from src.telexkcdbot.config import ADMIN_ID
 from src.telexkcdbot.bot import bot
 from src.telexkcdbot.logger import logger
-from src.telexkcdbot.databases.users import users_db
+from src.telexkcdbot.databases.users_db import users_db
 
 
 class BigBrother(BaseMiddleware):

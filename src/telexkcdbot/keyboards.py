@@ -1,8 +1,8 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from src.telexkcdbot.databases.users import users_db
-from src.telexkcdbot.databases.comics import comics_db
+from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.config import ADMIN_ID
+from src.telexkcdbot.models import ComicData
 
 
 class Keyboard:
@@ -27,6 +27,7 @@ class Keyboard:
         'trav_en': InlineKeyboardButton(text='🇬🇧EN', callback_data='trav_en'),
 
         # TODO: Disable notification sound
+        # TODO: Реализовать отдельный режим поиска
         'subscribe': InlineKeyboardButton(text='🔔Subscribe', callback_data='subscribe'),
         'unsubscribe': InlineKeyboardButton(text='🔕Unsubscribe', callback_data='unsubscribe'),
         'user_bookmarks': InlineKeyboardButton(text='🔖My Bookmarks', callback_data='user_bookmarks'),
@@ -49,15 +50,13 @@ class Keyboard:
         keyboard.add(*btns)
 
         return keyboard
-    # TODO: где-то лишний вызов бд
+
     @staticmethod
-    async def _lang_btn_insertion(row: list, user_id: int, comic_id: int, comic_lang: str, kb: str = 'nav') -> list:
+    async def _lang_btn_insertion(row: list, user_id: int, has_ru: bool, comic_lang: str, kb: str = 'nav') -> list:
         user_lang = await users_db.get_user_lang(user_id)
 
         if user_lang == 'ru':
-            # Check ru_title column
-            has_rus_comic_data = (await comics_db.get_comic_data_by_id(comic_id, comic_lang=user_lang))[1]
-            if has_rus_comic_data:
+            if has_ru:
                 if comic_lang == 'en':
                     lang_btn = 'ru' if kb == 'nav' else 'trav_ru'
                     row.insert(1, lang_btn)
@@ -79,12 +78,15 @@ class Keyboard:
 
         return await self._create_keyboard(btns_keys, row_width=1)
 
-    async def navigation(self, user_id: int, comic_id: int, comic_lang: str = 'en') -> InlineKeyboardMarkup:
+    async def navigation(self, user_id: int, comic_data: ComicData, comic_lang: str = 'en') -> InlineKeyboardMarkup:
         user_bookmarks = await users_db.get_bookmarks(user_id)
 
-        bookmark_btn = 'bookmarked' if comic_id in user_bookmarks else 'not_bookmarked'
+        bookmark_btn = 'bookmarked' if comic_data.comic_id in user_bookmarks else 'not_bookmarked'
         first_row_btns_keys = ['explain', bookmark_btn]
-        first_row_btns_keys = await self._lang_btn_insertion(first_row_btns_keys, user_id, comic_id, comic_lang)
+        first_row_btns_keys = await self._lang_btn_insertion(first_row_btns_keys,
+                                                             user_id,
+                                                             comic_data.has_ru_translation,
+                                                             comic_lang)
         second_row_btns_keys = ['nav_first', 'nav_prev', 'nav_random', 'nav_next', 'nav_last']
 
         keyboard = InlineKeyboardMarkup()
@@ -94,12 +96,14 @@ class Keyboard:
 
         return keyboard
 
-    async def traversal(self, user_id: int, comic_id: int, comic_lang: str) -> InlineKeyboardMarkup:
+    async def traversal(self, user_id: int, comic_data: ComicData, comic_lang: str) -> InlineKeyboardMarkup:
         user_bookmarks = await users_db.get_bookmarks(user_id)
-        # TODO: перепутаны кнопки закладки и объяснения
-        bookmark_btn_key = 'trav_bookmarked' if comic_id in user_bookmarks else 'trav_not_bookmarked'
-        btns_keys = [bookmark_btn_key, 'trav_explain', 'trav_stop', 'trav_step']
-        btns_keys = await self._lang_btn_insertion(btns_keys, user_id, comic_id, comic_lang, kb='trav')
+        bookmark_btn_key = 'trav_bookmarked' if comic_data.comic_id in user_bookmarks else 'trav_not_bookmarked'
+        btns_keys = ['trav_explain', bookmark_btn_key, 'trav_stop', 'trav_step']
+        btns_keys = await self._lang_btn_insertion(btns_keys,
+                                                   user_id,
+                                                   comic_data.has_ru_translation,
+                                                   comic_lang, kb='trav')
 
         row_width = 2 if len(btns_keys) == 4 else 3
 

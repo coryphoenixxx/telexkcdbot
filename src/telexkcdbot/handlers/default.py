@@ -5,11 +5,11 @@ from aiogram.types import Message, InputFile
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import CommandStart
 
-from src.telexkcdbot.databases.users import users_db
-from src.telexkcdbot.databases.comics import comics_db
-from src.telexkcdbot.utils import preprocess_text
-from src.telexkcdbot.handlers.utils import (is_cyrillic, send_comics_list_as_text, remove_kb_of_prev_message,
-                                            send_menu, send_user_bookmarks, trav_step, rate_limit, send_comic)
+from src.telexkcdbot.databases.users_db import users_db
+from src.telexkcdbot.databases.comics_db import comics_db
+from src.telexkcdbot.common_utils import preprocess_text
+from src.telexkcdbot.handlers.handlers_utils import (is_cyrillic, send_headlines_as_text, remove_kb_of_prev_message,
+                                                     send_menu, send_user_bookmarks, trav_step, rate_limit, send_comic)
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.paths import IMG_PATH
 
@@ -55,8 +55,7 @@ async def process_user_typing(msg: Message, state: FSMContext):
             await msg.reply(f"❗❗❗\n<b>Please, enter a number from 1 to {latest}!</b>",
                             reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
         else:
-            comic_data = await comics_db.get_comic_data_by_id(comic_id)
-            await send_comic(msg.from_user.id, comic_data=comic_data)
+            await send_comic(msg.from_user.id, comic_id=comic_id)
     else:
         if len(user_input) == 1:
             await msg.reply(f"❗ <b>I think there's no necessity to search by one character!)</b>")
@@ -67,23 +66,23 @@ async def process_user_typing(msg: Message, state: FSMContext):
             else:
                 lang = 'en'
 
-            found_comics_list = await comics_db.get_comics_info_by_title(user_input, lang=lang)
+            found_comics_list = await comics_db.get_comics_headlines_info_by_title(user_input, lang=lang)
 
             if not found_comics_list:
                 await msg.reply(f"❗❗❗\n<b>There's no such comic title or command!</b>",
                                 reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
             else:
-                found_comics_num = len(found_comics_list[0])
+                found_comics_num = len(found_comics_list)
 
                 if found_comics_num == 1:
+                    print(found_comics_list)
                     await msg.reply(f"❗ <b>I found one:</b>")
-                    comic_id = found_comics_list[0][0]
-                    comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang=lang)
-                    await send_comic(msg.from_user.id, comic_data=comic_data, comic_lang=lang)
+                    comic_id = found_comics_list[0].comic_id
+                    await send_comic(msg.from_user.id, comic_id=comic_id, comic_lang=lang)
                 else:
-                    comics_ids = [row['comic_id'] for row in found_comics_list]
+                    comics_ids = [headline.comic_id for headline in found_comics_list]
                     await msg.reply(f"❗ <b>I found <u><b>{found_comics_num}</b></u> comics:</b>")
-                    await send_comics_list_as_text(msg.from_user.id, found_comics_list)
+                    await send_headlines_as_text(msg.from_user.id, headlines_info=found_comics_list)
                     await state.update_data(list=list(comics_ids))
                     await trav_step(msg.from_user.id, msg.message_id, state)
 

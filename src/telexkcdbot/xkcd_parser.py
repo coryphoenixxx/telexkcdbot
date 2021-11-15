@@ -56,11 +56,11 @@ class Parser:
                     'img_url': 'https://www.explainxkcd.com/wiki/images/9/92/not_found.png',
                     'comment': 'Page not found!',
                     'public_date': date(day=1, month=4, year=2008),
-                    'is_specific': 0
+                    'is_specific': False
                     }
         else:
-            url = f'https://xkcd.com/{comic_id}/info.0.json'
             async with aiohttp.ClientSession() as session:
+                url = f'https://xkcd.com/{comic_id}/info.0.json'
                 comic_json = await (await session.get(url)).json()
 
             comment = comic_json.get('alt').replace('<', '').replace('>', '').strip()
@@ -73,7 +73,7 @@ class Parser:
                 'public_date': date(day=int(comic_json.get('day')),
                                     month=int(comic_json.get('month')),
                                     year=int(comic_json.get('year'))),
-                'is_specific': 1 if comic_id in self._specific_comic_ids else 0
+                'is_specific': True if comic_id in self._specific_comic_ids else False
             }
 
             return comic_data

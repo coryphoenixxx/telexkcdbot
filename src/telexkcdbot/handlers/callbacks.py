@@ -6,12 +6,12 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from contextlib import suppress
 
-from src.telexkcdbot.databases.users import users_db
-from src.telexkcdbot.databases.comics import comics_db
-from src.telexkcdbot.utils import send_comic
+from src.telexkcdbot.databases.users_db import users_db
+from src.telexkcdbot.databases.comics_db import comics_db
+from src.telexkcdbot.common_utils import send_comic
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.xkcd_parser import parser
-from src.telexkcdbot.handlers.utils import send_menu, send_user_bookmarks, trav_step, trav_stop, suppress_exceptions
+from src.telexkcdbot.handlers.handlers_utils import send_menu, send_user_bookmarks, trav_step, trav_stop, suppress_exceptions
 
 
 async def cb_menu(call: CallbackQuery, state: FSMContext):
@@ -55,8 +55,7 @@ async def cb_start_xkcding(call: CallbackQuery):
     with suppress(*suppress_exceptions):
         await call.message.edit_reply_markup()
 
-    comic_data = await comics_db.get_comic_data_by_id(1)
-    await send_comic(call.from_user.id, comic_data=comic_data)
+    await send_comic(call.from_user.id, comic_id=1)
 
 
 async def cb_continue_xkcding(call: CallbackQuery):
@@ -64,9 +63,7 @@ async def cb_continue_xkcding(call: CallbackQuery):
         await call.message.edit_reply_markup()
 
     comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
-    comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang=comic_lang)
-
-    await send_comic(call.from_user.id, comic_data=comic_data, comic_lang=comic_lang)
+    await send_comic(call.from_user.id, comic_id=comic_id, comic_lang=comic_lang)
 
 
 async def cb_navigation(call: CallbackQuery):
@@ -92,22 +89,19 @@ async def cb_navigation(call: CallbackQuery):
     elif new_comic_id > latest:
         new_comic_id = 1
 
-    comic_data = await comics_db.get_comic_data_by_id(new_comic_id)
-
-    await send_comic(call.from_user.id, comic_data=comic_data)
+    await send_comic(call.from_user.id, comic_id=new_comic_id)
 
 
-async def cb_toggle_versions(call: CallbackQuery, keyboard=kboard.navigation):
+async def cb_toggle_comic_lang(call: CallbackQuery, keyboard=kboard.navigation):
     with suppress(*suppress_exceptions):
         await call.message.edit_reply_markup()
 
     comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
     new_comic_lang = call.data[-2:]
-    comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang=new_comic_lang)
 
     if 'trav' in call.data:
         keyboard = kboard.traversal
-    await send_comic(call.from_user.id, comic_data=comic_data, keyboard=keyboard, comic_lang=new_comic_lang)
+    await send_comic(call.from_user.id, comic_id=comic_id, keyboard=keyboard, comic_lang=new_comic_lang)
 
 
 async def cb_explain(call: CallbackQuery, keyboard=kboard.navigation):
@@ -121,8 +115,10 @@ async def cb_explain(call: CallbackQuery, keyboard=kboard.navigation):
     if 'trav' in call.data:
         keyboard = kboard.traversal
 
+    comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang)
+
     await call.message.answer(text,
-                              reply_markup=await keyboard(call.from_user.id, comic_id, comic_lang=comic_lang),
+                              reply_markup=await keyboard(call.from_user.id, comic_data, comic_lang=comic_lang),
                               disable_web_page_preview=True)
 
 
@@ -142,10 +138,11 @@ async def cb_toggle_bookmark_status(call: CallbackQuery, keyboard=kboard.navigat
 
     await users_db.update_bookmarks(call.from_user.id, user_bookmarks_list)
 
+    comic_data = await comics_db.get_comic_data_by_id(comic_id)
+
     if 'trav' in call.data:
         keyboard = kboard.traversal
-
-    await call.message.answer(text, reply_markup=await keyboard(call.from_user.id, comic_id, comic_lang=comic_lang))
+    await call.message.answer(text, reply_markup=await keyboard(call.from_user.id, comic_data, comic_lang=comic_lang))
 
 
 async def cb_trav_step(call: CallbackQuery, state: FSMContext):
@@ -166,7 +163,7 @@ def register_callbacks(dp: Dispatcher):
     dp.register_callback_query_handler(cb_start_xkcding, Text('start_xkcding'))
     dp.register_callback_query_handler(cb_continue_xkcding, Text('continue_xkcding'))
     dp.register_callback_query_handler(cb_navigation, Text(startswith='nav_'))
-    dp.register_callback_query_handler(cb_toggle_versions, Text(equals=('ru', 'trav_ru', 'en', 'trav_en')))
+    dp.register_callback_query_handler(cb_toggle_comic_lang, Text(equals=('ru', 'trav_ru', 'en', 'trav_en')))
     dp.register_callback_query_handler(cb_explain, Text(equals=('explain', 'trav_explain')))
     dp.register_callback_query_handler(cb_toggle_bookmark_status, Text(endswith='bookmark'))
     dp.register_callback_query_handler(cb_trav_step, Text('trav_step'))

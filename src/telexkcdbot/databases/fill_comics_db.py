@@ -3,7 +3,7 @@ import csv
 
 from tqdm import trange, tqdm
 
-from src.telexkcdbot.databases.comics import comics_db
+from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.xkcd_parser import parser
 from src.telexkcdbot.logger import logger
 from src.telexkcdbot.paths import PATH_TO_RU_COMICS_DATA
@@ -26,15 +26,16 @@ def retrieve_from_csv_to_dict():
             ru_comics_data[row['comic_id']] = {
                 'ru_title': row['ru_title'],
                 'ru_img_url': preprocess_path(row['comic_id']),
-                'ru_comment': row['ru_comment']
+                'ru_comment': row['ru_comment'],
+                'has_ru_translation': True
             }
 
 
 async def get_ru_comic_data_by_id(comic_id: int) -> dict:
-    keys = ('ru_title', 'ru_img_url', 'ru_comment')
+    keys = ('ru_title', 'ru_img_url', 'ru_comment', 'has_ru_translation')
 
     if not ru_comics_data.get(str(comic_id)):
-        return dict(zip(keys, ('',) * 3))
+        return dict(zip(keys, ('', '', '', False)))
     else:
         return ru_comics_data[str(comic_id)]
 

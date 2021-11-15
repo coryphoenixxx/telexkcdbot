@@ -1,15 +1,19 @@
 import asyncio
+
 from string import ascii_letters, digits
 from typing import Tuple, Union
+from dataclasses import astuple
+
 from aiogram.types import InputFile, ChatActions
 from aiogram.utils.exceptions import BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated, ChatNotFound
 
 from src.telexkcdbot.bot import bot
-from src.telexkcdbot.databases.users import users_db
+from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.config import ADMIN_ID
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.paths import IMG_PATH, BASE_DIR
 from src.telexkcdbot.logger import logger
+from src.telexkcdbot.databases.comics_db import comics_db
 
 
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
@@ -29,13 +33,16 @@ async def make_headline(comic_id: int, title: str, img_url: str, public_date: st
     return f"<b>{str(comic_id) + '.':7}</b>\"{link}\""
 
 
-async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation, comic_lang: str = 'en'):
+async def send_comic(user_id: int, comic_id: int, keyboard=kboard.navigation, comic_lang: str = 'en'):
+    comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang)
+
     (comic_id,
      title,
      img_url,
      comment,
      public_date,
-     is_specific) = comic_data
+     is_specific,
+     has_ru_translation) = astuple(comic_data)
 
     await users_db.update_cur_comic_info(user_id, comic_id, comic_lang)
 
@@ -45,8 +52,7 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
 
     if is_specific:
         await bot.send_message(user_id,
-                               text=f"❗❗❗ <b>This comic is peculiar!\n"
-                                    f"It's preferable to view it in your browser.</b>",
+                               text="❗❗❗ <b>This comic is peculiar!\nIt's preferable to view it in your browser.</b>",
                                disable_web_page_preview=True,
                                disable_notification=True)
 
@@ -74,9 +80,9 @@ async def send_comic(user_id: int, comic_data: tuple, keyboard=kboard.navigation
 
     await bot.send_message(user_id,
                            text=f"<i>{comment}</i>",
-                           reply_markup=await keyboard(user_id, comic_id, comic_lang),
                            disable_web_page_preview=True,
-                           disable_notification=True)
+                           disable_notification=True,
+                           reply_markup=await keyboard(user_id, comic_data, comic_lang))
 
 
 async def preprocess_text(text: str) -> str:
@@ -85,7 +91,7 @@ async def preprocess_text(text: str) -> str:
     return processed_text
 
 
-async def broadcast(text: str, comic_data: Union[Tuple, None] = None):
+async def broadcast(text: str, comic_id: Union[int, None] = None):  # Make Optional
     count = 0
     all_users_ids = await users_db.get_all_users_ids()  # Uses for delete users
     subscribed_users = await users_db.get_subscribed_users()
@@ -99,8 +105,8 @@ async def broadcast(text: str, comic_data: Union[Tuple, None] = None):
             else:
                 if user_id in subscribed_users:
                     await bot.send_message(user_id, text=text, disable_notification=True)
-                    if comic_data:
-                        await send_comic(user_id, comic_data=comic_data)
+                    if comic_id:
+                        await send_comic(user_id, comic_id=comic_id)
                     count += 1
                 if count % 20 == 0:
                     await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)

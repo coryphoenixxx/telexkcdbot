@@ -1,12 +1,6 @@
-from asyncpg import Pool
-from dataclasses import dataclass
-
-
-@dataclass
-class SearchResult:
-    comic_id: int
-    title: str
-    img_url: str
+from asyncpg import Pool, Record
+from src.telexkcdbot.models import ComicData, ComicHeadlineInfo
+from typing import List
 
 
 class ComicsDatabase:
@@ -21,14 +15,25 @@ class ComicsDatabase:
                      img_url VARCHAR(512) DEFAULT '',
                      comment TEXT DEFAULT '...',
                      public_date DATE NOT NULL DEFAULT CURRENT_DATE,
-                     is_specific INTEGER NOT NULL DEFAULT 0,
+                     is_specific BOOLEAN DEFAULT FALSE,
                      ru_title VARCHAR(128) DEFAULT '...',
                      ru_img_url VARCHAR(512) DEFAULT '...',
-                     ru_comment TEXT DEFAULT '...');
+                     ru_comment TEXT DEFAULT '...',
+                     has_ru_translation BOOLEAN DEFAULT FALSE);
 
                    CREATE UNIQUE INDEX IF NOT EXISTS comic_id_uindex ON comics (comic_id);"""
 
         await self.pool.execute(query)
+
+    @staticmethod
+    async def records_to_headlines_info(records: List[Record], title_col: str, img_url_col: str):
+        headlines_info = []
+        for record in records:
+            headline_info = ComicHeadlineInfo(comic_id=record['comic_id'],
+                                              title=record[title_col],
+                                              img_url=record[img_url_col])
+            headlines_info.append(headline_info)
+        return headlines_info
 
     async def add_new_comic(self, comic_values: tuple):
         query = """INSERT INTO comics (comic_id,
@@ -39,8 +44,9 @@ class ComicsDatabase:
                                        is_specific,
                                        ru_title,
                                        ru_img_url,
-                                       ru_comment)
-                   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                                       ru_comment,
+                                       has_ru_translation)
+                   VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
                    ON CONFLICT (comic_id) DO NOTHING;"""
 
         await self.pool.execute(query, *comic_values)
@@ -60,25 +66,28 @@ class ComicsDatabase:
 
         return res
 
-    async def get_comic_data_by_id(self, comic_id: int, comic_lang='en') -> tuple:
+    async def get_comic_data_by_id(self, comic_id: int, comic_lang='en') -> ComicData:
         if comic_lang == 'en':
-            query = """SELECT comic_id, title, img_url, comment, public_date, is_specific FROM comics
+            query = """SELECT comic_id, title, img_url, comment, public_date, is_specific, has_ru_translation 
+                       FROM comics
                        WHERE comic_id = $1;"""
         else:
-            query = """SELECT comic_id, ru_title, ru_img_url, ru_comment, public_date, is_specific FROM comics
+            query = """SELECT comic_id, ru_title, ru_img_url, ru_comment, public_date, is_specific, has_ru_translation 
+                       FROM comics
                        WHERE comic_id = $1;"""
 
         res = await self.pool.fetchrow(query, comic_id)
 
-        return tuple(res)
+        comic_data = ComicData(*res)
+        return comic_data
 
-    async def get_comics_info_by_title(self, title: str, lang: str = 'en') -> list:
-
+    async def get_comics_headlines_info_by_title(self, title: str, lang: str = 'en') -> List[ComicHeadlineInfo]:
         assert lang in ('ru', 'en')
 
-        title_col, img_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
-
-        query = f"""SELECT comic_id, {title_col}, {img_col} FROM comics
+        # TODO: не находит RTL
+        # TODO: по superm не находит Bird/Plane/Superman
+        title_col, img_url_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
+        query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
 
                      WHERE {title_col} = $1
                      OR {title_col} ILIKE format('%s %s%s', '%', $1, '%')
@@ -89,13 +98,24 @@ class ComicsDatabase:
                      OR {title_col} ILIKE format('%s%s-%s', '%', $1, '%')
                      OR {title_col} ILIKE format('%s-%s%s', '%', $1, '%')"""
 
-        # TODO: не находит RTL
-        # TODO: по superm не находит Bird/Plane/Superman
-
         res = await self.pool.fetch(query, title)
         if not res:
             return []
-        return sorted(res, key=lambda x: len(x[title_col]))
+        return await self.records_to_headlines_info(sorted(res, key=lambda x: len(x[title_col])),
+                                                    title_col,
+                                                    img_url_col)
+
+    async def get_comics_headlines_info_by_ids(self, ids: list, lang: str = 'en') -> List[ComicHeadlineInfo]:
+        assert lang in ('ru', 'en')
+
+        title_col, img_url_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
+
+        query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
+                    WHERE comic_id in {tuple(ids)}"""
+
+        res = await self.pool.fetch(query)
+        headlines_info = await self.records_to_headlines_info(res, title_col, img_url_col)
+        return [h for h in sorted(headlines_info, key=lambda x: ids.index(x.comic_id))]  # Saved order of bookmarks
 
     async def toggle_spec_status(self, comic_id: int):
         get_query = """SELECT is_specific FROM comics
