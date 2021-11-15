@@ -1,13 +1,13 @@
 import json
-from asyncpg import Pool
+import asyncpg
 
 from datetime import date, timedelta
 
 
 class UsersDatabase:
-    pool: Pool
+    pool: asyncpg.Pool
 
-    async def create(self, pool: Pool):
+    async def create(self, pool: asyncpg.Pool):
         self.pool = pool
 
         query = """CREATE TABLE IF NOT EXISTS users (
@@ -44,14 +44,12 @@ class UsersDatabase:
 
         res = await self.pool.fetchval(query, user_id)
         comic_id, comic_lang = res.split('_')
-
         return int(comic_id), comic_lang
 
     async def get_all_users_ids(self) -> tuple:
         query = """SELECT array_agg(user_id) FROM users;"""
 
         res = await self.pool.fetchval(query)
-
         return tuple(res) if res else ()
 
     async def get_user_lang(self, user_id):
@@ -60,7 +58,6 @@ class UsersDatabase:
                    WHERE user_id = $1;"""
 
         res = await self.pool.fetchval(query, user_id)
-
         return res
 
     async def set_user_lang(self, user_id: int, user_lang: str):
@@ -87,7 +84,6 @@ class UsersDatabase:
         query = """SELECT array_agg(last_action_date) FROM users;"""
 
         res = await self.pool.fetchval(query)
-
         return sum(((date.today() - d) < timedelta(days=7) for d in res))
 
     """BOOKMARKS"""
@@ -103,8 +99,8 @@ class UsersDatabase:
         query = """UPDATE users SET bookmarks = $1
                    WHERE user_id = $2;"""
 
-        new_bookmarks_json = json.dumps(new_bookmarks)
-        await self.pool.execute(query, new_bookmarks_json, user_id)
+        upd_bookmarks_json = json.dumps(new_bookmarks)
+        await self.pool.execute(query, upd_bookmarks_json, user_id)
 
     """SUBSCRIPTION"""
 
@@ -113,8 +109,7 @@ class UsersDatabase:
                    WHERE is_subscribed = 1;"""
 
         res = await self.pool.fetchval(query)
-
-        return tuple(res) if res else ()  # TODO: namedtuple
+        return tuple(res) if res else ()
 
     async def toggle_subscription_status(self, user_id: int):
         get_query = """SELECT is_subscribed FROM users

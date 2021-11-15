@@ -12,7 +12,7 @@ from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.logger import logger
 from src.telexkcdbot.common_utils import broadcast
-from src.telexkcdbot.handlers.handlers_utils import suppress_exceptions, remove_kb_of_prev_message
+from src.telexkcdbot.handlers.handlers_utils import suppress_exceptions, remove_prev_message_kb
 from src.telexkcdbot.config import ADMIN_ID
 from src.telexkcdbot.paths import LOGS_PATH
 
@@ -25,7 +25,7 @@ async def cmd_admin(msg: Message, state: FSMContext):
     if msg.from_user.id != int(ADMIN_ID):
         await msg.answer("❗ <b>For admin only!</b>")
     else:
-        await remove_kb_of_prev_message(msg)
+        await remove_prev_message_kb(msg)
         await state.reset_data()
 
         await msg.answer("<b>*** ADMIN PANEL ***</b>",

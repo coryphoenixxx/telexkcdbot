@@ -8,7 +8,7 @@ from aiogram.dispatcher.filters import CommandStart
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.common_utils import preprocess_text
-from src.telexkcdbot.handlers.handlers_utils import (is_cyrillic, send_headlines_as_text, remove_kb_of_prev_message,
+from src.telexkcdbot.handlers.handlers_utils import (is_cyrillic, send_headlines_as_text, remove_prev_message_kb,
                                                      send_menu, send_user_bookmarks, trav_step, rate_limit, send_comic)
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.paths import IMG_PATH
@@ -17,7 +17,7 @@ from src.telexkcdbot.paths import IMG_PATH
 @rate_limit(2)
 async def cmd_start(msg: Message, state: FSMContext):
     await state.reset_data()
-    await remove_kb_of_prev_message(msg)
+    await remove_prev_message_kb(msg)
 
     await users_db.add_user(msg.from_user.id)
     await msg.answer(f"<b>❗ The <u>telexkcdbot</u> at your disposal!</b>")
@@ -29,18 +29,18 @@ async def cmd_start(msg: Message, state: FSMContext):
 @rate_limit(2)
 async def cmd_menu(msg: Message, state: FSMContext):
     await state.reset_data()
-    await remove_kb_of_prev_message(msg)
+    await remove_prev_message_kb(msg)
     await send_menu(msg.from_user.id)
 
 
 async def cmd_bookmarks(msg: Message, state: FSMContext):
-    await remove_kb_of_prev_message(msg)
-    await send_user_bookmarks(msg.from_user.id, msg.message_id, state)
+    await remove_prev_message_kb(msg)
+    await send_user_bookmarks(msg.from_user.id, state)
 
 
 @rate_limit(1)
 async def process_user_typing(msg: Message, state: FSMContext):
-    await remove_kb_of_prev_message(msg)
+    await remove_prev_message_kb(msg)
     await state.reset_data()
 
     user_input = await preprocess_text(msg.text)
@@ -60,11 +60,8 @@ async def process_user_typing(msg: Message, state: FSMContext):
         if len(user_input) == 1:
             await msg.reply(f"❗ <b>I think there's no necessity to search by one character!)</b>")
         else:
-            if await is_cyrillic(user_input):
-                lang = 'ru'
-                await state.update_data(lang='ru')
-            else:
-                lang = 'en'
+            lang = 'ru' if is_cyrillic(user_input) else 'en'
+            await state.update_data(fsm_lang=lang)
 
             found_comics_list = await comics_db.get_comics_headlines_info_by_title(user_input, lang=lang)
 
@@ -75,7 +72,6 @@ async def process_user_typing(msg: Message, state: FSMContext):
                 found_comics_num = len(found_comics_list)
 
                 if found_comics_num == 1:
-                    print(found_comics_list)
                     await msg.reply(f"❗ <b>I found one:</b>")
                     comic_id = found_comics_list[0].comic_id
                     await send_comic(msg.from_user.id, comic_id=comic_id, comic_lang=lang)
@@ -83,8 +79,8 @@ async def process_user_typing(msg: Message, state: FSMContext):
                     comics_ids = [headline.comic_id for headline in found_comics_list]
                     await msg.reply(f"❗ <b>I found <u><b>{found_comics_num}</b></u> comics:</b>")
                     await send_headlines_as_text(msg.from_user.id, headlines_info=found_comics_list)
-                    await state.update_data(list=list(comics_ids))
-                    await trav_step(msg.from_user.id, msg.message_id, state)
+                    await state.update_data(fsm_list=list(comics_ids))
+                    await trav_step(msg.from_user.id, state)
 
 
 def register_default_commands(dp: Dispatcher):

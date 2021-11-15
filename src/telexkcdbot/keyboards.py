@@ -2,7 +2,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.config import ADMIN_ID
-from src.telexkcdbot.models import ComicData
+from src.telexkcdbot.databases.models import ComicData
 
 
 class Keyboard:

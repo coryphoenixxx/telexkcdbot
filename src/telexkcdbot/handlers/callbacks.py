@@ -11,7 +11,8 @@ from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.common_utils import send_comic
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.xkcd_parser import parser
-from src.telexkcdbot.handlers.handlers_utils import send_menu, send_user_bookmarks, trav_step, trav_stop, suppress_exceptions
+from src.telexkcdbot.handlers.handlers_utils import (send_menu, send_user_bookmarks,
+                                                     trav_step, suppress_exceptions)
 
 
 async def cb_menu(call: CallbackQuery, state: FSMContext):
@@ -37,7 +38,6 @@ async def cb_user_bookmarks(call: CallbackQuery, state: FSMContext):
     with suppress(*suppress_exceptions):
         await call.message.edit_reply_markup() if 'MENU' in call.message.text else await call.message.delete()
     await send_user_bookmarks(call.from_user.id,
-                              call.message.message_id,
                               state,
                               keyboard=await kboard.menu(call.from_user.id))
 
@@ -142,17 +142,22 @@ async def cb_toggle_bookmark_status(call: CallbackQuery, keyboard=kboard.navigat
 
     if 'trav' in call.data:
         keyboard = kboard.traversal
-    await call.message.answer(text, reply_markup=await keyboard(call.from_user.id, comic_data, comic_lang=comic_lang))
+    await call.message.answer(text, reply_markup=await keyboard(call.from_user.id, comic_data, comic_lang))
 
 
 async def cb_trav_step(call: CallbackQuery, state: FSMContext):
     with suppress(*suppress_exceptions):
         await call.message.edit_reply_markup()
-    await trav_step(call.from_user.id, call.message.message_id, state)
+    await trav_step(call.from_user.id, state)
 
 
 async def cb_trav_stop(call: CallbackQuery, state: FSMContext):
-    await trav_stop(call.from_user.id, call.message.message_id, state)
+    user_id = call.from_user.id
+    comic_id, comic_lang = await users_db.get_cur_comic_info(user_id)
+    comic_data = await comics_db.get_comic_data_by_id(comic_id)
+    with suppress(*suppress_exceptions):
+        await call.message.edit_reply_markup(reply_markup=await kboard.navigation(user_id, comic_data, comic_lang))
+    await state.reset_data()
 
 
 def register_callbacks(dp: Dispatcher):
