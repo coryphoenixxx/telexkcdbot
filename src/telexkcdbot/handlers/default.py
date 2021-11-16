@@ -9,9 +9,9 @@ from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.common_utils import preprocess_text
 from src.telexkcdbot.handlers.handlers_utils import (is_cyrillic, send_headlines_as_text, remove_prev_message_kb,
-                                                     send_menu, send_user_bookmarks, trav_step, rate_limit, send_comic)
+                                                     send_menu, send_bookmarks, trav_step, rate_limit, send_comic)
 from src.telexkcdbot.keyboards import kboard
-from src.telexkcdbot.paths import IMG_PATH
+from src.telexkcdbot.config import IMG_PATH
 
 
 @rate_limit(2)
@@ -35,7 +35,7 @@ async def cmd_menu(msg: Message, state: FSMContext):
 
 async def cmd_bookmarks(msg: Message, state: FSMContext):
     await remove_prev_message_kb(msg)
-    await send_user_bookmarks(msg.from_user.id, state)
+    await send_bookmarks(msg.from_user.id, state)
 
 
 @rate_limit(1)
@@ -45,20 +45,21 @@ async def process_user_typing(msg: Message, state: FSMContext):
 
     user_input = await preprocess_text(msg.text)
 
-    # TODO: что если номер в названии?
-
-    if user_input.isdigit():
+    if not user_input:
+        await msg.reply(f"❗ <b>You did it. You broke my search engine. You can be proud of yourself!</b>",
+                        reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
+    elif user_input.isdigit():
         comic_id = int(user_input)
         latest = await comics_db.get_last_comic_id()
 
         if (comic_id > latest) or (comic_id <= 0):
-            await msg.reply(f"❗❗❗\n<b>Please, enter a number from 1 to {latest}!</b>",
+            await msg.reply(f"❗ <b>Please, enter a number from 1 to {latest}!</b>",
                             reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
         else:
             await send_comic(msg.from_user.id, comic_id=comic_id)
     else:
         if len(user_input) == 1:
-            await msg.reply(f"❗ <b>I think there's no necessity to search by one character!)</b>")
+            await msg.reply(f"❗ <b>I think there's no necessity to search by one character!</b>")
         else:
             lang = 'ru' if is_cyrillic(user_input) else 'en'
             await state.update_data(fsm_lang=lang)
@@ -66,7 +67,7 @@ async def process_user_typing(msg: Message, state: FSMContext):
             found_comics_list = await comics_db.get_comics_headlines_info_by_title(user_input, lang=lang)
 
             if not found_comics_list:
-                await msg.reply(f"❗❗❗\n<b>There's no such comic title or command!</b>",
+                await msg.reply(f"❗ <b>There's no such comic title or command!</b>",
                                 reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
             else:
                 found_comics_num = len(found_comics_list)
@@ -79,7 +80,7 @@ async def process_user_typing(msg: Message, state: FSMContext):
                     comics_ids = [headline.comic_id for headline in found_comics_list]
                     await msg.reply(f"❗ <b>I found <u><b>{found_comics_num}</b></u> comics:</b>")
                     await send_headlines_as_text(msg.from_user.id, headlines_info=found_comics_list)
-                    await state.update_data(fsm_list=list(comics_ids))
+                    await state.update_data(fsm_list=comics_ids)
                     await trav_step(msg.from_user.id, state)
 
 

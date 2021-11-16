@@ -10,11 +10,10 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.logger import logger
+from src.telexkcdbot.logger import logger, LOGS_PATH
 from src.telexkcdbot.common_utils import broadcast
 from src.telexkcdbot.handlers.handlers_utils import suppress_exceptions, remove_prev_message_kb
 from src.telexkcdbot.config import ADMIN_ID
-from src.telexkcdbot.paths import LOGS_PATH
 
 
 class Broadcast(StatesGroup):

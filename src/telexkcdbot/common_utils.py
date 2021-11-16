@@ -1,7 +1,7 @@
 import asyncio
 
 from string import ascii_letters, digits
-from typing import Tuple, Union
+from typing import Optional, Callable
 from dataclasses import astuple
 
 from aiogram.types import InputFile, ChatActions
@@ -11,8 +11,9 @@ from src.telexkcdbot.bot import bot
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.config import ADMIN_ID
 from src.telexkcdbot.keyboards import kboard
-from src.telexkcdbot.paths import IMG_PATH, BASE_DIR
+from src.telexkcdbot.config import IMG_PATH, BASE_DIR
 from src.telexkcdbot.logger import logger
+from src.telexkcdbot.xkcd_parser import parser
 from src.telexkcdbot.databases.comics_db import comics_db
 
 
@@ -33,7 +34,7 @@ async def make_headline(comic_id: int, title: str, img_url: str, public_date: st
     return f"<b>{str(comic_id) + '.':7}</b>\"{link}\""
 
 
-async def send_comic(user_id: int, comic_id: int, keyboard=kboard.navigation, comic_lang: str = 'en'):
+async def send_comic(user_id: int, comic_id: int, keyboard: Callable = kboard.navigation, comic_lang: str = 'en'):
     comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang)
 
     (comic_id,
@@ -59,10 +60,7 @@ async def send_comic(user_id: int, comic_id: int, keyboard=kboard.navigation, co
     try:
         if 'http' not in img_url:
             local_img = InputFile(BASE_DIR.joinpath(img_url))
-            if img_url.endswith('.gif'):
-                await bot.send_animation(user_id, animation=local_img, disable_notification=True)
-            else:
-                await bot.send_photo(user_id, photo=local_img, disable_notification=True)
+            await bot.send_photo(user_id, photo=local_img, disable_notification=True)
         elif img_url.endswith(('.png', '.jpg', '.jpeg')):
             await bot.send_photo(user_id, photo=img_url, disable_notification=True)
         elif img_url.endswith('.gif'):
@@ -76,7 +74,7 @@ async def send_comic(user_id: int, comic_id: int, keyboard=kboard.navigation, co
                                text=f"❗❗❗ <b>Couldn't get image. Press on title to view comic in your browser!</b>",
                                disable_web_page_preview=True,
                                disable_notification=True)
-        logger.error(f"Couldn't send {comic_id} to {user_id} comic! {err}")
+        logger.error(f"Couldn't send {comic_id} img to {user_id} comic! {err}")
 
     await bot.send_message(user_id,
                            text=f"<i>{comment}</i>",
@@ -91,7 +89,7 @@ async def preprocess_text(text: str) -> str:
     return processed_text
 
 
-async def broadcast(text: str, comic_id: Union[int, None] = None):  # Make Optional
+async def broadcast(text: str, comic_id: Optional[int] = None):
     count = 0
     all_users_ids = await users_db.get_all_users_ids()  # Uses for delete users
     subscribed_users = await users_db.get_subscribed_users()
@@ -115,3 +113,20 @@ async def broadcast(text: str, comic_id: Union[int, None] = None):  # Make Optio
     finally:
         await bot.send_message(ADMIN_ID, f"❗ <b>{count}/{len(subscribed_users)} messages were successfully sent.</b>")
         logger.info(f"{count}/{len(subscribed_users)} messages were successfully sent")
+
+
+async def get_and_broadcast_new_comic():
+    db_last_comic_id = await comics_db.get_last_comic_id()
+
+    if not db_last_comic_id:  # While Heroku database is down, skip the check
+        return
+
+    real_last_comic_id = await parser.get_xkcd_latest_comic_id()
+
+    if real_last_comic_id > db_last_comic_id:
+        for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
+            comic_data = tuple((await parser.get_en_comic_data_by_id(comic_id)).values()) + ('', '', '', False)
+            await comics_db.add_new_comic(comic_data)
+
+        await broadcast(text="🔥 <b>And here comes the new comic!</b> 🔥",
+                        comic_id=real_last_comic_id)

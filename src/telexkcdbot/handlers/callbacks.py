@@ -11,7 +11,7 @@ from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.common_utils import send_comic
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.xkcd_parser import parser
-from src.telexkcdbot.handlers.handlers_utils import (send_menu, send_user_bookmarks,
+from src.telexkcdbot.handlers.handlers_utils import (send_menu, send_bookmarks, remove_callback_kb,
                                                      trav_step, suppress_exceptions)
 
 
@@ -37,9 +37,9 @@ async def cb_toggle_subscription_status(call: CallbackQuery):
 async def cb_user_bookmarks(call: CallbackQuery, state: FSMContext):
     with suppress(*suppress_exceptions):
         await call.message.edit_reply_markup() if 'MENU' in call.message.text else await call.message.delete()
-    await send_user_bookmarks(call.from_user.id,
-                              state,
-                              keyboard=await kboard.menu(call.from_user.id))
+    await send_bookmarks(call.from_user.id,
+                         state,
+                         keyboard=await kboard.menu(call.from_user.id))
 
 
 async def cb_toggle_lang_btn(call: CallbackQuery):
@@ -52,23 +52,20 @@ async def cb_toggle_lang_btn(call: CallbackQuery):
 
 
 async def cb_start_xkcding(call: CallbackQuery):
-    with suppress(*suppress_exceptions):
-        await call.message.edit_reply_markup()
+    await remove_callback_kb(call)
 
     await send_comic(call.from_user.id, comic_id=1)
 
 
 async def cb_continue_xkcding(call: CallbackQuery):
-    with suppress(*suppress_exceptions):
-        await call.message.edit_reply_markup()
+    await remove_callback_kb(call)
 
     comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
     await send_comic(call.from_user.id, comic_id=comic_id, comic_lang=comic_lang)
 
 
 async def cb_navigation(call: CallbackQuery):
-    with suppress(*suppress_exceptions):
-        await call.message.edit_reply_markup()
+    await remove_callback_kb(call)
 
     comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
     action = call.data.split('_')[1]
@@ -93,8 +90,7 @@ async def cb_navigation(call: CallbackQuery):
 
 
 async def cb_toggle_comic_lang(call: CallbackQuery, keyboard=kboard.navigation):
-    with suppress(*suppress_exceptions):
-        await call.message.edit_reply_markup()
+    await remove_callback_kb(call)
 
     comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
     new_comic_lang = call.data[-2:]
@@ -105,8 +101,7 @@ async def cb_toggle_comic_lang(call: CallbackQuery, keyboard=kboard.navigation):
 
 
 async def cb_explain(call: CallbackQuery, keyboard=kboard.navigation):
-    with suppress(*suppress_exceptions):
-        await call.message.edit_reply_markup()
+    await remove_callback_kb(call)
 
     comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
 
@@ -146,8 +141,7 @@ async def cb_toggle_bookmark_status(call: CallbackQuery, keyboard=kboard.navigat
 
 
 async def cb_trav_step(call: CallbackQuery, state: FSMContext):
-    with suppress(*suppress_exceptions):
-        await call.message.edit_reply_markup()
+    await remove_callback_kb(call)
     await trav_step(call.from_user.id, state)
 
 

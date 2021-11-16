@@ -38,7 +38,7 @@ class UsersDatabase:
 
         await self.pool.execute(query, user_id)
 
-    async def get_cur_comic_info(self, user_id: int) -> (int, str):
+    async def get_cur_comic_info(self, user_id: int) -> tuple[int, str]:
         query = """SELECT cur_comic_info FROM users 
                    WHERE user_id = $1;"""
 
@@ -52,7 +52,7 @@ class UsersDatabase:
         res = await self.pool.fetchval(query)
         return tuple(res) if res else ()
 
-    async def get_user_lang(self, user_id):
+    async def get_user_lang(self, user_id: int) -> str:
         """For handling LANG button"""
         query = """SELECT user_lang FROM users
                    WHERE user_id = $1;"""
@@ -88,7 +88,7 @@ class UsersDatabase:
 
     """BOOKMARKS"""
 
-    async def get_bookmarks(self, user_id: int) -> list:
+    async def get_bookmarks(self, user_id: int) -> list[int]:
         query = """SELECT bookmarks FROM users
                    WHERE user_id = $1;"""
 
@@ -104,7 +104,7 @@ class UsersDatabase:
 
     """SUBSCRIPTION"""
 
-    async def get_subscribed_users(self) -> tuple:
+    async def get_subscribed_users(self) -> tuple[int]:
         query = """SELECT array_agg(user_id) FROM users
                    WHERE is_subscribed = 1;"""
 

@@ -6,8 +6,10 @@ from tqdm import trange, tqdm
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.xkcd_parser import parser
 from src.telexkcdbot.logger import logger
-from src.telexkcdbot.paths import PATH_TO_RU_COMICS_DATA
+from src.telexkcdbot.config import BASE_DIR
 
+
+PATH_TO_RU_COMICS_DATA = BASE_DIR.joinpath('static/ru_comics_data')
 
 buffer = []
 sem = asyncio.Semaphore(64)  # Limits simultaneous connections on Windows
@@ -40,25 +42,26 @@ async def get_ru_comic_data_by_id(comic_id: int) -> dict:
         return ru_comics_data[str(comic_id)]
 
 
-async def get_full_comic_data(comic_id: int) -> tuple:
-    full_comic_data = await parser.get_en_comic_data_by_id(comic_id)
-    full_comic_data.update(await get_ru_comic_data_by_id(comic_id))
-    return tuple(full_comic_data.values())
+async def get_total_comic_data(comic_id: int) -> tuple:
+    en_comic_data = await parser.get_en_comic_data_by_id(comic_id)
+    ru_comic_data = await get_ru_comic_data_by_id(comic_id)
+    total_comic_data = dict(en_comic_data, **ru_comic_data)
+    return tuple(total_comic_data.values())
 
 
-async def put_comics_data_to_buffer(comic_id):
+async def put_comics_data_to_buffer(comic_id: int):
     async with sem:
-        comic_data = await get_full_comic_data(comic_id)
+        comic_data = await get_total_comic_data(comic_id)
     buffer.append(comic_data)
 
 
 async def write_to_db():
-    buffer.sort(key=lambda x: x[0])
+    buffer.sort(key=lambda x: x[0])  # sort comics by comic_id
     while buffer:
         await comics_db.add_new_comic(buffer.pop(0))
 
 
-async def gather(start, end, all_comics_ids):
+async def gather(start: int, end: int, all_comics_ids: tuple[int]):
     tasks = []
     for comic_id in range(start, end):
         if comic_id not in all_comics_ids:
@@ -71,7 +74,6 @@ async def gather(start, end, all_comics_ids):
 async def initial_filling_of_comics_db():
     logger.info("Retrieving ru comics data from csv started...")
     retrieve_from_csv_to_dict()
-    logger.info("Retrieving ru comics data from csv finished!")
 
     logger.info("Filling the comics db started...")
     all_comics_ids = await comics_db.get_all_comics_ids()
@@ -85,7 +87,7 @@ async def initial_filling_of_comics_db():
 
         await gather(i, end, all_comics_ids)
         await write_to_db()
-    logger.info("Filling the comics db finished!")
+    logger.info("Finished!")
 
     global ru_comics_data
     del ru_comics_data

@@ -158,3 +158,5 @@ redis/
 .idea/sqldialects.xml
 .idea/workspace.xml
 /.idea/csv-plugin.xml
+/TODO.py
+/mypy.cfg

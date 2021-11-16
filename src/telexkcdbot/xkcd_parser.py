@@ -4,13 +4,14 @@ import aiohttp
 from datetime import date
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
+from typing import Union, Any
 
 from src.telexkcdbot.logger import logger
 
 
 class Parser:
-    _specific_comic_ids: set = {826, 880, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350, 1416,
-                                1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
+    _specific_comic_ids: set = {498, 826, 880, 887, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350,
+                                1416, 1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
 
     @staticmethod
     async def get_xkcd_latest_comic_id() -> int:
@@ -33,7 +34,7 @@ class Parser:
         return url
 
     @staticmethod
-    async def _get_soup(url: str) -> BeautifulSoup:
+    async def _get_soup(url: str) -> Union[BeautifulSoup, None]:
         attempts = 3
         for _ in range(attempts):
             async with aiohttp.ClientSession() as session:
@@ -46,10 +47,9 @@ class Parser:
                     if response.ok:
                         content = await response.content.read()
                         return BeautifulSoup(content, 'lxml')
-
         logger.error(f"Couldn't get soup for {url} after 3 attempts!")
 
-    async def get_en_comic_data_by_id(self, comic_id: int) -> dict:
+    async def get_en_comic_data_by_id(self, comic_id: int) -> dict[str, Any]:
         if comic_id == 404:  # 404 comic doesn't exist
             return {'comic_id': comic_id,
                     'title': '404',

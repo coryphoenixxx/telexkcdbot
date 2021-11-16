@@ -1,7 +1,7 @@
 import asyncpg
 
 from src.telexkcdbot.databases.models import ComicData, ComicHeadlineInfo
-from typing import List
+from typing import Any
 
 
 class ComicsDatabase:
@@ -27,7 +27,7 @@ class ComicsDatabase:
         await self.pool.execute(query)
 
     @staticmethod
-    async def records_to_headlines_info(records: List[asyncpg.Record], title_col: str, img_url_col: str):
+    async def records_to_headlines_info(records: list[asyncpg.Record], title_col: str, img_url_col: str) -> list[ComicHeadlineInfo]:
         headlines_info = []
         for record in records:
             headline_info = ComicHeadlineInfo(comic_id=record['comic_id'],
@@ -36,7 +36,7 @@ class ComicsDatabase:
             headlines_info.append(headline_info)
         return headlines_info
 
-    async def add_new_comic(self, comic_values: tuple):
+    async def add_new_comic(self, comic_values: tuple[Any]):
         query = """INSERT INTO comics (comic_id,
                                        title,
                                        img_url,
@@ -52,7 +52,7 @@ class ComicsDatabase:
 
         await self.pool.execute(query, *comic_values)
 
-    async def get_all_comics_ids(self) -> tuple:
+    async def get_all_comics_ids(self) -> tuple[int]:
         query = """SELECT array_agg(comic_id) FROM comics;"""
 
         res = await self.pool.fetchval(query)
@@ -66,7 +66,7 @@ class ComicsDatabase:
         res = await self.pool.fetchval(query)
         return res
 
-    async def get_comic_data_by_id(self, comic_id: int, comic_lang='en') -> ComicData:
+    async def get_comic_data_by_id(self, comic_id: int, comic_lang: str = 'en') -> ComicData:
         assert comic_lang in ('ru', 'en')
         title_col, img_url_col = ('title', 'img_url') if comic_lang == 'en' else ('ru_title', 'ru_img_url')
 
@@ -79,11 +79,9 @@ class ComicsDatabase:
         comic_data = ComicData(*res)
         return comic_data
 
-    async def get_comics_headlines_info_by_title(self, title: str, lang: str = 'en') -> List[ComicHeadlineInfo]:
+    async def get_comics_headlines_info_by_title(self, title: str, lang: str = 'en') -> list[ComicHeadlineInfo]:
         assert lang in ('ru', 'en')
 
-        # TODO: не находит RTL
-        # TODO: по superm не находит Bird/Plane/Superman
         title_col, img_url_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
         query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
 
@@ -103,13 +101,14 @@ class ComicsDatabase:
                                                     title_col,
                                                     img_url_col)
 
-    async def get_comics_headlines_info_by_ids(self, ids: list, lang: str = 'en') -> List[ComicHeadlineInfo]:
+    async def get_comics_headlines_info_by_ids(self, ids: list, lang: str = 'en') -> list[ComicHeadlineInfo]:
         assert lang in ('ru', 'en')
+        assert len(ids) > 1
 
         title_col, img_url_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
 
         query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
-                    WHERE comic_id in {tuple(ids)}"""
+                    WHERE comic_id in {tuple(ids)};"""
 
         res = await self.pool.fetch(query)
         headlines_info = await self.records_to_headlines_info(res, title_col, img_url_col)
