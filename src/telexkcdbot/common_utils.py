@@ -1,24 +1,29 @@
 import asyncio
 
 from string import ascii_letters, digits
-from typing import Optional, Callable
+from typing import Optional, Callable, Generator, Iterable
 from dataclasses import astuple
 
 from aiogram.types import InputFile, ChatActions
 from aiogram.utils.exceptions import BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated, ChatNotFound
 
 from src.telexkcdbot.bot import bot
-from src.telexkcdbot.databases.users_db import users_db
-from src.telexkcdbot.config import ADMIN_ID
+from src.telexkcdbot.config import ADMIN_ID, IMG_PATH, BASE_DIR
 from src.telexkcdbot.keyboards import kboard
-from src.telexkcdbot.config import IMG_PATH, BASE_DIR
 from src.telexkcdbot.logger import logger
-from src.telexkcdbot.xkcd_parser import parser
+from src.telexkcdbot.comic_data_getter import comic_data_getter
+from src.telexkcdbot.models import TotalComicData
+from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 
 
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
 punctuation = ' -(),.:;!?#+'
+
+
+def cut_into_chunks(lst: list, chunk_size: int) -> Generator[list, None, None]:
+    for i in range(0, len(lst), chunk_size):
+        yield lst[i:i + chunk_size]
 
 
 async def make_headline(comic_id: int, title: str, img_url: str, public_date: str = '') -> str:
@@ -118,15 +123,19 @@ async def broadcast(text: str, comic_id: Optional[int] = None):
 async def get_and_broadcast_new_comic():
     db_last_comic_id = await comics_db.get_last_comic_id()
 
-    if not db_last_comic_id:  # While Heroku database is down, skip the check
+    if not db_last_comic_id:  # If Heroku database is down, skip the check
         return
 
-    real_last_comic_id = await parser.get_xkcd_latest_comic_id()
+    real_last_comic_id = await comic_data_getter.get_xkcd_latest_comic_id()
 
     if real_last_comic_id > db_last_comic_id:
         for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
-            comic_data = tuple((await parser.get_en_comic_data_by_id(comic_id)).values()) + ('', '', '', False)
-            await comics_db.add_new_comic(comic_data)
+            xkcd_comic_data = await comic_data_getter.get_xkcd_comic_data_by_id(comic_id)
+            await comics_db.add_new_comic(TotalComicData(comic_id=xkcd_comic_data.comic_id,
+                                                         title=xkcd_comic_data.title,
+                                                         img_url=xkcd_comic_data.img_url,
+                                                         comment=xkcd_comic_data.comment,
+                                                         public_date=xkcd_comic_data.public_date))
 
         await broadcast(text="🔥 <b>And here comes the new comic!</b> 🔥",
                         comic_id=real_last_comic_id)

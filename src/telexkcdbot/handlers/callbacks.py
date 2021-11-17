@@ -1,18 +1,18 @@
 from random import randint
+from contextlib import suppress
 
 from aiogram import Dispatcher
 from aiogram.types import CallbackQuery
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from contextlib import suppress
 
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.common_utils import send_comic
 from src.telexkcdbot.keyboards import kboard
-from src.telexkcdbot.xkcd_parser import parser
+from src.telexkcdbot.comic_data_getter import comic_data_getter
 from src.telexkcdbot.handlers.handlers_utils import (send_menu, send_bookmarks, remove_callback_kb,
-                                                     trav_step, suppress_exceptions)
+                                                     flip_next, suppress_exceptions, remove_explain_or_bot_msg)
 
 
 async def cb_menu(call: CallbackQuery, state: FSMContext):
@@ -37,9 +37,8 @@ async def cb_toggle_subscription_status(call: CallbackQuery):
 async def cb_user_bookmarks(call: CallbackQuery, state: FSMContext):
     with suppress(*suppress_exceptions):
         await call.message.edit_reply_markup() if 'MENU' in call.message.text else await call.message.delete()
-    await send_bookmarks(call.from_user.id,
-                         state,
-                         keyboard=await kboard.menu(call.from_user.id))
+
+    await send_bookmarks(call.from_user.id, state, keyboard=await kboard.menu(call.from_user.id))
 
 
 async def cb_toggle_lang_btn(call: CallbackQuery):
@@ -73,18 +72,13 @@ async def cb_navigation(call: CallbackQuery):
 
     actions = {
         'first': 1,
-        'prev': comic_id - 1,
+        'prev': comic_id + 1 if comic_id - 1 > 0 else latest,
         'random': randint(1, latest),
-        'next': comic_id + 1,
+        'next': comic_id + 1 if comic_id + 1 <= latest else 1,
         'last': latest
     }
 
     new_comic_id = actions.get(action)
-
-    if new_comic_id <= 0:
-        new_comic_id = latest
-    elif new_comic_id > latest:
-        new_comic_id = 1
 
     await send_comic(call.from_user.id, comic_id=new_comic_id)
 
@@ -95,31 +89,28 @@ async def cb_toggle_comic_lang(call: CallbackQuery, keyboard=kboard.navigation):
     comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
     new_comic_lang = call.data[-2:]
 
-    if 'trav' in call.data:
-        keyboard = kboard.traversal
+    if 'flip' in call.data:
+        keyboard = kboard.flipping
     await send_comic(call.from_user.id, comic_id=comic_id, keyboard=keyboard, comic_lang=new_comic_lang)
 
 
 async def cb_explain(call: CallbackQuery, keyboard=kboard.navigation):
-    await remove_callback_kb(call)
+    await remove_explain_or_bot_msg(call)
 
     comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
-
-    text = await parser.get_explanation(comic_id)
-
-    if 'trav' in call.data:
-        keyboard = kboard.traversal
-
+    text = await comic_data_getter.get_explanation(comic_id)
     comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang)
 
+    if 'flip' in call.data:
+        keyboard = kboard.flipping
     await call.message.answer(text,
-                              reply_markup=await keyboard(call.from_user.id, comic_data, comic_lang=comic_lang),
-                              disable_web_page_preview=True)
+                              reply_markup=await keyboard(call.from_user.id, comic_data, comic_lang),
+                              disable_web_page_preview=True,
+                              disable_notification=True)
 
 
 async def cb_toggle_bookmark_status(call: CallbackQuery, keyboard=kboard.navigation):
-    with suppress(*suppress_exceptions):
-        await call.message.delete() if 'your bookmarks' in call.message.text else await call.message.edit_reply_markup()
+    await remove_explain_or_bot_msg(call)
 
     comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
     user_bookmarks_list = await users_db.get_bookmarks(call.from_user.id)
@@ -135,17 +126,17 @@ async def cb_toggle_bookmark_status(call: CallbackQuery, keyboard=kboard.navigat
 
     comic_data = await comics_db.get_comic_data_by_id(comic_id)
 
-    if 'trav' in call.data:
-        keyboard = kboard.traversal
+    if 'flip' in call.data:
+        keyboard = kboard.flipping
     await call.message.answer(text, reply_markup=await keyboard(call.from_user.id, comic_data, comic_lang))
 
 
-async def cb_trav_step(call: CallbackQuery, state: FSMContext):
+async def cb_flip_next(call: CallbackQuery, state: FSMContext):
     await remove_callback_kb(call)
-    await trav_step(call.from_user.id, state)
+    await flip_next(call.from_user.id, state)
 
 
-async def cb_trav_stop(call: CallbackQuery, state: FSMContext):
+async def cb_flip_break(call: CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
     comic_id, comic_lang = await users_db.get_cur_comic_info(user_id)
     comic_data = await comics_db.get_comic_data_by_id(comic_id)
@@ -162,8 +153,8 @@ def register_callbacks(dp: Dispatcher):
     dp.register_callback_query_handler(cb_start_xkcding, Text('start_xkcding'))
     dp.register_callback_query_handler(cb_continue_xkcding, Text('continue_xkcding'))
     dp.register_callback_query_handler(cb_navigation, Text(startswith='nav_'))
-    dp.register_callback_query_handler(cb_toggle_comic_lang, Text(equals=('ru', 'trav_ru', 'en', 'trav_en')))
-    dp.register_callback_query_handler(cb_explain, Text(equals=('explain', 'trav_explain')))
+    dp.register_callback_query_handler(cb_toggle_comic_lang, Text(equals=('ru', 'flip_ru', 'en', 'flip_en')))
+    dp.register_callback_query_handler(cb_explain, Text(equals=('explain', 'flip_explain')))
     dp.register_callback_query_handler(cb_toggle_bookmark_status, Text(endswith='bookmark'))
-    dp.register_callback_query_handler(cb_trav_step, Text('trav_step'))
-    dp.register_callback_query_handler(cb_trav_stop, Text('trav_stop'))
+    dp.register_callback_query_handler(cb_flip_next, Text('flip_next'))
+    dp.register_callback_query_handler(cb_flip_break, Text('flip_break'))

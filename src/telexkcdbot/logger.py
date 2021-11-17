@@ -1,4 +1,5 @@
 from loguru import logger
+
 from src.telexkcdbot.config import BASE_DIR
 
 

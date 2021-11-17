@@ -9,15 +9,14 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from src.telexkcdbot.config import HEROKU, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL, PORT, ADMIN_ID, DATABASE_URL
 from src.telexkcdbot.common_utils import get_and_broadcast_new_comic
 from src.telexkcdbot.bot import bot
-from src.telexkcdbot.databases.fill_comics_db import initial_filling_of_comics_db
 from src.telexkcdbot.logger import logger
 from src.telexkcdbot.handlers.admin import register_admin_handlers
 from src.telexkcdbot.handlers.callbacks import register_callbacks
 from src.telexkcdbot.handlers.default import register_default_commands
-
+from src.telexkcdbot.databases.fill_comics_db import initial_filling_of_comics_db
+from src.telexkcdbot.middlewares.big_brother import BigBrother
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.middlewares.big_brother import BigBrother
 
 
 async def checker():
@@ -25,7 +24,7 @@ async def checker():
     aioschedule.every(10).minutes.do(get_and_broadcast_new_comic)
     while True:
         await aioschedule.run_pending()
-        await asyncio.sleep(300)
+        await asyncio.sleep(60)
 
 
 async def on_startup(dp: Dispatcher):
@@ -57,7 +56,6 @@ if __name__ == "__main__":
     register_default_commands(dp)
 
     pool = loop.run_until_complete(create_pool(DATABASE_URL))
-
     loop.run_until_complete(users_db.create(pool))
     loop.run_until_complete(comics_db.create(pool))
 

@@ -9,7 +9,7 @@ from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.common_utils import preprocess_text
 from src.telexkcdbot.handlers.handlers_utils import (is_cyrillic, send_headlines_as_text, remove_prev_message_kb,
-                                                     send_menu, send_bookmarks, trav_step, rate_limit, send_comic)
+                                                     send_menu, send_bookmarks, flip_next, rate_limit, send_comic)
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.config import IMG_PATH
 
@@ -35,7 +35,7 @@ async def cmd_menu(msg: Message, state: FSMContext):
 
 async def cmd_bookmarks(msg: Message, state: FSMContext):
     await remove_prev_message_kb(msg)
-    await send_bookmarks(msg.from_user.id, state)
+    await send_bookmarks(msg.from_user.id, state, keyboard=await kboard.menu_or_xkcding(msg.from_user.id))
 
 
 @rate_limit(1)
@@ -81,7 +81,8 @@ async def process_user_typing(msg: Message, state: FSMContext):
                     await msg.reply(f"❗ <b>I found <u><b>{found_comics_num}</b></u> comics:</b>")
                     await send_headlines_as_text(msg.from_user.id, headlines_info=found_comics_list)
                     await state.update_data(fsm_list=comics_ids)
-                    await trav_step(msg.from_user.id, state)
+                    await msg.answer("❗ <b>Now you can flip through the comics:</b>")
+                    await flip_next(msg.from_user.id, state)
 
 
 def register_default_commands(dp: Dispatcher):

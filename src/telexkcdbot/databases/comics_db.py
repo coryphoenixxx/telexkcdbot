@@ -1,7 +1,8 @@
 import asyncpg
 
-from src.telexkcdbot.databases.models import ComicData, ComicHeadlineInfo
-from typing import Any
+from dataclasses import astuple
+
+from src.telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
 
 
 class ComicsDatabase:
@@ -27,7 +28,9 @@ class ComicsDatabase:
         await self.pool.execute(query)
 
     @staticmethod
-    async def records_to_headlines_info(records: list[asyncpg.Record], title_col: str, img_url_col: str) -> list[ComicHeadlineInfo]:
+    async def records_to_headlines_info(records: list[asyncpg.Record],
+                                        title_col: str,
+                                        img_url_col: str) -> list[ComicHeadlineInfo]:
         headlines_info = []
         for record in records:
             headline_info = ComicHeadlineInfo(comic_id=record['comic_id'],
@@ -36,7 +39,7 @@ class ComicsDatabase:
             headlines_info.append(headline_info)
         return headlines_info
 
-    async def add_new_comic(self, comic_values: tuple[Any]):
+    async def add_new_comic(self, comic_data: TotalComicData):
         query = """INSERT INTO comics (comic_id,
                                        title,
                                        img_url,
@@ -50,7 +53,7 @@ class ComicsDatabase:
                    VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
                    ON CONFLICT (comic_id) DO NOTHING;"""
 
-        await self.pool.execute(query, *comic_values)
+        await self.pool.execute(query, *astuple(comic_data))
 
     async def get_all_comics_ids(self) -> tuple[int]:
         query = """SELECT array_agg(comic_id) FROM comics;"""

@@ -160,3 +160,4 @@ redis/
 /.idea/csv-plugin.xml
 /TODO.py
 /mypy.cfg
+/.idea/mypy.xml

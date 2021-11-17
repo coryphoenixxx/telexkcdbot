@@ -19,7 +19,7 @@ multidict==5.1.0
 newrelic==6.8.0.163
 pytz==2021.1
 soupsieve==2.2.1
-tqdm==4.62.1
+tqdm==4.62.3
 typing-extensions==3.10.0.0
 urllib3==1.26.6
 win32-setctime==1.0.3

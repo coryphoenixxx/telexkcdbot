@@ -92,8 +92,9 @@ class UsersDatabase:
         query = """SELECT bookmarks FROM users
                    WHERE user_id = $1;"""
 
-        res = await self.pool.fetchval(query, user_id)
-        return json.loads(res)
+        res = await self.pool.fetchrow(query, user_id)
+
+        return json.loads(res['bookmarks'])
 
     async def update_bookmarks(self, user_id: int, new_bookmarks: list):
         query = """UPDATE users SET bookmarks = $1

@@ -1,25 +1,20 @@
 import asyncio
 
+from contextlib import suppress
+
 from aiogram.dispatcher import FSMContext
 from aiogram.utils.exceptions import MessageNotModified, MessageToEditNotFound, MessageCantBeEdited
-from aiogram.types import Message, CallbackQuery
-from contextlib import suppress
-from typing import Callable, Generator
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup
 
 from src.telexkcdbot.bot import bot
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.common_utils import send_comic, cyrillic, punctuation, make_headline
+from src.telexkcdbot.common_utils import send_comic, cyrillic, punctuation, make_headline, cut_into_chunks
 from src.telexkcdbot.keyboards import kboard
-from src.telexkcdbot.databases.models import ComicHeadlineInfo
+from src.telexkcdbot.models import ComicHeadlineInfo
 
 
 suppress_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
-
-
-def cut_into_chunks(lst: list, n: int) -> Generator[list, None, None]:
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
 
 
 async def remove_prev_message_kb(msg: Message):
@@ -30,6 +25,14 @@ async def remove_prev_message_kb(msg: Message):
 async def remove_callback_kb(call: CallbackQuery):
     with suppress(*suppress_exceptions):
         await call.message.edit_reply_markup()
+
+
+async def remove_explain_or_bot_msg(call: CallbackQuery):
+    with suppress(*suppress_exceptions):
+        if any(x in call.message.text for x in {'FULL TEXT', '❗'}):
+            await call.message.delete()
+        else:
+            await call.message.edit_reply_markup()
 
 
 def is_cyrillic(text: str) -> bool:
@@ -48,15 +51,12 @@ async def send_headlines_as_text(user_id: int, headlines_info: list[ComicHeadlin
         await asyncio.sleep(1)
 
 
-async def send_bookmarks(user_id: int, state: FSMContext, keyboard: Callable = None):
+async def send_bookmarks(user_id: int, state: FSMContext, keyboard: InlineKeyboardMarkup):
     bookmarks = await users_db.get_bookmarks(user_id)
 
     if not bookmarks:
         text = f"❗ <b>You have no bookmarks.\nYou can bookmark a comic with the ❤ press.</b>"
-        if keyboard:
-            await bot.send_message(user_id, text, reply_markup=keyboard)
-        else:
-            await bot.send_message(user_id, text, reply_markup=await kboard.menu_or_xkcding(user_id))
+        await bot.send_message(user_id, text, reply_markup=keyboard)
     elif len(bookmarks) == 1:
         await bot.send_message(user_id, f"❗ <b>You have one:</b>")
         await send_comic(user_id, comic_id=bookmarks[0])
@@ -65,7 +65,7 @@ async def send_bookmarks(user_id: int, state: FSMContext, keyboard: Callable = N
         headlines_info = await comics_db.get_comics_headlines_info_by_ids(bookmarks)
         await send_headlines_as_text(user_id, headlines_info=headlines_info)
         await state.update_data(fsm_list=bookmarks)
-        await trav_step(user_id, state)
+        await flip_next(user_id, state)
 
 
 async def send_menu(user_id: int):
@@ -87,11 +87,10 @@ If the sound of the notification annoys you, you can <b><u>mute</u></b> the tele
 
 ❗❗❗
 If something goes wrong or looks strange try to view a comic in your browser <i>(I'll give you a link)</i>."""
-
     await bot.send_message(user_id, help_text, reply_markup=await kboard.menu(user_id), disable_notification=True)
 
 
-async def trav_step(user_id: int, state: FSMContext):
+async def flip_next(user_id: int, state: FSMContext):
     fsm_list = (await state.get_data()).get('fsm_list')
     fsm_lang = (await state.get_data()).get('fsm_lang')
     comic_lang = 'en' if not fsm_lang else fsm_lang
@@ -100,7 +99,7 @@ async def trav_step(user_id: int, state: FSMContext):
     await state.update_data(fsm_list=fsm_list)
 
     if fsm_list:
-        await send_comic(user_id, comic_id=comic_id, keyboard=kboard.traversal, comic_lang=comic_lang)
+        await send_comic(user_id, comic_id=comic_id, keyboard=kboard.flipping, comic_lang=comic_lang)
     else:
         await bot.send_message(user_id, text="❗ <b>The last one:</b>")
         await send_comic(user_id, comic_id=comic_id, keyboard=kboard.navigation, comic_lang=comic_lang)

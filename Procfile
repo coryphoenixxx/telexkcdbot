@@ -1,1 +1,1 @@
-web: newrelic-admin run-program python src/bot/app.py
+web: newrelic-admin run-program python src/telexkcdbot/__main__.py
