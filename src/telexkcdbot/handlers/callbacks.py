@@ -59,41 +59,41 @@ async def cb_start_xkcding(call: CallbackQuery):
 async def cb_continue_xkcding(call: CallbackQuery):
     await remove_callback_kb(call)
 
-    comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
-    await send_comic(call.from_user.id, comic_id=comic_id, comic_lang=comic_lang)
+    last_comic_id, last_comic_lang = await users_db.get_last_comic_info(call.from_user.id)
+    await send_comic(call.from_user.id, comic_id=last_comic_id, comic_lang=last_comic_lang)
 
 
 async def cb_navigation(call: CallbackQuery):
     await remove_callback_kb(call)
 
-    cur_comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
     action = call.data.split('_')[1]
-    new_comic_id = await calc_new_comic_id(call.from_user.id, cur_comic_id, action)
+    last_comic_id, _ = await users_db.get_last_comic_info(call.from_user.id)
+    new_comic_id = await calc_new_comic_id(call.from_user.id, last_comic_id, action)
     await send_comic(call.from_user.id, comic_id=new_comic_id)
 
 
 async def cb_toggle_comic_lang(call: CallbackQuery, keyboard=kboard.navigation):
     await remove_callback_kb(call)
 
-    comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
+    last_comic_id, last_comic_lang = await users_db.get_last_comic_info(call.from_user.id)
     new_comic_lang = call.data[-2:]
 
     if 'flip' in call.data:
         keyboard = kboard.flipping
-    await send_comic(call.from_user.id, comic_id=comic_id, keyboard=keyboard, comic_lang=new_comic_lang)
+    await send_comic(call.from_user.id, comic_id=last_comic_id, keyboard=keyboard, comic_lang=new_comic_lang)
 
 
 async def cb_explain(call: CallbackQuery, keyboard=kboard.navigation):
     await remove_explain_or_bot_msg(call)
 
-    comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
-    text = await comic_data_getter.get_explanation(comic_id)
-    comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang)
+    last_comic_id, last_comic_lang = await users_db.get_last_comic_info(call.from_user.id)
+    text = await comic_data_getter.get_explanation(last_comic_id)
+    comic_data = await comics_db.get_comic_data_by_id(last_comic_id, last_comic_lang)
 
     if 'flip' in call.data:
         keyboard = kboard.flipping
     await call.message.answer(text,
-                              reply_markup=await keyboard(call.from_user.id, comic_data, comic_lang),
+                              reply_markup=await keyboard(call.from_user.id, comic_data, last_comic_lang),
                               disable_web_page_preview=True,
                               disable_notification=True)
 
@@ -101,23 +101,23 @@ async def cb_explain(call: CallbackQuery, keyboard=kboard.navigation):
 async def cb_toggle_bookmark_status(call: CallbackQuery, keyboard=kboard.navigation):
     await remove_explain_or_bot_msg(call)
 
-    comic_id, comic_lang = await users_db.get_cur_comic_info(call.from_user.id)
+    last_comic_id, last_comic_lang = await users_db.get_last_comic_info(call.from_user.id)
     user_bookmarks_list = await users_db.get_bookmarks(call.from_user.id)
 
-    if comic_id in user_bookmarks_list:
-        user_bookmarks_list.remove(comic_id)
-        text = f"❗ <b>Comic №{comic_id} has been <u>removed</u> from your bookmarks!</b>"
+    if last_comic_id in user_bookmarks_list:
+        user_bookmarks_list.remove(last_comic_id)
+        text = f"❗ <b>Comic №{last_comic_id} has been <u>removed</u> from your bookmarks!</b>"
     else:
-        user_bookmarks_list.append(comic_id)
-        text = f"❗ <b>Comic №{comic_id} has been <u>added</u> to your bookmarks!</b>"
+        user_bookmarks_list.append(last_comic_id)
+        text = f"❗ <b>Comic №{last_comic_id} has been <u>added</u> to your bookmarks!</b>"
 
     await users_db.update_bookmarks(call.from_user.id, user_bookmarks_list)
 
-    comic_data = await comics_db.get_comic_data_by_id(comic_id)
+    comic_data = await comics_db.get_comic_data_by_id(last_comic_id)
 
     if 'flip' in call.data:
         keyboard = kboard.flipping
-    await call.message.answer(text, reply_markup=await keyboard(call.from_user.id, comic_data, comic_lang))
+    await call.message.answer(text, reply_markup=await keyboard(call.from_user.id, comic_data, last_comic_lang))
 
 
 async def cb_flip_next(call: CallbackQuery, state: FSMContext):
@@ -127,10 +127,10 @@ async def cb_flip_next(call: CallbackQuery, state: FSMContext):
 
 async def cb_flip_break(call: CallbackQuery, state: FSMContext):
     user_id = call.from_user.id
-    comic_id, comic_lang = await users_db.get_cur_comic_info(user_id)
-    comic_data = await comics_db.get_comic_data_by_id(comic_id)
+    last_comic_id, last_comic_lang = await users_db.get_last_comic_info(user_id)
+    comic_data = await comics_db.get_comic_data_by_id(last_comic_id)
     with suppress(*suppress_exceptions):
-        await call.message.edit_reply_markup(reply_markup=await kboard.navigation(user_id, comic_data, comic_lang))
+        await call.message.edit_reply_markup(reply_markup=await kboard.navigation(user_id, comic_data, last_comic_lang))
     await state.reset_data()
 
 

@@ -71,9 +71,12 @@ class ComicsDatabase:
 
     async def get_comic_data_by_id(self, comic_id: int, comic_lang: str = 'en') -> ComicData:
         assert comic_lang in ('ru', 'en')
-        title_col, img_url_col = ('title', 'img_url') if comic_lang == 'en' else ('ru_title', 'ru_img_url')
 
-        query = f"""SELECT comic_id, {title_col}, {img_url_col}, comment, public_date, is_specific, has_ru_translation 
+        title_col, img_url_col, comment_col = ('title', 'img_url', 'comment') if comic_lang == 'en' \
+            else ('ru_title', 'ru_img_url', 'ru_comment')
+
+        query = f"""SELECT comic_id, {title_col}, {img_url_col}, {comment_col}, 
+                           public_date, is_specific, has_ru_translation 
                     FROM comics
                     WHERE comic_id = $1;"""
 

@@ -40,8 +40,19 @@ async def make_headline(comic_id: int, title: str, img_url: str, public_date: st
 
 
 async def send_comic(user_id: int, comic_id: int, keyboard: Callable = kboard.navigation, comic_lang: str = 'en'):
-    comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang)
+    ru_ids = await comics_db.get_all_ru_comics_ids()
+    only_ru = await users_db.get_only_ru_mode_status(user_id)
+    last_comic_id, last_comic_lang = await users_db.get_last_comic_info(user_id)
 
+    if only_ru and comic_id in ru_ids:
+        if last_comic_id == comic_id and last_comic_lang == 'ru':
+            comic_lang = 'en'
+        else:
+            comic_lang = 'ru'
+
+    await users_db.update_last_comic_info(user_id, comic_id, comic_lang)
+
+    comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang)
     (comic_id,
      title,
      img_url,
@@ -49,8 +60,6 @@ async def send_comic(user_id: int, comic_id: int, keyboard: Callable = kboard.na
      public_date,
      is_specific,
      has_ru_translation) = astuple(comic_data)
-
-    await users_db.update_cur_comic_info(user_id, comic_id, comic_lang)
 
     headline = await make_headline(comic_id, title, img_url, public_date)
 

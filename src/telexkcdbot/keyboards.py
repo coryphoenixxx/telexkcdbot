@@ -70,14 +70,14 @@ class Keyboard:
         return row
 
     async def menu(self, user_id: int) -> InlineKeyboardMarkup:
-        comic_id, _ = await users_db.get_cur_comic_info(user_id)
+        last_comic_id, _ = await users_db.get_last_comic_info(user_id)
         lang_btn_enabled = await users_db.get_lang_btn_status(user_id)
         notification_sound = await users_db.get_notification_sound_status(user_id)
         only_ru_mode = await users_db.get_only_ru_mode_status(user_id)
 
         lang_action_btn_key = 'remove_lang_btn' if lang_btn_enabled else 'add_lang_btn'
         notification_sound_btn_key = 'notification_sound_off' if notification_sound else 'notification_sound_on'
-        xkcding_btn_key = 'start_xkcding' if comic_id == 0 else 'continue_xkcding'
+        xkcding_btn_key = 'start_xkcding' if last_comic_id == 0 else 'continue_xkcding'
         only_ru_mode_btn_key = 'only_ru_mode_off' if only_ru_mode else 'only_ru_mode_on'
 
         btns_keys = [notification_sound_btn_key, only_ru_mode_btn_key, 'user_bookmarks',
@@ -116,15 +116,15 @@ class Keyboard:
         return await self._create_keyboard(btns_keys, row_width=row_width)
 
     async def menu_or_xkcding(self, user_id: int) -> InlineKeyboardMarkup:
-        comic_id, _ = await users_db.get_cur_comic_info(user_id)
+        last_comic_id, _ = await users_db.get_last_comic_info(user_id)
 
-        xkcding_btn_key = 'start_xkcding' if comic_id == 0 else 'continue_xkcding'
+        xkcding_btn_key = 'start_xkcding' if last_comic_id == 0 else 'continue_xkcding'
         btns_keys = ['menu', xkcding_btn_key]
         return await self._create_keyboard(btns_keys, row_width=2)
 
     async def admin_panel(self) -> InlineKeyboardMarkup:
-        comic_id, _ = await users_db.get_cur_comic_info(ADMIN_ID)
-        xkcding_btn_key = 'start_xkcding' if comic_id == 0 else 'continue_xkcding'
+        last_comic_id, _ = await users_db.get_last_comic_info(ADMIN_ID)
+        xkcding_btn_key = 'start_xkcding' if last_comic_id == 0 else 'continue_xkcding'
 
         btns_keys = ['users_info', 'change_spec_status', 'send_actions',
                      'send_errors', 'broadcast_admin_msg', xkcding_btn_key]

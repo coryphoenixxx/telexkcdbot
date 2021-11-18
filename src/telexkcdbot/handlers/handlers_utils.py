@@ -129,7 +129,7 @@ async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
         return 1
     else:
         if only_ru_mode:
-            ru_ids = await comics_db.get_all_ru_comics_ids()
+            ru_ids = sorted(await comics_db.get_all_ru_comics_ids())
             actions = {
                 'prev': find_closest(ru_ids, action, comic_id),
                 'random': random.choice(ru_ids),

@@ -35,10 +35,10 @@ async def cb_toggle_spec_status(call: CallbackQuery):
     with suppress(*suppress_exceptions):
         await call.message.delete()
 
-    cur_comic_id, _ = await users_db.get_cur_comic_info(ADMIN_ID)
-    await comics_db.toggle_spec_status(cur_comic_id)
+    last_comic_id, _ = await users_db.get_last_comic_info(ADMIN_ID)
+    await comics_db.toggle_spec_status(last_comic_id)
 
-    await call.message.answer(text=f"<b>*** ADMIN PANEL ***</b>\n❗ <b>It's done for {cur_comic_id}</b>",
+    await call.message.answer(text=f"<b>*** ADMIN PANEL ***</b>\n❗ <b>It's done for {last_comic_id}</b>",
                               reply_markup=await kboard.admin_panel())
 
 

@@ -14,7 +14,7 @@ class UsersDatabase:
                      id SERIAL NOT NULL,
                      user_id INTEGER UNIQUE,
                      user_lang VARCHAR(2) DEFAULT 'en',
-                     cur_comic_info VARCHAR(10) DEFAULT '0_en', 
+                     last_comic_info VARCHAR(10) DEFAULT '0_en', 
                      bookmarks JSON DEFAULT '[]',
                      is_subscribed BOOLEAN DEFAULT TRUE,
                      notification_sound_status BOOLEAN DEFAULT FALSE,
@@ -40,8 +40,8 @@ class UsersDatabase:
 
         await self.pool.execute(query, user_id)
 
-    async def get_cur_comic_info(self, user_id: int) -> tuple[int, str]:
-        query = """SELECT cur_comic_info FROM users 
+    async def get_last_comic_info(self, user_id: int) -> tuple[int, str]:
+        query = """SELECT last_comic_info FROM users 
                    WHERE user_id = $1;"""
 
         res = await self.pool.fetchval(query, user_id)
@@ -84,12 +84,12 @@ class UsersDatabase:
 
         await self.pool.execute(query, user_id)
 
-    async def update_cur_comic_info(self, user_id: int, new_cur_comic_id: int, new_cur_comic_lang: str):
-        query = """UPDATE users SET cur_comic_info = $1
+    async def update_last_comic_info(self, user_id: int, new_comic_id: int, new_comic_lang: str):
+        query = """UPDATE users SET last_comic_info = $1
                    WHERE user_id = $2;"""
 
-        cur_comic_info = str(new_cur_comic_id) + '_' + new_cur_comic_lang
-        await self.pool.execute(query, cur_comic_info, user_id)
+        last_comic_info = str(new_comic_id) + '_' + new_comic_lang
+        await self.pool.execute(query, last_comic_info, user_id)
 
     async def update_last_action_date(self, user_id: int, action_date: date):
         query = """UPDATE users SET last_action_date = $1
