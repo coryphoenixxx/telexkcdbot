@@ -1,5 +1,6 @@
 import asyncio
 import random
+import numpy
 
 from contextlib import suppress
 
@@ -106,31 +107,43 @@ async def flip_next(user_id: int, state: FSMContext):
         await send_comic(user_id, comic_id=comic_id, keyboard=kboard.navigation, comic_lang=comic_lang)
 
 
+def find_closest(ru_ids: list[int], action: str, comic_id: int) -> int:
+    ru_ids = numpy.array(ru_ids)
+    if action == 'prev':
+        try:
+            return ru_ids[ru_ids < comic_id].max()
+        except ValueError:
+            return ru_ids[-1]
+    elif action == 'next':
+        try:
+            return ru_ids[ru_ids > comic_id].min()
+        except ValueError:
+            return 1
+
+
 async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
     only_ru_mode = await users_db.get_only_ru_mode_status(user_id)
+    latest = await comics_db.get_last_comic_id()
 
-    if only_ru_mode:
-        ru_ids = sorted(await comics_db.get_all_ru_comics_ids())
-        index = ru_ids.index(comic_id)
-
-        new_index = {
-            'first': 0,
-            'prev': index-1 if index-1 >= 0 else -1,
-            'random': ru_ids.index(random.choice(ru_ids)),
-            'next': index+1 if index+1 <= ru_ids.index(ru_ids[-1]) else 0,
-            'last': -1
-        }
-        return ru_ids[new_index.get(action)]
+    if action == 'first':
+        return 1
     else:
-        latest = await comics_db.get_last_comic_id()
-        new_index = {
-            'first': 1,
-            'prev': comic_id - 1 if comic_id - 1 >= 1 else latest,
-            'random': random.randint(1, latest),
-            'next': comic_id + 1 if comic_id + 1 <= latest else 1,
-            'last': latest
-        }
-        return new_index.get(action)
+        if only_ru_mode:
+            ru_ids = await comics_db.get_all_ru_comics_ids()
+            actions = {
+                'prev': find_closest(ru_ids, action, comic_id),
+                'random': random.choice(ru_ids),
+                'next': find_closest(ru_ids, action, comic_id),
+                'last': ru_ids[-1]
+            }
+        else:
+            actions = {
+                'prev': comic_id - 1 if comic_id - 1 >= 1 else latest,
+                'random': random.randint(1, latest),
+                'next': comic_id + 1 if comic_id + 1 <= latest else 1,
+                'last': latest
+            }
+        return actions.get(action)
 
 
 def rate_limit(limit: int, key=None):
