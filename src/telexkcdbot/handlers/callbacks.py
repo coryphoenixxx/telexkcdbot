@@ -1,4 +1,3 @@
-from random import randint
 from contextlib import suppress
 
 from aiogram import Dispatcher
@@ -11,7 +10,7 @@ from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.common_utils import send_comic
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.comic_data_getter import comic_data_getter
-from src.telexkcdbot.handlers.handlers_utils import (send_menu, send_bookmarks, remove_callback_kb,
+from src.telexkcdbot.handlers.handlers_utils import (send_menu, send_bookmarks, remove_callback_kb, calc_new_comic_id,
                                                      flip_next, suppress_exceptions, remove_explain_or_bot_msg)
 
 
@@ -23,18 +22,14 @@ async def cb_menu(call: CallbackQuery, state: FSMContext):
     await send_menu(call.from_user.id)
 
 
-async def cb_toggle_subscription_status(call: CallbackQuery):
+async def cb_toggle_notification_sound_status(call: CallbackQuery):
+    await users_db.toggle_notification_sound_status(call.from_user.id)
+
     with suppress(*suppress_exceptions):
-        await call.message.edit_reply_markup() if 'MENU' in call.message.text else await call.message.delete()
-
-    await users_db.toggle_subscription_status(call.from_user.id)
-    inner_text = f"<u>{call.data}d</u> for" if call.data == 'subscribe' else f"<u>{call.data}d</u> from"
-    await call.message.answer(f"❗ <b>You have been {inner_text} "
-                              f"notification you whenever a new xkcd is released!</b>",
-                              reply_markup=await kboard.menu(call.from_user.id))
+        await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
 
 
-async def cb_user_bookmarks(call: CallbackQuery, state: FSMContext):
+async def cb_send_bookmarks(call: CallbackQuery, state: FSMContext):
     with suppress(*suppress_exceptions):
         await call.message.edit_reply_markup() if 'MENU' in call.message.text else await call.message.delete()
 
@@ -42,9 +37,14 @@ async def cb_user_bookmarks(call: CallbackQuery, state: FSMContext):
 
 
 async def cb_toggle_lang_btn(call: CallbackQuery):
-    action = call.data[:3]
-    user_lang = 'ru' if action == 'add' else 'en'
-    await users_db.set_user_lang(call.from_user.id, user_lang)
+    await users_db.toggle_lang_btn_status(call.from_user.id)
+
+    with suppress(*suppress_exceptions):
+        await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
+
+
+async def cb_toggle_only_ru_mode_status(call: CallbackQuery):
+    await users_db.toggle_only_ru_mode_status(call.from_user.id)
 
     with suppress(*suppress_exceptions):
         await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
@@ -66,20 +66,9 @@ async def cb_continue_xkcding(call: CallbackQuery):
 async def cb_navigation(call: CallbackQuery):
     await remove_callback_kb(call)
 
-    comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
+    cur_comic_id, _ = await users_db.get_cur_comic_info(call.from_user.id)
     action = call.data.split('_')[1]
-    latest = await comics_db.get_last_comic_id()
-
-    actions = {
-        'first': 1,
-        'prev': comic_id + 1 if comic_id - 1 > 0 else latest,
-        'random': randint(1, latest),
-        'next': comic_id + 1 if comic_id + 1 <= latest else 1,
-        'last': latest
-    }
-
-    new_comic_id = actions.get(action)
-
+    new_comic_id = await calc_new_comic_id(call.from_user.id, cur_comic_id, action)
     await send_comic(call.from_user.id, comic_id=new_comic_id)
 
 
@@ -147,8 +136,9 @@ async def cb_flip_break(call: CallbackQuery, state: FSMContext):
 
 def register_callbacks(dp: Dispatcher):
     dp.register_callback_query_handler(cb_menu, Text(equals='menu'))
-    dp.register_callback_query_handler(cb_toggle_subscription_status, Text(endswith='subscribe'))
-    dp.register_callback_query_handler(cb_user_bookmarks, Text('user_bookmarks'))
+    dp.register_callback_query_handler(cb_toggle_notification_sound_status, Text(startswith='notification'))
+    dp.register_callback_query_handler(cb_toggle_only_ru_mode_status, Text(startswith='only_ru_mode'))
+    dp.register_callback_query_handler(cb_send_bookmarks, Text('user_bookmarks'))
     dp.register_callback_query_handler(cb_toggle_lang_btn, Text(equals=('add_lang_btn', 'remove_lang_btn')))
     dp.register_callback_query_handler(cb_start_xkcding, Text('start_xkcding'))
     dp.register_callback_query_handler(cb_continue_xkcding, Text('continue_xkcding'))

@@ -21,10 +21,10 @@ from src.telexkcdbot.databases.comics_db import comics_db
 
 async def checker():
     await get_and_broadcast_new_comic()
-    aioschedule.every(10).minutes.do(get_and_broadcast_new_comic)
+    aioschedule.every(1).minutes.do(get_and_broadcast_new_comic)
     while True:
         await aioschedule.run_pending()
-        await asyncio.sleep(60)
+        await asyncio.sleep(30)
 
 
 async def on_startup(dp: Dispatcher):

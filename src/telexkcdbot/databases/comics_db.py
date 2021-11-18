@@ -118,15 +118,18 @@ class ComicsDatabase:
         return [h for h in sorted(headlines_info, key=lambda x: ids.index(x.comic_id))]  # Saved order of ids list
 
     async def toggle_spec_status(self, comic_id: int):
-        get_query = """SELECT is_specific FROM comics
-                       WHERE comic_id = $1;"""
+        query = """UPDATE comics 
+                   SET is_specific = NOT is_specific 
+                   WHERE comic_id = $1;"""
 
-        set_query = """UPDATE comics SET is_specific = $1
-                       WHERE comic_id = $2;"""
+        await self.pool.execute(query, comic_id)
 
-        async with self.pool.acquire() as conn:
-            cur_value = await conn.fetchval(get_query, comic_id)
-            await conn.execute(set_query, not cur_value, comic_id)
+    async def get_all_ru_comics_ids(self) -> tuple[int]:
+        query = """SELECT array_agg(comic_id) FROM comics
+                   WHERE has_ru_translation = TRUE;"""
+
+        res = await self.pool.fetchval(query)
+        return tuple(res)
 
 
 comics_db = ComicsDatabase()

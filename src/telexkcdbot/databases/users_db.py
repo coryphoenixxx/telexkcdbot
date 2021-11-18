@@ -13,17 +13,19 @@ class UsersDatabase:
         query = """CREATE TABLE IF NOT EXISTS users (
                      id SERIAL NOT NULL,
                      user_id INTEGER UNIQUE,
+                     user_lang VARCHAR(2) DEFAULT 'en',
                      cur_comic_info VARCHAR(10) DEFAULT '0_en', 
                      bookmarks JSON DEFAULT '[]',
-                     is_subscribed INTEGER DEFAULT 1, 
-                     user_lang VARCHAR(2) DEFAULT 'ru',
-                     last_action_date DATE DEFAULT CURRENT_DATE);                    
+                     is_subscribed BOOLEAN DEFAULT TRUE,
+                     notification_sound_status BOOLEAN DEFAULT FALSE,
+                     lang_btn_status BOOLEAN DEFAULT TRUE,
+                     is_banned BOOLEAN DEFAULT FALSE,
+                     only_ru_mode BOOLEAN DEFAULT FALSE,
+                     last_action_date DATE DEFAULT CURRENT_DATE);                   
 
                    CREATE UNIQUE INDEX IF NOT EXISTS user_id_uindex ON users (id);"""
 
         await self.pool.execute(query)
-
-    """USER"""
 
     async def add_user(self, user_id: int):
         query = """INSERT INTO users (user_id)
@@ -46,26 +48,41 @@ class UsersDatabase:
         comic_id, comic_lang = res.split('_')
         return int(comic_id), comic_lang
 
-    async def get_all_users_ids(self) -> tuple:
+    async def get_all_users_ids(self) -> tuple[int]:
         query = """SELECT array_agg(user_id) FROM users;"""
 
         res = await self.pool.fetchval(query)
         return tuple(res) if res else ()
 
-    async def get_user_lang(self, user_id: int) -> str:
-        """For handling LANG button"""
-        query = """SELECT user_lang FROM users
+    async def get_only_ru_mode_status(self, user_id: int) -> bool:
+        query = """SELECT only_ru_mode FROM users 
                    WHERE user_id = $1;"""
 
         res = await self.pool.fetchval(query, user_id)
         return res
 
-    async def set_user_lang(self, user_id: int, user_lang: str):
-        """For handling LANG button"""
-        query = """UPDATE users SET user_lang = $1
-                   WHERE user_id = $2;"""
+    async def get_lang_btn_status(self, user_id: int) -> str:
+        """For handling LANG button under the comic"""
+        query = """SELECT lang_btn_status FROM users
+                   WHERE user_id = $1;"""
 
-        await self.pool.execute(query, user_lang, user_id)
+        res = await self.pool.fetchval(query, user_id)
+        return res
+
+    async def toggle_lang_btn_status(self, user_id: int):
+        """For handling LANG button under the comic"""
+        query = """UPDATE users 
+                   SET lang_btn_status = NOT lang_btn_status 
+                   WHERE user_id = $1;"""
+
+        await self.pool.execute(query, user_id)
+
+    async def toggle_only_ru_mode_status(self, user_id: int):
+        query = """UPDATE users 
+                   SET only_ru_mode = NOT only_ru_mode 
+                   WHERE user_id = $1;"""
+
+        await self.pool.execute(query, user_id)
 
     async def update_cur_comic_info(self, user_id: int, new_cur_comic_id: int, new_cur_comic_lang: str):
         query = """UPDATE users SET cur_comic_info = $1
@@ -93,10 +110,9 @@ class UsersDatabase:
                    WHERE user_id = $1;"""
 
         res = await self.pool.fetchrow(query, user_id)
-
         return json.loads(res['bookmarks'])
 
-    async def update_bookmarks(self, user_id: int, new_bookmarks: list):
+    async def update_bookmarks(self, user_id: int, new_bookmarks: list[int]):
         query = """UPDATE users SET bookmarks = $1
                    WHERE user_id = $2;"""
 
@@ -112,16 +128,19 @@ class UsersDatabase:
         res = await self.pool.fetchval(query)
         return tuple(res) if res else ()
 
-    async def toggle_subscription_status(self, user_id: int):
-        get_query = """SELECT is_subscribed FROM users
-                       WHERE user_id = $1;"""
+    async def get_notification_sound_status(self, user_id: int) -> tuple[int]:
+        query = """SELECT notification_sound_status FROM users
+                   WHERE user_id = $1;"""
 
-        set_query = """UPDATE users SET is_subscribed = $1
-                       WHERE user_id = $2;"""
+        res = await self.pool.fetchval(query, user_id)
+        return res
 
-        async with self.pool.acquire() as conn:
-            cur_value = await conn.fetchval(get_query, user_id)
-            await conn.execute(set_query, not cur_value, user_id)
+    async def toggle_notification_sound_status(self, user_id: int):
+        query = """UPDATE users 
+                   SET notification_sound_status = NOT notification_sound_status 
+                   WHERE user_id = $1;"""
+
+        await self.pool.execute(query, user_id)
 
 
 users_db = UsersDatabase()

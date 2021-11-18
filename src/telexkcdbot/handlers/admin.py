@@ -56,12 +56,10 @@ async def cb_users_info(call: CallbackQuery):
         await call.message.delete()
 
     all_users_num = len(await users_db.get_all_users_ids())
-    subscribed_users_num = len(await users_db.get_subscribed_users())
     active_users_num = await users_db.get_last_week_active_users_num()
     text = f"""<b>*** ADMIN PANEL ***</b>
 ❗
 <b>Total</b>: <i>{all_users_num}</i>
-<b>Subs</b>: <i>{subscribed_users_num}</i>
 <b>Active</b>: <i>{active_users_num}</i>
 """
     await call.message.answer(text, reply_markup=await kboard.admin_panel())

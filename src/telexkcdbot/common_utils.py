@@ -97,7 +97,6 @@ async def preprocess_text(text: str) -> str:
 async def broadcast(text: str, comic_id: Optional[int] = None):
     count = 0
     all_users_ids = await users_db.get_all_users_ids()  # Uses for delete users
-    subscribed_users = await users_db.get_subscribed_users()
 
     try:
         for user_id in all_users_ids:
@@ -106,18 +105,25 @@ async def broadcast(text: str, comic_id: Optional[int] = None):
             except (BotBlocked, UserDeactivated, ChatNotFound):
                 await users_db.delete_user(user_id)
             else:
-                if user_id in subscribed_users:
-                    await bot.send_message(user_id, text=text, disable_notification=True)
-                    if comic_id:
+                if comic_id:
+                    only_ru_mode = await users_db.get_only_ru_mode_status(user_id)
+                    if not only_ru_mode:
+                        notification_sound = users_db.get_notification_sound_status(user_id)
+                        if notification_sound:
+                            await bot.send_message(user_id, text=text)
+                        else:
+                            await bot.send_message(user_id, text=text, disable_notification=True)
                         await send_comic(user_id, comic_id=comic_id)
-                    count += 1
+                else:
+                    await bot.send_message(user_id, text=text, disable_notification=True)  # For sending admin message
+                count += 1
                 if count % 20 == 0:
                     await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
     except Exception as err:
         logger.error(f"Couldn't broadcast on count {count}!", err)
     finally:
-        await bot.send_message(ADMIN_ID, f"❗ <b>{count}/{len(subscribed_users)} messages were successfully sent.</b>")
-        logger.info(f"{count}/{len(subscribed_users)} messages were successfully sent")
+        await bot.send_message(ADMIN_ID, f"❗ <b>{count}/{len(all_users_ids)} messages were successfully sent.</b>")
+        logger.info(f"{count}/{len(all_users_ids)} messages were successfully sent")
 
 
 async def get_and_broadcast_new_comic():
