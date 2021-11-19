@@ -16,21 +16,21 @@ from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.models import ComicHeadlineInfo
 
 
-suppress_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
+suppressed_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 
 
 async def remove_prev_message_kb(msg: Message):
-    with suppress(*suppress_exceptions):
+    with suppress(*suppressed_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
 
 
 async def remove_callback_kb(call: CallbackQuery):
-    with suppress(*suppress_exceptions):
+    with suppress(*suppressed_exceptions):
         await call.message.edit_reply_markup()
 
 
 async def remove_explain_or_bot_msg(call: CallbackQuery):
-    with suppress(*suppress_exceptions):
+    with suppress(*suppressed_exceptions):
         if any(x in call.message.text for x in {'FULL TEXT', '❗'}):
             await call.message.delete()
         else:
@@ -94,17 +94,25 @@ If something goes wrong or looks strange try to view a comic in your browser <i>
 
 async def flip_next(user_id: int, state: FSMContext):
     fsm_list = (await state.get_data()).get('fsm_list')
-    fsm_lang = (await state.get_data()).get('fsm_lang')
-    comic_lang = 'en' if not fsm_lang else fsm_lang
-
-    comic_id = fsm_list.pop(0)
-    await state.update_data(fsm_list=fsm_list)
 
     if fsm_list:
-        await send_comic(user_id, comic_id=comic_id, keyboard=kboard.flipping, comic_lang=comic_lang)
+        fsm_lang = (await state.get_data()).get('fsm_lang')
+        comic_lang = 'en' if not fsm_lang else fsm_lang
+
+        comic_id = fsm_list.pop(0)
+        await state.update_data(fsm_list=fsm_list)
+
+        if fsm_list:
+            await send_comic(user_id, comic_id=comic_id, keyboard=kboard.flipping, comic_lang=comic_lang)
+        else:
+            await bot.send_message(user_id, text="❗ <b>The last one:</b>")
+            await send_comic(user_id, comic_id=comic_id, keyboard=kboard.navigation, comic_lang=comic_lang)
     else:
-        await bot.send_message(user_id, text="❗ <b>The last one:</b>")
-        await send_comic(user_id, comic_id=comic_id, keyboard=kboard.navigation, comic_lang=comic_lang)
+        # Bot used memory cache and sometimes reloaded, losing all the data. Perfect crutch!
+        await bot.send_message(user_id,
+                               text="❗ <b>Sorry, I was rebooted and forgot all the data... 😢"
+                                    "Please repeat your request.</b>",
+                               reply_markup=await kboard.menu_or_xkcding(user_id))
 
 
 def find_closest(ru_ids: list[int], action: str, comic_id: int) -> int:

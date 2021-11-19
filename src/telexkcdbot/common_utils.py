@@ -39,16 +39,21 @@ async def make_headline(comic_id: int, title: str, img_url: str, public_date: st
     return f"<b>{str(comic_id) + '.':7}</b>\"{link}\""
 
 
-async def send_comic(user_id: int, comic_id: int, keyboard: Callable = kboard.navigation, comic_lang: str = 'en'):
-    ru_ids = await comics_db.get_all_ru_comics_ids()
-    only_ru = await users_db.get_only_ru_mode_status(user_id)
-    last_comic_id, last_comic_lang = await users_db.get_last_comic_info(user_id)
+async def send_comic(user_id: int,
+                     comic_id: int,
+                     keyboard: Callable = kboard.navigation,
+                     comic_lang: str = 'en',
+                     from_toggle_lang_cb: bool = False):
 
-    if only_ru and comic_id in ru_ids:
-        if last_comic_id == comic_id and last_comic_lang == 'ru':
-            comic_lang = 'en'
-        else:
-            comic_lang = 'ru'
+    only_ru = await users_db.get_only_ru_mode_status(user_id)
+    if only_ru:
+        ru_ids = await comics_db.get_all_ru_comics_ids()
+        if comic_id in ru_ids:
+            last_comic_id, last_comic_lang = await users_db.get_last_comic_info(user_id)
+            if last_comic_id == comic_id and last_comic_lang == 'ru' and from_toggle_lang_cb:
+                comic_lang = 'en'
+            else:
+                comic_lang = 'ru'
 
     await users_db.update_last_comic_info(user_id, comic_id, comic_lang)
 

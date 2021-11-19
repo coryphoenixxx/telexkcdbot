@@ -12,7 +12,7 @@ from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.logger import logger, LOGS_PATH
 from src.telexkcdbot.common_utils import broadcast
-from src.telexkcdbot.handlers.handlers_utils import suppress_exceptions, remove_prev_message_kb
+from src.telexkcdbot.handlers.handlers_utils import suppressed_exceptions, remove_prev_message_kb
 from src.telexkcdbot.config import ADMIN_ID
 
 
@@ -32,7 +32,7 @@ async def cmd_admin(msg: Message, state: FSMContext):
 
 
 async def cb_toggle_spec_status(call: CallbackQuery):
-    with suppress(*suppress_exceptions):
+    with suppress(*suppressed_exceptions):
         await call.message.delete()
 
     last_comic_id, _ = await users_db.get_last_comic_info(ADMIN_ID)
@@ -52,7 +52,7 @@ async def cb_send_log(call: CallbackQuery):
 
 
 async def cb_users_info(call: CallbackQuery):
-    with suppress(*suppress_exceptions):
+    with suppress(*suppressed_exceptions):
         await call.message.delete()
 
     all_users_num = len(await users_db.get_all_users_ids())
