@@ -8,6 +8,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
 from src.telexkcdbot.bot import bot
+from src.telexkcdbot.middlewares.localization import _
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.common_utils import (send_comic, cyrillic, punctuation,
@@ -49,13 +50,13 @@ async def send_bookmarks(user_id: int, state: FSMContext, keyboard: InlineKeyboa
     bookmarks = await users_db.get_bookmarks(user_id)
 
     if not bookmarks:
-        text = f"❗ <b>You have no bookmarks.\nYou can bookmark a comic with the ❤ press.</b>"
+        text = _("❗ <b>You have no bookmarks.\nYou can bookmark a comic with the ❤ press.</b>")
         await bot.send_message(user_id, text, reply_markup=keyboard)
     elif len(bookmarks) == 1:
-        await bot.send_message(user_id, f"❗ <b>You have one:</b>")
+        await bot.send_message(user_id, _("❗ <b>You have one:</b>"))
         await send_comic(user_id, comic_id=bookmarks[0])
     else:
-        await bot.send_message(user_id, f"❗ <b>You have <u><b>{len(bookmarks)}</b></u> bookmarks:</b>")
+        await bot.send_message(user_id, _("❗ <b>You have <u><b>{}</b></u> bookmarks:</b>").format(len(bookmarks)))
         headlines_info = await comics_db.get_comics_headlines_info_by_ids(bookmarks)
         await send_headlines_as_text(user_id, headlines_info=headlines_info)
         await state.update_data(fsm_list=bookmarks)
@@ -63,7 +64,7 @@ async def send_bookmarks(user_id: int, state: FSMContext, keyboard: InlineKeyboa
 
 
 async def send_menu(user_id: int):
-    help_text = """<b>*** MENU ***</b>
+    help_text = _("""<b>*** MENU ***</b>
 
 Type in the <u><b>number</b></u> and I'll find a comic with this number!
 Type in the <u><b>word</b></u> and I'll find comics whose titles contains this word! 
@@ -80,7 +81,7 @@ If the sound of the notification annoys you, you can <b><u>mute</u></b> the tele
 
 
 ❗❗❗
-If something goes wrong or looks strange try to view a comic in your browser <i>(I'll give you a link)</i>."""
+If something goes wrong or looks strange try to view a comic in your browser <i>(I'll give you a link)</i>.""")
     await bot.send_message(user_id, help_text, reply_markup=await kboard.menu(user_id), disable_notification=True)
 
 
@@ -97,13 +98,13 @@ async def flip_next(user_id: int, state: FSMContext):
         if fsm_list:
             await send_comic(user_id, comic_id=comic_id, keyboard=kboard.flipping, comic_lang=comic_lang)
         else:
-            await bot.send_message(user_id, text="❗ <b>The last one:</b>")
+            await bot.send_message(user_id, text=_("❗ <b>The last one:</b>"))
             await send_comic(user_id, comic_id=comic_id, keyboard=kboard.navigation, comic_lang=comic_lang)
     else:
         # Bot used memory cache and sometimes reloaded, losing some data. Perfect crutch!
         await bot.send_message(user_id,
-                               text="❗ <b>Sorry, I was rebooted and forgot all the data... 😢"
-                                    "Please repeat your request.</b>",
+                               text=_("❗ <b>Sorry, I was rebooted and forgot all the data... 😢"
+                                      "Please repeat your request.</b>"),
                                reply_markup=await kboard.menu_or_xkcding(user_id))
 
 

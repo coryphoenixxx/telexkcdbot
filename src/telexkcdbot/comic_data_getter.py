@@ -10,6 +10,7 @@ from dataclasses import astuple
 from typing import Union
 from tqdm import tqdm
 
+from src.telexkcdbot.middlewares.localization import _
 from src.telexkcdbot.config import BASE_DIR
 from src.telexkcdbot.models import RuComicData, XKCDComicData, TotalComicData
 from src.telexkcdbot.logger import logger
@@ -45,7 +46,7 @@ class ComicDataGetter:
     @staticmethod
     async def _get_soup(url: str) -> Union[BeautifulSoup, None]:
         attempts = 3
-        for _ in range(attempts):
+        for i in range(attempts):
             async with aiohttp.ClientSession() as session:
                 try:
                     response = await session.get(url)
@@ -103,7 +104,7 @@ class ComicDataGetter:
 
     async def get_explanation(self, comic_id: int) -> str:
         url = f'https://www.explainxkcd.com/{comic_id}'
-        no_explanation_text = "❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it later.</b>"
+        no_explanation_text = _("❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it later.</b>")
 
         try:
             soup = await self._get_soup(url)
@@ -120,7 +121,7 @@ class ComicDataGetter:
                 text = text[:1000].strip().replace('<', '').replace('>', '')
                 if not text:
                     return no_explanation_text
-                return f"{text}...\n<a href='{url}'>[FULL TEXT]</a>"
+                return f"{text}...\n<a href='{url}'>" + _("[FULL TEXT]</a>")
 
         except Exception as err:
             logger.error(f'Error in get_explanation() for {comic_id}: {err}')

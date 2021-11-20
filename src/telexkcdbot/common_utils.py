@@ -17,6 +17,7 @@ from src.telexkcdbot.comic_data_getter import comic_data_getter
 from src.telexkcdbot.models import TotalComicData
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
+from src.telexkcdbot.middlewares.localization import _
 
 
 suppressed_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
@@ -75,7 +76,7 @@ async def send_comic(user_id: int,
 
     if is_specific:
         await bot.send_message(user_id,
-                               text="❗❗❗ <b>This comic is peculiar!\nIt's preferable to view it in your browser.</b>",
+                               text=_("❗❗❗ <b>This comic is peculiar!\nIt's preferable to view it in your browser.</b>"),
                                disable_web_page_preview=True,
                                disable_notification=True)
 
@@ -93,7 +94,7 @@ async def send_comic(user_id: int,
                                  disable_notification=True)
     except (InvalidHTTPUrlContent, BadRequest) as err:
         await bot.send_message(user_id,
-                               text=f"❗❗❗ <b>Couldn't get image. Press on title to view comic in your browser!</b>",
+                               text=_("❗❗❗ <b>Couldn't get image. Press on title to view comic in your browser!</b>"),
                                disable_web_page_preview=True,
                                disable_notification=True)
         logger.error(f"Couldn't send {comic_id} img to {user_id} comic! {err}")
@@ -165,5 +166,5 @@ async def get_and_broadcast_new_comic():
                                                          comment=xkcd_comic_data.comment,
                                                          public_date=xkcd_comic_data.public_date))
 
-        await broadcast(text="🔥 <b>And here comes the new comic!</b> 🔥",
+        await broadcast(text=_("🔥 <b>And here comes the new comic!</b> 🔥"),
                         comic_id=real_last_comic_id)
