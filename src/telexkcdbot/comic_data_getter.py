@@ -91,7 +91,8 @@ class ComicDataGetter:
                                  is_specific=True if comic_id in self._default_specific_comic_ids else False)
 
     async def get_ru_comic_data_by_id(self, comic_id: int) -> RuComicData:
-        if not self._ru_comics_data_dict.get(comic_id):
+        ru_comic_data = self._ru_comics_data_dict.get(comic_id)
+        if not ru_comic_data:
             return RuComicData()
         return self._ru_comics_data_dict[comic_id]
 
@@ -128,7 +129,6 @@ class ComicDataGetter:
     def clean(self):
         del self._ru_comics_data_dict
         del self._path_to_ru_comic_data
-        del self._default_specific_comic_ids
 
 
 comic_data_getter = ComicDataGetter()

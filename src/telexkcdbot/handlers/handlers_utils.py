@@ -5,23 +5,15 @@ import numpy
 from contextlib import suppress
 
 from aiogram.dispatcher import FSMContext
-from aiogram.utils.exceptions import MessageNotModified, MessageToEditNotFound, MessageCantBeEdited
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
 
 from src.telexkcdbot.bot import bot
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.common_utils import send_comic, cyrillic, punctuation, make_headline, cut_into_chunks
+from src.telexkcdbot.common_utils import (send_comic, cyrillic, punctuation,
+                                          make_headline, cut_into_chunks, suppressed_exceptions)
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.models import ComicHeadlineInfo
-
-
-suppressed_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
-
-
-async def remove_prev_message_kb(msg: Message):
-    with suppress(*suppressed_exceptions):
-        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
 
 
 async def remove_callback_kb(call: CallbackQuery):
@@ -108,7 +100,7 @@ async def flip_next(user_id: int, state: FSMContext):
             await bot.send_message(user_id, text="❗ <b>The last one:</b>")
             await send_comic(user_id, comic_id=comic_id, keyboard=kboard.navigation, comic_lang=comic_lang)
     else:
-        # Bot used memory cache and sometimes reloaded, losing all the data. Perfect crutch!
+        # Bot used memory cache and sometimes reloaded, losing some data. Perfect crutch!
         await bot.send_message(user_id,
                                text="❗ <b>Sorry, I was rebooted and forgot all the data... 😢"
                                     "Please repeat your request.</b>",
@@ -164,3 +156,8 @@ def rate_limit(limit: int, key=None):
             setattr(func, 'throttling_key', key)
         return func
     return decorator
+
+
+async def remove_prev_message_kb(msg: Message):
+    with suppress(*suppressed_exceptions):
+        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)

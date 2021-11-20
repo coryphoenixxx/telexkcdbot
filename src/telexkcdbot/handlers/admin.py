@@ -11,8 +11,8 @@ from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.logger import logger, LOGS_PATH
-from src.telexkcdbot.common_utils import broadcast
-from src.telexkcdbot.handlers.handlers_utils import suppressed_exceptions, remove_prev_message_kb
+from src.telexkcdbot.common_utils import broadcast, suppressed_exceptions
+from src.telexkcdbot.handlers.handlers_utils import remove_prev_message_kb
 from src.telexkcdbot.config import ADMIN_ID
 
 

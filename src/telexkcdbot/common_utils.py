@@ -1,14 +1,16 @@
 import asyncio
 
+from contextlib import suppress
 from string import ascii_letters, digits
-from typing import Optional, Callable, Generator, Iterable
+from typing import Optional, Callable, Generator
 from dataclasses import astuple
 
 from aiogram.types import InputFile, ChatActions
-from aiogram.utils.exceptions import BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated, ChatNotFound
+from aiogram.utils.exceptions import (BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated, ChatNotFound,
+                                      MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 
 from src.telexkcdbot.bot import bot
-from src.telexkcdbot.config import ADMIN_ID, IMG_PATH, BASE_DIR
+from src.telexkcdbot.config import ADMIN_ID, IMG_DIR, BASE_DIR
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.logger import logger
 from src.telexkcdbot.comic_data_getter import comic_data_getter
@@ -17,6 +19,7 @@ from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 
 
+suppressed_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
 punctuation = ' -(),.:;!?#+'
 
@@ -86,7 +89,7 @@ async def send_comic(user_id: int,
             await bot.send_animation(user_id, animation=img_url, disable_notification=True)
         else:
             await bot.send_photo(user_id,
-                                 photo=InputFile(IMG_PATH.joinpath('no_image.png')),
+                                 photo=InputFile(IMG_DIR.joinpath('no_image.png')),
                                  disable_notification=True)
     except (InvalidHTTPUrlContent, BadRequest) as err:
         await bot.send_message(user_id,
@@ -110,7 +113,7 @@ async def preprocess_text(text: str) -> str:
 
 async def broadcast(text: str, comic_id: Optional[int] = None):
     count = 0
-    all_users_ids = await users_db.get_all_users_ids()  # Uses for delete users
+    all_users_ids = await users_db.get_all_users_ids()
 
     try:
         for user_id in all_users_ids:
@@ -122,21 +125,26 @@ async def broadcast(text: str, comic_id: Optional[int] = None):
                 if comic_id:
                     only_ru_mode = await users_db.get_only_ru_mode_status(user_id)
                     if not only_ru_mode:
-                        notification_sound = users_db.get_notification_sound_status(user_id)
+                        notification_sound = await users_db.get_notification_sound_status(user_id)
                         if notification_sound:
-                            await bot.send_message(user_id, text=text)
+                            msg = await bot.send_message(user_id, text=text)
                         else:
-                            await bot.send_message(user_id, text=text, disable_notification=True)
+                            msg = await bot.send_message(user_id, text=text, disable_notification=True)
+                        with suppress(*suppressed_exceptions):
+                            await bot.edit_message_reply_markup(user_id, msg.message_id - 1)
                         await send_comic(user_id, comic_id=comic_id)
+                        count += 1
                 else:
                     await bot.send_message(user_id, text=text, disable_notification=True)  # For sending admin message
-                count += 1
+                    count += 1
                 if count % 20 == 0:
                     await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
     except Exception as err:
         logger.error(f"Couldn't broadcast on count {count}!", err)
     finally:
-        await bot.send_message(ADMIN_ID, f"❗ <b>{count}/{len(all_users_ids)} messages were successfully sent.</b>")
+        await bot.send_message(ADMIN_ID,
+                               text=f"❗ <b>{count}/{len(all_users_ids)} messages were successfully sent.</b>",
+                               disable_notification=True)
         logger.info(f"{count}/{len(all_users_ids)} messages were successfully sent")
 
 

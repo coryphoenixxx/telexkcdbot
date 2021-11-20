@@ -3,6 +3,8 @@ import asyncpg
 
 from datetime import date, timedelta
 
+from src.telexkcdbot.models import UserMenuInfo
+
 
 class UsersDatabase:
     pool: asyncpg.Pool
@@ -16,7 +18,6 @@ class UsersDatabase:
                      user_lang VARCHAR(2) DEFAULT 'en',
                      last_comic_info VARCHAR(10) DEFAULT '0_en', 
                      bookmarks JSON DEFAULT '[]',
-                     is_subscribed BOOLEAN DEFAULT TRUE,
                      notification_sound_status BOOLEAN DEFAULT FALSE,
                      lang_btn_status BOOLEAN DEFAULT TRUE,
                      is_banned BOOLEAN DEFAULT FALSE,
@@ -40,6 +41,18 @@ class UsersDatabase:
 
         await self.pool.execute(query, user_id)
 
+    async def get_user_lang(self, user_id: int):
+        query = """SELECT user_lang FROM users 
+                   WHERE user_id = $1;"""
+
+        return await self.pool.fetchval(query, user_id)
+
+    async def set_user_lang(self, user_id: int, lang: str):
+        query = """UPDATE users SET user_lang = $1
+                   WHERE user_id = $2;"""
+
+        await self.pool.execute(query, lang, user_id)
+
     async def get_last_comic_info(self, user_id: int) -> tuple[int, str]:
         query = """SELECT last_comic_info FROM users 
                    WHERE user_id = $1;"""
@@ -58,16 +71,14 @@ class UsersDatabase:
         query = """SELECT only_ru_mode FROM users 
                    WHERE user_id = $1;"""
 
-        res = await self.pool.fetchval(query, user_id)
-        return res
+        return await self.pool.fetchval(query, user_id)
 
     async def get_lang_btn_status(self, user_id: int) -> str:
         """For handling LANG button under the comic"""
         query = """SELECT lang_btn_status FROM users
                    WHERE user_id = $1;"""
 
-        res = await self.pool.fetchval(query, user_id)
-        return res
+        return await self.pool.fetchval(query, user_id)
 
     async def toggle_lang_btn_status(self, user_id: int):
         """For handling LANG button under the comic"""
@@ -103,6 +114,17 @@ class UsersDatabase:
         res = await self.pool.fetchval(query)
         return sum(((date.today() - d) < timedelta(days=7) for d in res))
 
+    async def get_user_menu_info(self, user_id: int) -> UserMenuInfo:
+        query = """SELECT last_comic_info, lang_btn_status, notification_sound_status, only_ru_mode
+                   FROM users
+                   WHERE user_id = $1;"""
+
+        res = await self.pool.fetchrow(query, user_id)
+        return UserMenuInfo(notification_sound_status=res['notification_sound_status'],
+                            only_ru_mode_status=res['only_ru_mode'],
+                            lang_btn_status=res['lang_btn_status'],
+                            last_comic_id=res['last_comic_info'][0])
+
     """BOOKMARKS"""
 
     async def get_bookmarks(self, user_id: int) -> list[int]:
@@ -119,14 +141,7 @@ class UsersDatabase:
         upd_bookmarks_json = json.dumps(new_bookmarks)
         await self.pool.execute(query, upd_bookmarks_json, user_id)
 
-    """SUBSCRIPTION"""
-
-    async def get_subscribed_users(self) -> tuple[int]:
-        query = """SELECT array_agg(user_id) FROM users
-                   WHERE is_subscribed = 1;"""
-
-        res = await self.pool.fetchval(query)
-        return tuple(res) if res else ()
+    """NOTIFICATION"""
 
     async def get_notification_sound_status(self, user_id: int) -> tuple[int]:
         query = """SELECT notification_sound_status FROM users

@@ -11,6 +11,7 @@ class ComicHeadlineInfo:
 
 @dataclass
 class ComicData:
+    """Common comic data"""
     comic_id: int
     title: str
     img_url: str
@@ -38,7 +39,7 @@ class RuComicData:
     has_ru_translation: bool = False
 
 
-@dataclass()
+@dataclass
 class TotalComicData(RuComicData, XKCDComicData):
     """
     Multiple inheritance sucks!
@@ -46,3 +47,11 @@ class TotalComicData(RuComicData, XKCDComicData):
     So weird.
     """
     pass
+
+
+@dataclass
+class UserMenuInfo:
+    notification_sound_status: bool
+    only_ru_mode_status: bool
+    lang_btn_status: bool
+    last_comic_id: int

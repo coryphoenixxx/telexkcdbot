@@ -13,18 +13,19 @@ from src.telexkcdbot.logger import logger
 from src.telexkcdbot.handlers.admin import register_admin_handlers
 from src.telexkcdbot.handlers.callbacks import register_callbacks
 from src.telexkcdbot.handlers.default import register_default_commands
-from src.telexkcdbot.databases.fill_comics_db import initial_filling_of_comics_db
 from src.telexkcdbot.middlewares.big_brother import BigBrother
+from src.telexkcdbot.middlewares.localization import i18n
+from src.telexkcdbot.databases.fill_comics_db import initial_filling_of_comics_db
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 
 
 async def checker():
     await get_and_broadcast_new_comic()
-    aioschedule.every(1).minutes.do(get_and_broadcast_new_comic)
+    aioschedule.every(0.25).minutes.do(get_and_broadcast_new_comic)
     while True:
         await aioschedule.run_pending()
-        await asyncio.sleep(30)
+        await asyncio.sleep(5)
 
 
 async def on_startup(dp: Dispatcher):
@@ -50,7 +51,10 @@ if __name__ == "__main__":
     storage = MemoryStorage()
 
     dp = Dispatcher(bot, loop=loop, storage=storage)
+
+    dp.middleware.setup(i18n)
     dp.middleware.setup(BigBrother())
+
     register_admin_handlers(dp)
     register_callbacks(dp)
     register_default_commands(dp)

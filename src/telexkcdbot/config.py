@@ -5,6 +5,8 @@ from pathlib import Path
 API_TOKEN = getenv('API_TOKEN')
 ADMIN_ID = int(getenv('ADMIN_ID'))
 
+I18N_DOMAIN = 'telexkcdbot'
+
 DATABASE_URL = getenv('DATABASE_URL')
 
 HEROKU = bool(getenv('HEROKU'))
@@ -17,4 +19,5 @@ WEBAPP_HOST = '0.0.0.0'
 PORT = int(getenv('PORT'))
 
 BASE_DIR = Path(__file__).parent.parent.parent
-IMG_PATH = BASE_DIR.joinpath('static/img')
+IMG_DIR = BASE_DIR / 'static/img'
+LOCALES_DIR = BASE_DIR / 'locales'

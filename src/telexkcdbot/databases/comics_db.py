@@ -55,19 +55,24 @@ class ComicsDatabase:
 
         await self.pool.execute(query, *astuple(comic_data))
 
+    async def get_last_comic_id(self) -> int:
+        query = """SELECT comic_id FROM comics
+                   ORDER BY comic_id DESC
+                   LIMIT 1;"""
+
+        return await self.pool.fetchval(query)
+
     async def get_all_comics_ids(self) -> tuple[int]:
         query = """SELECT array_agg(comic_id) FROM comics;"""
 
         res = await self.pool.fetchval(query)
         return tuple(res) if res else ()
 
-    async def get_last_comic_id(self) -> int:
-        query = """SELECT comic_id FROM comics
-                   ORDER BY comic_id DESC
-                   LIMIT 1;"""
+    async def get_all_ru_comics_ids(self) -> tuple[int]:
+        query = """SELECT array_agg(comic_id) FROM comics
+                   WHERE has_ru_translation = TRUE;"""
 
-        res = await self.pool.fetchval(query)
-        return res
+        return tuple(await self.pool.fetchval(query))
 
     async def get_comic_data_by_id(self, comic_id: int, comic_lang: str = 'en') -> ComicData:
         assert comic_lang in ('ru', 'en')
@@ -81,9 +86,7 @@ class ComicsDatabase:
                     WHERE comic_id = $1;"""
 
         res = await self.pool.fetchrow(query, comic_id)
-
-        comic_data = ComicData(*res)
-        return comic_data
+        return ComicData(*res)
 
     async def get_comics_headlines_info_by_title(self, title: str, lang: str = 'en') -> list[ComicHeadlineInfo]:
         assert lang in ('ru', 'en')
@@ -126,13 +129,6 @@ class ComicsDatabase:
                    WHERE comic_id = $1;"""
 
         await self.pool.execute(query, comic_id)
-
-    async def get_all_ru_comics_ids(self) -> tuple[int]:
-        query = """SELECT array_agg(comic_id) FROM comics
-                   WHERE has_ru_translation = TRUE;"""
-
-        res = await self.pool.fetchval(query)
-        return tuple(res)
 
 
 comics_db = ComicsDatabase()

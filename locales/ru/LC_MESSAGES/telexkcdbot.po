@@ -1,0 +1,125 @@
+# Russian translations for PROJECT.
+# Copyright (C) 2021 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2021.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2021-11-20 06:48+0700\n"
+"PO-Revision-Date: 2021-11-20 01:13+0700\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ru\n"
+"Language-Team: ru <LL@li.org>\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.9.1\n"
+
+#: src/telexkcdbot/keyboards.py:17
+msgid "<Prev"
+msgstr "<Назад"
+
+#: src/telexkcdbot/keyboards.py:18
+msgid "Rand"
+msgstr "Наугад"
+
+#: src/telexkcdbot/keyboards.py:19 src/telexkcdbot/keyboards.py:28
+msgid "Next>"
+msgstr "Вперед>"
+
+#: src/telexkcdbot/keyboards.py:21 src/telexkcdbot/keyboards.py:29
+msgid "❤Bookmark"
+msgstr "❤Добавить"
+
+#: src/telexkcdbot/keyboards.py:22 src/telexkcdbot/keyboards.py:30
+msgid "💔Unbookmark"
+msgstr "💔Убрать"
+
+#: src/telexkcdbot/keyboards.py:23 src/telexkcdbot/keyboards.py:31
+msgid "Explain"
+msgstr "Объяснение"
+
+#: src/telexkcdbot/keyboards.py:27
+msgid "Break"
+msgstr "Прекратить"
+
+#: src/telexkcdbot/keyboards.py:35
+msgid "🔔 Enable notification sound"
+msgstr "🔔 Звук уведомления вкл."
+
+#: src/telexkcdbot/keyboards.py:37
+msgid "🔕 Disable notification sound"
+msgstr "🔕 Звук уведомления выкл."
+
+#: src/telexkcdbot/keyboards.py:41
+msgid "🔖My Bookmarks"
+msgstr "🔖Мое избранное"
+
+#: src/telexkcdbot/keyboards.py:42
+msgid "Add 🇷🇺LANG🇬🇧 Button"
+msgstr "Кнопка смены языка(🇷🇺/🇬🇧) вкл."
+
+#: src/telexkcdbot/keyboards.py:43
+msgid "Remove 🇷🇺LANG🇬🇧 Button"
+msgstr "Кнопка смены языка(🇷🇺/🇬🇧) выкл."
+
+#: src/telexkcdbot/keyboards.py:44
+msgid "Start xkcding!"
+msgstr "Начать просмотр"
+
+#: src/telexkcdbot/keyboards.py:45
+msgid "Continue xkcding!"
+msgstr "Продолжить просмотр"
+
+#: src/telexkcdbot/keyboards.py:46
+msgid "Menu"
+msgstr "Меню"
+
+#: src/telexkcdbot/handlers/callbacks.py:28
+msgid "<b>❗ The <u>telexkcdbot 2.0</u> at your disposal!</b>"
+msgstr "<b>❗ <u>telexkcdbot 2.0</u> к вашим услугам!</b>"
+
+#: src/telexkcdbot/handlers/callbacks.py:129
+msgid "❗ <b>Comic №{} has been <u>removed</u> from your bookmarks!</b>"
+msgstr "❗ <b>Комикс №{} был <u>убран</u> из вашего избранного!</b>"
+
+#: src/telexkcdbot/handlers/callbacks.py:132
+msgid "❗ <b>Comic №{} has been <u>added</u> to your bookmarks!</b>"
+msgstr "❗ <b>Комикс №{} был <u>добавлен</u> в ваше избранное!</b>"
+
+#: src/telexkcdbot/handlers/default.py:55
+msgid ""
+"❗ <b>You did it. You broke my search engine. You can be proud of "
+"yourself! Here your award:</b>"
+msgstr ""
+"❗ <b>Тебе это удалось. Ты накрыл мою поисковую систему. Можешь гордиться "
+"собой! Вот твоя награда:</b>"
+
+#: src/telexkcdbot/handlers/default.py:66
+msgid "❗ <b>Please, enter a number from 1 to {}!</b>"
+msgstr "❗ <b>Пожалуйста, введите число от 1 до {}!</b>"
+
+#: src/telexkcdbot/handlers/default.py:73
+msgid "❗ <b>I think there's no necessity to search by one character!</b>"
+msgstr "❗ <b>Я думаю нет никакой необходимости искать по одной букве!</b>"
+
+#: src/telexkcdbot/handlers/default.py:81
+msgid "❗ <b>There's no such comic title or command!</b>"
+msgstr "❗ <b>Нет такого комикса или такой команды!</b>"
+
+#: src/telexkcdbot/handlers/default.py:87
+msgid "❗ <b>I found one:</b>"
+msgstr "❗ <b>Есть один у меня:</b>"
+
+#: src/telexkcdbot/handlers/default.py:92
+msgid "❗ <b>I found <u><b>{}</b></u> comics:</b>"
+msgstr "❗ <b>Нашел <u><b>{}</b></u> комиксов:</b>"
+
+#: src/telexkcdbot/handlers/default.py:95
+msgid "❗ <b>Now you can flip through the comics:</b>"
+msgstr "❗ <b>Теперь можно перелистывать:</b>"
+

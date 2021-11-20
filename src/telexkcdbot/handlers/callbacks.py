@@ -1,17 +1,33 @@
 from contextlib import suppress
 
 from aiogram import Dispatcher
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InputFile
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 
+from src.telexkcdbot.middlewares.localization import _, i18n
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.common_utils import send_comic
+from src.telexkcdbot.common_utils import send_comic, suppressed_exceptions
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.comic_data_getter import comic_data_getter
 from src.telexkcdbot.handlers.handlers_utils import (send_menu, send_bookmarks, remove_callback_kb, calc_new_comic_id,
-                                                     flip_next, suppressed_exceptions, remove_explain_or_bot_msg)
+                                                     flip_next, remove_explain_or_bot_msg)
+from src.telexkcdbot.config import IMG_DIR
+
+from src.telexkcdbot.handlers.default import States
+
+
+async def cb_select_lang(call: CallbackQuery, state: FSMContext):
+    selected_lang = call.data[:2]
+    await i18n.set_user_locale(selected_lang)  # Force set lang
+    await users_db.set_user_lang(call.from_user.id, selected_lang)
+    await call.message.delete()
+    await state.finish()
+
+    await call.message.answer(_("<b>❗ The <u>telexkcdbot 2.0</u> at your disposal!</b>"))
+    await call.message.answer_photo(InputFile(IMG_DIR.joinpath('bot_image.png')))
+    await send_menu(call.from_user.id)
 
 
 async def cb_menu(call: CallbackQuery, state: FSMContext):
@@ -80,7 +96,11 @@ async def cb_toggle_comic_lang(call: CallbackQuery, keyboard=kboard.navigation):
 
     if 'flip' in call.data:
         keyboard = kboard.flipping
-    await send_comic(call.from_user.id, comic_id=last_comic_id, keyboard=keyboard, comic_lang=new_comic_lang, from_toggle_lang_cb=True)
+    await send_comic(call.from_user.id,
+                     comic_id=last_comic_id,
+                     keyboard=keyboard,
+                     comic_lang=new_comic_lang,
+                     from_toggle_lang_cb=True)
 
 
 async def cb_explain(call: CallbackQuery, keyboard=kboard.navigation):
@@ -106,10 +126,10 @@ async def cb_toggle_bookmark_status(call: CallbackQuery, keyboard=kboard.navigat
 
     if last_comic_id in user_bookmarks_list:
         user_bookmarks_list.remove(last_comic_id)
-        text = f"❗ <b>Comic №{last_comic_id} has been <u>removed</u> from your bookmarks!</b>"
+        text = _("❗ <b>Comic №{} has been <u>removed</u> from your bookmarks!</b>").format(last_comic_id)
     else:
         user_bookmarks_list.append(last_comic_id)
-        text = f"❗ <b>Comic №{last_comic_id} has been <u>added</u> to your bookmarks!</b>"
+        text = _("❗ <b>Comic №{} has been <u>added</u> to your bookmarks!</b>").format(last_comic_id)
 
     await users_db.update_bookmarks(call.from_user.id, user_bookmarks_list)
 
@@ -135,6 +155,7 @@ async def cb_flip_break(call: CallbackQuery, state: FSMContext):
 
 
 def register_callbacks(dp: Dispatcher):
+    dp.register_callback_query_handler(cb_select_lang, Text(endswith='user_lang'), state=States.choose_lang)
     dp.register_callback_query_handler(cb_menu, Text(equals='menu'))
     dp.register_callback_query_handler(cb_toggle_notification_sound_status, Text(startswith='notification'))
     dp.register_callback_query_handler(cb_toggle_only_ru_mode_status, Text(startswith='only_ru_mode'))
