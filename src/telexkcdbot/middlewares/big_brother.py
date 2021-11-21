@@ -1,7 +1,7 @@
 import asyncio
-import asyncpg
 
 from datetime import date
+from loguru import logger
 
 from aiogram import Dispatcher
 from aiogram.types import Update, ChatActions, Message
@@ -10,11 +10,12 @@ from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound, InvalidPeerID
 
-from src.telexkcdbot.common_utils import preprocess_text
-from src.telexkcdbot.config import ADMIN_ID
 from src.telexkcdbot.bot import bot
-from src.telexkcdbot.logger import logger
+from src.telexkcdbot.common_utils import preprocess_text, remove_prev_message_kb
+from src.telexkcdbot.config import ADMIN_ID
+from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.databases.users_db import users_db
+from src.telexkcdbot.middlewares.localization import _
 
 
 class BigBrother(BaseMiddleware):
@@ -25,38 +26,35 @@ class BigBrother(BaseMiddleware):
 
     @staticmethod
     async def on_pre_process_update(update: Update, data: dict):
-        if update.message or update.callback_query:
-            user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
-            action_date = date.today()
+        user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
+        username = update.message.from_user.username if update.message else update.callback_query.from_user.username
+        language_code = update.message.from_user.language_code if update.message \
+            else update.callback_query.from_user.language_code
 
-            if user_id != ADMIN_ID:
-                username, user_lang, action = ('',) * 3
-                try:
-                    await bot.send_chat_action(user_id, ChatActions.TYPING)
-                except (BotBlocked, UserDeactivated, ChatNotFound, InvalidPeerID):
-                    pass
-                else:
-                    if update.callback_query:
-                        call = update.callback_query
-                        username = call.from_user.username
-                        user_lang = call.from_user.language_code
-                        action = f"call: {call.data}"
-                    elif update.message.text:
-                        msg = update.message
-                        username = msg.from_user.username
-                        user_lang = msg.from_user.language_code
-                        action = f"text: {await preprocess_text(msg.text)}"
-
-                    logger.info(f"{user_id}|{username}|{user_lang}|{action}")
-
+        if user_id != ADMIN_ID:  # Don't log admin actions
             try:
-                await users_db.update_last_action_date(user_id, action_date)
-            except asyncpg.CannotConnectNowError:
-                logger.error(f"Couldn't update last action date ({user_id}, {action_date})")
+                await bot.send_chat_action(user_id, ChatActions.TYPING)
+            except (BotBlocked, UserDeactivated, ChatNotFound, InvalidPeerID):
+                pass  # if user unavailable for some reasons then do nothing
+            else:
+                if update.callback_query:
+                    logger.info(f"{user_id}|{username}|{language_code}|call:{update.callback_query.data}")
+                elif update.message.text:
+                    text = await preprocess_text(update.message.text)
+                    if text:
+                        logger.info(f"{user_id}|{username}|{language_code}|text:{text}")
+                else:
+                    logger.info(f"{user_id}|{username}|{language_code}|<other>")
+
+        action_date = date.today()
+        try:
+            await users_db.update_last_action_date(user_id, action_date)
+        except Exception as err:
+            logger.error(f"Couldn't update last action date ({user_id}, {action_date} ({err}))")
 
     """ANTIFLOOD"""
 
-    async def on_process_message(self, message: Message, data: dict):
+    async def on_process_message(self, msg: Message, data: dict):
         handler = current_handler.get()
         dispatcher = Dispatcher.get_current()
 
@@ -71,13 +69,14 @@ class BigBrother(BaseMiddleware):
         try:
             await dispatcher.throttle(key, rate=limit)
         except Throttled as t:
-            await self.message_throttled(message, t)
+            await self.message_throttled(msg, t)
             raise CancelHandler()
 
-    async def message_throttled(self, message: Message, throttled: Throttled):
+    async def message_throttled(self, msg: Message, throttled: Throttled):
         """
         Notify user only on first exceed and notify about unlocking only on last exceed
         """
+        await remove_prev_message_kb(msg)
         handler = current_handler.get()
         dispatcher = Dispatcher.get_current()
         if handler:
@@ -90,7 +89,7 @@ class BigBrother(BaseMiddleware):
 
         # Prevent flooding
         if throttled.exceeded_count <= 2:
-            await message.reply('❗❗❗ <b>Too many requests!</b>')
+            await msg.reply(_('❗❗❗ <b>Too many requests!</b>'))
 
         await asyncio.sleep(delta)
 
@@ -98,5 +97,7 @@ class BigBrother(BaseMiddleware):
 
         # If current message is not last with current key - do not send message
         if thr.exceeded_count == throttled.exceeded_count:
-            await asyncio.sleep(2)
-            await message.reply('❗ <b>Unlocked.</b>')
+            await msg.answer(_('❗ <b>Unlocked.</b>'), reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
+
+
+big_brother = BigBrother()

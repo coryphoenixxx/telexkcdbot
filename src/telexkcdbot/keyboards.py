@@ -2,17 +2,19 @@ from dataclasses import astuple
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from config import ADMIN_ID
+from models import ComicData
+from middlewares.localization import _
 from src.telexkcdbot.databases.users_db import users_db
-from src.telexkcdbot.config import ADMIN_ID
-from src.telexkcdbot.models import ComicData
-from src.telexkcdbot.middlewares.localization import _
 
 
 class Keyboard:
     btns_dict: dict = {
+        # Language selection
         'en_user_lang': InlineKeyboardButton(text='🇬🇧English', callback_data='en_user_lang'),
         'ru_user_lang': InlineKeyboardButton(text='🇷🇺Русский', callback_data='ru_user_lang'),
 
+        # Comic
         'nav_first': InlineKeyboardButton(text='|<<', callback_data='nav_first'),
         'nav_prev': InlineKeyboardButton(text=_('<Prev'), callback_data='nav_prev'),
         'nav_random': InlineKeyboardButton(text=_('Rand'), callback_data='nav_random'),
@@ -20,10 +22,11 @@ class Keyboard:
         'nav_last': InlineKeyboardButton(text='>>|', callback_data='nav_last'),
         'not_bookmarked': InlineKeyboardButton(text=_('❤Bookmark'), callback_data='bookmark'),
         'bookmarked': InlineKeyboardButton(text=_('💔Unbookmark'), callback_data='unbookmark'),
-        'explain': InlineKeyboardButton(text=_('Explain'), callback_data='explain'),
+        'explain': InlineKeyboardButton(text=_('📜Explain'), callback_data='explain'),
         'ru': InlineKeyboardButton(text='🇷🇺RU', callback_data='ru'),
         'en': InlineKeyboardButton(text='🇬🇧EN', callback_data='en'),
 
+        # Comic in flipping mode
         'flip_break': InlineKeyboardButton(text=_('Break'), callback_data='flip_break'),
         'flip_next': InlineKeyboardButton(text=_('Next>'), callback_data='flip_next'),
         'flip_not_bookmarked': InlineKeyboardButton(text=_('❤Bookmark'), callback_data='flip_bookmark'),
@@ -32,19 +35,21 @@ class Keyboard:
         'flip_ru': InlineKeyboardButton(text='🇷🇺RU', callback_data='flip_ru'),
         'flip_en': InlineKeyboardButton(text='🇬🇧EN', callback_data='flip_en'),
 
+        # Menu
         'notification_sound_on': InlineKeyboardButton(text=_('🔔 Enable notification sound'),
                                                       callback_data='notification_sound_on'),
         'notification_sound_off': InlineKeyboardButton(text=_('🔕 Disable notification sound'),
                                                        callback_data='notification_sound_off'),
         'only_ru_mode_on': InlineKeyboardButton(text='Только переводы вкл.', callback_data='only_ru_mode_on'),
         'only_ru_mode_off': InlineKeyboardButton(text='Только переводы выкл.', callback_data='only_ru_mode_off'),
-        'user_bookmarks': InlineKeyboardButton(text=_('🔖My Bookmarks'), callback_data='user_bookmarks'),
-        'add_lang_btn': InlineKeyboardButton(text=_('Add 🇷🇺LANG🇬🇧 Button'), callback_data='add_lang_btn'),
-        'remove_lang_btn': InlineKeyboardButton(text=_('Remove 🇷🇺LANG🇬🇧 Button'), callback_data='remove_lang_btn'),
+        'user_bookmarks': InlineKeyboardButton(text=_('🔖 My Bookmarks'), callback_data='user_bookmarks'),
+        'add_lang_btn': InlineKeyboardButton(text=_('Add 🇷🇺/🇬🇧 Button'), callback_data='add_lang_btn'),
+        'remove_lang_btn': InlineKeyboardButton(text=_('Remove 🇷🇺/🇬🇧 Button'), callback_data='remove_lang_btn'),
         'start_xkcding': InlineKeyboardButton(text=_('Start xkcding!'), callback_data='start_xkcding'),
         'continue_xkcding': InlineKeyboardButton(text=_('Continue xkcding!'), callback_data='continue_xkcding'),
         'menu': InlineKeyboardButton(text=_('Menu'), callback_data='menu'),
 
+        # Admin panel
         'users_info': InlineKeyboardButton(text='USERS INFO', callback_data='users_info'),
         'change_spec_status': InlineKeyboardButton(text='CHANGE SPEC STATUS', callback_data='change_spec_status'),
         'send_actions': InlineKeyboardButton(text='SEND ACTLOG', callback_data='send_actions'),
@@ -65,6 +70,7 @@ class Keyboard:
                                   has_ru: bool,
                                   cur_comic_lang: str,
                                   kb: str) -> list[str]:
+        """Inserts 🇷🇺/🇬🇧 button in keyboard under the comic"""
 
         lang_btn_enabled = await users_db.get_lang_btn_status(user_id)
         if lang_btn_enabled and has_ru:
@@ -84,15 +90,19 @@ class Keyboard:
         (notification_sound,
          only_ru_mode,
          lang_btn_enabled,
+         user_lang,
          last_comic_id) = astuple(user_menu_info)
 
         notification_sound_btn_key = 'notification_sound_off' if notification_sound else 'notification_sound_on'
-        only_ru_mode_btn_key = 'only_ru_mode_off' if only_ru_mode else 'only_ru_mode_on'
         lang_action_btn_key = 'remove_lang_btn' if lang_btn_enabled else 'add_lang_btn'
         xkcding_btn_key = 'start_xkcding' if last_comic_id == 0 else 'continue_xkcding'
 
-        btns_keys = [notification_sound_btn_key, only_ru_mode_btn_key, 'user_bookmarks',
-                     lang_action_btn_key, xkcding_btn_key]
+        btns_keys = [notification_sound_btn_key, 'user_bookmarks', lang_action_btn_key, xkcding_btn_key]
+
+        if user_lang == 'ru':
+            only_ru_mode_btn_key = 'only_ru_mode_off' if only_ru_mode else 'only_ru_mode_on'
+            btns_keys.insert(1, only_ru_mode_btn_key)
+
         return await self._create_keyboard(btns_keys, row_width=1)
 
     async def navigation(self, user_id: int, comic_data: ComicData, comic_lang: str = 'en') -> InlineKeyboardMarkup:

@@ -3,7 +3,7 @@ import asyncpg
 
 from datetime import date, timedelta
 
-from src.telexkcdbot.models import UserMenuInfo
+from src.telexkcdbot.models import MenuKeyboardInfo, AdminUsersInfo
 
 
 class UsersDatabase:
@@ -108,22 +108,28 @@ class UsersDatabase:
 
         await self.pool.execute(query, action_date, user_id)
 
-    async def get_last_week_active_users_num(self) -> int:
-        query = """SELECT array_agg(last_action_date) FROM users;"""
+    async def get_admin_users_info(self) -> AdminUsersInfo:
+        query = """SELECT COUNT(user_id), 
+                          array_agg(last_action_date),
+                          array_agg(only_ru_mode) FROM users;"""
 
-        res = await self.pool.fetchval(query)
-        return sum(((date.today() - d) < timedelta(days=7) for d in res))
+        res = await self.pool.fetchrow(query)
+        last_week_active_users_num = sum(((date.today() - d) < timedelta(days=7) for d in res[1]))
+        return AdminUsersInfo(users_num=res[0],
+                              last_week_active_users_num=last_week_active_users_num,
+                              only_ru_users_num=sum(res[2]))
 
-    async def get_user_menu_info(self, user_id: int) -> UserMenuInfo:
-        query = """SELECT last_comic_info, lang_btn_status, notification_sound_status, only_ru_mode
+    async def get_user_menu_info(self, user_id: int) -> MenuKeyboardInfo:
+        query = """SELECT user_lang, last_comic_info, lang_btn_status, notification_sound_status, only_ru_mode
                    FROM users
                    WHERE user_id = $1;"""
 
         res = await self.pool.fetchrow(query, user_id)
-        return UserMenuInfo(notification_sound_status=res['notification_sound_status'],
-                            only_ru_mode_status=res['only_ru_mode'],
-                            lang_btn_status=res['lang_btn_status'],
-                            last_comic_id=res['last_comic_info'][0])
+        return MenuKeyboardInfo(notification_sound_status=res['notification_sound_status'],
+                                only_ru_mode_status=res['only_ru_mode'],
+                                lang_btn_status=res['lang_btn_status'],
+                                user_lang=res['user_lang'],
+                                last_comic_id=res['last_comic_info'][0])
 
     """BOOKMARKS"""
 

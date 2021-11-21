@@ -5,14 +5,14 @@ import numpy
 from contextlib import suppress
 
 from aiogram.dispatcher import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup, Message
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 
 from src.telexkcdbot.bot import bot
 from src.telexkcdbot.middlewares.localization import _
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.common_utils import (send_comic, cyrillic, punctuation,
-                                          make_headline, cut_into_chunks, suppressed_exceptions)
+from src.telexkcdbot.common_utils import (send_comic, cyrillic, punctuation, suppressed_exceptions,
+                                          make_headline, cut_into_chunks)
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.models import ComicHeadlineInfo
 
@@ -20,14 +20,6 @@ from src.telexkcdbot.models import ComicHeadlineInfo
 async def remove_callback_kb(call: CallbackQuery):
     with suppress(*suppressed_exceptions):
         await call.message.edit_reply_markup()
-
-
-async def remove_explain_or_bot_msg(call: CallbackQuery):
-    with suppress(*suppressed_exceptions):
-        if any(x in call.message.text for x in {'FULL TEXT', '❗'}):
-            await call.message.delete()
-        else:
-            await call.message.edit_reply_markup()
 
 
 def is_cyrillic(text: str) -> bool:
@@ -41,9 +33,11 @@ async def send_headlines_as_text(user_id: int, headlines_info: list[ComicHeadlin
             headlines.append(await make_headline(comic_id=headline_info.comic_id,
                                                  title=headline_info.title,
                                                  img_url=headline_info.img_url))
-        text = '\n'.join(headlines)
-        await bot.send_message(user_id, text, disable_web_page_preview=True)
-        await asyncio.sleep(1)
+        await bot.send_message(user_id,
+                               text='\n'.join(headlines),
+                               disable_web_page_preview=True,
+                               disable_notification=True)
+        await asyncio.sleep(0.5)
 
 
 async def send_bookmarks(user_id: int, state: FSMContext, keyboard: InlineKeyboardMarkup):
@@ -64,28 +58,37 @@ async def send_bookmarks(user_id: int, state: FSMContext, keyboard: InlineKeyboa
 
 
 async def send_menu(user_id: int):
-    help_text = _("""<b>*** MENU ***</b>
+    help_text = _("""<b>***** MENU *****</b>
 
-Type in the <u><b>number</b></u> and I'll find a comic with this number!
-Type in the <u><b>word</b></u> and I'll find comics whose titles contains this word! 
+• Send me the <u><b>number</b></u> and I'll find a comic with this number!
+• Send me the <u><b>word</b></u> and I'll find comics whose titles contains this word! 
 
+<u><b>Menu options:</b></u>
+• adjust the notification sound for the new comic release <i>(every Mon, Wed and Fri USA time)</i>;
+• read comics from your bookmarks;
+• remove language button <i>(under the comic, which have russian translation)</i> if you don't need it.
 
-<u><b>In menu you can:</b></u>
-— subscribe for the new comic release <i>(every Mon, Wed and Fri USA time)</i>.
-— read comics from your bookmarks.
-— remove language button <i>(under the comic, which have russian translation)</i> if you don't need it.
-— start xkcding!
+____________________
+""")
+    user_lang = await users_db.get_user_lang(user_id)
+    users_num = len(await users_db.get_all_users_ids())
+    ru_comics_num = len(await comics_db.get_all_ru_comics_ids())
 
-If the sound of the notification annoys you, you can <b><u>mute</u></b> the telexkcdbot 
-<i>(click on the three dots in the upper right corner)</i>.
+    comic_num = len(await comics_db.get_all_comics_ids())
+    if user_lang == 'en':
+        stat_text = f"Comics: <b>{comic_num}</b>\n" \
+                    f"Users: <b>{users_num}</b>\n"
+    else:
+        stat_text = f"Комиксов: <b>{comic_num}</b>\n" \
+                    f"Переводов: <b>{ru_comics_num}</b>\n" \
+                    f"Пользователей: <b>{users_num}</b>\n"
 
-
-❗❗❗
-If something goes wrong or looks strange try to view a comic in your browser <i>(I'll give you a link)</i>.""")
-    await bot.send_message(user_id, help_text, reply_markup=await kboard.menu(user_id), disable_notification=True)
+    await bot.send_message(user_id, help_text + stat_text, reply_markup=await kboard.menu(user_id), disable_notification=True)
 
 
 async def flip_next(user_id: int, state: FSMContext):
+    """Handles flipping mode - when user views his bookmarks or found comics"""
+
     fsm_list = (await state.get_data()).get('fsm_list')
 
     if fsm_list:
@@ -103,7 +106,7 @@ async def flip_next(user_id: int, state: FSMContext):
     else:
         # Bot used memory cache and sometimes reloaded, losing some data. Perfect crutch!
         await bot.send_message(user_id,
-                               text=_("❗ <b>Sorry, I was rebooted and forgot all the data... 😢"
+                               text=_("❗ <b>Sorry, I was rebooted and forgot all the data... 😢\n"
                                       "Please repeat your request.</b>"),
                                reply_markup=await kboard.menu_or_xkcding(user_id))
 
@@ -124,7 +127,6 @@ def find_closest(ru_ids: list[int], action: str, comic_id: int) -> int:
 
 async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
     only_ru_mode = await users_db.get_only_ru_mode_status(user_id)
-    latest = await comics_db.get_last_comic_id()
 
     if action == 'first':
         return 1
@@ -138,6 +140,7 @@ async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
                 'last': ru_ids[-1]
             }
         else:
+            latest = await comics_db.get_last_comic_id()
             actions = {
                 'prev': comic_id - 1 if comic_id - 1 >= 1 else latest,
                 'random': random.randint(1, latest),
@@ -148,17 +151,11 @@ async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
 
 
 def rate_limit(limit: int, key=None):
-    """
-    Decorator for configuring rate limit and key in different functions.
-    """
+    """Decorator for configuring rate limit and key in different functions."""
+
     def decorator(func):
         setattr(func, 'throttling_rate_limit', limit)
         if key:
             setattr(func, 'throttling_key', key)
         return func
     return decorator
-
-
-async def remove_prev_message_kb(msg: Message):
-    with suppress(*suppressed_exceptions):
-        await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)

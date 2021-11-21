@@ -21,3 +21,4 @@ PORT = int(getenv('PORT'))
 BASE_DIR = Path(__file__).parent.parent.parent
 IMG_DIR = BASE_DIR / 'static/img'
 LOCALES_DIR = BASE_DIR / 'locales'
+LOGS_DIR = BASE_DIR / 'logs'

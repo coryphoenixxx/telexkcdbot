@@ -7,13 +7,15 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
+from loguru import logger
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.logger import logger, LOGS_PATH
-from src.telexkcdbot.common_utils import broadcast, suppressed_exceptions
-from src.telexkcdbot.handlers.handlers_utils import remove_prev_message_kb
-from src.telexkcdbot.config import ADMIN_ID
+from src.telexkcdbot.common_utils import broadcast, suppressed_exceptions, remove_prev_message_kb
+from src.telexkcdbot.config import ADMIN_ID, LOGS_DIR
+
+
+admin_panel_text_base = "<b>*** ADMIN PANEL ***</b>\n"
 
 
 class Broadcast(StatesGroup):
@@ -27,23 +29,32 @@ async def cmd_admin(msg: Message, state: FSMContext):
         await remove_prev_message_kb(msg)
         await state.reset_data()
 
-        await msg.answer("<b>*** ADMIN PANEL ***</b>",
+        await msg.answer(admin_panel_text_base,
                          reply_markup=await kboard.admin_panel())
 
 
-async def cb_toggle_spec_status(call: CallbackQuery):
+async def cb_users_info(call: CallbackQuery):
     with suppress(*suppressed_exceptions):
         await call.message.delete()
 
-    last_comic_id, _ = await users_db.get_last_comic_info(ADMIN_ID)
-    await comics_db.toggle_spec_status(last_comic_id)
+    users_info = await users_db.get_admin_users_info()
 
-    await call.message.answer(text=f"<b>*** ADMIN PANEL ***</b>\n❗ <b>It's done for {last_comic_id}</b>",
+    await call.message.answer(text=f"{admin_panel_text_base}"
+                                   f"<b>Total</b>: <i>{users_info.users_num}</i>\n"
+                                   f"<b>Active</b>: <i>{users_info.last_week_active_users_num}</i>\n"
+                                   f"<b>In only-ru mode: </b>: <i>{users_info.only_ru_users_num}</i>\n",
                               reply_markup=await kboard.admin_panel())
 
 
+async def cb_toggle_spec_status(call: CallbackQuery):
+    last_comic_id, _ = await users_db.get_last_comic_info(ADMIN_ID)
+    await comics_db.toggle_spec_status(last_comic_id)
+    await call.message.edit_text(text=f"{admin_panel_text_base}❗ <b>It's done for {last_comic_id}.</b>",
+                                 reply_markup=await kboard.admin_panel())
+
+
 async def cb_send_log(call: CallbackQuery):
-    filename = LOGS_PATH.joinpath('actions.log') if 'actions' in call.data else LOGS_PATH.joinpath('errors.log')
+    filename = LOGS_DIR / 'actions.log' if 'actions' in call.data else LOGS_DIR / 'errors.log'
 
     try:
         await call.message.answer_document(InputFile(filename))
@@ -51,36 +62,21 @@ async def cb_send_log(call: CallbackQuery):
         logger.error(f"Couldn't send logs ({err})")
 
 
-async def cb_users_info(call: CallbackQuery):
-    with suppress(*suppressed_exceptions):
-        await call.message.delete()
-
-    all_users_num = len(await users_db.get_all_users_ids())
-    active_users_num = await users_db.get_last_week_active_users_num()
-    text = f"""<b>*** ADMIN PANEL ***</b>
-❗
-<b>Total</b>: <i>{all_users_num}</i>
-<b>Active</b>: <i>{active_users_num}</i>
-"""
-    await call.message.answer(text, reply_markup=await kboard.admin_panel())
-
-
 async def cb_type_broadcast_message(call: CallbackQuery):
     await Broadcast.waiting_for_input.set()
-    await call.message.answer(text="❗ <b>Type in a broadcast message (or /cancel):</b>")
+    await call.message.answer("❗ <b>Type in a broadcast message (or /cancel):</b>")
 
 
 async def cmd_cancel(msg: Message, state: FSMContext):
     if await state.get_state() is None:
         return
 
-    await msg.answer(text="❗ <b>Canceled.</b>")
+    await msg.answer("❗ <b>Canceled.</b>")
     await state.finish()
 
 
 async def broadcast_admin_msg(msg: Message, state: FSMContext):
-    text = f"❗❗❗ <b>ADMIN MESSAGE:\n</b>  {msg.text}"
-    await broadcast(text=text)
+    await broadcast(text=f"❗ <u><b>ADMIN MESSAGE:\n</b></u>  {msg.text}")
     await state.finish()
 
 

@@ -11,7 +11,8 @@ class ComicHeadlineInfo:
 
 @dataclass
 class ComicData:
-    """Common comic data"""
+    """Used for sending comic to user"""
+
     comic_id: int
     title: str
     img_url: str
@@ -23,6 +24,8 @@ class ComicData:
 
 @dataclass
 class XKCDComicData:
+    """English-specific comic data"""
+
     comic_id: int = 404
     title: str = '404'
     img_url: str = 'https://www.explainxkcd.com/wiki/images/9/92/not_found.png'
@@ -41,17 +44,20 @@ class RuComicData:
 
 @dataclass
 class TotalComicData(RuComicData, XKCDComicData):
-    """
-    Multiple inheritance sucks!
-    Put classes in that order for saving order of their default values.
-    So weird.
-    """
     pass
 
 
 @dataclass
-class UserMenuInfo:
+class MenuKeyboardInfo:
     notification_sound_status: bool
     only_ru_mode_status: bool
     lang_btn_status: bool
+    user_lang: str
     last_comic_id: int
+
+
+@dataclass
+class AdminUsersInfo:
+    users_num: int
+    last_week_active_users_num: int
+    only_ru_users_num: int

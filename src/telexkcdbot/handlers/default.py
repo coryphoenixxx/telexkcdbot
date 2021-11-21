@@ -1,5 +1,3 @@
-import asyncio
-
 from aiogram import Dispatcher
 from aiogram.types import Message, InputFile
 from aiogram.dispatcher import FSMContext
@@ -9,9 +7,9 @@ from aiogram.dispatcher.filters.state import StatesGroup, State
 from src.telexkcdbot.middlewares.localization import _
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.common_utils import preprocess_text
+from src.telexkcdbot.common_utils import preprocess_text, remove_prev_message_kb
 from src.telexkcdbot.handlers.handlers_utils import (is_cyrillic, send_headlines_as_text, send_menu, send_comic,
-                                                     send_bookmarks, flip_next, rate_limit, remove_prev_message_kb)
+                                                     send_bookmarks, flip_next, rate_limit)
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.config import IMG_DIR
 
@@ -27,7 +25,7 @@ async def cmd_start(msg: Message, state: FSMContext):
 
     await users_db.add_user(msg.from_user.id)
 
-    await msg.answer("<b>Choose language | Выберете язык</b>",
+    await msg.answer("<b>Select language              |              Выберете язык</b>",
                      reply_markup=await kboard.lang_selection(msg.from_user.id))
     await States.choose_lang.set()
 
@@ -39,12 +37,13 @@ async def cmd_menu(msg: Message, state: FSMContext):
     await send_menu(msg.from_user.id)
 
 
+@rate_limit(3, 'bookmarks')
 async def cmd_bookmarks(msg: Message, state: FSMContext):
     await remove_prev_message_kb(msg)
     await send_bookmarks(msg.from_user.id, state, keyboard=await kboard.menu_or_xkcding(msg.from_user.id))
 
 
-@rate_limit(1)
+@rate_limit(2)
 async def process_user_typing(msg: Message, state: FSMContext):
     await remove_prev_message_kb(msg)
     await state.reset_data()
@@ -52,9 +51,9 @@ async def process_user_typing(msg: Message, state: FSMContext):
     user_input = await preprocess_text(msg.text)
 
     if not user_input:
-        await msg.reply(_("❗ <b>You did it. You broke my search engine."
-                          " You can be proud of yourself!"
-                          " Here your award:</b>"))
+        await msg.reply(_("❗ <b>You did it. You broke my search engine.\n"
+                          "You can be proud of yourself!\n"
+                          "Here's your award:</b>"))
         await msg.answer_photo(InputFile(IMG_DIR / 'candy.jpg'),
                                reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
 
@@ -72,10 +71,12 @@ async def process_user_typing(msg: Message, state: FSMContext):
         if len(user_input) == 1:
             await msg.reply(_("❗ <b>I think there's no necessity to search by one character!</b>"))
         else:
+            # What language the comics will be searched in and showed in flipping mode
             lang = 'ru' if is_cyrillic(user_input) else 'en'
+
             await state.update_data(fsm_lang=lang)
 
-            found_comics_list = await comics_db.get_comics_headlines_info_by_title(user_input, lang=lang)
+            found_comics_list = await comics_db.get_comics_headlines_info_by_title(title=user_input, lang=lang)
 
             if not found_comics_list:
                 await msg.reply(_("❗ <b>There's no such comic title or command!</b>"),
