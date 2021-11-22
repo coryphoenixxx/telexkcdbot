@@ -4,8 +4,9 @@ import numpy
 
 from contextlib import suppress
 
-from aiogram.dispatcher import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from src.telexkcdbot.bot import bot
 from src.telexkcdbot.middlewares.localization import _
@@ -15,6 +16,13 @@ from src.telexkcdbot.common_utils import (send_comic, cyrillic, punctuation, sup
                                           make_headline, cut_into_chunks)
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.models import ComicHeadlineInfo
+
+
+class States(StatesGroup):
+    language_selection = State()
+    typing_msg_to_admin = State()
+    typing_broadcast_msg = State()
+    typing_admin_support_msg = State()
 
 
 async def remove_callback_kb(call: CallbackQuery):
@@ -83,7 +91,9 @@ ____________________
                     f"Переводов: <b>{ru_comics_num}</b>\n" \
                     f"Пользователей: <b>{users_num}</b>\n"
 
-    await bot.send_message(user_id, help_text + stat_text, reply_markup=await kboard.menu(user_id), disable_notification=True)
+    await bot.send_message(user_id,
+                           text=help_text + stat_text,
+                           reply_markup=await kboard.menu(user_id), disable_notification=True)
 
 
 async def flip_next(user_id: int, state: FSMContext):

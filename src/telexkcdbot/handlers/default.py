@@ -9,13 +9,9 @@ from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.common_utils import preprocess_text, remove_prev_message_kb
 from src.telexkcdbot.handlers.handlers_utils import (is_cyrillic, send_headlines_as_text, send_menu, send_comic,
-                                                     send_bookmarks, flip_next, rate_limit)
+                                                     send_bookmarks, flip_next, rate_limit, States)
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.config import IMG_DIR
-
-
-class States(StatesGroup):
-    choose_lang = State()
 
 
 @rate_limit(3, 'start')
@@ -26,8 +22,8 @@ async def cmd_start(msg: Message, state: FSMContext):
     await users_db.add_user(msg.from_user.id)
 
     await msg.answer("<b>Select language              |              Выберете язык</b>",
-                     reply_markup=await kboard.lang_selection(msg.from_user.id))
-    await States.choose_lang.set()
+                     reply_markup=await kboard.lang_selection())
+    await States.language_selection.set()
 
 
 @rate_limit(3, 'menu')

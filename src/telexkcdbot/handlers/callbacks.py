@@ -5,6 +5,7 @@ from aiogram.types import CallbackQuery, InputFile
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 
+from src.telexkcdbot.config import IMG_DIR
 from src.telexkcdbot.middlewares.localization import _, localization
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
@@ -12,9 +13,7 @@ from src.telexkcdbot.common_utils import send_comic
 from src.telexkcdbot.keyboards import kboard
 from src.telexkcdbot.comic_data_getter import comic_data_getter
 from src.telexkcdbot.handlers.handlers_utils import (send_menu, send_bookmarks, remove_callback_kb,
-                                                     calc_new_comic_id, flip_next)
-from src.telexkcdbot.config import IMG_DIR
-from src.telexkcdbot.handlers.default import States
+                                                     calc_new_comic_id, flip_next, States)
 
 
 async def cb_select_lang(call: CallbackQuery, state: FSMContext):
@@ -68,6 +67,15 @@ async def cb_toggle_only_ru_mode_status(call: CallbackQuery):
 
     await users_db.toggle_only_ru_mode_status(call.from_user.id)
     await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
+
+
+async def cb_admin_support(call: CallbackQuery):
+    """Handles "Admin Support" button click"""
+
+    await call.message.delete()
+    await States.typing_msg_to_admin.set()
+    await call.message.answer(text=_("❗ <b>Type in and send message (about bugs or suggestions, please):</b>"),
+                              reply_markup=await kboard.menu_or_xkcding(call.from_user.id))
 
 
 async def cb_start_xkcding(call: CallbackQuery):
@@ -167,17 +175,24 @@ async def cb_flip_break(call: CallbackQuery, state: FSMContext):
 
 
 def register_callbacks(dp: Dispatcher):
-    dp.register_callback_query_handler(cb_select_lang, Text(endswith='user_lang'), state=[States.choose_lang, None])
-    dp.register_callback_query_handler(cb_menu, Text(equals='menu'))
+    dp.register_callback_query_handler(cb_select_lang,
+                                       Text(endswith='user_lang'),
+                                       state=[States.language_selection, None])
+    dp.register_callback_query_handler(cb_menu, Text('menu'), state=[States.typing_msg_to_admin, None])
     dp.register_callback_query_handler(cb_toggle_notification_sound_status, Text(startswith='notification'))
     dp.register_callback_query_handler(cb_toggle_only_ru_mode_status, Text(startswith='only_ru_mode'))
+    dp.register_callback_query_handler(cb_admin_support, Text('admin_support'))
     dp.register_callback_query_handler(cb_send_bookmarks, Text('user_bookmarks'))
-    dp.register_callback_query_handler(cb_toggle_lang_btn, Text(equals=('add_lang_btn', 'remove_lang_btn')))
-    dp.register_callback_query_handler(cb_start_xkcding, Text('start_xkcding'))
-    dp.register_callback_query_handler(cb_continue_xkcding, Text('continue_xkcding'))
+    dp.register_callback_query_handler(cb_toggle_lang_btn, Text(('add_lang_btn', 'remove_lang_btn')))
+    dp.register_callback_query_handler(cb_start_xkcding,
+                                       Text('start_xkcding'),
+                                       state=[States.typing_msg_to_admin, None])
+    dp.register_callback_query_handler(cb_continue_xkcding,
+                                       Text('continue_xkcding'),
+                                       state=[States.typing_msg_to_admin, None])
     dp.register_callback_query_handler(cb_navigation, Text(startswith='nav_'))
-    dp.register_callback_query_handler(cb_toggle_comic_lang, Text(equals=('ru', 'flip_ru', 'en', 'flip_en')))
-    dp.register_callback_query_handler(cb_explain, Text(equals=('explain', 'flip_explain')))
+    dp.register_callback_query_handler(cb_toggle_comic_lang, Text(('ru', 'flip_ru', 'en', 'flip_en')))
+    dp.register_callback_query_handler(cb_explain, Text(('explain', 'flip_explain')))
     dp.register_callback_query_handler(cb_toggle_bookmark_status, Text(endswith='bookmark'))
     dp.register_callback_query_handler(cb_flip_next, Text('flip_next'))
     dp.register_callback_query_handler(cb_flip_break, Text('flip_break'))

@@ -73,6 +73,18 @@ class UsersDatabase:
 
         return await self.pool.fetchval(query, user_id)
 
+    async def get_ban_status(self, user_id: int) -> bool:
+        query = """SELECT is_banned FROM users 
+                   WHERE user_id = $1;"""
+
+        return await self.pool.fetchval(query, user_id)
+
+    async def ban_user(self, user_id: int):
+        query = """UPDATE users SET is_banned = True
+                   WHERE user_id = $1;"""
+
+        await self.pool.execute(query, user_id)
+
     async def get_lang_btn_status(self, user_id: int) -> str:
         """For handling LANG button under the comic"""
         query = """SELECT lang_btn_status FROM users

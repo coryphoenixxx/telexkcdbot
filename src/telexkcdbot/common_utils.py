@@ -27,7 +27,7 @@ punctuation = ' -(),.:;!?#+*/'
 
 async def make_headline(comic_id: int, title: str, img_url: str, public_date: str = '') -> str:
     """
-    Makes the headline string like <number>. <title> and optional (<public date>) .
+    Makes the headline string like <number>. <title> and optional <public date>.
     Don't add public date and aligns the text a little for flipping mode.
     """
     if 'http' not in img_url:  # If it's local storage russian comic image don't make link

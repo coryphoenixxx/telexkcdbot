@@ -161,3 +161,4 @@ redis/
 /TODO.py
 /mypy.cfg
 /.idea/mypy.xml
+/.idea/telexkcdbot.iml

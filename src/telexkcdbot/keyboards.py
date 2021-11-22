@@ -1,11 +1,15 @@
 from dataclasses import astuple
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.callback_data import CallbackData
 
 from config import ADMIN_ID
 from models import ComicData
 from middlewares.localization import _
 from src.telexkcdbot.databases.users_db import users_db
+
+
+support_cb_data = CallbackData('support', 'type', 'user_id', 'message_id')
 
 
 class Keyboard:
@@ -44,12 +48,13 @@ class Keyboard:
         'only_ru_mode_off': InlineKeyboardButton(text='Только переводы выкл.', callback_data='only_ru_mode_off'),
         'user_bookmarks': InlineKeyboardButton(text=_('🔖 My Bookmarks'), callback_data='user_bookmarks'),
         'add_lang_btn': InlineKeyboardButton(text=_('Add 🇷🇺/🇬🇧 Button'), callback_data='add_lang_btn'),
+        'admin_support': InlineKeyboardButton(text=_('💬 Admin Support'), callback_data='admin_support'),
         'remove_lang_btn': InlineKeyboardButton(text=_('Remove 🇷🇺/🇬🇧 Button'), callback_data='remove_lang_btn'),
         'start_xkcding': InlineKeyboardButton(text=_('Start xkcding!'), callback_data='start_xkcding'),
         'continue_xkcding': InlineKeyboardButton(text=_('Continue xkcding!'), callback_data='continue_xkcding'),
         'menu': InlineKeyboardButton(text=_('Menu'), callback_data='menu'),
 
-        # Admin panel
+        # Admin
         'users_info': InlineKeyboardButton(text='USERS INFO', callback_data='users_info'),
         'change_spec_status': InlineKeyboardButton(text='CHANGE SPEC STATUS', callback_data='change_spec_status'),
         'send_actions': InlineKeyboardButton(text='SEND ACTLOG', callback_data='send_actions'),
@@ -57,7 +62,7 @@ class Keyboard:
         'broadcast_admin_msg': InlineKeyboardButton(text='BROADCAST', callback_data='broadcast_admin_msg')
     }
 
-    async def _create_keyboard(self, btns_keys: list[str], row_width: int = 2) -> InlineKeyboardMarkup:
+    def _create_keyboard(self, btns_keys: list[str], row_width: int = 2) -> InlineKeyboardMarkup:
         btns = [self.btns_dict[key] for key in btns_keys]
 
         keyboard = InlineKeyboardMarkup(row_width=row_width)
@@ -81,9 +86,9 @@ class Keyboard:
             row.insert(1, lang_btn_key)
         return row
 
-    async def lang_selection(self, user_id: int) -> InlineKeyboardMarkup:
+    async def lang_selection(self) -> InlineKeyboardMarkup:
         btns_keys = ['en_user_lang', 'ru_user_lang']
-        return await self._create_keyboard(btns_keys)
+        return self._create_keyboard(btns_keys)
 
     async def menu(self, user_id: int) -> InlineKeyboardMarkup:
         user_menu_info = await users_db.get_user_menu_info(user_id)
@@ -97,13 +102,17 @@ class Keyboard:
         lang_action_btn_key = 'remove_lang_btn' if lang_btn_enabled else 'add_lang_btn'
         xkcding_btn_key = 'start_xkcding' if last_comic_id == 0 else 'continue_xkcding'
 
-        btns_keys = [notification_sound_btn_key, 'user_bookmarks', lang_action_btn_key, xkcding_btn_key]
+        btns_keys = [notification_sound_btn_key,
+                     'user_bookmarks',
+                     lang_action_btn_key,
+                     'admin_support',
+                     xkcding_btn_key]
 
         if user_lang == 'ru':
             only_ru_mode_btn_key = 'only_ru_mode_off' if only_ru_mode else 'only_ru_mode_on'
             btns_keys.insert(1, only_ru_mode_btn_key)
 
-        return await self._create_keyboard(btns_keys, row_width=1)
+        return self._create_keyboard(btns_keys, row_width=1)
 
     async def navigation(self, user_id: int, comic_data: ComicData, comic_lang: str = 'en') -> InlineKeyboardMarkup:
         user_bookmarks = await users_db.get_bookmarks(user_id)
@@ -135,14 +144,33 @@ class Keyboard:
                                                    kb='flip')
 
         row_width = 2 if len(btns_keys) == 4 else 3
-        return await self._create_keyboard(btns_keys, row_width=row_width)
+        return self._create_keyboard(btns_keys, row_width=row_width)
 
     async def menu_or_xkcding(self, user_id: int) -> InlineKeyboardMarkup:
         last_comic_id, _ = await users_db.get_last_comic_info(user_id)
 
         xkcding_btn_key = 'start_xkcding' if last_comic_id == 0 else 'continue_xkcding'
         btns_keys = ['menu', xkcding_btn_key]
-        return await self._create_keyboard(btns_keys)
+        return self._create_keyboard(btns_keys)
+
+    @staticmethod
+    async def support_keyboard(user_id: int, message_id: int) -> InlineKeyboardMarkup:
+        answer_btn = InlineKeyboardButton(text='Answer',
+                                          callback_data=support_cb_data.new(type='answer',
+                                                                            user_id=user_id,
+                                                                            message_id=message_id),
+                                          )
+
+        ban_btn = InlineKeyboardButton(text='Ban user',
+                                       callback_data=support_cb_data.new(type='ban',
+                                                                         user_id=user_id,
+                                                                         message_id=message_id),
+                                       )
+
+        keyboard = InlineKeyboardMarkup()
+        keyboard.add(answer_btn, ban_btn)
+
+        return keyboard
 
     async def admin_panel(self) -> InlineKeyboardMarkup:
         last_comic_id, _ = await users_db.get_last_comic_info(ADMIN_ID)
@@ -150,7 +178,7 @@ class Keyboard:
 
         btns_keys = ['users_info', 'change_spec_status', 'send_actions',
                      'send_errors', 'broadcast_admin_msg', xkcding_btn_key]
-        return await self._create_keyboard(btns_keys, row_width=1)
+        return self._create_keyboard(btns_keys, row_width=1)
 
 
 kboard = Keyboard()

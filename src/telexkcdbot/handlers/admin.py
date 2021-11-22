@@ -1,25 +1,24 @@
 from contextlib import suppress
 
+from loguru import logger
+
 from aiogram import Dispatcher
 from aiogram.types import Message, CallbackQuery, InputFile
 from aiogram.utils.exceptions import BadRequest
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from aiogram.dispatcher.filters.state import State, StatesGroup
 
-from loguru import logger
-from src.telexkcdbot.keyboards import kboard
+from src.telexkcdbot.bot import bot
+from src.telexkcdbot.keyboards import kboard, support_cb_data
 from src.telexkcdbot.databases.users_db import users_db
 from src.telexkcdbot.databases.comics_db import comics_db
 from src.telexkcdbot.common_utils import broadcast, suppressed_exceptions, remove_prev_message_kb
+from src.telexkcdbot.handlers.handlers_utils import States, send_menu
 from src.telexkcdbot.config import ADMIN_ID, LOGS_DIR
+from src.telexkcdbot.middlewares.localization import _
 
 
 admin_panel_text_base = "<b>*** ADMIN PANEL ***</b>\n"
-
-
-class Broadcast(StatesGroup):
-    waiting_for_input = State()
 
 
 async def cmd_admin(msg: Message, state: FSMContext):
@@ -63,7 +62,7 @@ async def cb_send_log(call: CallbackQuery):
 
 
 async def cb_type_broadcast_message(call: CallbackQuery):
-    await Broadcast.waiting_for_input.set()
+    await States.typing_broadcast_msg.set()
     await call.message.answer("❗ <b>Type in a broadcast message (or /cancel):</b>")
 
 
@@ -76,7 +75,42 @@ async def cmd_cancel(msg: Message, state: FSMContext):
 
 
 async def broadcast_admin_msg(msg: Message, state: FSMContext):
-    await broadcast(text=f"❗ <u><b>ADMIN MESSAGE:\n</b></u>  {msg.text}")
+    await broadcast(text=_(f"❗ <u><b>ADMIN MESSAGE:</b></u>\n{msg.text}"))
+    await state.finish()
+
+
+async def user_support_msg(msg: Message, state: FSMContext):
+    user_id = msg.from_user.id
+    await bot.delete_message(user_id, msg.message_id - 1)
+
+    is_banned = await users_db.get_ban_status(user_id)
+    if not is_banned:
+        username = msg.from_user.username
+        message_id = msg.message_id
+        await bot.send_message(ADMIN_ID,
+                               text=f"❗ <b>New message from user\n"
+                                    f"({user_id} | {username} | {msg.from_user.language_code})</b>")
+        await msg.copy_to(ADMIN_ID, reply_markup=await kboard.support_keyboard(user_id, message_id))
+    await state.finish()
+    await send_menu(user_id)
+
+
+async def cb_answer(call: CallbackQuery, state: FSMContext, callback_data: dict):
+    await States.typing_admin_support_msg.set()
+    _, _, user_id, message_id = callback_data.values()
+    await state.set_data(data={'user_id': user_id, 'message_id': message_id})
+    await call.message.delete()
+
+
+async def cb_ban(call: CallbackQuery, callback_data: dict):
+    user_id = int(callback_data.get('user_id'))
+    await users_db.ban_user(user_id)
+    await call.message.delete()
+
+
+async def admin_support_msg(msg: Message, state: FSMContext):
+    data = await state.get_data()
+    await bot.send_message(data['user_id'], text=msg.text, reply_to_message_id=data['message_id'])
     await state.finish()
 
 
@@ -86,5 +120,12 @@ def register_admin_handlers(dp: Dispatcher):
     dp.register_callback_query_handler(cb_toggle_spec_status, text='change_spec_status')
     dp.register_callback_query_handler(cb_send_log, Text(startswith='send_'))
     dp.register_callback_query_handler(cb_type_broadcast_message, text='broadcast_admin_msg')
-    dp.register_message_handler(cmd_cancel, commands='cancel', state=Broadcast.waiting_for_input)
-    dp.register_message_handler(broadcast_admin_msg, state=Broadcast.waiting_for_input)
+    dp.register_message_handler(cmd_cancel, commands='cancel', state=States.typing_broadcast_msg)
+    dp.register_message_handler(broadcast_admin_msg, state=States.typing_broadcast_msg)
+    dp.register_message_handler(user_support_msg,
+                                state=States.typing_msg_to_admin,
+                                content_types=['text', 'photo'])
+    dp.register_message_handler(admin_support_msg,
+                                state=States.typing_admin_support_msg)
+    dp.register_callback_query_handler(cb_answer, support_cb_data.filter(type='answer'))
+    dp.register_callback_query_handler(cb_ban, support_cb_data.filter(type='ban'))
