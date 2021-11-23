@@ -9,7 +9,7 @@ from telexkcdbot.comic_data_getter import comic_data_getter
 from telexkcdbot.common_utils import cut_into_chunks
 
 
-chunk_size = 25
+chunk_size = 20
 buffer = []
 sem = asyncio.Semaphore(64)  # Limits simultaneous connections on Windows
 
