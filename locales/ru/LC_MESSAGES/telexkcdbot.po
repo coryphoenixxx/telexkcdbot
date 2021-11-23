@@ -73,7 +73,6 @@ msgid "📑 My Bookmarks"
 msgstr "📑 Моё избранное"
 
 #: telexkcdbot/keyboards.py:50
-#, fuzzy
 msgid "Add 🇷🇺RU/🇬🇧EN Button"
 msgstr "Добавить 🇷🇺RU/🇬🇧EN кнопку"
 
