@@ -2,6 +2,7 @@ import json
 import asyncpg
 
 from datetime import date, timedelta
+from typing import Sequence
 
 from telexkcdbot.models import MenuKeyboardInfo, AdminUsersInfo
 
@@ -41,7 +42,7 @@ class UsersDatabase:
 
         await self.pool.execute(query, user_id)
 
-    async def get_user_lang(self, user_id: int):
+    async def get_user_lang(self, user_id: int) -> str:
         query = """SELECT user_lang FROM users 
                    WHERE user_id = $1;"""
 
@@ -61,7 +62,7 @@ class UsersDatabase:
         comic_id, comic_lang = res.split('_')
         return int(comic_id), comic_lang
 
-    async def get_all_users_ids(self) -> tuple[int]:
+    async def get_all_users_ids(self) -> Sequence[int]:
         query = """SELECT array_agg(user_id) FROM users;"""
 
         res = await self.pool.fetchval(query)
@@ -85,7 +86,7 @@ class UsersDatabase:
 
         await self.pool.execute(query, user_id)
 
-    async def get_lang_btn_status(self, user_id: int) -> str:
+    async def get_lang_btn_status(self, user_id: int) -> bool:
         """For handling LANG button under the comic"""
         query = """SELECT lang_btn_status FROM users
                    WHERE user_id = $1;"""
@@ -161,7 +162,7 @@ class UsersDatabase:
 
     """NOTIFICATION"""
 
-    async def get_notification_sound_status(self, user_id: int) -> tuple[int]:
+    async def get_notification_sound_status(self, user_id: int) -> bool:
         query = """SELECT notification_sound_status FROM users
                    WHERE user_id = $1;"""
 
