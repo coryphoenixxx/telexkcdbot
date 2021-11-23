@@ -1,6 +1,7 @@
 import asyncpg
 
 from dataclasses import astuple
+from typing import Sequence
 
 from telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
 
@@ -62,13 +63,13 @@ class ComicsDatabase:
 
         return await self.pool.fetchval(query)
 
-    async def get_all_comics_ids(self) -> tuple[int]:
+    async def get_all_comics_ids(self) -> Sequence[int]:
         query = """SELECT array_agg(comic_id) FROM comics;"""
 
         res = await self.pool.fetchval(query)
         return tuple(res) if res else ()
 
-    async def get_all_ru_comics_ids(self) -> tuple[int]:
+    async def get_all_ru_comics_ids(self) -> Sequence[int]:
         query = """SELECT array_agg(comic_id) FROM comics
                    WHERE has_ru_translation = TRUE;"""
 

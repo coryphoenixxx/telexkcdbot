@@ -20,7 +20,7 @@ async def cmd_start(msg: Message, state: FSMContext):
 
     await users_db.add_user(msg.from_user.id)
 
-    await msg.answer("<b>Select language | Выберете язык</b>",
+    await msg.answer("<b>Select language | Выберите язык</b>",
                      reply_markup=await kboard.lang_selection())
     await States.language_selection.set()
 
