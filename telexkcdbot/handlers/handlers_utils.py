@@ -8,21 +8,22 @@ from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-from src.telexkcdbot.bot import bot
-from src.telexkcdbot.middlewares.localization import _
-from src.telexkcdbot.databases.users_db import users_db
-from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.common_utils import (send_comic, cyrillic, punctuation, suppressed_exceptions,
-                                          make_headline, cut_into_chunks)
-from src.telexkcdbot.keyboards import kboard
-from src.telexkcdbot.models import ComicHeadlineInfo
+from telexkcdbot.bot import bot
+from telexkcdbot.middlewares.localization import _
+from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.databases.comics_db import comics_db
+from telexkcdbot.common_utils import (send_comic, cyrillic, punctuation, suppressed_exceptions,
+                                      make_headline, cut_into_chunks)
+from telexkcdbot.keyboards import kboard
+from telexkcdbot.models import ComicHeadlineInfo
 
 
 class States(StatesGroup):
     language_selection = State()
+    typing_admin_broadcast_msg = State()
     typing_msg_to_admin = State()
-    typing_broadcast_msg = State()
-    typing_admin_support_msg = State()
+    typing_admin_support_answer = State()
+    waiting = State()
 
 
 async def remove_callback_kb(call: CallbackQuery):
@@ -38,20 +39,25 @@ async def send_headlines_as_text(user_id: int, headlines_info: list[ComicHeadlin
     for chunk in cut_into_chunks(headlines_info, 35):
         headlines = []
         for headline_info in chunk:
-            headlines.append(await make_headline(comic_id=headline_info.comic_id,
-                                                 title=headline_info.title,
-                                                 img_url=headline_info.img_url))
+            headlines.append(make_headline(comic_id=headline_info.comic_id,
+                                           title=headline_info.title,
+                                           img_url=headline_info.img_url))
         await bot.send_message(user_id,
                                text='\n'.join(headlines),
                                disable_web_page_preview=True,
                                disable_notification=True)
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(1)
 
 
-async def send_bookmarks(user_id: int, state: FSMContext, keyboard: InlineKeyboardMarkup):
+async def send_bookmarks(user_id: int,
+                         message_id: int,
+                         msg_text: str,
+                         state: FSMContext, keyboard: InlineKeyboardMarkup):
     bookmarks = await users_db.get_bookmarks(user_id)
 
     if not bookmarks:
+        if '❤' in msg_text:
+            await bot.delete_message(user_id, message_id)
         text = _("❗ <b>You have no bookmarks.\nYou can bookmark a comic with the ❤ press.</b>")
         await bot.send_message(user_id, text, reply_markup=keyboard)
     elif len(bookmarks) == 1:
@@ -68,13 +74,14 @@ async def send_bookmarks(user_id: int, state: FSMContext, keyboard: InlineKeyboa
 async def send_menu(user_id: int):
     help_text = _("""<b>***** MENU *****</b>
 
-• Send me the <u><b>number</b></u> and I'll find a comic with this number!
-• Send me the <u><b>word</b></u> and I'll find comics whose titles contains this word! 
+• send me the <u><b>number</b></u> and I'll find a comic with this number;
+• send me the <u><b>word</b></u> and I'll find comics whose titles contains this word. 
 
 <u><b>Menu options:</b></u>
 • adjust the notification sound for the new comic release <i>(every Mon, Wed and Fri USA time)</i>;
-• read comics from your bookmarks;
-• remove language button <i>(under the comic, which have russian translation)</i> if you don't need it.
+• view comics from your bookmarks;
+• remove language button <i>(under the comic, which have russian translation)</i> if you don't need it;
+• contact admin.
 
 ____________________
 """)
@@ -114,7 +121,7 @@ async def flip_next(user_id: int, state: FSMContext):
             await bot.send_message(user_id, text=_("❗ <b>The last one:</b>"))
             await send_comic(user_id, comic_id=comic_id, keyboard=kboard.navigation, comic_lang=comic_lang)
     else:
-        # Bot used memory cache and sometimes reloaded, losing some data. Perfect crutch!
+        # Bot uses a memory cache and sometimes reloaded, losing some data. Perfect crutch!
         await bot.send_message(user_id,
                                text=_("❗ <b>Sorry, I was rebooted and forgot all the data... 😢\n"
                                       "Please repeat your request.</b>"),
@@ -169,3 +176,10 @@ def rate_limit(limit: int, key=None):
             setattr(func, 'throttling_key', key)
         return func
     return decorator
+
+
+def is_explained(text: str) -> bool:
+    # Don't show "Explain" button if explanation text already exists
+    if "[FULL TEXT]" in text or "{машинный перевод}" in text:
+        return True
+    return False

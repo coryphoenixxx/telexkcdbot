@@ -1,4 +1,6 @@
-# For sharing bot instance between modules
+"""
+For sharing bot instance between modules
+"""
 
 from aiogram import Bot
 from aiogram.types import ParseMode

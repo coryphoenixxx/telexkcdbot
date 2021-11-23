@@ -1,5 +1,6 @@
 import asyncio
 
+from aiogram.dispatcher import FSMContext
 from loguru import logger
 from contextlib import suppress
 from string import ascii_letters, digits
@@ -10,14 +11,12 @@ from aiogram.types import InputFile, ChatActions, Message
 from aiogram.utils.exceptions import (BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated, ChatNotFound,
                                       MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 
-from src.telexkcdbot.bot import bot
-from src.telexkcdbot.config import ADMIN_ID, IMG_DIR, BASE_DIR
-from src.telexkcdbot.keyboards import kboard
-from src.telexkcdbot.comic_data_getter import comic_data_getter
-from src.telexkcdbot.models import TotalComicData
-from src.telexkcdbot.databases.users_db import users_db
-from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.middlewares.localization import _
+from bot import bot
+from config import ADMIN_ID, IMG_DIR, BASE_DIR
+from keyboards import kboard
+from middlewares.localization import _
+from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.databases.comics_db import comics_db
 
 
 suppressed_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
@@ -25,11 +24,12 @@ cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПп
 punctuation = ' -(),.:;!?#+*/'
 
 
-async def make_headline(comic_id: int, title: str, img_url: str, public_date: str = '') -> str:
+def make_headline(comic_id: int, title: str, img_url: str, public_date: Optional[str] = None) -> str:
     """
     Makes the headline string like <number>. <title> and optional <public date>.
     Don't add public date and aligns the text a little for flipping mode.
     """
+
     if 'http' not in img_url:  # If it's local storage russian comic image don't make link
         link = title
     else:
@@ -78,13 +78,13 @@ async def send_comic(user_id: int,
      is_specific,
      has_ru_translation) = astuple(comic_data)
 
-    headline = await make_headline(comic_id, title, img_url, public_date)
+    headline = make_headline(comic_id, title, img_url, public_date)
 
     await bot.send_message(user_id, headline, disable_web_page_preview=True, disable_notification=True)
 
     if is_specific:
         await bot.send_message(user_id,
-                               text=_("❗ <b>This comic is peculiar!\n"
+                               text=_("❗ <b>This comic is special!\n"
                                       "Better to view it in your browser.</b>"),
                                disable_web_page_preview=True,
                                disable_notification=True)
@@ -108,7 +108,7 @@ async def send_comic(user_id: int,
                                text=_("❗ <b>Couldn't get image. Press on title to view comic in your browser!</b>"),
                                disable_web_page_preview=True,
                                disable_notification=True)
-        logger.error(f"Couldn't send {comic_id} img to {user_id} comic! {err}")
+        logger.error(f"Couldn't send {comic_id} image to {user_id} comic: {err}")
 
     # Sends the Randall Munroe's comment
     await bot.send_message(user_id,
@@ -120,16 +120,16 @@ async def send_comic(user_id: int,
 
 async def broadcast(text: str, comic_id: Optional[int] = None):
     """Sends to users a new comic or an admin message"""
+
     count = 0
     all_users_ids = await users_db.get_all_users_ids()
 
     try:
         for user_id in all_users_ids:
-            try:
-                await bot.send_chat_action(user_id, ChatActions.TYPING)
-            except (BotBlocked, UserDeactivated, ChatNotFound):
-                await users_db.delete_user(user_id)  # If user is unavailable then remove him from database
+            if await user_is_unavailable(user_id):
+                await users_db.delete_user(user_id)
             else:
+                # For sending comic
                 if comic_id:
                     only_ru_mode = await users_db.get_only_ru_mode_status(user_id)
                     if not only_ru_mode:  # In only-ru mode users don't get a new English comic
@@ -142,44 +142,28 @@ async def broadcast(text: str, comic_id: Optional[int] = None):
                         # Try to remove a keyboard of a previous message
                         with suppress(*suppressed_exceptions):
                             await bot.edit_message_reply_markup(user_id, msg.message_id - 1)
+
                         await send_comic(user_id, comic_id=comic_id)
                         count += 1
                 else:
-                    await bot.send_message(user_id, text=text, disable_notification=True)  # For sending admin message
+                    # For sending admin message
+                    await bot.send_message(user_id, text=text, disable_notification=True)
                     count += 1
                 if count % 20 == 0:
-                    await asyncio.sleep(1)  # 20 messages per second (Limit: 30 messages per second)
+                    await asyncio.sleep(1)  # 20 messages per second (Telegram limit: 30 messages per second)
     except Exception as err:
         logger.error(f"Couldn't broadcast on count {count}!", err)
     finally:
+        broadcast_final_text = f"{count}/{len(all_users_ids)} messages were successfully sent."
         await bot.send_message(ADMIN_ID,
-                               text=f"❗ <b>{count}/{len(all_users_ids)} messages were successfully sent.</b>",
+                               text=f"❗ <b>{broadcast_final_text}</b>",
                                disable_notification=True)
-        logger.info(f"{count}/{len(all_users_ids)} messages were successfully sent")
+        logger.info(broadcast_final_text)
 
 
-async def get_and_broadcast_new_comic():
-    db_last_comic_id = await comics_db.get_last_comic_id()
-
-    if not db_last_comic_id:  # If Heroku database is down then skip the check
-        return
-
-    real_last_comic_id = await comic_data_getter.get_xkcd_latest_comic_id()
-
-    if real_last_comic_id > db_last_comic_id:
-        for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
-            xkcd_comic_data = await comic_data_getter.get_xkcd_comic_data_by_id(comic_id)
-            await comics_db.add_new_comic(TotalComicData(comic_id=xkcd_comic_data.comic_id,
-                                                         title=xkcd_comic_data.title,
-                                                         img_url=xkcd_comic_data.img_url,
-                                                         comment=xkcd_comic_data.comment,
-                                                         public_date=xkcd_comic_data.public_date))
-
-        await broadcast(text=_("🔥 <b>And here comes the new comic!</b> 🔥"),
-                        comic_id=real_last_comic_id)
-
-
-async def remove_prev_message_kb(msg: Message):
+async def remove_prev_message_kb(msg: Message, state: Optional[FSMContext] = None):
+    if state:
+        await state.reset_data()
     with suppress(*suppressed_exceptions):
         await bot.edit_message_reply_markup(msg.from_user.id, msg.message_id - 1)
 
@@ -189,8 +173,17 @@ def cut_into_chunks(lst: list, chunk_size: int) -> Generator[list, None, None]:
         yield lst[i:i + chunk_size]
 
 
-async def preprocess_text(text: str) -> str:
+def preprocess_text(text: str) -> str:
     """Removes danger symbols from the text for before logging or searching"""
+
     permitted = ascii_letters + digits + cyrillic + punctuation
     processed_text = ''.join([ch for ch in text.strip() if ch in permitted])[:30]
     return processed_text
+
+
+async def user_is_unavailable(user_id: int) -> bool:
+    try:
+        await bot.send_chat_action(user_id, ChatActions.TYPING)
+    except (BotBlocked, UserDeactivated, ChatNotFound):
+        return True
+    return False

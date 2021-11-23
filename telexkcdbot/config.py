@@ -18,7 +18,7 @@ WEBHOOK_URL = f'{WEBHOOK_HOST}{WEBHOOK_PATH}'
 WEBAPP_HOST = '0.0.0.0'
 PORT = int(getenv('PORT'))
 
-BASE_DIR = Path(__file__).parent.parent.parent
+BASE_DIR = Path(__file__).parent.parent
 IMG_DIR = BASE_DIR / 'static/img'
 LOCALES_DIR = BASE_DIR / 'locales'
 LOGS_DIR = BASE_DIR / 'logs'
