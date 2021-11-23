@@ -9,23 +9,46 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from bot import bot
 from loguru import logger
 from config import HEROKU, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL, PORT, ADMIN_ID, DATABASE_URL, LOGS_DIR
-from common_utils import get_and_broadcast_new_comic
+from common_utils import broadcast
 from handlers.admin import register_admin_handlers
 from handlers.callbacks import register_callbacks
 from handlers.default import register_default_commands
+from models import TotalComicData
 from middlewares.big_brother import big_brother
-from middlewares.localization import localization
-from src.telexkcdbot.databases.fill_comics_db import initial_filling_of_comics_db
-from src.telexkcdbot.databases.users_db import users_db
-from src.telexkcdbot.databases.comics_db import comics_db
+from middlewares.localization import localization, _
+from comic_data_getter import comic_data_getter
+from telexkcdbot.databases.fill_comics_db import initial_filling_of_comics_db
+from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.databases.comics_db import comics_db
+
+
+async def get_and_broadcast_new_comic():
+    db_last_comic_id = await comics_db.get_last_comic_id()
+
+    if not db_last_comic_id:  # If Heroku database is down then skip the check
+        return
+
+    real_last_comic_id = await comic_data_getter.get_xkcd_latest_comic_id()
+
+    if real_last_comic_id > db_last_comic_id:
+        for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
+            xkcd_comic_data = await comic_data_getter.get_xkcd_comic_data_by_id(comic_id)
+
+            await comics_db.add_new_comic(TotalComicData(comic_id=xkcd_comic_data.comic_id,
+                                                         title=xkcd_comic_data.title,
+                                                         img_url=xkcd_comic_data.img_url,
+                                                         comment=xkcd_comic_data.comment,
+                                                         public_date=xkcd_comic_data.public_date))
+
+        await broadcast(text=_("🔥 <b>And here comes the new comic!</b> 🔥"), comic_id=real_last_comic_id)
 
 
 async def checker():
     await get_and_broadcast_new_comic()
-    aioschedule.every(0.25).minutes.do(get_and_broadcast_new_comic)
+    aioschedule.every(15).minutes.do(get_and_broadcast_new_comic)
     while True:
         await aioschedule.run_pending()
-        await asyncio.sleep(10)
+        await asyncio.sleep(300)
 
 
 async def on_startup(dp: Dispatcher):

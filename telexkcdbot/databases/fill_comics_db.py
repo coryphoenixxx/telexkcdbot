@@ -4,9 +4,9 @@ import sys
 from tqdm import tqdm
 
 from loguru import logger
-from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.comic_data_getter import comic_data_getter
-from src.telexkcdbot.common_utils import cut_into_chunks
+from telexkcdbot.databases.comics_db import comics_db
+from telexkcdbot.comic_data_getter import comic_data_getter
+from telexkcdbot.common_utils import cut_into_chunks
 
 
 chunk_size = 25

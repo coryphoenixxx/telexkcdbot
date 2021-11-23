@@ -4,53 +4,51 @@ from datetime import date
 from loguru import logger
 
 from aiogram import Dispatcher
-from aiogram.types import Update, ChatActions, Message
+from aiogram.types import Update, Message
 from aiogram.dispatcher import DEFAULT_RATE_LIMIT
 from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
-from aiogram.utils.exceptions import Throttled, BotBlocked, UserDeactivated, ChatNotFound, InvalidPeerID
+from aiogram.utils.exceptions import Throttled
 
-from src.telexkcdbot.bot import bot
-from src.telexkcdbot.common_utils import preprocess_text, remove_prev_message_kb
-from src.telexkcdbot.config import ADMIN_ID
-from src.telexkcdbot.keyboards import kboard
-from src.telexkcdbot.databases.users_db import users_db
-from src.telexkcdbot.middlewares.localization import _
+from telexkcdbot.common_utils import preprocess_text, remove_prev_message_kb, user_is_unavailable
+from telexkcdbot.config import ADMIN_ID
+from telexkcdbot.keyboards import kboard
+from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.middlewares.localization import _
 
 
 class BigBrother(BaseMiddleware):
-    def __init__(self, limit=DEFAULT_RATE_LIMIT, key_prefix='antiflood_'):
+    def __init__(self, limit: float = DEFAULT_RATE_LIMIT, key_prefix: str = 'antiflood_'):
         self.rate_limit = limit
         self.prefix = key_prefix
         super(BigBrother, self).__init__()
 
     @staticmethod
     async def on_pre_process_update(update: Update, data: dict):
-        user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
-        username = update.message.from_user.username if update.message else update.callback_query.from_user.username
-        language_code = update.message.from_user.language_code if update.message \
-            else update.callback_query.from_user.language_code
+        if not update.my_chat_member:
+            user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
+            username = update.message.from_user.username if update.message else update.callback_query.from_user.username
+            language_code = update.message.from_user.language_code if update.message \
+                else update.callback_query.from_user.language_code
 
-        if user_id != ADMIN_ID:  # Don't log admin actions
-            try:
-                await bot.send_chat_action(user_id, ChatActions.TYPING)
-            except (BotBlocked, UserDeactivated, ChatNotFound, InvalidPeerID):
-                pass  # if user unavailable for some reasons then do nothing
-            else:
-                if update.callback_query:
-                    logger.info(f"{user_id}|{username}|{language_code}|call:{update.callback_query.data}")
-                elif update.message.text:
-                    text = await preprocess_text(update.message.text)
-                    if text:
-                        logger.info(f"{user_id}|{username}|{language_code}|text:{text}")
+            if user_id != ADMIN_ID:  # Don't log admin actions
+                if await user_is_unavailable(user_id):
+                    pass
                 else:
-                    logger.info(f"{user_id}|{username}|{language_code}|<other>")
+                    if update.callback_query:
+                        logger.info(f"{user_id}|{username}|{language_code}|call:{update.callback_query.data}")
+                    elif update.message.text:
+                        text = preprocess_text(update.message.text)
+                        if text:
+                            logger.info(f"{user_id}|{username}|{language_code}|text:{text}")
+                    else:
+                        logger.info(f"{user_id}|{username}|{language_code}|<other>")
 
-        action_date = date.today()
-        try:
-            await users_db.update_last_action_date(user_id, action_date)
-        except Exception as err:
-            logger.error(f"Couldn't update last action date ({user_id}, {action_date} ({err}))")
+            action_date = date.today()
+            try:
+                await users_db.update_last_action_date(user_id, action_date)
+            except Exception as err:
+                logger.error(f"Couldn't update last action date ({user_id}, {action_date}): {err}")
 
     """ANTIFLOOD"""
 
@@ -77,6 +75,7 @@ class BigBrother(BaseMiddleware):
         Notify user only on first exceed and notify about unlocking only on last exceed
         """
         await remove_prev_message_kb(msg)
+
         handler = current_handler.get()
         dispatcher = Dispatcher.get_current()
         if handler:
@@ -97,7 +96,7 @@ class BigBrother(BaseMiddleware):
 
         # If current message is not last with current key - do not send message
         if thr.exceeded_count == throttled.exceeded_count:
-            await msg.answer(_('❗ <b>Unlocked.</b>'), reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
+            await msg.reply(_('❗ <b>Unlocked.</b>'), reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
 
 
 big_brother = BigBrother()

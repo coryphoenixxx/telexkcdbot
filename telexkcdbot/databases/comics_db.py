@@ -2,7 +2,7 @@ import asyncpg
 
 from dataclasses import astuple
 
-from src.telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
+from telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
 
 
 class ComicsDatabase:

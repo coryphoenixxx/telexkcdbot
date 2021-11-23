@@ -6,7 +6,7 @@ from aiogram.utils.callback_data import CallbackData
 from config import ADMIN_ID
 from models import ComicData
 from middlewares.localization import _
-from src.telexkcdbot.databases.users_db import users_db
+from telexkcdbot.databases.users_db import users_db
 
 
 support_cb_data = CallbackData('support', 'type', 'user_id', 'message_id')
@@ -21,7 +21,7 @@ class Keyboard:
         # Comic
         'nav_first': InlineKeyboardButton(text='|<<', callback_data='nav_first'),
         'nav_prev': InlineKeyboardButton(text=_('<Prev'), callback_data='nav_prev'),
-        'nav_random': InlineKeyboardButton(text=_('Rand'), callback_data='nav_random'),
+        'nav_random': InlineKeyboardButton(text=_('🎲Rand'), callback_data='nav_random'),
         'nav_next': InlineKeyboardButton(text=_('Next>'), callback_data='nav_next'),
         'nav_last': InlineKeyboardButton(text='>>|', callback_data='nav_last'),
         'not_bookmarked': InlineKeyboardButton(text=_('❤Bookmark'), callback_data='bookmark'),
@@ -31,11 +31,11 @@ class Keyboard:
         'en': InlineKeyboardButton(text='🇬🇧EN', callback_data='en'),
 
         # Comic in flipping mode
-        'flip_break': InlineKeyboardButton(text=_('Break'), callback_data='flip_break'),
-        'flip_next': InlineKeyboardButton(text=_('Next>'), callback_data='flip_next'),
+        'flip_break': InlineKeyboardButton(text=_('↩Break'), callback_data='flip_break'),
+        'flip_next': InlineKeyboardButton(text=_('Forward>'), callback_data='flip_next'),
         'flip_not_bookmarked': InlineKeyboardButton(text=_('❤Bookmark'), callback_data='flip_bookmark'),
         'flip_bookmarked': InlineKeyboardButton(text=_('💔Unbookmark'), callback_data='flip_unbookmark'),
-        'flip_explain': InlineKeyboardButton(text=_('Explain'), callback_data='flip_explain'),
+        'flip_explain': InlineKeyboardButton(text=_('📜Explain'), callback_data='flip_explain'),
         'flip_ru': InlineKeyboardButton(text='🇷🇺RU', callback_data='flip_ru'),
         'flip_en': InlineKeyboardButton(text='🇬🇧EN', callback_data='flip_en'),
 
@@ -46,10 +46,10 @@ class Keyboard:
                                                        callback_data='notification_sound_off'),
         'only_ru_mode_on': InlineKeyboardButton(text='Только переводы вкл.', callback_data='only_ru_mode_on'),
         'only_ru_mode_off': InlineKeyboardButton(text='Только переводы выкл.', callback_data='only_ru_mode_off'),
-        'user_bookmarks': InlineKeyboardButton(text=_('🔖 My Bookmarks'), callback_data='user_bookmarks'),
-        'add_lang_btn': InlineKeyboardButton(text=_('Add 🇷🇺/🇬🇧 Button'), callback_data='add_lang_btn'),
+        'user_bookmarks': InlineKeyboardButton(text=_('📑 My Bookmarks'), callback_data='user_bookmarks'),
+        'add_lang_btn': InlineKeyboardButton(text=_('Add 🇷🇺RU/🇬🇧EN Button'), callback_data='add_lang_btn'),
         'admin_support': InlineKeyboardButton(text=_('💬 Admin Support'), callback_data='admin_support'),
-        'remove_lang_btn': InlineKeyboardButton(text=_('Remove 🇷🇺/🇬🇧 Button'), callback_data='remove_lang_btn'),
+        'remove_lang_btn': InlineKeyboardButton(text=_('Remove 🇷🇺RU/🇬🇧EN Button'), callback_data='remove_lang_btn'),
         'start_xkcding': InlineKeyboardButton(text=_('Start xkcding!'), callback_data='start_xkcding'),
         'continue_xkcding': InlineKeyboardButton(text=_('Continue xkcding!'), callback_data='continue_xkcding'),
         'menu': InlineKeyboardButton(text=_('Menu'), callback_data='menu'),
@@ -83,7 +83,7 @@ class Keyboard:
                 lang_btn_key = 'ru' if kb == 'nav' else 'flip_ru'
             else:
                 lang_btn_key = 'en' if kb == 'nav' else 'flip_en'
-            row.insert(1, lang_btn_key)
+            row.insert(0, lang_btn_key)
         return row
 
     async def lang_selection(self) -> InlineKeyboardMarkup:
@@ -92,6 +92,7 @@ class Keyboard:
 
     async def menu(self, user_id: int) -> InlineKeyboardMarkup:
         user_menu_info = await users_db.get_user_menu_info(user_id)
+
         (notification_sound,
          only_ru_mode,
          lang_btn_enabled,
@@ -114,16 +115,26 @@ class Keyboard:
 
         return self._create_keyboard(btns_keys, row_width=1)
 
-    async def navigation(self, user_id: int, comic_data: ComicData, comic_lang: str = 'en') -> InlineKeyboardMarkup:
+    async def navigation(self,
+                         user_id: int,
+                         comic_data: ComicData,
+                         comic_lang: str = 'en',
+                         is_explained: bool = False) -> InlineKeyboardMarkup:
+
         user_bookmarks = await users_db.get_bookmarks(user_id)
 
         bookmark_btn = 'bookmarked' if comic_data.comic_id in user_bookmarks else 'not_bookmarked'
-        first_row_btns_keys = ['explain', bookmark_btn]
+        first_row_btns_keys = [bookmark_btn]
+
         first_row_btns_keys = await self._lang_btn_insertion(user_id,
                                                              first_row_btns_keys,
                                                              comic_data.has_ru_translation,
                                                              comic_lang,
                                                              kb='nav')
+
+        if not is_explained:
+            first_row_btns_keys.insert(0, 'explain')
+
         second_row_btns_keys = ['nav_first', 'nav_prev', 'nav_random', 'nav_next', 'nav_last']
 
         keyboard = InlineKeyboardMarkup()
@@ -131,11 +142,16 @@ class Keyboard:
         keyboard.row(*[self.btns_dict[key] for key in second_row_btns_keys])
         return keyboard
 
-    async def flipping(self, user_id: int, comic_data: ComicData, cur_comic_lang: str) -> InlineKeyboardMarkup:
+    async def flipping(self, user_id: int,
+                       comic_data: ComicData,
+                       cur_comic_lang: str,
+                       is_explained: bool = False) -> InlineKeyboardMarkup:
+
         user_bookmarks = await users_db.get_bookmarks(user_id)
 
         bookmark_btn_key = 'flip_bookmarked' if comic_data.comic_id in user_bookmarks else 'flip_not_bookmarked'
-        btns_keys = ['flip_explain', bookmark_btn_key,
+
+        btns_keys = [bookmark_btn_key,
                      'flip_break', 'flip_next']
         btns_keys = await self._lang_btn_insertion(user_id,
                                                    btns_keys,
@@ -143,7 +159,15 @@ class Keyboard:
                                                    cur_comic_lang,
                                                    kb='flip')
 
+        if not is_explained:
+            btns_keys.insert(0, 'flip_explain')
+
         row_width = 2 if len(btns_keys) == 4 else 3
+
+        # Swap "↩Break" and "❤Bookmark"
+        if len(btns_keys) == 3:
+            btns_keys[0], btns_keys[1] = btns_keys[1], btns_keys[0]
+
         return self._create_keyboard(btns_keys, row_width=row_width)
 
     async def menu_or_xkcding(self, user_id: int) -> InlineKeyboardMarkup:
@@ -155,13 +179,13 @@ class Keyboard:
 
     @staticmethod
     async def support_keyboard(user_id: int, message_id: int) -> InlineKeyboardMarkup:
-        answer_btn = InlineKeyboardButton(text='Answer',
+        answer_btn = InlineKeyboardButton(text='💬 Answer',
                                           callback_data=support_cb_data.new(type='answer',
                                                                             user_id=user_id,
                                                                             message_id=message_id),
                                           )
 
-        ban_btn = InlineKeyboardButton(text='Ban user',
+        ban_btn = InlineKeyboardButton(text='🔨 Ban User',
                                        callback_data=support_cb_data.new(type='ban',
                                                                          user_id=user_id,
                                                                          message_id=message_id),

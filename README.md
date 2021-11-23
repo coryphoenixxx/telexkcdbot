@@ -1,38 +1,23 @@
-# TELE_XKCD_BOT
+# TELEXKCDBOT
 
-![bot_image](https://user-images.githubusercontent.com/25626227/128462493-55f67eb0-d9ea-4d50-864b-0c29a3bc0f45.png)
+<a href="https://t.me/telexkcdbot"><img src="https://img.shields.io/badge/Telegram-%20@telexkcdbot-blue"></a>
 
 Functional telegram bot for convenient reading xkcd comics.
 
-## Try it
-https://t.me/telexkcdbot
-
-## Presentation
-https://www.youtube.com/watch?v=BW7dkHN6fsg
-
-![alt text](https://i.ibb.co/grc9jmZ/1.jpg)
-
-![alt text](https://i.ibb.co/b2T0FjY/2.jpg)
-
-![alt text](https://i.ibb.co/bQmCS2R/3.jpg)
+![bot_image](https://user-images.githubusercontent.com/25626227/128462493-55f67eb0-d9ea-4d50-864b-0c29a3bc0f45.png)
 
 ## Features
-- Notification for the new comic.
-- Russian translation of comic _(if it exists)_.
-- Bookmarking.
-- Searching by number and word.
- 
-Hidden and admin features:
-- Antiflood.
-- Logging.
-- Broadcasting.
-- Telemetry.
+- notification for the new comic;
+- russian translation of comic _(if it exists)_;
+- russian translation of comic explanation;
+- bookmarking;
+- searching by number and word;
+- admin support;
 
 
 ## Tech Stack
 
-- aiogram
-- asynpg
-- aiohttp
-- loguru
-- BeautifulSoup4
+- Python;
+- aiogram;
+- PostgresSQL;
+- aiohttp and bs4;

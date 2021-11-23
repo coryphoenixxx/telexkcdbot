@@ -3,8 +3,8 @@ from typing import Any
 from aiogram import types
 from aiogram.contrib.middlewares.i18n import I18nMiddleware
 
-from src.telexkcdbot.config import I18N_DOMAIN, LOCALES_DIR
-from src.telexkcdbot.databases.users_db import users_db
+from telexkcdbot.config import I18N_DOMAIN, LOCALES_DIR
+from telexkcdbot.databases.users_db import users_db
 
 
 class Localization(I18nMiddleware):
@@ -14,6 +14,7 @@ class Localization(I18nMiddleware):
 
     async def set_user_locale(self, locale: str):
         """Forcibly set the locale to the context"""
+
         self.ctx_locale.set(locale)
 
 

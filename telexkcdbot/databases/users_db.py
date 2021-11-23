@@ -3,7 +3,7 @@ import asyncpg
 
 from datetime import date, timedelta
 
-from src.telexkcdbot.models import MenuKeyboardInfo, AdminUsersInfo
+from telexkcdbot.models import MenuKeyboardInfo, AdminUsersInfo
 
 
 class UsersDatabase:
@@ -48,7 +48,7 @@ class UsersDatabase:
         return await self.pool.fetchval(query, user_id)
 
     async def set_user_lang(self, user_id: int, lang: str):
-        query = """UPDATE users SET user_lang = $1
+        query = """UPDATE users SET user_lang = $1, only_ru_mode=FALSE 
                    WHERE user_id = $2;"""
 
         await self.pool.execute(query, lang, user_id)
@@ -141,7 +141,7 @@ class UsersDatabase:
                                 only_ru_mode_status=res['only_ru_mode'],
                                 lang_btn_status=res['lang_btn_status'],
                                 user_lang=res['user_lang'],
-                                last_comic_id=res['last_comic_info'][0])
+                                last_comic_id=int(res['last_comic_info'][0]))
 
     """BOOKMARKS"""
 

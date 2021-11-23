@@ -1,5 +1,4 @@
 from contextlib import suppress
-
 from loguru import logger
 
 from aiogram import Dispatcher
@@ -8,25 +7,24 @@ from aiogram.utils.exceptions import BadRequest
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 
-from src.telexkcdbot.bot import bot
-from src.telexkcdbot.keyboards import kboard, support_cb_data
-from src.telexkcdbot.databases.users_db import users_db
-from src.telexkcdbot.databases.comics_db import comics_db
-from src.telexkcdbot.common_utils import broadcast, suppressed_exceptions, remove_prev_message_kb
-from src.telexkcdbot.handlers.handlers_utils import States, send_menu
-from src.telexkcdbot.config import ADMIN_ID, LOGS_DIR
-from src.telexkcdbot.middlewares.localization import _
+from telexkcdbot.bot import bot
+from telexkcdbot.keyboards import kboard, support_cb_data
+from telexkcdbot.common_utils import broadcast, suppressed_exceptions, remove_prev_message_kb, user_is_unavailable
+from telexkcdbot.handlers.handlers_utils import States, remove_callback_kb
+from telexkcdbot.config import ADMIN_ID, LOGS_DIR
+from telexkcdbot.middlewares.localization import _
+from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.databases.comics_db import comics_db
 
 
 admin_panel_text_base = "<b>*** ADMIN PANEL ***</b>\n"
 
 
 async def cmd_admin(msg: Message, state: FSMContext):
-    if msg.from_user.id != int(ADMIN_ID):
-        await msg.answer("❗ <b>For admin only!</b>")
+    if msg.from_user.id != ADMIN_ID:
+        await msg.answer(_("❗ <b>For admin only!</b>"))
     else:
-        await remove_prev_message_kb(msg)
-        await state.reset_data()
+        await remove_prev_message_kb(msg, state)
 
         await msg.answer(admin_panel_text_base,
                          reply_markup=await kboard.admin_panel())
@@ -62,7 +60,7 @@ async def cb_send_log(call: CallbackQuery):
 
 
 async def cb_type_broadcast_message(call: CallbackQuery):
-    await States.typing_broadcast_msg.set()
+    await States.typing_admin_broadcast_msg.set()
     await call.message.answer("❗ <b>Type in a broadcast message (or /cancel):</b>")
 
 
@@ -75,7 +73,7 @@ async def cmd_cancel(msg: Message, state: FSMContext):
 
 
 async def broadcast_admin_msg(msg: Message, state: FSMContext):
-    await broadcast(text=_(f"❗ <u><b>ADMIN MESSAGE:</b></u>\n{msg.text}"))
+    await broadcast(text=_("❗ <u><b>ADMIN MESSAGE:</b></u>\n{}").format(msg.text))
     await state.finish()
 
 
@@ -89,17 +87,21 @@ async def user_support_msg(msg: Message, state: FSMContext):
         message_id = msg.message_id
         await bot.send_message(ADMIN_ID,
                                text=f"❗ <b>New message from user\n"
-                                    f"({user_id} | {username} | {msg.from_user.language_code})</b>")
-        await msg.copy_to(ADMIN_ID, reply_markup=await kboard.support_keyboard(user_id, message_id))
+                                    f"[{user_id} | {username} | {msg.from_user.language_code}]</b>")
+        await msg.copy_to(ADMIN_ID,
+                          reply_markup=await kboard.support_keyboard(user_id, message_id),
+                          disable_notification=True)
     await state.finish()
-    await send_menu(user_id)
+    await msg.answer(text=_("❗ <b>The message has been successfully sent to the admin.</b>"),
+                     reply_markup=await kboard.menu_or_xkcding(user_id))
 
 
 async def cb_answer(call: CallbackQuery, state: FSMContext, callback_data: dict):
-    await States.typing_admin_support_msg.set()
+    await remove_callback_kb(call)
+    await States.typing_admin_support_answer.set()
     _, _, user_id, message_id = callback_data.values()
-    await state.set_data(data={'user_id': user_id, 'message_id': message_id})
-    await call.message.delete()
+    await state.set_data(data={'user_id': int(user_id), 'message_id': int(message_id)})
+    await bot.send_message(ADMIN_ID, text=f"❗ <b>Enter the answer to the user {user_id} (or /cancel):</b>")
 
 
 async def cb_ban(call: CallbackQuery, callback_data: dict):
@@ -110,7 +112,17 @@ async def cb_ban(call: CallbackQuery, callback_data: dict):
 
 async def admin_support_msg(msg: Message, state: FSMContext):
     data = await state.get_data()
-    await bot.send_message(data['user_id'], text=msg.text, reply_to_message_id=data['message_id'])
+    user_id, message_id = data['user_id'], data['message_id']
+
+    if await user_is_unavailable(user_id):
+        pass
+    else:
+        user_lang = await users_db.get_user_lang(user_id)
+        base_text = "❗ <b>ADMIN ANSWER:\n</b>" if user_lang == 'en' else "❗ <b>ОТВЕТ АДМИНА:\n</b>"
+        await bot.send_message(user_id,
+                               text=base_text + msg.text,
+                               reply_to_message_id=message_id,
+                               disable_notification=True)
     await state.finish()
 
 
@@ -120,12 +132,14 @@ def register_admin_handlers(dp: Dispatcher):
     dp.register_callback_query_handler(cb_toggle_spec_status, text='change_spec_status')
     dp.register_callback_query_handler(cb_send_log, Text(startswith='send_'))
     dp.register_callback_query_handler(cb_type_broadcast_message, text='broadcast_admin_msg')
-    dp.register_message_handler(cmd_cancel, commands='cancel', state=States.typing_broadcast_msg)
-    dp.register_message_handler(broadcast_admin_msg, state=States.typing_broadcast_msg)
+    dp.register_message_handler(cmd_cancel,
+                                commands='cancel',
+                                state=[States.typing_admin_broadcast_msg, States.typing_admin_support_answer])
+    dp.register_message_handler(broadcast_admin_msg, state=States.typing_admin_broadcast_msg)
     dp.register_message_handler(user_support_msg,
                                 state=States.typing_msg_to_admin,
                                 content_types=['text', 'photo'])
     dp.register_message_handler(admin_support_msg,
-                                state=States.typing_admin_support_msg)
+                                state=States.typing_admin_support_answer)
     dp.register_callback_query_handler(cb_answer, support_cb_data.filter(type='answer'))
     dp.register_callback_query_handler(cb_ban, support_cb_data.filter(type='ban'))
