@@ -12,7 +12,7 @@ from telexkcdbot.databases.users_db import users_db
 from telexkcdbot.databases.comics_db import comics_db
 from telexkcdbot.common_utils import send_comic
 from telexkcdbot.keyboards import kboard
-from telexkcdbot.comic_data_getter import comic_data_getter
+from telexkcdbot.comic_data_getter import comics_data_getter
 from telexkcdbot.handlers.handlers_utils import (send_menu, send_bookmarks, remove_callback_kb,
                                                  calc_new_comic_id, flip_next, States, is_explained)
 
@@ -156,9 +156,9 @@ async def cb_explain(call: CallbackQuery, state: FSMContext,):
 
     user_lang = await users_db.get_user_lang(call.from_user.id)
     if user_lang == 'ru':
-        text = await comic_data_getter.get_ru_explanation(last_comic_id)
+        text = await comics_data_getter.get_ru_explanation(last_comic_id)
     else:
-        text = await comic_data_getter.get_explanation(last_comic_id)
+        text = await comics_data_getter.get_explanation(last_comic_id)
 
     keyboard = kboard.flipping if 'flip' in call.data else kboard.navigation
     keyboard = await keyboard(call.from_user.id, comic_data, last_comic_lang, is_explained=is_explained(text))

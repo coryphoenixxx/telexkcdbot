@@ -73,7 +73,7 @@ async def cmd_cancel(msg: Message, state: FSMContext):
 
 
 async def broadcast_admin_msg(msg: Message, state: FSMContext):
-    await broadcast(text=_("❗ <u><b>ADMIN MESSAGE:</b></u>\n{}").format(msg.text))
+    await broadcast(msg_text=msg.text)
     await state.finish()
 
 

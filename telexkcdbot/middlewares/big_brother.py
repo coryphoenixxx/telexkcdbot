@@ -25,7 +25,7 @@ class BigBrother(BaseMiddleware):
 
     @staticmethod
     async def on_pre_process_update(update: Update, data: dict):
-        if not update.my_chat_member:
+        if update.message or update.callback_query:
             user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
             username = update.message.from_user.username if update.message else update.callback_query.from_user.username
             language_code = update.message.from_user.language_code if update.message \

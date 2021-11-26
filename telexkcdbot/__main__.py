@@ -16,7 +16,7 @@ from handlers.default import register_default_commands
 from models import TotalComicData
 from middlewares.big_brother import big_brother
 from middlewares.localization import localization, _
-from comic_data_getter import comic_data_getter
+from comic_data_getter import comics_data_getter
 from telexkcdbot.databases.fill_comics_db import initial_filling_of_comics_db
 from telexkcdbot.databases.users_db import users_db
 from telexkcdbot.databases.comics_db import comics_db
@@ -28,19 +28,18 @@ async def get_and_broadcast_new_comic():
     if not db_last_comic_id:  # If Heroku database is down then skip the check
         return
 
-    real_last_comic_id = await comic_data_getter.get_xkcd_latest_comic_id()
+    real_last_comic_id = await comics_data_getter.get_xkcd_latest_comic_id()
 
     if real_last_comic_id > db_last_comic_id:
         for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
-            xkcd_comic_data = await comic_data_getter.get_xkcd_comic_data_by_id(comic_id)
+            xkcd_comic_data = await comics_data_getter.get_xkcd_comic_data_by_id(comic_id)
 
             await comics_db.add_new_comic(TotalComicData(comic_id=xkcd_comic_data.comic_id,
                                                          title=xkcd_comic_data.title,
                                                          img_url=xkcd_comic_data.img_url,
                                                          comment=xkcd_comic_data.comment,
                                                          public_date=xkcd_comic_data.public_date))
-
-        await broadcast(text=_("🔥 <b>And here comes the new comic!</b> 🔥"), comic_id=real_last_comic_id)
+        await broadcast(comic_id=real_last_comic_id)
 
 
 async def checker():
