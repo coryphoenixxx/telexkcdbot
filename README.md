@@ -19,5 +19,5 @@ Functional telegram bot for convenient reading xkcd comics.
 
 - Python;
 - aiogram;
-- PostgresSQL;
+- PostgreSQL;
 - aiohttp and bs4;
