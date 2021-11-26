@@ -10,6 +10,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from telexkcdbot.bot import bot
 from telexkcdbot.middlewares.localization import _
+from telexkcdbot.comic_data_getter import comics_data_getter
 from telexkcdbot.databases.users_db import users_db
 from telexkcdbot.databases.comics_db import comics_db
 from telexkcdbot.common_utils import (send_comic, cyrillic, punctuation, suppressed_exceptions,
@@ -74,8 +75,8 @@ async def send_bookmarks(user_id: int,
 async def send_menu(user_id: int):
     help_text = _("""<b>***** MENU *****</b>
 
-• send me the <u><b>number</b></u> and I'll find a comic with this number;
-• send me the <u><b>word</b></u> and I'll find comics whose titles contains this word. 
+• send me the <u><b>number</b></u>, and I'll find a comic with this number;
+• send me the <u><b>word</b></u>, and I'll find comics whose titles contains this word. 
 
 <u><b>Menu options:</b></u>
 • adjust the notification sound for the new comic release <i>(every Mon, Wed and Fri USA time)</i>;
@@ -87,7 +88,7 @@ ____________________
 """)
     user_lang = await users_db.get_user_lang(user_id)
     users_num = len(await users_db.get_all_users_ids())
-    ru_comics_num = len(await comics_db.get_all_ru_comics_ids())
+    ru_comics_num = len(comics_data_getter.ru_comics_ids)
 
     comic_num = len(await comics_db.get_all_comics_ids())
     if user_lang == 'en':
@@ -149,7 +150,7 @@ async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
         return 1
     else:
         if only_ru_mode:
-            ru_ids = sorted(await comics_db.get_all_ru_comics_ids())
+            ru_ids = sorted(comics_data_getter.ru_comics_ids)
             actions = {
                 'prev': find_closest(ru_ids, action, comic_id),
                 'random': random.choice(ru_ids),

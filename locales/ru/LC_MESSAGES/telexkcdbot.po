@@ -1,25 +1,8 @@
 
 msgid ""
 msgstr ""
-"Project-Id-Version: PROJECT VERSION\n"
-"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2021-11-24 00:48+0700\n"
-"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
-"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
-"Language: ru\n"
-"Language-Team: ru <LL@li.org>\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
-"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.9.1\n"
 
-#: telexkcdbot/__main__.py:43
-msgid "🔥 <b>And here comes the new comic!</b> 🔥"
-msgstr "🔥 <b>А вот и свежий выпуск!</b> 🔥"
-
-#: telexkcdbot/comic_data_getter.py:136
+#: telexkcdbot/comic_data_getter.py:137
 msgid ""
 "❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it"
 " later.</b>"
@@ -27,7 +10,7 @@ msgstr ""
 "❗ <b>Объяснение еще не появилось или explainxkcd.com недоступен. "
 "Попробуйте  позже.</b>"
 
-#: telexkcdbot/common_utils.py:87
+#: telexkcdbot/common_utils.py:93
 msgid ""
 "❗ <b>This comic is special!\n"
 "Better to view it in your browser.</b>"
@@ -35,7 +18,7 @@ msgstr ""
 "❗ <b>Этот комикс особенный!\n"
 "Лучше посмотреть его в браузере.</b>"
 
-#: telexkcdbot/common_utils.py:108
+#: telexkcdbot/common_utils.py:114
 msgid "❗ <b>Couldn't get image. Press on title to view comic in your browser!</b>"
 msgstr ""
 "❗ <b>Не смог получить изображение. Нажмите на ссылку в названии комикса, "
@@ -112,14 +95,6 @@ msgstr "Меню"
 #: telexkcdbot/handlers/admin.py:25
 msgid "❗ <b>For admin only!</b>"
 msgstr "❗ <b>Только для админа!</b>"
-
-#: telexkcdbot/handlers/admin.py:76
-msgid ""
-"❗ <u><b>ADMIN MESSAGE:</b></u>\n"
-"{}"
-msgstr ""
-"❗ <u><b>СООБЩЕНИЕ ОТ АДМИНА:</b></u>\n"
-"{}"
 
 #: telexkcdbot/handlers/admin.py:95
 msgid "❗ <b>The message has been successfully sent to the admin.</b>"
@@ -201,7 +176,7 @@ msgstr "❗ <b>Нашел <u><b>{}</b></u> комиксов:</b>"
 msgid "❗ <b>Now you can flip through the comics:</b>"
 msgstr "❗ <b>Теперь можно перелистывать:</b>"
 
-#: telexkcdbot/handlers/handlers_utils.py:61
+#: telexkcdbot/handlers/handlers_utils.py:62
 msgid ""
 "❗ <b>You have no bookmarks.\n"
 "You can bookmark a comic with the ❤ press.</b>"
@@ -209,21 +184,21 @@ msgstr ""
 "❗ <b>У вас нет комиксов в избранном.\n"
 "Можете добавить нажатием ❤ под комиксом.</b>"
 
-#: telexkcdbot/handlers/handlers_utils.py:64
+#: telexkcdbot/handlers/handlers_utils.py:65
 msgid "❗ <b>You have one:</b>"
 msgstr "❗ <b>У вас один комикс в избранном:</b>"
 
-#: telexkcdbot/handlers/handlers_utils.py:67
+#: telexkcdbot/handlers/handlers_utils.py:68
 msgid "❗ <b>You have <u><b>{}</b></u> bookmarks:</b>"
 msgstr "❗ <b>У вас <u><b>{}</b></u> комиксов в избранном:</b>"
 
-#: telexkcdbot/handlers/handlers_utils.py:75
+#: telexkcdbot/handlers/handlers_utils.py:76
 msgid ""
 "<b>***** MENU *****</b>\n"
 "\n"
-"• send me the <u><b>number</b></u> and I'll find a comic with this "
+"• send me the <u><b>number</b></u>, and I'll find a comic with this "
 "number;\n"
-"• send me the <u><b>word</b></u> and I'll find comics whose titles "
+"• send me the <u><b>word</b></u>, and I'll find comics whose titles "
 "contains this word. \n"
 "\n"
 "<u><b>Menu options:</b></u>\n"
@@ -238,8 +213,8 @@ msgid ""
 msgstr ""
 "<b>***** МЕНЮ *****</b>\n"
 "\n"
-"• отправьте мне <u><b>число</b></u> и я найду комикс с таким номером;\n"
-"• отправьте мне <u><b>слово</b></u> и я найду комиксы с таким словом в "
+"• отправьте мне <u><b>число</b></u>, и я найду комикс с таким номером;\n"
+"• отправьте мне <u><b>слово</b></u>, и я найду комиксы с таким словом в "
 "заголовке.\n"
 "\n"
 "<u><b>Опции меню:</b></u>\n"
@@ -256,11 +231,11 @@ msgstr ""
 "❗ В этом режиме свежие комиксы присылаться <u><b>не будут</b></u>.\n"
 "____________________\n"
 
-#: telexkcdbot/handlers/handlers_utils.py:121
+#: telexkcdbot/handlers/handlers_utils.py:122
 msgid "❗ <b>The last one:</b>"
 msgstr "❗ <b>Этот последний:</b>"
 
-#: telexkcdbot/handlers/handlers_utils.py:126
+#: telexkcdbot/handlers/handlers_utils.py:127
 msgid ""
 "❗ <b>Sorry, I was rebooted and forgot all the data... 😢\n"
 "Please repeat your request.</b>"

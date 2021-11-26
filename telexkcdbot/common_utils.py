@@ -7,14 +7,15 @@ from string import ascii_letters, digits
 from typing import Optional, Callable, Generator
 from dataclasses import astuple
 
-from aiogram.types import InputFile, ChatActions, Message
+from aiogram.types import InputFile, ChatActions, Message, User
 from aiogram.utils.exceptions import (BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated, ChatNotFound,
                                       MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 
 from bot import bot
 from config import ADMIN_ID, IMG_DIR, BASE_DIR
 from keyboards import kboard
-from middlewares.localization import _
+from middlewares.localization import _, localization
+from telexkcdbot.comic_data_getter import comics_data_getter
 from telexkcdbot.databases.users_db import users_db
 from telexkcdbot.databases.comics_db import comics_db
 
@@ -46,20 +47,26 @@ async def send_comic(user_id: int,
                      comic_id: int,
                      keyboard: Callable = kboard.navigation,
                      comic_lang: str = 'en',
-                     from_toggle_lang_cb: bool = False):
+                     from_toggle_lang_cb: bool = False,
+                     from_broadcast: bool = False):
     """
     :param user_id:
     :param comic_id:
     :param keyboard:
     :param comic_lang: In what language to send the comic
-    :param from_toggle_lang_cb: Uses for correct defining in what language to send the comic if user in only-ru mode
+    :param from_toggle_lang_cb: Uses for correct defining in what language to send the comic
+    :param from_broadcast: User for correct defining in what language send user keyboard
     :return:
     """
+    user_lang = await users_db.get_user_lang(user_id)
+
+    # Fix bug with incorrect keyboard language in broadcasting
+    if from_broadcast:
+        await localization.set_user_locale(user_lang)
 
     # Changes the language of the comic to Russian if possible
-    only_ru = await users_db.get_only_ru_mode_status(user_id)
-    if only_ru:
-        ru_ids = await comics_db.get_all_ru_comics_ids()
+    if user_lang == 'ru':
+        ru_ids = comics_data_getter.ru_comics_ids
         if comic_id in ru_ids:
             last_comic_id, last_comic_lang = await users_db.get_last_comic_info(user_id)
             if last_comic_id == comic_id and last_comic_lang == 'ru' and from_toggle_lang_cb:
@@ -118,7 +125,7 @@ async def send_comic(user_id: int,
                            reply_markup=await keyboard(user_id, comic_data, comic_lang))
 
 
-async def broadcast(text: str, comic_id: Optional[int] = None):
+async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = None):
     """Sends to users a new comic or an admin message"""
 
     count = 0
@@ -129,28 +136,43 @@ async def broadcast(text: str, comic_id: Optional[int] = None):
             if await user_is_unavailable(user_id):
                 await users_db.delete_user(user_id)
             else:
+                user_lang = await users_db.get_user_lang(user_id)
+
                 # For sending comic
                 if comic_id:
                     only_ru_mode = await users_db.get_only_ru_mode_status(user_id)
                     if not only_ru_mode:  # In only-ru mode users don't get a new English comic
                         notification_sound = await users_db.get_notification_sound_status(user_id)
+
+                        text = "🔥 <b>And here comes the new comic!</b> 🔥" if user_lang == 'en'\
+                            else "🔥 <b>А вот и свежий выпуск!</b> 🔥"
+
                         if notification_sound:
                             msg = await bot.send_message(user_id, text=text)
                         else:
-                            msg = await bot.send_message(user_id, text=text, disable_notification=True)
+                            msg = await bot.send_message(user_id, text=text,
+                                                         disable_notification=True)
 
                         # Try to remove a keyboard of a previous message
                         with suppress(*suppressed_exceptions):
                             await bot.edit_message_reply_markup(user_id, msg.message_id - 1)
 
-                        await send_comic(user_id, comic_id=comic_id)
+                        await send_comic(user_id, comic_id=comic_id, from_broadcast=True)
+
                         count += 1
+                # For sending admin message
                 else:
-                    # For sending admin message
+                    title_text = "❗ <u><b>ADMIN MESSAGE:</b></u>\n" if user_lang == 'en' \
+                        else "❗ <u><b>СООБЩЕНИЕ ОТ АДМИНА:</b></u>\n"
+                    text = title_text + msg_text
+
                     await bot.send_message(user_id, text=text, disable_notification=True)
+
                     count += 1
+
                 if count % 20 == 0:
                     await asyncio.sleep(1)  # 20 messages per second (Telegram limit: 30 messages per second)
+
     except Exception as err:
         logger.error(f"Couldn't broadcast on count {count}!", err)
     finally:

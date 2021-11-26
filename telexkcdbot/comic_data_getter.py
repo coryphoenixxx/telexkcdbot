@@ -8,7 +8,7 @@ from datetime import date
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
 from dataclasses import astuple
-from typing import Optional
+from typing import Optional, Sequence
 from tqdm import tqdm
 from pathlib import Path
 from googletrans import Translator
@@ -18,9 +18,10 @@ from models import RuComicData, XKCDComicData, TotalComicData
 from middlewares.localization import _
 
 
-class ComicDataGetter:
+class ComicsDataGetter:
     def __init__(self):
         # Specific comics cannot be displayed correctly in Telegram
+        self.ru_comics_ids: Sequence[int] = tuple()
         self._default_specific_comic_ids: set = {498, 826, 880, 887, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350,
                                                  1416, 1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
         self._translator: Translator = Translator()
@@ -144,7 +145,7 @@ class ComicDataGetter:
                 pass
             else:
                 text = first_p.text + '\n'
-                for el in first_p.find_next_siblings()[:15]:
+                for el in first_p.find_next_siblings()[:20]:
                     if el.name in ('p', 'li'):
                         text = text + el.text.strip() + '\n\n'
 
@@ -167,7 +168,7 @@ class ComicDataGetter:
         if '❗' in en_explanation_text:
             return en_explanation_text
 
-        await asyncio.sleep(4)  # Protection from potential ban by Google
+        await asyncio.sleep(3)  # Protection from potential ban by Google
 
         try:
             ru_explanation_text = self._translate_to_ru(en_explanation_text)
@@ -178,9 +179,11 @@ class ComicDataGetter:
             return "<b>{машинный перевод}\n</b>" + ru_explanation_text + " (англ.)"
 
     def clean(self):
+        self.ru_comics_ids = tuple(self._ru_comics_data_dict.keys())
+
         # Remove unused data in the future (_ru_comics_data_dict takes 30MB of RAM)
         del self._ru_comics_data_dict
         del self._path_to_ru_comic_data
 
 
-comic_data_getter = ComicDataGetter()
+comics_data_getter = ComicsDataGetter()

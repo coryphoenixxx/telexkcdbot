@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from loguru import logger
 from telexkcdbot.databases.comics_db import comics_db
-from telexkcdbot.comic_data_getter import comic_data_getter
+from telexkcdbot.comic_data_getter import comics_data_getter
 from telexkcdbot.common_utils import cut_into_chunks
 
 
@@ -16,7 +16,7 @@ sem = asyncio.Semaphore(64)  # Limits simultaneous connections on Windows
 
 async def get_and_put_comic_data_to_buffer(comic_id: int):
     async with sem:
-        comic_data = await comic_data_getter.get_total_comic_data(comic_id)
+        comic_data = await comics_data_getter.get_total_comic_data(comic_id)
     buffer.append(comic_data)
 
 
@@ -37,11 +37,11 @@ async def write_to_db():
 
 async def initial_filling_of_comics_db():
     logger.info("Retrieving ru comics data from csv started...")
-    comic_data_getter.retrieve_from_csv_to_dict()
+    comics_data_getter.retrieve_from_csv_to_dict()
 
     logger.info("Filling the comics db started...")
     all_comics_ids = await comics_db.get_all_comics_ids()
-    latest = await comic_data_getter.get_xkcd_latest_comic_id()
+    latest = await comics_data_getter.get_xkcd_latest_comic_id()
 
     pbar = tqdm(total=latest, file=sys.stdout)
     for chunk in cut_into_chunks(list(range(1, latest+1)), chunk_size):
@@ -50,4 +50,4 @@ async def initial_filling_of_comics_db():
         pbar.update(len(chunk))
 
     logger.info("Finished!")
-    comic_data_getter.clean()
+    comics_data_getter.clean()
