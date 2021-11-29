@@ -2,7 +2,7 @@
 
 <a href="https://t.me/telexkcdbot"><img src="https://img.shields.io/badge/Telegram-%20@telexkcdbot-blue"></a>
 
-Functional telegram bot for convenient reading xkcd comics.
+Functional asynchronous telegram-bot for convenient reading xkcd comics.
 
 ![bot_image](https://user-images.githubusercontent.com/25626227/128462493-55f67eb0-d9ea-4d50-864b-0c29a3bc0f45.png)
 
