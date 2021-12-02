@@ -181,6 +181,6 @@ def rate_limit(limit: int, key=None):
 
 def is_explained(text: str) -> bool:
     # Don't show "Explain" button if explanation text already exists
-    if "[FULL TEXT]" in text or "{машинный перевод}" in text:
+    if "↪" in text:
         return True
     return False

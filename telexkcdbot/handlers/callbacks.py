@@ -154,11 +154,15 @@ async def cb_explain(call: CallbackQuery, state: FSMContext,):
     last_comic_id, last_comic_lang = await users_db.get_last_comic_info(call.from_user.id)
     comic_data = await comics_db.get_comic_data_by_id(last_comic_id, last_comic_lang)
 
+    url = f"https://www.explainxkcd.com/{last_comic_id}"
+
     user_lang = await users_db.get_user_lang(call.from_user.id)
     if user_lang == 'ru':
-        text = await comics_data_getter.get_ru_explanation(last_comic_id)
+        text = await comics_data_getter.get_ru_explanation(last_comic_id, url)
+        text = f"<i>{text}...</i>\n\n<a href='{url}'><u>↪ [ПОЛНЫЙ ТЕКСТ]</u> 🇬🇧</a>"
     else:
-        text = await comics_data_getter.get_explanation(last_comic_id)
+        text = await comics_data_getter.get_explanation(last_comic_id, url)
+        text = f"<i>{text}...</i>\n\n<a href='{url}'><u>↪ [FULL TEXT]</u></a>"
 
     keyboard = kboard.flipping if 'flip' in call.data else kboard.navigation
     keyboard = await keyboard(call.from_user.id, comic_data, last_comic_lang, is_explained=is_explained(text))

@@ -25,7 +25,6 @@ class ComicsDataGetter:
         self._default_specific_comic_ids: set = {498, 826, 880, 887, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350,
                                                  1416, 1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
         self._translator: Translator = Translator()
-        self._explainxkcd_url: str = 'https://www.explainxkcd.com/{}'
 
         self._ru_comics_data_dict: dict = {}
         self._path_to_ru_comic_data: Path = BASE_DIR / 'static/ru_comics_data'
@@ -133,10 +132,9 @@ class ComicsDataGetter:
         ru_comic_data = await self.get_ru_comic_data_by_id(comic_id)
         return TotalComicData(*(astuple(xkcd_comic_data) + astuple(ru_comic_data)))
 
-    async def get_explanation(self, comic_id: int) -> str:
+    async def get_explanation(self, comic_id: int, url: str) -> str:
         no_explanation_text = _("❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it later.</b>")
 
-        url = self._explainxkcd_url.format(comic_id)
         try:
             soup = await self._get_soup(url)
             try:
@@ -154,21 +152,21 @@ class ComicsDataGetter:
 
                 if not text:
                     return no_explanation_text
-                return f"<i>{text}...</i>\n<a href='{url}'><u>[FULL TEXT]</u></a>"
+                return text
 
         except Exception as err:
             logger.error(f'Error in get_explanation() for {comic_id}: {err}')
 
         return no_explanation_text
 
-    async def get_ru_explanation(self, comic_id: int) -> str:
-        en_explanation_text = await self.get_explanation(comic_id)
+    async def get_ru_explanation(self, comic_id: int, url: str) -> str:
+        en_explanation_text = await self.get_explanation(comic_id, url)
 
         # Don't translate if couldn't get explanation
         if '❗' in en_explanation_text:
             return en_explanation_text
 
-        await asyncio.sleep(3)  # Protection from potential ban by Google
+        await asyncio.sleep(2)  # Protection from potential ban by Google
 
         try:
             ru_explanation_text = self._translate_to_ru(en_explanation_text)
@@ -176,7 +174,7 @@ class ComicsDataGetter:
             logger.error(f"Couldn't get translated explanation for {comic_id}: {err}")
             return en_explanation_text
         else:
-            return "<b>{машинный перевод}\n</b>" + ru_explanation_text + " (англ.)"
+            return ru_explanation_text
 
     def clean(self):
         self.ru_comics_ids = tuple(self._ru_comics_data_dict.keys())
