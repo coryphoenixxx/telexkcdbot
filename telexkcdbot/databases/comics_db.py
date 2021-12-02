@@ -76,8 +76,6 @@ class ComicsDatabase:
         return tuple(await self.pool.fetchval(query))
 
     async def get_comic_data_by_id(self, comic_id: int, comic_lang: str = 'en') -> ComicData:
-        assert comic_lang in ('ru', 'en')
-
         title_col, img_url_col, comment_col = ('title', 'img_url', 'comment') if comic_lang == 'en' \
             else ('ru_title', 'ru_img_url', 'ru_comment')
 
@@ -90,8 +88,6 @@ class ComicsDatabase:
         return ComicData(*res)
 
     async def get_comics_headlines_info_by_title(self, title: str, lang: str = 'en') -> list[ComicHeadlineInfo]:
-        assert lang in ('ru', 'en')
-
         title_col, img_url_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
         query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
 
@@ -112,9 +108,6 @@ class ComicsDatabase:
                                                     img_url_col)
 
     async def get_comics_headlines_info_by_ids(self, ids: list, lang: str = 'en') -> list[ComicHeadlineInfo]:
-        assert lang in ('ru', 'en')
-        assert len(ids) > 1
-
         title_col, img_url_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
 
         query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
