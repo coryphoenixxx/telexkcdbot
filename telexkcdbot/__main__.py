@@ -22,6 +22,9 @@ from telexkcdbot.databases.users_db import users_db
 from telexkcdbot.databases.comics_db import comics_db
 
 
+from aiohttp import web
+
+
 async def get_and_broadcast_new_comic():
     db_last_comic_id = await comics_db.get_last_comic_id()
 
@@ -57,12 +60,28 @@ async def on_startup(dp: Dispatcher):
     await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>", disable_notification=True)
     asyncio.create_task(checker())
     logger.info("Bot started.")
+    await start_server()
 
 
 def create_pool(db_url: str) -> asyncpg.Pool:
     if HEROKU:
         db_url += '?sslmode=require'
     return asyncpg.create_pool(db_url, max_size=20)
+
+
+async def hello(request):
+    print('GET')
+    return web.Response(text="Hello, world!")
+
+
+async def start_server():
+    loop = asyncio.get_event_loop()
+    app = web.Application()
+    app.add_routes([web.get('/', handler=hello)])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await loop.create_server(runner.server, '127.0.0.1', 8080)
+    print('Server started at http://127.0.0.1:8080')
 
 
 if __name__ == "__main__":
@@ -99,6 +118,8 @@ if __name__ == "__main__":
             port=PORT
         )
     else:
-        start_polling(dispatcher=dp,
-                      skip_updates=True,
-                      on_startup=on_startup)
+        start_polling(
+            dispatcher=dp,
+            skip_updates=True,
+            on_startup=on_startup
+        )
