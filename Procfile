@@ -1,1 +1,0 @@
-web: newrelic-admin run-program python telexkcdbot/__main__.py
