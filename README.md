@@ -14,10 +14,10 @@ A functional asynchronous telegram-bot for handy reading xkcd comics.
 - searching by number and word;
 - admin support;
 
-
 ## Tech Stack
-
-- Python;
+- Python 3.10;
 - aiogram;
-- PostgreSQL;
-- aiohttp and bs4;
+- asyncpg;
+- aiohttp;
+- Beautiful Soup;
+

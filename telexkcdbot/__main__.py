@@ -22,6 +22,9 @@ from telexkcdbot.databases.users_db import users_db
 from telexkcdbot.databases.comics_db import comics_db
 
 
+from aiohttp import web
+
+
 async def get_and_broadcast_new_comic():
     db_last_comic_id = await comics_db.get_last_comic_id()
 
@@ -65,9 +68,30 @@ def create_pool(db_url: str) -> asyncpg.Pool:
     return asyncpg.create_pool(db_url, max_size=20)
 
 
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
+async def hello(request):
+    return web.Response(text="Hello, world!")
 
+
+async def start_server():
+    # app = web.Application(client_max_size=1024 ** 2 * 30)
+    # app.add_routes([web.get('/', handler=hello)])
+    #
+    # runner = web.AppRunner(app)
+    # await runner.setup()
+    #
+    # site = web.TCPSite(runner, 'localhost')
+
+    loop = asyncio.get_event_loop()
+    app = web.Application()
+    app.add_routes([web.get('/', handler=hello)])
+    runner = web.AppRunner(app)
+    await runner.setup()
+    await loop.create_server(runner.server, '127.0.0.1', 8080)
+    print('Server started at http://127.0.0.1:8080...')
+
+
+async def start_bot():
+    loop = asyncio.get_event_loop()
     storage = MemoryStorage()
 
     dp = Dispatcher(bot, loop=loop, storage=storage)
@@ -79,26 +103,28 @@ if __name__ == "__main__":
     register_callbacks(dp)
     register_default_commands(dp)
 
-    pool = loop.run_until_complete(create_pool(DATABASE_URL))
-    loop.run_until_complete(users_db.create(pool))
-    loop.run_until_complete(comics_db.create(pool))
+    pool = await asyncpg.create_pool(DATABASE_URL, max_size=20)
+    await users_db.create(pool)
+    await comics_db.create(pool)
 
-    loop.run_until_complete(initial_filling_of_comics_db())
+    await initial_filling_of_comics_db()
 
     logger.add(f'{LOGS_DIR}/actions.log', rotation='5 MB', level='INFO')
     logger.add(f'{LOGS_DIR}/errors.log', rotation='500 KB', level='ERROR', backtrace=True, diagnose=True)
     logger.error("Log files created...")  # Creates both log files
 
-    if HEROKU:
-        start_webhook(
-            dispatcher=dp,
-            webhook_path=WEBHOOK_PATH,
-            on_startup=on_startup,
-            skip_updates=True,
-            host=WEBAPP_HOST,
-            port=PORT
-        )
-    else:
-        start_polling(dispatcher=dp,
-                      skip_updates=True,
-                      on_startup=on_startup)
+    await start_polling(dispatcher=dp,
+                        skip_updates=True,
+                        on_startup=on_startup)
+
+
+async def main():
+    tasks = [
+        start_server(),
+        start_bot()
+    ]
+
+    await asyncio.gather(*tasks)
+
+if __name__ == "__main__":
+    asyncio.run(main())
