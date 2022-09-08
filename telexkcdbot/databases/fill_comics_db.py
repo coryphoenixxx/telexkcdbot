@@ -1,13 +1,12 @@
 import asyncio
 import sys
 
+from loguru import logger
 from tqdm import tqdm
 
-from loguru import logger
-from telexkcdbot.databases.comics_db import comics_db
 from telexkcdbot.comic_data_getter import comics_data_getter
 from telexkcdbot.common_utils import cut_into_chunks
-
+from telexkcdbot.databases.comics_db import comics_db
 
 chunk_size = 20
 buffer = []

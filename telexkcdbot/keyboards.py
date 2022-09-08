@@ -1,13 +1,12 @@
 from dataclasses import astuple
 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
 
 from config import ADMIN_ID
-from models import ComicData
 from middlewares.localization import _
+from models import ComicData
 from telexkcdbot.databases.users_db import users_db
-
 
 support_cb_data = CallbackData('support', 'type', 'user_id', 'message_id')
 

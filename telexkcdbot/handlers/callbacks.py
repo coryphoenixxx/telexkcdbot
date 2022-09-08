@@ -1,20 +1,20 @@
 import asyncio
 
 from aiogram import Dispatcher
-from aiogram.types import CallbackQuery, InputFile, BotCommand
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
+from aiogram.types import BotCommand, CallbackQuery, InputFile
 
 from telexkcdbot.bot import bot
-from telexkcdbot.config import IMG_DIR
-from telexkcdbot.middlewares.localization import _, localization
-from telexkcdbot.databases.users_db import users_db
-from telexkcdbot.databases.comics_db import comics_db
-from telexkcdbot.common_utils import send_comic
-from telexkcdbot.keyboards import kboard
 from telexkcdbot.comic_data_getter import comics_data_getter
-from telexkcdbot.handlers.handlers_utils import (send_menu, send_bookmarks, remove_callback_kb,
-                                                 calc_new_comic_id, flip_next, States, is_explained)
+from telexkcdbot.common_utils import send_comic
+from telexkcdbot.config import IMG_DIR
+from telexkcdbot.databases.comics_db import comics_db
+from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.handlers.handlers_utils import (States, calc_new_comic_id, flip_next, is_explained, remove_callback_kb,
+                                                 send_bookmarks, send_menu)
+from telexkcdbot.keyboards import kboard
+from telexkcdbot.middlewares.localization import _, localization
 
 
 async def cb_select_lang(call: CallbackQuery, state: FSMContext):

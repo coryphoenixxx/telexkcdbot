@@ -4,17 +4,16 @@ It was used to parse xkcd.su and add new russian comics data to csv and download
 Saved for history.
 """
 
-import re
+import asyncio
 import csv
+import re
+from pathlib import Path
+
 import aiofiles
 import aiofiles.os
 import aiohttp
-import asyncio
-
-from tqdm import tqdm
-from pathlib import Path
 from bs4 import BeautifulSoup
-
+from tqdm import tqdm
 
 sem = asyncio.Semaphore(64)  # Limits simultaneous connections on Windows
 comics_data = []

@@ -1,19 +1,18 @@
 import asyncio
-
 from datetime import date
-from loguru import logger
 
 from aiogram import Dispatcher
-from aiogram.types import Update, Message
 from aiogram.dispatcher import DEFAULT_RATE_LIMIT
 from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
+from aiogram.types import Message, Update
 from aiogram.utils.exceptions import Throttled
+from loguru import logger
 
 from telexkcdbot.common_utils import preprocess_text, remove_prev_message_kb, user_is_unavailable
 from telexkcdbot.config import ADMIN_ID
-from telexkcdbot.keyboards import kboard
 from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.keyboards import kboard
 from telexkcdbot.middlewares.localization import _
 
 

@@ -1,21 +1,20 @@
 import asyncio
 import random
-import numpy
-
 from contextlib import suppress
 
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup
+import numpy
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 
 from telexkcdbot.bot import bot
-from telexkcdbot.middlewares.localization import _
 from telexkcdbot.comic_data_getter import comics_data_getter
-from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.common_utils import (cut_into_chunks, cyrillic, make_headline, punctuation, send_comic,
+                                      suppressed_exceptions)
 from telexkcdbot.databases.comics_db import comics_db
-from telexkcdbot.common_utils import (send_comic, cyrillic, punctuation, suppressed_exceptions,
-                                      make_headline, cut_into_chunks)
+from telexkcdbot.databases.users_db import users_db
 from telexkcdbot.keyboards import kboard
+from telexkcdbot.middlewares.localization import _
 from telexkcdbot.models import ComicHeadlineInfo
 
 

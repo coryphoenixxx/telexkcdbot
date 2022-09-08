@@ -1,28 +1,26 @@
 import asyncio
+
 import aioschedule
 import asyncpg
-
 from aiogram import Dispatcher
-from aiogram.utils.executor import start_webhook, start_polling
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.utils.executor import start_polling, start_webhook
+from aiohttp import web
+from loguru import logger
 
 from bot import bot
-from loguru import logger
-from config import HEROKU, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL, PORT, ADMIN_ID, DATABASE_URL, LOGS_DIR
+from comic_data_getter import comics_data_getter
 from common_utils import broadcast
+from config import ADMIN_ID, DATABASE_URL, HEROKU, LOGS_DIR, PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
 from handlers.admin import register_admin_handlers
 from handlers.callbacks import register_callbacks
 from handlers.default import register_default_commands
-from models import TotalComicData
 from middlewares.big_brother import big_brother
-from middlewares.localization import localization, _
-from comic_data_getter import comics_data_getter
+from middlewares.localization import _, localization
+from models import TotalComicData
+from telexkcdbot.databases.comics_db import comics_db
 from telexkcdbot.databases.fill_comics_db import initial_filling_of_comics_db
 from telexkcdbot.databases.users_db import users_db
-from telexkcdbot.databases.comics_db import comics_db
-
-
-from aiohttp import web
 
 
 async def get_and_broadcast_new_comic():

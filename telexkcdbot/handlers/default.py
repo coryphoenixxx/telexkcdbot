@@ -1,17 +1,16 @@
 from aiogram import Dispatcher
-from aiogram.types import Message, InputFile
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import CommandStart
+from aiogram.types import InputFile, Message
 
-
-from telexkcdbot.keyboards import kboard
-from telexkcdbot.config import IMG_DIR
-from telexkcdbot.middlewares.localization import _
-from telexkcdbot.databases.users_db import users_db
-from telexkcdbot.databases.comics_db import comics_db
 from telexkcdbot.common_utils import preprocess_text, remove_prev_message_kb
-from telexkcdbot.handlers.handlers_utils import (is_cyrillic, send_headlines_as_text, send_menu, send_comic,
-                                                 send_bookmarks, flip_next, rate_limit, States)
+from telexkcdbot.config import IMG_DIR
+from telexkcdbot.databases.comics_db import comics_db
+from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.handlers.handlers_utils import (States, flip_next, is_cyrillic, rate_limit, send_bookmarks, send_comic,
+                                                 send_headlines_as_text, send_menu)
+from telexkcdbot.keyboards import kboard
+from telexkcdbot.middlewares.localization import _
 
 
 @rate_limit(3, 'start')

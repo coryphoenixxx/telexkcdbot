@@ -6,18 +6,17 @@ from xkcd_ru_tg_channel.html (get by "fully scrolled" https://t.me/s/xkcdru).
 Saved for history.
 """
 
-import re
+import asyncio
 import json
+import re
+from pathlib import Path
+
 import aiofiles
 import aiofiles.os
 import aiohttp
-import asyncio
-
-from tqdm import tqdm
-from pathlib import Path
 from bs4 import BeautifulSoup
 from bs4.element import NavigableString
-
+from tqdm import tqdm
 
 PATH_TO_JSON = Path('')
 IMG_DIR = Path('')

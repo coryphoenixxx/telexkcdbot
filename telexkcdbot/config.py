@@ -1,7 +1,6 @@
 from os import getenv
 from pathlib import Path
 
-
 API_TOKEN = getenv('API_TOKEN')
 ADMIN_ID = int(getenv('ADMIN_ID'))
 

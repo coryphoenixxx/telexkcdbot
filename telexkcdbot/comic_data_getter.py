@@ -1,21 +1,21 @@
 import asyncio
-import aiohttp
 import csv
 import sys
-
-from loguru import logger
+from dataclasses import astuple
 from datetime import date
+from pathlib import Path
+from typing import Optional, Sequence
+
+import aiohttp
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
-from dataclasses import astuple
-from typing import Optional, Sequence
-from tqdm import tqdm
-from pathlib import Path
 from googletrans import Translator
+from loguru import logger
+from tqdm import tqdm
 
 from config import BASE_DIR
-from models import RuComicData, XKCDComicData, TotalComicData
 from middlewares.localization import _
+from models import RuComicData, TotalComicData, XKCDComicData
 
 
 class ComicsDataGetter:

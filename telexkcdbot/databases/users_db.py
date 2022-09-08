@@ -1,10 +1,10 @@
 import json
-import asyncpg
-
 from datetime import date, timedelta
 from typing import Sequence
 
-from telexkcdbot.models import MenuKeyboardInfo, AdminUsersInfo
+import asyncpg
+
+from telexkcdbot.models import AdminUsersInfo, MenuKeyboardInfo
 
 
 class UsersDatabase:

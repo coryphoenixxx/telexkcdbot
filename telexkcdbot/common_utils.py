@@ -1,24 +1,22 @@
 import asyncio
+from contextlib import suppress
+from dataclasses import astuple
+from string import ascii_letters, digits
+from typing import Callable, Generator, Optional
 
 from aiogram.dispatcher import FSMContext
+from aiogram.types import ChatActions, InputFile, Message, User
+from aiogram.utils.exceptions import (BadRequest, BotBlocked, ChatNotFound, InvalidHTTPUrlContent, MessageCantBeEdited,
+                                      MessageNotModified, MessageToEditNotFound, UserDeactivated)
 from loguru import logger
-from contextlib import suppress
-from string import ascii_letters, digits
-from typing import Optional, Callable, Generator
-from dataclasses import astuple
-
-from aiogram.types import InputFile, ChatActions, Message, User
-from aiogram.utils.exceptions import (BadRequest, InvalidHTTPUrlContent, BotBlocked, UserDeactivated, ChatNotFound,
-                                      MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 
 from bot import bot
-from config import ADMIN_ID, IMG_DIR, BASE_DIR
+from config import ADMIN_ID, BASE_DIR, IMG_DIR
 from keyboards import kboard
 from middlewares.localization import _, localization
 from telexkcdbot.comic_data_getter import comics_data_getter
-from telexkcdbot.databases.users_db import users_db
 from telexkcdbot.databases.comics_db import comics_db
-
+from telexkcdbot.databases.users_db import users_db
 
 suppressed_exceptions = (AttributeError, MessageNotModified, MessageToEditNotFound, MessageCantBeEdited)
 cyrillic = 'АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя'
