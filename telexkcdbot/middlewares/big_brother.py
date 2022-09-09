@@ -1,24 +1,27 @@
 import asyncio
-
 from datetime import date
-from loguru import logger
 
 from aiogram import Dispatcher
-from aiogram.types import Update, Message
 from aiogram.dispatcher import DEFAULT_RATE_LIMIT
 from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
+from aiogram.types import Message, Update
 from aiogram.utils.exceptions import Throttled
+from loguru import logger
 
-from telexkcdbot.common_utils import preprocess_text, remove_prev_message_kb, user_is_unavailable
+from telexkcdbot.common_utils import (
+    preprocess_text,
+    remove_prev_message_kb,
+    user_is_unavailable,
+)
 from telexkcdbot.config import ADMIN_ID
-from telexkcdbot.keyboards import kboard
 from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.keyboards import kboard
 from telexkcdbot.middlewares.localization import _
 
 
 class BigBrother(BaseMiddleware):
-    def __init__(self, limit: float = DEFAULT_RATE_LIMIT, key_prefix: str = 'antiflood_'):
+    def __init__(self, limit: float = DEFAULT_RATE_LIMIT, key_prefix: str = "antiflood_"):
         self.rate_limit = limit
         self.prefix = key_prefix
         super(BigBrother, self).__init__()
@@ -28,8 +31,11 @@ class BigBrother(BaseMiddleware):
         if update.message or update.callback_query:
             user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
             username = update.message.from_user.username if update.message else update.callback_query.from_user.username
-            language_code = update.message.from_user.language_code if update.message \
+            language_code = (
+                update.message.from_user.language_code
+                if update.message
                 else update.callback_query.from_user.language_code
+            )
 
             if user_id != ADMIN_ID:  # Don't log admin actions
                 if await user_is_unavailable(user_id):
@@ -58,8 +64,8 @@ class BigBrother(BaseMiddleware):
 
         # If handler was configured, get rate limit and key from handler
         if handler:
-            limit = getattr(handler, 'throttling_rate_limit', self.rate_limit)
-            key = getattr(handler, 'throttling_key', f"{self.prefix}_{handler.__name__}")
+            limit = getattr(handler, "throttling_rate_limit", self.rate_limit)
+            key = getattr(handler, "throttling_key", f"{self.prefix}_{handler.__name__}")
         else:
             limit = self.rate_limit
             key = f"{self.prefix}_message"
@@ -79,16 +85,16 @@ class BigBrother(BaseMiddleware):
         handler = current_handler.get()
         dispatcher = Dispatcher.get_current()
         if handler:
-            key = getattr(handler, 'throttling_key', f"{self.prefix}_{handler.__name__}")
+            key = getattr(handler, "throttling_key", f"{self.prefix}_{handler.__name__}")
         else:
             key = f"{self.prefix}_message"
 
         # Calculate how many time is left till the block ends
-        delta = (throttled.rate - throttled.delta)
+        delta = throttled.rate - throttled.delta
 
         # Prevent flooding
         if throttled.exceeded_count <= 2:
-            await msg.reply(_('❗❗❗ <b>Too many requests!</b>'))
+            await msg.reply(_("❗❗❗ <b>Too many requests!</b>"))
 
         await asyncio.sleep(delta)
 
@@ -96,7 +102,10 @@ class BigBrother(BaseMiddleware):
 
         # If current message is not last with current key - do not send message
         if thr.exceeded_count == throttled.exceeded_count:
-            await msg.reply(_('❗ <b>Unlocked.</b>'), reply_markup=await kboard.menu_or_xkcding(msg.from_user.id))
+            await msg.reply(
+                _("❗ <b>Unlocked.</b>"),
+                reply_markup=await kboard.menu_or_xkcding(msg.from_user.id),
+            )
 
 
 big_brother = BigBrother()

@@ -20,4 +20,3 @@ A functional asynchronous telegram-bot for handy reading xkcd comics.
 - asyncpg;
 - aiohttp;
 - Beautiful Soup;
-

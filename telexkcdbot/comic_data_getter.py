@@ -1,49 +1,72 @@
 import asyncio
-import aiohttp
 import csv
 import sys
-
-from loguru import logger
+from dataclasses import astuple
 from datetime import date
+from pathlib import Path
+from typing import Optional, Sequence
+
+import aiohttp
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
-from dataclasses import astuple
-from typing import Optional, Sequence
-from tqdm import tqdm
-from pathlib import Path
 from googletrans import Translator
+from loguru import logger
+from tqdm import tqdm
 
 from config import BASE_DIR
-from models import RuComicData, XKCDComicData, TotalComicData
 from middlewares.localization import _
+from models import RuComicData, TotalComicData, XKCDComicData
 
 
 class ComicsDataGetter:
     def __init__(self):
         # Specific comics cannot be displayed correctly in Telegram
         self.ru_comics_ids: Sequence[int] = tuple()
-        self._default_specific_comic_ids: set = {498, 826, 880, 887, 980, 1037, 1110, 1190, 1193, 1331, 1335, 1350,
-                                                 1416, 1506, 1525, 1608, 1663, 1975, 2067, 2131, 2198, 2288, 2445}
+        self._default_specific_comic_ids: set = {
+            498,
+            826,
+            880,
+            887,
+            980,
+            1037,
+            1110,
+            1190,
+            1193,
+            1331,
+            1335,
+            1350,
+            1416,
+            1506,
+            1525,
+            1608,
+            1663,
+            1975,
+            2067,
+            2131,
+            2198,
+            2288,
+            2445,
+        }
         self._translator: Translator = Translator()
 
         self._ru_comics_data_dict: dict = {}
-        self._path_to_ru_comic_data: Path = BASE_DIR / 'static/ru_comics_data'
+        self._path_to_ru_comic_data: Path = BASE_DIR / "static/ru_comics_data"
 
     @staticmethod
     async def get_xkcd_latest_comic_id() -> int:
-        url = 'https://xkcd.com/info.0.json'
+        url = "https://xkcd.com/info.0.json"
         async with aiohttp.ClientSession() as session:
             comic_json = (await session.get(url)).json()
-        return int((await comic_json).get('num'))
+        return int((await comic_json).get("num"))
 
     @staticmethod
     def _url_fixer(url: str, comic_id: int) -> str:
         """Telegram doesn't upload original image, so let replace their urls."""
 
         correct_urls = {
-            109: 'https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png',
-            658: 'https://www.explainxkcd.com/wiki/images/1/1c/orbitals.png',
-            2522: 'https://www.explainxkcd.com/wiki/images/b/bf/two_factor_security_key.png'
+            109: "https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png",
+            658: "https://www.explainxkcd.com/wiki/images/1/1c/orbitals.png",
+            2522: "https://www.explainxkcd.com/wiki/images/b/bf/two_factor_security_key.png",
         }
 
         if comic_id in correct_urls.keys():
@@ -55,7 +78,7 @@ class ComicsDataGetter:
         """Gets soup of explanation text for further parsing"""
 
         attempts = 3
-        for _ in range(attempts):
+        for attempt in range(attempts):
             async with aiohttp.ClientSession() as session:
                 try:
                     response = await session.get(url)
@@ -65,7 +88,7 @@ class ComicsDataGetter:
                 else:
                     if response.ok:
                         content = await response.content.read()
-                        return BeautifulSoup(content, 'lxml')
+                        return BeautifulSoup(content, "lxml")
 
         logger.error(f"Couldn't get soup for {url} after 3 attempts!")
 
@@ -75,47 +98,53 @@ class ComicsDataGetter:
         So let get the actual filename and make a relational path for writing it in the database.
         """
 
-        filename = list((self._path_to_ru_comic_data / 'images').glob(f'{comic_id}.*'))[0].name
-        return 'static/ru_comics_data/images/' + filename
+        filename = list((self._path_to_ru_comic_data / "images").glob(f"{comic_id}.*"))[0].name
+        return "static/ru_comics_data/images/" + filename
 
     def _translate_to_ru(self, text: str):
-        result = self._translator.translate(text, src='en', dest='ru')
+        result = self._translator.translate(text, src="en", dest="ru")
         return result.text
 
     def retrieve_from_csv_to_dict(self):
         """Retrieve Russian translation info from local storage csv file to dictionary"""
 
-        with open(self._path_to_ru_comic_data / 'data.csv', 'r', encoding='utf-8') as csv_file:
-            csv_reader = csv.DictReader(csv_file, delimiter=',')
+        with open(self._path_to_ru_comic_data / "data.csv", "r", encoding="utf-8") as csv_file:
+            csv_reader = csv.DictReader(csv_file, delimiter=",")
             for row in tqdm(list(csv_reader), file=sys.stdout):
-                comic_id = int(row['comic_id'])
-                self._ru_comics_data_dict[comic_id] = RuComicData(ru_title=row['ru_title'],
-                                                                  ru_img_url=self._process_path(row['comic_id']),
-                                                                  ru_comment=row['ru_comment'],
-                                                                  has_ru_translation=True)
+                comic_id = int(row["comic_id"])
+                self._ru_comics_data_dict[comic_id] = RuComicData(
+                    ru_title=row["ru_title"],
+                    ru_img_url=self._process_path(row["comic_id"]),
+                    ru_comment=row["ru_comment"],
+                    has_ru_translation=True,
+                )
 
     async def get_xkcd_comic_data_by_id(self, comic_id: int) -> XKCDComicData:
-        """ Gets English comic data from xkcd.com"""
+        """Gets English comic data from xkcd.com"""
 
         if comic_id == 404:
             return XKCDComicData()  # 404 comic doesn't exist, so return default
         else:
             async with aiohttp.ClientSession() as session:
-                url = f'https://xkcd.com/{comic_id}/info.0.json'
+                url = f"https://xkcd.com/{comic_id}/info.0.json"
                 response = await session.get(url)
                 comic_json = await response.json()
 
             # Telegram considers '<' and '>' as html tag symbols, so let remove them
-            comment = comic_json.get('alt').replace('<', '').replace('>', '').strip()
+            comment = comic_json.get("alt").replace("<", "").replace(">", "").strip()
 
-            return XKCDComicData(comic_id=comic_id,
-                                 title=comic_json.get('safe_title') if comic_json.get('safe_title') else '...',
-                                 img_url=self._url_fixer(comic_json.get('img'), comic_id),
-                                 comment=comment if comment else '...',
-                                 public_date=date(day=int(comic_json.get('day')),
-                                                  month=int(comic_json.get('month')),
-                                                  year=int(comic_json.get('year'))),
-                                 is_specific=True if comic_id in self._default_specific_comic_ids else False)
+            return XKCDComicData(
+                comic_id=comic_id,
+                title=comic_json.get("safe_title") if comic_json.get("safe_title") else "...",
+                img_url=self._url_fixer(comic_json.get("img"), comic_id),
+                comment=comment if comment else "...",
+                public_date=date(
+                    day=int(comic_json.get("day")),
+                    month=int(comic_json.get("month")),
+                    year=int(comic_json.get("year")),
+                ),
+                is_specific=True if comic_id in self._default_specific_comic_ids else False,
+            )
 
     async def get_ru_comic_data_by_id(self, comic_id: int) -> RuComicData:
         """Gets russian comic data from dictionary by comic id"""
@@ -138,24 +167,24 @@ class ComicsDataGetter:
         try:
             soup = await self._get_soup(url)
             try:
-                first_p = soup.find_all('div', {'class': 'mw-parser-output'})[-1].find('p')
+                first_p = soup.find_all("div", {"class": "mw-parser-output"})[-1].find("p")
             except AttributeError:
                 pass
             else:
-                text = first_p.text + '\n'
+                text = first_p.text + "\n"
                 for el in first_p.find_next_siblings()[:20]:
-                    if el.name in ('p', 'li'):
-                        text = text + el.text.strip() + '\n\n'
+                    if el.name in ("p", "li"):
+                        text = text + el.text.strip() + "\n\n"
 
                 # Telegram considers '<' and '>' as html tag symbols, so let remove them
-                text = text[:1500].strip().replace('<', '').replace('>', '')
+                text = text[:1500].strip().replace("<", "").replace(">", "")
 
                 if not text:
                     return no_explanation_text
                 return text
 
         except Exception as err:
-            logger.error(f'Error in get_explanation() for {comic_id}: {err}')
+            logger.error(f"Error in get_explanation() for {comic_id}: {err}")
 
         return no_explanation_text
 
@@ -163,7 +192,7 @@ class ComicsDataGetter:
         en_explanation_text = await self.get_explanation(comic_id, url)
 
         # Don't translate if couldn't get explanation
-        if '❗' in en_explanation_text:
+        if "❗" in en_explanation_text:
             return en_explanation_text
 
         await asyncio.sleep(2)  # Protection from potential ban by Google
