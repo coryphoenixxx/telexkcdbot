@@ -29,14 +29,16 @@ class ComicsDatabase:
         await self.pool.execute(query)
 
     @staticmethod
-    async def records_to_headlines_info(records: list[asyncpg.Record],
-                                        title_col: str,
-                                        img_url_col: str) -> list[ComicHeadlineInfo]:
+    async def records_to_headlines_info(
+        records: list[asyncpg.Record], title_col: str, img_url_col: str
+    ) -> list[ComicHeadlineInfo]:
         headlines_info = []
         for record in records:
-            headline_info = ComicHeadlineInfo(comic_id=record['comic_id'],
-                                              title=record[title_col],
-                                              img_url=record[img_url_col])
+            headline_info = ComicHeadlineInfo(
+                comic_id=record["comic_id"],
+                title=record[title_col],
+                img_url=record[img_url_col],
+            )
             headlines_info.append(headline_info)
         return headlines_info
 
@@ -75,20 +77,21 @@ class ComicsDatabase:
 
         return tuple(await self.pool.fetchval(query))
 
-    async def get_comic_data_by_id(self, comic_id: int, comic_lang: str = 'en') -> ComicData:
-        title_col, img_url_col, comment_col = ('title', 'img_url', 'comment') if comic_lang == 'en' \
-            else ('ru_title', 'ru_img_url', 'ru_comment')
+    async def get_comic_data_by_id(self, comic_id: int, comic_lang: str = "en") -> ComicData:
+        title_col, img_url_col, comment_col = (
+            ("title", "img_url", "comment") if comic_lang == "en" else ("ru_title", "ru_img_url", "ru_comment")
+        )
 
-        query = f"""SELECT comic_id, {title_col}, {img_url_col}, {comment_col}, 
-                           public_date, is_specific, has_ru_translation 
+        query = f"""SELECT comic_id, {title_col}, {img_url_col}, {comment_col},
+                           public_date, is_specific, has_ru_translation
                     FROM comics
                     WHERE comic_id = $1;"""
 
         res = await self.pool.fetchrow(query, comic_id)
         return ComicData(*res)
 
-    async def get_comics_headlines_info_by_title(self, title: str, lang: str = 'en') -> list[ComicHeadlineInfo]:
-        title_col, img_url_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
+    async def get_comics_headlines_info_by_title(self, title: str, lang: str = "en") -> list[ComicHeadlineInfo]:
+        title_col, img_url_col = ("title", "img_url") if lang == "en" else ("ru_title", "ru_img_url")
         query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
 
                      WHERE {title_col} = $1
@@ -103,12 +106,14 @@ class ComicsDatabase:
         res = await self.pool.fetch(query, title)
         if not res:
             return []
-        return await self.records_to_headlines_info(sorted(res, key=lambda x: len(x[title_col])),
-                                                    title_col,
-                                                    img_url_col)
+        return await self.records_to_headlines_info(
+            sorted(res, key=lambda x: len(x[title_col])),
+            title_col,
+            img_url_col,
+        )
 
-    async def get_comics_headlines_info_by_ids(self, ids: list, lang: str = 'en') -> list[ComicHeadlineInfo]:
-        title_col, img_url_col = ('title', 'img_url') if lang == 'en' else ('ru_title', 'ru_img_url')
+    async def get_comics_headlines_info_by_ids(self, ids: list, lang: str = "en") -> list[ComicHeadlineInfo]:
+        title_col, img_url_col = ("title", "img_url") if lang == "en" else ("ru_title", "ru_img_url")
 
         query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
                     WHERE comic_id in {tuple(ids)};"""
@@ -118,8 +123,8 @@ class ComicsDatabase:
         return [h for h in sorted(headlines_info, key=lambda x: ids.index(x.comic_id))]  # Saved order of ids list
 
     async def toggle_spec_status(self, comic_id: int):
-        query = """UPDATE comics 
-                   SET is_specific = NOT is_specific 
+        query = """UPDATE comics
+                   SET is_specific = NOT is_specific
                    WHERE comic_id = $1;"""
 
         await self.pool.execute(query, comic_id)

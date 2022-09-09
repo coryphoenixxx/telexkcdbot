@@ -43,7 +43,7 @@ async def initial_filling_of_comics_db():
     latest = await comics_data_getter.get_xkcd_latest_comic_id()
 
     pbar = tqdm(total=latest, file=sys.stdout)
-    for chunk in cut_into_chunks(list(range(1, latest+1)), chunk_size):
+    for chunk in cut_into_chunks(list(range(1, latest + 1)), chunk_size):
         await get_comics_data(chunk, all_comics_ids)
         await write_to_db()
         pbar.update(len(chunk))

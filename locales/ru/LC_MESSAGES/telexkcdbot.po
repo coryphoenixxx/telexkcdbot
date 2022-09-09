@@ -250,4 +250,3 @@ msgstr "❗❗❗ <b>Слишком частые запросы!</b>"
 #: telexkcdbot/middlewares/big_brother.py:99
 msgid "❗ <b>Unlocked.</b>"
 msgstr "❗ <b>Продолжайте.</b>"
-

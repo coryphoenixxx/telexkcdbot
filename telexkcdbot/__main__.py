@@ -11,12 +11,21 @@ from loguru import logger
 from bot import bot
 from comic_data_getter import comics_data_getter
 from common_utils import broadcast
-from config import ADMIN_ID, DATABASE_URL, HEROKU, LOGS_DIR, PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
+from config import (
+    ADMIN_ID,
+    DATABASE_URL,
+    HEROKU,
+    LOGS_DIR,
+    PORT,
+    WEBAPP_HOST,
+    WEBHOOK_PATH,
+    WEBHOOK_URL,
+)
 from handlers.admin import register_admin_handlers
 from handlers.callbacks import register_callbacks
 from handlers.default import register_default_commands
 from middlewares.big_brother import big_brother
-from middlewares.localization import _, localization
+from middlewares.localization import localization
 from models import TotalComicData
 from telexkcdbot.databases.comics_db import comics_db
 from telexkcdbot.databases.fill_comics_db import initial_filling_of_comics_db
@@ -35,11 +44,15 @@ async def get_and_broadcast_new_comic():
         for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
             xkcd_comic_data = await comics_data_getter.get_xkcd_comic_data_by_id(comic_id)
 
-            await comics_db.add_new_comic(TotalComicData(comic_id=xkcd_comic_data.comic_id,
-                                                         title=xkcd_comic_data.title,
-                                                         img_url=xkcd_comic_data.img_url,
-                                                         comment=xkcd_comic_data.comment,
-                                                         public_date=xkcd_comic_data.public_date))
+            await comics_db.add_new_comic(
+                TotalComicData(
+                    comic_id=xkcd_comic_data.comic_id,
+                    title=xkcd_comic_data.title,
+                    img_url=xkcd_comic_data.img_url,
+                    comment=xkcd_comic_data.comment,
+                    public_date=xkcd_comic_data.public_date,
+                )
+            )
         await broadcast(comic_id=real_last_comic_id)
 
 
@@ -63,23 +76,23 @@ async def on_startup(dp: Dispatcher):
 
 def create_pool(db_url: str) -> asyncpg.Pool:
     if HEROKU:
-        db_url += '?sslmode=require'
+        db_url += "?sslmode=require"
     return asyncpg.create_pool(db_url, max_size=20)
 
 
 async def hello(request):
-    print('GET')
+    print("GET")
     return web.Response(text="Hello, world!")
 
 
 async def start_server():
     loop = asyncio.get_event_loop()
     app = web.Application()
-    app.add_routes([web.get('/', handler=hello)])
+    app.add_routes([web.get("/", handler=hello)])
     runner = web.AppRunner(app)
     await runner.setup()
-    await loop.create_server(runner.server, '127.0.0.1', 8080)
-    print('Server started at http://127.0.0.1:8080')
+    await loop.create_server(runner.server, "127.0.0.1", 8080)
+    print("Server started at http://127.0.0.1:8080")
 
 
 if __name__ == "__main__":
@@ -102,8 +115,14 @@ if __name__ == "__main__":
 
     loop.run_until_complete(initial_filling_of_comics_db())
 
-    logger.add(f'{LOGS_DIR}/actions.log', rotation='5 MB', level='INFO')
-    logger.add(f'{LOGS_DIR}/errors.log', rotation='500 KB', level='ERROR', backtrace=True, diagnose=True)
+    logger.add(f"{LOGS_DIR}/actions.log", rotation="5 MB", level="INFO")
+    logger.add(
+        f"{LOGS_DIR}/errors.log",
+        rotation="500 KB",
+        level="ERROR",
+        backtrace=True,
+        diagnose=True,
+    )
     logger.error("Log files created...")  # Creates both log files
 
     if HEROKU:
@@ -113,11 +132,7 @@ if __name__ == "__main__":
             on_startup=on_startup,
             skip_updates=True,
             host=WEBAPP_HOST,
-            port=PORT
+            port=PORT,
         )
     else:
-        start_polling(
-            dispatcher=dp,
-            skip_updates=True,
-            on_startup=on_startup
-        )
+        start_polling(dispatcher=dp, skip_updates=True, on_startup=on_startup)

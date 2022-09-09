@@ -162,3 +162,4 @@ redis/
 /mypy.cfg
 /.idea/mypy.xml
 /.idea/telexkcdbot.iml
+/.idea/codeStyles/codeStyleConfig.xml
