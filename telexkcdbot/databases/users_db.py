@@ -10,7 +10,7 @@ from telexkcdbot.models import AdminUsersInfo, MenuKeyboardInfo
 class UsersDatabase:
     pool: asyncpg.Pool
 
-    async def create(self, pool: asyncpg.Pool):
+    async def create(self, pool: asyncpg.Pool) -> None:
         self.pool = pool
 
         query = """CREATE TABLE IF NOT EXISTS users (
@@ -29,14 +29,14 @@ class UsersDatabase:
 
         await self.pool.execute(query)
 
-    async def add_user(self, user_id: int):
+    async def add_user(self, user_id: int) -> None:
         query = """INSERT INTO users (user_id)
                    VALUES($1)
                    ON CONFLICT (user_id) DO NOTHING;"""
 
         await self.pool.execute(query, user_id)
 
-    async def delete_user(self, user_id: int):
+    async def delete_user(self, user_id: int) -> None:
         query = """DELETE FROM users
                    WHERE user_id = $1;"""
 
@@ -46,9 +46,10 @@ class UsersDatabase:
         query = """SELECT user_lang FROM users
                    WHERE user_id = $1;"""
 
-        return await self.pool.fetchval(query, user_id)
+        res: str = await self.pool.fetchval(query, user_id)
+        return res
 
-    async def set_user_lang(self, user_id: int, lang: str):
+    async def set_user_lang(self, user_id: int, lang: str) -> None:
         query = """UPDATE users SET user_lang = $1, only_ru_mode=FALSE
                    WHERE user_id = $2;"""
 
@@ -72,15 +73,17 @@ class UsersDatabase:
         query = """SELECT only_ru_mode FROM users
                    WHERE user_id = $1;"""
 
-        return await self.pool.fetchval(query, user_id)
+        res: bool = await self.pool.fetchval(query, user_id)
+        return res
 
     async def get_ban_status(self, user_id: int) -> bool:
         query = """SELECT is_banned FROM users
                    WHERE user_id = $1;"""
 
-        return await self.pool.fetchval(query, user_id)
+        res: bool = await self.pool.fetchval(query, user_id)
+        return res
 
-    async def ban_user(self, user_id: int):
+    async def ban_user(self, user_id: int) -> None:
         query = """UPDATE users SET is_banned = True
                    WHERE user_id = $1;"""
 
@@ -91,9 +94,10 @@ class UsersDatabase:
         query = """SELECT lang_btn_status FROM users
                    WHERE user_id = $1;"""
 
-        return await self.pool.fetchval(query, user_id)
+        res: bool = await self.pool.fetchval(query, user_id)
+        return res
 
-    async def toggle_lang_btn_status(self, user_id: int):
+    async def toggle_lang_btn_status(self, user_id: int) -> None:
         """For handling LANG button under the comic"""
         query = """UPDATE users
                    SET lang_btn_status = NOT lang_btn_status
@@ -101,21 +105,21 @@ class UsersDatabase:
 
         await self.pool.execute(query, user_id)
 
-    async def toggle_only_ru_mode_status(self, user_id: int):
+    async def toggle_only_ru_mode_status(self, user_id: int) -> None:
         query = """UPDATE users
                    SET only_ru_mode = NOT only_ru_mode
                    WHERE user_id = $1;"""
 
         await self.pool.execute(query, user_id)
 
-    async def update_last_comic_info(self, user_id: int, new_comic_id: int, new_comic_lang: str):
+    async def update_last_comic_info(self, user_id: int, new_comic_id: int, new_comic_lang: str) -> None:
         query = """UPDATE users SET last_comic_info = $1
                    WHERE user_id = $2;"""
 
         last_comic_info = str(new_comic_id) + "_" + new_comic_lang
         await self.pool.execute(query, last_comic_info, user_id)
 
-    async def update_last_action_date(self, user_id: int, action_date: date):
+    async def update_last_action_date(self, user_id: int, action_date: date) -> None:
         query = """UPDATE users SET last_action_date = $1
                    WHERE user_id = $2;"""
 
@@ -154,10 +158,11 @@ class UsersDatabase:
         query = """SELECT bookmarks FROM users
                    WHERE user_id = $1;"""
 
-        res = await self.pool.fetchrow(query, user_id)
-        return json.loads(res["bookmarks"])
+        db_res: asyncpg.Record = await self.pool.fetchrow(query, user_id)
+        res: list[int] = json.loads(db_res["bookmarks"])
+        return res
 
-    async def update_bookmarks(self, user_id: int, new_bookmarks: list[int]):
+    async def update_bookmarks(self, user_id: int, new_bookmarks: list[int]) -> None:
         query = """UPDATE users SET bookmarks = $1
                    WHERE user_id = $2;"""
 
@@ -170,10 +175,10 @@ class UsersDatabase:
         query = """SELECT notification_sound_status FROM users
                    WHERE user_id = $1;"""
 
-        res = await self.pool.fetchval(query, user_id)
+        res: bool = await self.pool.fetchval(query, user_id)
         return res
 
-    async def toggle_notification_sound_status(self, user_id: int):
+    async def toggle_notification_sound_status(self, user_id: int) -> None:
         query = """UPDATE users
                    SET notification_sound_status = NOT notification_sound_status
                    WHERE user_id = $1;"""

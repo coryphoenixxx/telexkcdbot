@@ -5,7 +5,7 @@ from string import ascii_letters, digits
 from typing import Callable, Generator, Optional
 
 from aiogram.dispatcher import FSMContext
-from aiogram.types import ChatActions, InputFile, Message, User
+from aiogram.types import ChatActions, InputFile, Message
 from aiogram.utils.exceptions import (
     BadRequest,
     BotBlocked,
@@ -62,7 +62,7 @@ async def send_comic(
     comic_lang: str = "en",
     from_toggle_lang_cb: bool = False,
     from_broadcast: bool = False,
-):
+) -> None:
     """
     :param user_id:
     :param comic_id:
@@ -156,9 +156,10 @@ async def send_comic(
     )
 
 
-async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = None):
+async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = None) -> None:
     """Sends to users a new comic or an admin message"""
-
+    # TODO: fix looping
+    # TODO: decouple logic
     count = 0
     all_users_ids = await users_db.get_all_users_ids()
 
@@ -200,7 +201,7 @@ async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = No
                         if user_lang == "en"
                         else "❗ <u><b>СООБЩЕНИЕ ОТ АДМИНА:</b></u>\n"
                     )
-                    text = title_text + msg_text
+                    text = title_text + str(msg_text)
 
                     await bot.send_message(user_id, text=text, disable_notification=True)
 
@@ -221,7 +222,7 @@ async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = No
         logger.info(broadcast_final_text)
 
 
-async def remove_prev_message_kb(msg: Message, state: Optional[FSMContext] = None):
+async def remove_prev_message_kb(msg: Message, state: Optional[FSMContext] = None) -> None:
     if state:
         await state.reset_data()
     with suppress(*suppressed_exceptions):

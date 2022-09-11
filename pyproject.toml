@@ -1,3 +1,7 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.poetry]
 name = "telexkcdbot"
 version = "1.0.0"
@@ -58,7 +62,16 @@ pytest = "^7.1.3"
 mypy = "^0.971"
 mypy-extensions = "^0.4.3"
 Flake8-pyproject = "^1.1.0.post0"
+autoflake = "^1.5.3"
 
+
+
+[tool.autoflake]
+check = false
+recursive = true
+in-place = true
+remove-all-unused-imports = true
+remove-unused-variables = true
 
 [tool.isort]
 profile = "black"
@@ -70,7 +83,7 @@ line-length = 120
 [tool.flake8]
 ignore = ['E203', 'E266', 'E501', 'W503', 'F403', 'F401']
 max-line-length = 120
-max-complexity = 18
+max-complexity = 12
 
 [tool.mypy]
 python_version = "3.10"
@@ -79,7 +92,3 @@ ignore_missing_imports = true
 no_implicit_optional = true
 check_untyped_defs = true
 warn_return_any = true
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"

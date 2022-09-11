@@ -22,7 +22,7 @@ from telexkcdbot.middlewares.localization import _
 
 
 @rate_limit(3, "start")
-async def cmd_start(msg: Message, state: FSMContext):
+async def cmd_start(msg: Message, state: FSMContext) -> None:
     await remove_prev_message_kb(msg, state)
 
     await users_db.add_user(msg.from_user.id)
@@ -35,14 +35,14 @@ async def cmd_start(msg: Message, state: FSMContext):
 
 
 @rate_limit(3, "menu")
-async def cmd_menu(msg: Message, state: FSMContext):
+async def cmd_menu(msg: Message, state: FSMContext) -> None:
     await remove_prev_message_kb(msg, state)
 
     await send_menu(msg.from_user.id)
 
 
 @rate_limit(3, "bookmarks")
-async def cmd_bookmarks(msg: Message, state: FSMContext):
+async def cmd_bookmarks(msg: Message, state: FSMContext) -> None:
     await remove_prev_message_kb(msg, state)
 
     await send_bookmarks(
@@ -55,7 +55,7 @@ async def cmd_bookmarks(msg: Message, state: FSMContext):
 
 
 @rate_limit(2)
-async def process_user_typing(msg: Message, state: FSMContext):
+async def process_user_typing(msg: Message, state: FSMContext) -> None:
     await remove_prev_message_kb(msg, state)
 
     user_input = preprocess_text(msg.text)
@@ -119,7 +119,7 @@ async def process_user_typing(msg: Message, state: FSMContext):
                     await flip_next(msg.from_user.id, state)
 
 
-def register_default_commands(dp: Dispatcher):
+def register_default_commands(dp: Dispatcher) -> None:
     dp.register_message_handler(cmd_start, CommandStart())
     dp.register_message_handler(cmd_menu, commands=["menu", "help"])
     dp.register_message_handler(cmd_bookmarks, commands=["bookmarks"])

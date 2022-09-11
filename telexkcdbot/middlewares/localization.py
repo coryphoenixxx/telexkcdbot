@@ -12,7 +12,7 @@ class Localization(I18nMiddleware):
         user = types.User.get_current()
         return await users_db.get_user_lang(user.id)
 
-    async def set_user_locale(self, locale: str):
+    async def set_user_locale(self, locale: str) -> None:
         """Forcibly set the locale to the context"""
 
         self.ctx_locale.set(locale)

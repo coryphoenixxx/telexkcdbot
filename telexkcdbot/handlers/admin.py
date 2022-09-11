@@ -24,7 +24,7 @@ from telexkcdbot.middlewares.localization import _
 admin_panel_text_base = "<b>*** ADMIN PANEL ***</b>\n"
 
 
-async def cmd_admin(msg: Message, state: FSMContext):
+async def cmd_admin(msg: Message, state: FSMContext) -> None:
     if msg.from_user.id != ADMIN_ID:
         await msg.answer(_("❗ <b>For admin only!</b>"))
     else:
@@ -33,7 +33,7 @@ async def cmd_admin(msg: Message, state: FSMContext):
         await msg.answer(admin_panel_text_base, reply_markup=await kboard.admin_panel())
 
 
-async def cb_users_info(call: CallbackQuery):
+async def cb_users_info(call: CallbackQuery) -> None:
     with suppress(*suppressed_exceptions):
         await call.message.delete()
 
@@ -48,7 +48,7 @@ async def cb_users_info(call: CallbackQuery):
     )
 
 
-async def cb_toggle_spec_status(call: CallbackQuery):
+async def cb_toggle_spec_status(call: CallbackQuery) -> None:
     last_comic_id, _ = await users_db.get_last_comic_info(ADMIN_ID)
     await comics_db.toggle_spec_status(last_comic_id)
     await call.message.edit_text(
@@ -57,7 +57,7 @@ async def cb_toggle_spec_status(call: CallbackQuery):
     )
 
 
-async def cb_send_log(call: CallbackQuery):
+async def cb_send_log(call: CallbackQuery) -> None:
     filename = LOGS_DIR / "actions.log" if "actions" in call.data else LOGS_DIR / "errors.log"
 
     try:
@@ -66,12 +66,12 @@ async def cb_send_log(call: CallbackQuery):
         logger.error(f"Couldn't send logs ({err})")
 
 
-async def cb_type_broadcast_message(call: CallbackQuery):
+async def cb_type_broadcast_message(call: CallbackQuery) -> None:
     await States.typing_admin_broadcast_msg.set()
     await call.message.answer("❗ <b>Type in a broadcast message (or /cancel):</b>")
 
 
-async def cmd_cancel(msg: Message, state: FSMContext):
+async def cmd_cancel(msg: Message, state: FSMContext) -> None:
     if await state.get_state() is None:
         return
 
@@ -79,12 +79,12 @@ async def cmd_cancel(msg: Message, state: FSMContext):
     await state.finish()
 
 
-async def broadcast_admin_msg(msg: Message, state: FSMContext):
+async def broadcast_admin_msg(msg: Message, state: FSMContext) -> None:
     await broadcast(msg_text=msg.text)
     await state.finish()
 
 
-async def user_support_msg(msg: Message, state: FSMContext):
+async def user_support_msg(msg: Message, state: FSMContext) -> None:
     user_id = msg.from_user.id
     await bot.delete_message(user_id, msg.message_id - 1)
 
@@ -108,7 +108,7 @@ async def user_support_msg(msg: Message, state: FSMContext):
     )
 
 
-async def cb_answer(call: CallbackQuery, state: FSMContext, callback_data: dict):
+async def cb_answer(call: CallbackQuery, state: FSMContext, callback_data: dict) -> None:
     await remove_callback_kb(call)
     await States.typing_admin_support_answer.set()
     _, _, user_id, message_id = callback_data.values()
@@ -119,13 +119,13 @@ async def cb_answer(call: CallbackQuery, state: FSMContext, callback_data: dict)
     )
 
 
-async def cb_ban(call: CallbackQuery, callback_data: dict):
-    user_id = int(callback_data.get("user_id"))
+async def cb_ban(call: CallbackQuery, callback_data: dict) -> None:
+    user_id = int(callback_data["user_id"])
     await users_db.ban_user(user_id)
     await call.message.delete()
 
 
-async def admin_support_msg(msg: Message, state: FSMContext):
+async def admin_support_msg(msg: Message, state: FSMContext) -> None:
     data = await state.get_data()
     user_id, message_id = data["user_id"], data["message_id"]
 
@@ -143,7 +143,7 @@ async def admin_support_msg(msg: Message, state: FSMContext):
     await state.finish()
 
 
-def register_admin_handlers(dp: Dispatcher):
+def register_admin_handlers(dp: Dispatcher) -> None:
     dp.register_message_handler(cmd_admin, commands="admin")
     dp.register_callback_query_handler(cb_users_info, text="users_info")
     dp.register_callback_query_handler(cb_toggle_spec_status, text="change_spec_status")

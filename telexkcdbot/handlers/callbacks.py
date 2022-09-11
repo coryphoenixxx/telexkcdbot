@@ -15,7 +15,7 @@ from telexkcdbot.handlers.handlers_utils import (
     States,
     calc_new_comic_id,
     flip_next,
-    is_explained,
+    is_explained_func,
     remove_callback_kb,
     send_bookmarks,
     send_menu,
@@ -24,7 +24,7 @@ from telexkcdbot.keyboards import kboard
 from telexkcdbot.middlewares.localization import _, localization
 
 
-async def cb_select_lang(call: CallbackQuery, state: FSMContext):
+async def cb_select_lang(call: CallbackQuery, state: FSMContext) -> None:
     """Handles language buttons on /start command"""
 
     await States.waiting.set()  # Lock user input
@@ -59,7 +59,7 @@ async def cb_select_lang(call: CallbackQuery, state: FSMContext):
     await state.finish()  # Unlock user input
 
 
-async def cb_menu(call: CallbackQuery, state: FSMContext):
+async def cb_menu(call: CallbackQuery, state: FSMContext) -> None:
     """Handles "Menu" button click"""
 
     await state.finish()
@@ -68,14 +68,14 @@ async def cb_menu(call: CallbackQuery, state: FSMContext):
     await send_menu(call.from_user.id)
 
 
-async def cb_toggle_notification_sound_status(call: CallbackQuery):
+async def cb_toggle_notification_sound_status(call: CallbackQuery) -> None:
     """Handles "Enable/Disable notification sound" button click"""
 
     await users_db.toggle_notification_sound_status(call.from_user.id)
     await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
 
 
-async def cb_send_bookmarks(call: CallbackQuery, state: FSMContext):
+async def cb_send_bookmarks(call: CallbackQuery, state: FSMContext) -> None:
     """Handles "My Bookmarks" button click"""
 
     await remove_callback_kb(call)
@@ -88,21 +88,21 @@ async def cb_send_bookmarks(call: CallbackQuery, state: FSMContext):
     )
 
 
-async def cb_toggle_lang_btn(call: CallbackQuery):
+async def cb_toggle_lang_btn(call: CallbackQuery) -> None:
     """Handles "Add/Remove 🇷🇺/🇬🇧 Button" button click"""
 
     await users_db.toggle_lang_btn_status(call.from_user.id)
     await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
 
 
-async def cb_toggle_only_ru_mode_status(call: CallbackQuery):
+async def cb_toggle_only_ru_mode_status(call: CallbackQuery) -> None:
     """Handles "Только переводы" button click for Russian users"""
 
     await users_db.toggle_only_ru_mode_status(call.from_user.id)
     await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
 
 
-async def cb_admin_support(call: CallbackQuery):
+async def cb_admin_support(call: CallbackQuery) -> None:
     """Handles "Admin Support" button click"""
 
     await call.message.delete()
@@ -115,7 +115,7 @@ async def cb_admin_support(call: CallbackQuery):
     )
 
 
-async def cb_start_xkcding(call: CallbackQuery, state: FSMContext):
+async def cb_start_xkcding(call: CallbackQuery, state: FSMContext) -> None:
     """Handles "Start xkcding" button click"""
 
     await state.finish()
@@ -123,7 +123,7 @@ async def cb_start_xkcding(call: CallbackQuery, state: FSMContext):
     await send_comic(call.from_user.id, comic_id=1)
 
 
-async def cb_continue_xkcding(call: CallbackQuery, state: FSMContext):
+async def cb_continue_xkcding(call: CallbackQuery, state: FSMContext) -> None:
     """Handles "Continue xkcding" button click"""
 
     await state.finish()
@@ -133,7 +133,7 @@ async def cb_continue_xkcding(call: CallbackQuery, state: FSMContext):
     await send_comic(call.from_user.id, comic_id=last_comic_id, comic_lang=last_comic_lang)
 
 
-async def cb_navigation(call: CallbackQuery):
+async def cb_navigation(call: CallbackQuery) -> None:
     """Handles "|<<, <Prev, Rand, Next>, >>|" buttons click"""
 
     await remove_callback_kb(call)
@@ -143,7 +143,7 @@ async def cb_navigation(call: CallbackQuery):
     await send_comic(call.from_user.id, comic_id=new_comic_id)
 
 
-async def cb_toggle_comic_lang(call: CallbackQuery):
+async def cb_toggle_comic_lang(call: CallbackQuery) -> None:
     """Handles "🇷🇺, 🇬🇧" buttons click under the comic"""
 
     await remove_callback_kb(call)
@@ -151,21 +151,25 @@ async def cb_toggle_comic_lang(call: CallbackQuery):
     new_comic_lang = call.data[-2:]
     last_comic_id, _ = await users_db.get_last_comic_info(call.from_user.id)
 
-    keyboard = kboard.flipping if "flip" in call.data else kboard.navigation
+    if "flip" in call.data:
+        await send_comic(
+            call.from_user.id,
+            comic_id=last_comic_id,
+            keyboard=kboard.flipping,
+            comic_lang=new_comic_lang,
+            from_toggle_lang_cb=True,
+        )
+    else:
+        await send_comic(
+            call.from_user.id,
+            comic_id=last_comic_id,
+            keyboard=kboard.navigation,
+            comic_lang=new_comic_lang,
+            from_toggle_lang_cb=True,
+        )
 
-    await send_comic(
-        call.from_user.id,
-        comic_id=last_comic_id,
-        keyboard=keyboard,
-        comic_lang=new_comic_lang,
-        from_toggle_lang_cb=True,
-    )
 
-
-async def cb_explain(
-    call: CallbackQuery,
-    state: FSMContext,
-):
+async def cb_explain(call: CallbackQuery, state: FSMContext) -> None:
     """Handles "Explain" button click"""
 
     await States.waiting.set()  # Lock user input
@@ -186,13 +190,15 @@ async def cb_explain(
         text = await comics_data_getter.get_explanation(last_comic_id, url)
         text = f"<i>{text}...</i>\n\n<a href='{url}'><u>↪ [FULL TEXT]</u></a>"
 
-    keyboard = kboard.flipping if "flip" in call.data else kboard.navigation
-    keyboard = await keyboard(
+    # TODO: remove duplicated code
+    kb_data = [
         call.from_user.id,
         comic_data,
         last_comic_lang,
-        is_explained=is_explained(text),
-    )
+        is_explained_func(text),
+    ]
+
+    keyboard = await kboard.flipping(*kb_data) if "flip" in call.data else await kboard.navigation(*kb_data)
 
     await call.message.answer(
         text,
@@ -204,7 +210,7 @@ async def cb_explain(
     await state.set_state()  # Unlock user input
 
 
-async def cb_toggle_bookmark_status(call: CallbackQuery):
+async def cb_toggle_bookmark_status(call: CallbackQuery) -> None:
     """Handles "❤Bookmark", "💔Unbookmark" buttons click"""
 
     last_comic_id, last_comic_lang = await users_db.get_last_comic_info(call.from_user.id)
@@ -219,25 +225,26 @@ async def cb_toggle_bookmark_status(call: CallbackQuery):
 
     comic_data = await comics_db.get_comic_data_by_id(last_comic_id)
 
-    keyboard = kboard.flipping if "flip" in call.data else kboard.navigation
-    keyboard = await keyboard(
+    kb_data = [
         call.from_user.id,
         comic_data,
         last_comic_lang,
-        is_explained=is_explained(call.message.text),
-    )
+        is_explained_func(call.message.text),
+    ]
+
+    keyboard = await kboard.flipping(*kb_data) if "flip" in call.data else await kboard.navigation(*kb_data)
 
     await call.message.edit_reply_markup(reply_markup=keyboard)
 
 
-async def cb_flip_next(call: CallbackQuery, state: FSMContext):
+async def cb_flip_next(call: CallbackQuery, state: FSMContext) -> None:
     """Handles "Forward>" button click in flipping mode"""
 
     await remove_callback_kb(call)
     await flip_next(call.from_user.id, state)
 
 
-async def cb_flip_break(call: CallbackQuery, state: FSMContext):
+async def cb_flip_break(call: CallbackQuery, state: FSMContext) -> None:
     """Handles "↩Break" button click in flipping mode"""
 
     user_id = call.from_user.id
@@ -248,13 +255,13 @@ async def cb_flip_break(call: CallbackQuery, state: FSMContext):
         user_id,
         comic_data,
         last_comic_lang,
-        is_explained=is_explained(call.message.text),
+        is_explained=is_explained_func(call.message.text),
     )
     await call.message.edit_reply_markup(reply_markup=keyboard)
     await state.reset_data()
 
 
-def register_callbacks(dp: Dispatcher):
+def register_callbacks(dp: Dispatcher) -> None:
     dp.register_callback_query_handler(
         cb_select_lang,
         Text(endswith="user_lang"),

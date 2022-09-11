@@ -9,7 +9,7 @@ from telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
 class ComicsDatabase:
     pool: asyncpg.Pool
 
-    async def create(self, pool: asyncpg.Pool):
+    async def create(self, pool: asyncpg.Pool) -> None:
         self.pool = pool
         query = """CREATE TABLE IF NOT EXISTS comics (
                      id SERIAL NOT NULL,
@@ -42,7 +42,7 @@ class ComicsDatabase:
             headlines_info.append(headline_info)
         return headlines_info
 
-    async def add_new_comic(self, comic_data: TotalComicData):
+    async def add_new_comic(self, comic_data: TotalComicData) -> None:
         query = """INSERT INTO comics (comic_id,
                                        title,
                                        img_url,
@@ -63,7 +63,8 @@ class ComicsDatabase:
                    ORDER BY comic_id DESC
                    LIMIT 1;"""
 
-        return await self.pool.fetchval(query)
+        res: int = await self.pool.fetchval(query)
+        return res
 
     async def get_all_comics_ids(self) -> Sequence[int]:
         query = """SELECT array_agg(comic_id) FROM comics;"""
@@ -122,7 +123,7 @@ class ComicsDatabase:
         headlines_info = await self.records_to_headlines_info(res, title_col, img_url_col)
         return [h for h in sorted(headlines_info, key=lambda x: ids.index(x.comic_id))]  # Saved order of ids list
 
-    async def toggle_spec_status(self, comic_id: int):
+    async def toggle_spec_status(self, comic_id: int) -> None:
         query = """UPDATE comics
                    SET is_specific = NOT is_specific
                    WHERE comic_id = $1;"""

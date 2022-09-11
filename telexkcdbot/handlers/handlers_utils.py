@@ -1,6 +1,7 @@
 import asyncio
 import random
 from contextlib import suppress
+from typing import Any, Callable, Optional, TypeVar
 
 import numpy
 from aiogram.dispatcher import FSMContext
@@ -23,6 +24,8 @@ from telexkcdbot.keyboards import kboard
 from telexkcdbot.middlewares.localization import _
 from telexkcdbot.models import ComicHeadlineInfo
 
+F = TypeVar("F", bound=Callable[..., Any])
+
 
 class States(StatesGroup):
     language_selection = State()
@@ -32,7 +35,7 @@ class States(StatesGroup):
     waiting = State()
 
 
-async def remove_callback_kb(call: CallbackQuery):
+async def remove_callback_kb(call: CallbackQuery) -> None:
     with suppress(*suppressed_exceptions):
         await call.message.edit_reply_markup()
 
@@ -41,7 +44,7 @@ def is_cyrillic(text: str) -> bool:
     return set(text).issubset(cyrillic + punctuation)
 
 
-async def send_headlines_as_text(user_id: int, headlines_info: list[ComicHeadlineInfo]):
+async def send_headlines_as_text(user_id: int, headlines_info: list[ComicHeadlineInfo]) -> None:
     for chunk in cut_into_chunks(headlines_info, 35):
         headlines = []
         for headline_info in chunk:
@@ -67,7 +70,7 @@ async def send_bookmarks(
     msg_text: str,
     state: FSMContext,
     keyboard: InlineKeyboardMarkup,
-):
+) -> None:
     bookmarks = await users_db.get_bookmarks(user_id)
 
     if not bookmarks:
@@ -89,7 +92,7 @@ async def send_bookmarks(
         await flip_next(user_id, state)
 
 
-async def send_menu(user_id: int):
+async def send_menu(user_id: int) -> None:
     help_text = _(
         """<b>***** MENU *****</b>
 
@@ -127,7 +130,7 @@ ____________________
     )
 
 
-async def flip_next(user_id: int, state: FSMContext):
+async def flip_next(user_id: int, state: FSMContext) -> None:
     """Handles flipping mode - when user views his bookmarks or found comics"""
 
     fsm_list = (await state.get_data()).get("fsm_list")
@@ -164,17 +167,19 @@ async def flip_next(user_id: int, state: FSMContext):
 
 
 def find_closest(ru_ids: list[int], action: str, comic_id: int) -> int:
-    ru_ids = numpy.array(ru_ids)
+    ru_ids_np_arr = numpy.array(ru_ids)
     if action == "prev":
         try:
-            return ru_ids[ru_ids < comic_id].max()
+            closest_prev: int = ru_ids_np_arr[ru_ids_np_arr < comic_id].max()
+            return closest_prev
         except ValueError:
             return ru_ids[-1]
-    elif action == "next":
-        try:
-            return ru_ids[ru_ids > comic_id].min()
-        except ValueError:
-            return 1
+
+    try:
+        closest_next: int = ru_ids_np_arr[ru_ids_np_arr > comic_id].min()
+        return closest_next
+    except ValueError:
+        return ru_ids[0]
 
 
 async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
@@ -182,30 +187,30 @@ async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
 
     if action == "first":
         return 1
+
+    if only_ru_mode:
+        ru_ids = sorted(comics_data_getter.ru_comics_ids)
+        actions = {
+            "prev": find_closest(ru_ids, action, comic_id),
+            "random": random.choice(ru_ids),
+            "next": find_closest(ru_ids, action, comic_id),
+            "last": ru_ids[-1],
+        }
     else:
-        if only_ru_mode:
-            ru_ids = sorted(comics_data_getter.ru_comics_ids)
-            actions = {
-                "prev": find_closest(ru_ids, action, comic_id),
-                "random": random.choice(ru_ids),
-                "next": find_closest(ru_ids, action, comic_id),
-                "last": ru_ids[-1],
-            }
-        else:
-            latest = await comics_db.get_last_comic_id()
-            actions = {
-                "prev": comic_id - 1 if comic_id - 1 >= 1 else latest,
-                "random": random.randint(1, latest),
-                "next": comic_id + 1 if comic_id + 1 <= latest else 1,
-                "last": latest,
-            }
-        return actions.get(action)
+        latest = await comics_db.get_last_comic_id()
+        actions = {
+            "prev": comic_id - 1 if comic_id - 1 >= 1 else latest,
+            "random": random.randint(1, latest),
+            "next": comic_id + 1 if comic_id + 1 <= latest else 1,
+            "last": latest,
+        }
+    return actions[action]
 
 
-def rate_limit(limit: int, key=None):
+def rate_limit(limit: int, key: Optional[str] = None) -> Callable[[F], F]:
     """Decorator for configuring rate limit and key in different functions."""
 
-    def decorator(func):
+    def decorator(func: F) -> F:
         setattr(func, "throttling_rate_limit", limit)
         if key:
             setattr(func, "throttling_key", key)
@@ -214,7 +219,7 @@ def rate_limit(limit: int, key=None):
     return decorator
 
 
-def is_explained(text: str) -> bool:
+def is_explained_func(text: str) -> bool:
     # Don't show "Explain" button if explanation text already exists
     if "↪" in text:
         return True

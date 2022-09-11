@@ -27,7 +27,7 @@ class BigBrother(BaseMiddleware):
         super(BigBrother, self).__init__()
 
     @staticmethod
-    async def on_pre_process_update(update: Update, data: dict):
+    async def on_pre_process_update(update: Update, data: dict) -> None:
         if update.message or update.callback_query:
             user_id = update.message.from_user.id if update.message else update.callback_query.from_user.id
             username = update.message.from_user.username if update.message else update.callback_query.from_user.username
@@ -58,7 +58,7 @@ class BigBrother(BaseMiddleware):
 
     """ANTIFLOOD"""
 
-    async def on_process_message(self, msg: Message, data: dict):
+    async def on_process_message(self, msg: Message, data: dict) -> None:
         handler = current_handler.get()
         dispatcher = Dispatcher.get_current()
 
@@ -76,7 +76,7 @@ class BigBrother(BaseMiddleware):
             await self.message_throttled(msg, t)
             raise CancelHandler()
 
-    async def message_throttled(self, msg: Message, throttled: Throttled):
+    async def message_throttled(self, msg: Message, throttled: Throttled) -> None:
         """
         Notify user only on first exceed and notify about unlocking only on last exceed
         """

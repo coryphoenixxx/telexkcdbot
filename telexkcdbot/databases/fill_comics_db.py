@@ -1,5 +1,6 @@
 import asyncio
 import sys
+from typing import Sequence
 
 from loguru import logger
 from tqdm import tqdm
@@ -13,13 +14,13 @@ buffer = []
 sem = asyncio.Semaphore(64)  # Limits simultaneous connections on Windows
 
 
-async def get_and_put_comic_data_to_buffer(comic_id: int):
+async def get_and_put_comic_data_to_buffer(comic_id: int) -> None:
     async with sem:
         comic_data = await comics_data_getter.get_total_comic_data(comic_id)
     buffer.append(comic_data)
 
 
-async def get_comics_data(chunk: list[int], all_comics_ids: tuple[int]):
+async def get_comics_data(chunk: list[int], all_comics_ids: Sequence[int]) -> None:
     tasks = []
     for comic_id in chunk:
         if comic_id not in all_comics_ids:
@@ -28,13 +29,13 @@ async def get_comics_data(chunk: list[int], all_comics_ids: tuple[int]):
     await asyncio.gather(*tasks)
 
 
-async def write_to_db():
-    buffer.sort(key=lambda x: x.comic_id)
+async def write_to_db() -> None:
+    buffer.sort(key=lambda x: int(x.comic_id))
     while buffer:
         await comics_db.add_new_comic(buffer.pop(0))
 
 
-async def initial_filling_of_comics_db():
+async def initial_filling_of_comics_db() -> None:
     logger.info("Retrieving ru comics data from csv started...")
     comics_data_getter.retrieve_from_csv_to_dict()
 

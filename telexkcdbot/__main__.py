@@ -32,7 +32,7 @@ from telexkcdbot.databases.fill_comics_db import initial_filling_of_comics_db
 from telexkcdbot.databases.users_db import users_db
 
 
-async def get_and_broadcast_new_comic():
+async def get_and_broadcast_new_comic() -> None:
     db_last_comic_id = await comics_db.get_last_comic_id()
 
     if not db_last_comic_id:  # If Heroku database is down then skip the check
@@ -56,7 +56,7 @@ async def get_and_broadcast_new_comic():
         await broadcast(comic_id=real_last_comic_id)
 
 
-async def checker():
+async def checker() -> None:
     await get_and_broadcast_new_comic()
     aioschedule.every(15).minutes.do(get_and_broadcast_new_comic)
     while True:
@@ -64,7 +64,7 @@ async def checker():
         await asyncio.sleep(300)
 
 
-async def on_startup(dp: Dispatcher):
+async def on_startup(dp: Dispatcher) -> None:
     if HEROKU:
         await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
     await users_db.add_user(ADMIN_ID)
@@ -80,12 +80,12 @@ def create_pool(db_url: str) -> asyncpg.Pool:
     return asyncpg.create_pool(db_url, max_size=20)
 
 
-async def hello(request):
+async def hello(request: web.Request) -> web.Response:
     print("GET")
     return web.Response(text="Hello, world!")
 
 
-async def start_server():
+async def start_server() -> None:
     loop = asyncio.get_event_loop()
     app = web.Application()
     app.add_routes([web.get("/", handler=hello)])

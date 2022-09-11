@@ -19,7 +19,7 @@ from models import RuComicData, TotalComicData, XKCDComicData
 
 
 class ComicsDataGetter:
-    def __init__(self):
+    def __init__(self) -> None:
         # Specific comics cannot be displayed correctly in Telegram
         self.ru_comics_ids: Sequence[int] = tuple()
         self._default_specific_comic_ids: set = {
@@ -91,6 +91,7 @@ class ComicsDataGetter:
                         return BeautifulSoup(content, "lxml")
 
         logger.error(f"Couldn't get soup for {url} after 3 attempts!")
+        return None
 
     def _process_path(self, comic_id: str) -> str:
         """
@@ -101,11 +102,11 @@ class ComicsDataGetter:
         filename = list((self._path_to_ru_comic_data / "images").glob(f"{comic_id}.*"))[0].name
         return "static/ru_comics_data/images/" + filename
 
-    def _translate_to_ru(self, text: str):
-        result = self._translator.translate(text, src="en", dest="ru")
-        return result.text
+    def _translate_to_ru(self, text: str) -> str:
+        result: str = self._translator.translate(text, src="en", dest="ru").text
+        return result
 
-    def retrieve_from_csv_to_dict(self):
+    def retrieve_from_csv_to_dict(self) -> None:
         """Retrieve Russian translation info from local storage csv file to dictionary"""
 
         with open(self._path_to_ru_comic_data / "data.csv", "r", encoding="utf-8") as csv_file:
@@ -162,26 +163,29 @@ class ComicsDataGetter:
         return TotalComicData(*(astuple(xkcd_comic_data) + astuple(ru_comic_data)))
 
     async def get_explanation(self, comic_id: int, url: str) -> str:
-        no_explanation_text = _("❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it later.</b>")
+        no_explanation_text: str = _(
+            "❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it later.</b>"
+        )
 
         try:
             soup = await self._get_soup(url)
-            try:
-                first_p = soup.find_all("div", {"class": "mw-parser-output"})[-1].find("p")
-            except AttributeError:
-                pass
-            else:
-                text = first_p.text + "\n"
-                for el in first_p.find_next_siblings()[:20]:
-                    if el.name in ("p", "li"):
-                        text = text + el.text.strip() + "\n\n"
+            if soup:
+                try:
+                    first_p = soup.find_all("div", {"class": "mw-parser-output"})[-1].find("p")
+                except AttributeError:
+                    pass
+                else:
+                    text: str = first_p.text + "\n"
+                    for el in first_p.find_next_siblings()[:20]:
+                        if el.name in ("p", "li"):
+                            text = text + el.text.strip() + "\n\n"
 
-                # Telegram considers '<' and '>' as html tag symbols, so let remove them
-                text = text[:1500].strip().replace("<", "").replace(">", "")
+                    # Telegram considers '<' and '>' as html tag symbols, so let remove them
+                    text = text[:1500].strip().replace("<", "").replace(">", "")
 
-                if not text:
-                    return no_explanation_text
-                return text
+                    if not text:
+                        return no_explanation_text
+                    return text
 
         except Exception as err:
             logger.error(f"Error in get_explanation() for {comic_id}: {err}")
@@ -205,7 +209,7 @@ class ComicsDataGetter:
         else:
             return ru_explanation_text
 
-    def clean(self):
+    def clean(self) -> None:
         self.ru_comics_ids = tuple(self._ru_comics_data_dict.keys())
 
         # Remove unused data in the future (_ru_comics_data_dict takes 30MB of RAM)
