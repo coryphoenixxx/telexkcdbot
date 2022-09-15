@@ -1,5 +1,5 @@
 from dataclasses import astuple
-from typing import Optional, Sequence
+from typing import Sequence
 
 import asyncpg
 from asyncpg import Pool
@@ -8,8 +8,10 @@ from telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
 
 
 class Comics:
-    def __init__(self):
-        self.pool: Optional[Pool] = None
+    pool: Pool
+
+    def __init__(self) -> None:
+        pass
 
     async def create_table(self) -> None:
         query = """CREATE TABLE IF NOT EXISTS comics (

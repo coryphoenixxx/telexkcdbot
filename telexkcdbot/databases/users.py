@@ -1,6 +1,6 @@
 import json
 from datetime import date, timedelta
-from typing import Optional, Sequence
+from typing import Sequence
 
 import asyncpg
 from asyncpg import Pool
@@ -9,8 +9,10 @@ from telexkcdbot.models import AdminUsersInfo, MenuKeyboardInfo
 
 
 class Users:
-    def __init__(self):
-        self.pool: Optional[Pool] = None
+    pool: Pool
+
+    def __init__(self) -> None:
+        pass
 
     async def create_table(self) -> None:
         query = """CREATE TABLE IF NOT EXISTS users (
