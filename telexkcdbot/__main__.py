@@ -14,7 +14,7 @@ from common_utils import broadcast
 from config import (
     ADMIN_ID,
     DATABASE_URL,
-    HEROKU,
+    DEV,
     LOGS_DIR,
     PORT,
     WEBAPP_HOST,
@@ -65,7 +65,7 @@ async def checker() -> None:
 
 
 async def on_startup(dp: Dispatcher) -> None:
-    if HEROKU:
+    if not DEV:
         await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
     await users_db.add_user(ADMIN_ID)
     await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>", disable_notification=True)
@@ -75,7 +75,7 @@ async def on_startup(dp: Dispatcher) -> None:
 
 
 def create_pool(db_url: str) -> asyncpg.Pool:
-    if HEROKU:
+    if not DEV:
         db_url += "?sslmode=require"
     return asyncpg.create_pool(db_url, max_size=20)
 
@@ -92,7 +92,7 @@ async def start_server() -> None:
     runner = web.AppRunner(app)
     await runner.setup()
     await loop.create_server(runner.server, "127.0.0.1", 8080)
-    print("Server started at http://127.0.0.1:8080")
+    print("Web Server started at http://127.0.0.1:8080")
 
 
 if __name__ == "__main__":
@@ -125,7 +125,9 @@ if __name__ == "__main__":
     )
     logger.error("Log files created...")  # Creates both log files
 
-    if HEROKU:
+    if DEV:
+        start_polling(dispatcher=dp, skip_updates=True, on_startup=on_startup)
+    else:
         start_webhook(
             dispatcher=dp,
             webhook_path=WEBHOOK_PATH,
@@ -134,5 +136,3 @@ if __name__ == "__main__":
             host=WEBAPP_HOST,
             port=PORT,
         )
-    else:
-        start_polling(dispatcher=dp, skip_updates=True, on_startup=on_startup)

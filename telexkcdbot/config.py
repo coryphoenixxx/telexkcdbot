@@ -1,22 +1,21 @@
-from os import getenv
 from pathlib import Path
-from typing import cast
 
-API_TOKEN = getenv("API_TOKEN")
-ADMIN_ID = int(cast(int, getenv("ADMIN_ID")))
+from decouple import config
+
+API_TOKEN = config("API_TOKEN")
+ADMIN_ID = config("ADMIN_ID", cast=int)
 
 I18N_DOMAIN = "telexkcdbot"
 
-DATABASE_URL = getenv("DATABASE_URL")
+DEV = config("DEV", default=False, cast=bool)
 
-HEROKU = bool(cast(bool, getenv("HEROKU")))
+DATABASE_URL = config("DATABASE_URL", default="postgres://postgres:postgres@localhost:5432/telexkcdbot")
 
-HEROKU_APP_NAME = getenv("HEROKU_APP_NAME")
-WEBHOOK_HOST = f"https://{HEROKU_APP_NAME}.herokuapp.com"
+HOST_IP_ADDR = config("HOST_IP_ADDR", default="localhost")
 WEBHOOK_PATH = f"/webhook/{API_TOKEN}"
-WEBHOOK_URL = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+WEBHOOK_URL = f"https://{HOST_IP_ADDR}{WEBHOOK_PATH}"
 WEBAPP_HOST = "0.0.0.0"
-PORT = int(cast(int, getenv("PORT")))
+PORT = config("PORT", default=5050, cast=int)
 
 BASE_DIR = Path(__file__).parent.parent
 IMG_DIR = BASE_DIR / "static/img"
