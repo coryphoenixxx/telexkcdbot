@@ -1,16 +1,17 @@
 from dataclasses import astuple
-from typing import Sequence
+from typing import Optional, Sequence
 
 import asyncpg
+from asyncpg import Pool
 
 from telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
 
 
-class ComicsDatabase:
-    pool: asyncpg.Pool
+class Comics:
+    def __init__(self):
+        self.pool: Optional[Pool] = None
 
-    async def create(self, pool: asyncpg.Pool) -> None:
-        self.pool = pool
+    async def create_table(self) -> None:
         query = """CREATE TABLE IF NOT EXISTS comics (
                      id SERIAL NOT NULL,
                      comic_id INTEGER NOT NULL UNIQUE,
@@ -129,6 +130,3 @@ class ComicsDatabase:
                    WHERE comic_id = $1;"""
 
         await self.pool.execute(query, comic_id)
-
-
-comics_db = ComicsDatabase()

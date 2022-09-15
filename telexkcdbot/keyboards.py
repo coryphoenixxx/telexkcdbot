@@ -6,7 +6,7 @@ from aiogram.utils.callback_data import CallbackData
 from config import ADMIN_ID
 from middlewares.localization import _
 from models import ComicData
-from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.databases.database import db
 
 support_cb_data = CallbackData("support", "type", "user_id", "message_id")
 
@@ -78,7 +78,7 @@ class Keyboard:
     ) -> list[str]:
         """Inserts 🇷🇺/🇬🇧 button in keyboard under the comic"""
 
-        lang_btn_enabled = await users_db.get_lang_btn_status(user_id)
+        lang_btn_enabled = await db.users.get_lang_btn_status(user_id)
         if lang_btn_enabled and has_ru:
             if cur_comic_lang == "en":
                 lang_btn_key = "ru" if kb == "nav" else "flip_ru"
@@ -92,7 +92,7 @@ class Keyboard:
         return self._create_keyboard(btns_keys)
 
     async def menu(self, user_id: int) -> InlineKeyboardMarkup:
-        user_menu_info = await users_db.get_user_menu_info(user_id)
+        user_menu_info = await db.users.get_user_menu_info(user_id)
 
         (
             notification_sound,
@@ -128,7 +128,7 @@ class Keyboard:
         is_explained: bool = False,
     ) -> InlineKeyboardMarkup:
 
-        user_bookmarks = await users_db.get_bookmarks(user_id)
+        user_bookmarks = await db.users.get_bookmarks(user_id)
 
         bookmark_btn = "bookmarked" if comic_data.comic_id in user_bookmarks else "not_bookmarked"
         first_row_btns_keys = [bookmark_btn]
@@ -165,7 +165,7 @@ class Keyboard:
         is_explained: bool = False,
     ) -> InlineKeyboardMarkup:
 
-        user_bookmarks = await users_db.get_bookmarks(user_id)
+        user_bookmarks = await db.users.get_bookmarks(user_id)
 
         bookmark_btn_key = "flip_bookmarked" if comic_data.comic_id in user_bookmarks else "flip_not_bookmarked"
 
@@ -190,7 +190,7 @@ class Keyboard:
         return self._create_keyboard(btns_keys, row_width=row_width)
 
     async def menu_or_xkcding(self, user_id: int) -> InlineKeyboardMarkup:
-        last_comic_id, _ = await users_db.get_last_comic_info(user_id)
+        last_comic_id, _ = await db.users.get_last_comic_info(user_id)
 
         xkcding_btn_key = "start_xkcding" if last_comic_id == 0 else "continue_xkcding"
         btns_keys = ["menu", xkcding_btn_key]
@@ -214,7 +214,7 @@ class Keyboard:
         return keyboard
 
     async def admin_panel(self) -> InlineKeyboardMarkup:
-        last_comic_id, _ = await users_db.get_last_comic_info(ADMIN_ID)
+        last_comic_id, _ = await db.users.get_last_comic_info(ADMIN_ID)
         xkcding_btn_key = "start_xkcding" if last_comic_id == 0 else "continue_xkcding"
 
         btns_keys = [

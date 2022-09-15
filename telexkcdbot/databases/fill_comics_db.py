@@ -7,7 +7,7 @@ from tqdm import tqdm
 
 from telexkcdbot.comic_data_getter import comics_data_getter
 from telexkcdbot.common_utils import cut_into_chunks
-from telexkcdbot.databases.comics_db import comics_db
+from telexkcdbot.databases.database import db
 
 chunk_size = 20
 buffer = []
@@ -32,15 +32,15 @@ async def get_comics_data(chunk: list[int], all_comics_ids: Sequence[int]) -> No
 async def write_to_db() -> None:
     buffer.sort(key=lambda x: int(x.comic_id))
     while buffer:
-        await comics_db.add_new_comic(buffer.pop(0))
+        await db.comics.add_new_comic(buffer.pop(0))
 
 
-async def initial_filling_of_comics_db() -> None:
+async def comics_initial_fill() -> None:
     logger.info("Retrieving ru comics data from csv started...")
     comics_data_getter.retrieve_from_csv_to_dict()
 
     logger.info("Filling the comics db started...")
-    all_comics_ids = await comics_db.get_all_comics_ids()
+    all_comics_ids = await db.comics.get_all_comics_ids()
     latest = await comics_data_getter.get_xkcd_latest_comic_id()
 
     pbar = tqdm(total=latest, file=sys.stdout)

@@ -5,8 +5,7 @@ from aiogram.types import InputFile, Message
 
 from telexkcdbot.common_utils import preprocess_text, remove_prev_message_kb
 from telexkcdbot.config import IMG_DIR
-from telexkcdbot.databases.comics_db import comics_db
-from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.databases.database import db
 from telexkcdbot.handlers.handlers_utils import (
     States,
     flip_next,
@@ -25,7 +24,7 @@ from telexkcdbot.middlewares.localization import _
 async def cmd_start(msg: Message, state: FSMContext) -> None:
     await remove_prev_message_kb(msg, state)
 
-    await users_db.add_user(msg.from_user.id)
+    await db.users.add_user(msg.from_user.id)
 
     await msg.answer(
         "<b>Select language | Выберите язык</b>",
@@ -75,7 +74,7 @@ async def process_user_typing(msg: Message, state: FSMContext) -> None:
 
     elif user_input.isdigit():
         comic_id = int(user_input)
-        last_comic_id = await comics_db.get_last_comic_id()
+        last_comic_id = await db.comics.get_last_comic_id()
 
         if (comic_id > last_comic_id) or (comic_id <= 0):
             await msg.reply(
@@ -94,7 +93,7 @@ async def process_user_typing(msg: Message, state: FSMContext) -> None:
 
             await state.update_data(fsm_lang=lang)
 
-            comics_found_list = await comics_db.get_comics_headlines_info_by_title(title=user_input, lang=lang)
+            comics_found_list = await db.comics.get_comics_headlines_info_by_title(title=user_input, lang=lang)
 
             if not comics_found_list:
                 await msg.reply(

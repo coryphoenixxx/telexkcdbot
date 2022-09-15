@@ -18,8 +18,7 @@ from telexkcdbot.common_utils import (
     send_comic,
     suppressed_exceptions,
 )
-from telexkcdbot.databases.comics_db import comics_db
-from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.databases.database import db
 from telexkcdbot.keyboards import kboard
 from telexkcdbot.middlewares.localization import _
 from telexkcdbot.models import ComicHeadlineInfo
@@ -71,7 +70,7 @@ async def send_bookmarks(
     state: FSMContext,
     keyboard: InlineKeyboardMarkup,
 ) -> None:
-    bookmarks = await users_db.get_bookmarks(user_id)
+    bookmarks = await db.users.get_bookmarks(user_id)
 
     if not bookmarks:
         if "❤" in msg_text:
@@ -86,7 +85,7 @@ async def send_bookmarks(
             user_id,
             _("❗ <b>You have <u><b>{}</b></u> bookmarks:</b>").format(len(bookmarks)),
         )
-        headlines_info = await comics_db.get_comics_headlines_info_by_ids(bookmarks)
+        headlines_info = await db.comics.get_comics_headlines_info_by_ids(bookmarks)
         await send_headlines_as_text(user_id, headlines_info=headlines_info)
         await state.update_data(fsm_list=bookmarks)
         await flip_next(user_id, state)
@@ -108,11 +107,11 @@ async def send_menu(user_id: int) -> None:
 ____________________
 """
     )
-    user_lang = await users_db.get_user_lang(user_id)
-    users_num = len(await users_db.get_all_users_ids())
+    user_lang = await db.users.get_user_lang(user_id)
+    users_num = len(await db.users.get_all_users_ids())
     ru_comics_num = len(comics_data_getter.ru_comics_ids)
 
-    comic_num = len(await comics_db.get_all_comics_ids())
+    comic_num = len(await db.comics.get_all_comics_ids())
     if user_lang == "en":
         stat_text = f"Comics: <b>{comic_num}</b>\n" f"Users: <b>{users_num}</b>\n"
     else:
@@ -183,7 +182,7 @@ def find_closest(ru_ids: list[int], action: str, comic_id: int) -> int:
 
 
 async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
-    only_ru_mode = await users_db.get_only_ru_mode_status(user_id)
+    only_ru_mode = await db.users.get_only_ru_mode_status(user_id)
 
     if action == "first":
         return 1
@@ -197,7 +196,7 @@ async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
             "last": ru_ids[-1],
         }
     else:
-        latest = await comics_db.get_last_comic_id()
+        latest = await db.comics.get_last_comic_id()
         actions = {
             "prev": comic_id - 1 if comic_id - 1 >= 1 else latest,
             "random": random.randint(1, latest),

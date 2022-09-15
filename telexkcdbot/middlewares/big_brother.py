@@ -15,7 +15,7 @@ from telexkcdbot.common_utils import (
     user_is_unavailable,
 )
 from telexkcdbot.config import ADMIN_ID
-from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.databases.database import db
 from telexkcdbot.keyboards import kboard
 from telexkcdbot.middlewares.localization import _
 
@@ -52,7 +52,7 @@ class BigBrother(BaseMiddleware):
 
             action_date = date.today()
             try:
-                await users_db.update_last_action_date(user_id, action_date)
+                await db.users.update_last_action_date(user_id, action_date)
             except Exception as err:
                 logger.error(f"Couldn't update last action date ({user_id}, {action_date}): {err}")
 

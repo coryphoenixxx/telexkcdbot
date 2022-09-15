@@ -23,8 +23,7 @@ from config import ADMIN_ID, BASE_DIR, IMG_DIR
 from keyboards import kboard
 from middlewares.localization import _, localization
 from telexkcdbot.comic_data_getter import comics_data_getter
-from telexkcdbot.databases.comics_db import comics_db
-from telexkcdbot.databases.users_db import users_db
+from telexkcdbot.databases.database import db
 
 suppressed_exceptions = (
     AttributeError,
@@ -72,7 +71,7 @@ async def send_comic(
     :param from_broadcast: User for correct defining in what language send user keyboard
     :return:
     """
-    user_lang = await users_db.get_user_lang(user_id)
+    user_lang = await db.users.get_user_lang(user_id)
 
     # Fix bug with incorrect keyboard language in broadcasting
     if from_broadcast:
@@ -85,15 +84,15 @@ async def send_comic(
             (
                 last_comic_id,
                 last_comic_lang,
-            ) = await users_db.get_last_comic_info(user_id)
+            ) = await db.users.get_last_comic_info(user_id)
             if last_comic_id == comic_id and last_comic_lang == "ru" and from_toggle_lang_cb:
                 comic_lang = "en"
             else:
                 comic_lang = "ru"
 
-    await users_db.update_last_comic_info(user_id, comic_id, comic_lang)
+    await db.users.update_last_comic_info(user_id, comic_id, comic_lang)
 
-    comic_data = await comics_db.get_comic_data_by_id(comic_id, comic_lang)
+    comic_data = await db.comics.get_comic_data_by_id(comic_id, comic_lang)
     (
         comic_id,
         title,
@@ -161,20 +160,20 @@ async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = No
     # TODO: fix looping
     # TODO: decouple logic
     count = 0
-    all_users_ids = await users_db.get_all_users_ids()
+    all_users_ids = await db.users.get_all_users_ids()
 
     try:
         for user_id in all_users_ids:
             if await user_is_unavailable(user_id):
-                await users_db.delete_user(user_id)
+                await db.users.delete_user(user_id)
             else:
-                user_lang = await users_db.get_user_lang(user_id)
+                user_lang = await db.users.get_user_lang(user_id)
 
                 # For sending comic
                 if comic_id:
-                    only_ru_mode = await users_db.get_only_ru_mode_status(user_id)
+                    only_ru_mode = await db.users.get_only_ru_mode_status(user_id)
                     if not only_ru_mode:  # In only-ru mode users don't get a new English comic
-                        notification_sound = await users_db.get_notification_sound_status(user_id)
+                        notification_sound = await db.users.get_notification_sound_status(user_id)
 
                         text = (
                             "🔥 <b>And here comes the new comic!</b> 🔥"
