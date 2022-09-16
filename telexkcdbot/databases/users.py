@@ -3,13 +3,12 @@ from datetime import date, timedelta
 from typing import Sequence
 
 import asyncpg
-from asyncpg import Pool
 
 from telexkcdbot.models import AdminUsersInfo, MenuKeyboardInfo
 
 
 class Users:
-    pool: Pool
+    pool: asyncpg.Pool
 
     def __init__(self) -> None:
         pass

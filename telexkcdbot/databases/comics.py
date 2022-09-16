@@ -2,13 +2,12 @@ from dataclasses import astuple
 from typing import Sequence
 
 import asyncpg
-from asyncpg import Pool
 
 from telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
 
 
 class Comics:
-    pool: Pool
+    pool: asyncpg.Pool
 
     def __init__(self) -> None:
         pass

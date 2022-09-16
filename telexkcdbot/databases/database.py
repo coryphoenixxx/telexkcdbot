@@ -1,5 +1,6 @@
 import asyncpg
-from asyncpg import Pool
+from asyncpg.exceptions import ConnectionDoesNotExistError
+from loguru import logger
 
 from telexkcdbot.config import DATABASE_URL
 from telexkcdbot.databases.comics import Comics
@@ -7,7 +8,7 @@ from telexkcdbot.databases.users import Users
 
 
 class Database:
-    _pool: Pool
+    pool: asyncpg.Pool
 
     def __init__(self) -> None:
         self.users = Users()
@@ -15,15 +16,19 @@ class Database:
 
     async def create(self) -> None:
         # TODO: ?sslmode=require for db_url
-        # TODO: Exception
-        Database._pool = await asyncpg.create_pool(DATABASE_URL, max_size=40, command_timeout=60)
-        for child_db in self.__dict__.values():
-            child_db.pool = Database._pool
-            await child_db.create_table()
+
+        try:
+            Database.pool = await asyncpg.create_pool(DATABASE_URL, max_size=40, command_timeout=60)
+
+            for _db in self.__dict__.values():
+                _db.pool = Database.pool
+                await _db.create_table()
+        except (ConnectionDoesNotExistError, AttributeError, ValueError):
+            logger.error("Pool was not created")
 
     @property
     def pool_size(self) -> int:
-        pool_size: int = Database._pool.get_size()
+        pool_size: int = Database.pool.get_size()
         return pool_size
 
 

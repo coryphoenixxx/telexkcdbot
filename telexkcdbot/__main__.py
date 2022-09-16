@@ -17,8 +17,8 @@ from handlers.default import register_default_commands
 from middlewares.big_brother import big_brother
 from middlewares.localization import localization
 from models import TotalComicData
+from telexkcdbot.databases.comics_initial_fill import comics_initial_fill
 from telexkcdbot.databases.database import db
-from telexkcdbot.databases.fill_comics_db import comics_initial_fill
 
 
 async def get_and_broadcast_new_comic() -> None:
