@@ -2,10 +2,10 @@ import asyncio
 
 from aiogram import Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.utils.executor import start_polling, start_webhook
+from aiogram.utils.executor import start_webhook
 
 from bot import bot
-from config import ADMIN_ID, DEV, PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
+from config import ADMIN_ID, PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
 from handlers.admin import register_admin_handlers
 from handlers.callbacks import register_callbacks
 from handlers.default import register_default_commands
@@ -23,8 +23,7 @@ dp = Dispatcher(bot, storage=storage)
 
 
 async def on_startup(dp: Dispatcher):
-    if not DEV:
-        await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
+    await bot.set_webhook(WEBHOOK_URL, drop_pending_updates=True)
 
     dp.middleware.setup(localization)
     dp.middleware.setup(big_brother)
@@ -46,17 +45,16 @@ async def on_startup(dp: Dispatcher):
     await web_server_start()
 
 
-if __name__ == "__main__":
-    loop = asyncio.get_event_loop()
+async def on_shutdown(dp: Dispatcher):
+    pass
 
-    if DEV:
-        start_polling(dispatcher=dp, skip_updates=True, on_startup=on_startup)
-    else:
-        start_webhook(
-            dispatcher=dp,
-            webhook_path=WEBHOOK_PATH,
-            on_startup=on_startup,
-            skip_updates=True,
-            host=WEBAPP_HOST,
-            port=PORT,
-        )
+
+if __name__ == "__main__":
+    start_webhook(
+        dispatcher=dp,
+        webhook_path=WEBHOOK_PATH,
+        on_startup=on_startup,
+        skip_updates=True,
+        host=WEBAPP_HOST,
+        port=PORT,
+    )

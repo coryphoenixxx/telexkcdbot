@@ -7,13 +7,11 @@ ADMIN_ID = config("ADMIN_ID", cast=int)
 
 I18N_DOMAIN = "telexkcdbot"
 
-DEV = config("DEV", default=False, cast=bool)
-
 DATABASE_URL = config("DATABASE_URL", default="postgres://postgres:postgres@localhost:5432/telexkcdbot")
 
-HOST_IP_ADDR = config("HOST_IP_ADDR", default="localhost")
+DOMAIN_NAME = config("DOMAIN_NAME")
 WEBHOOK_PATH = f"/bot/webhook/{API_TOKEN}"
-WEBHOOK_URL = f"https://{HOST_IP_ADDR}{WEBHOOK_PATH}"
+WEBHOOK_URL = f"{DOMAIN_NAME}{WEBHOOK_PATH}"
 WEBAPP_HOST = "0.0.0.0"
 PORT = config("PORT", default=5050, cast=int)
 
