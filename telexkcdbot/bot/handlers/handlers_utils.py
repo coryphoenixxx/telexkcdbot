@@ -8,9 +8,11 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 
-from telexkcdbot.bot import bot
-from telexkcdbot.comic_data_getter import comics_data_getter
-from telexkcdbot.common_utils import (
+from telexkcdbot.api.databases.database import db
+from telexkcdbot.api.web.models import ComicHeadlineInfo
+from telexkcdbot.bot.bot import bot
+from telexkcdbot.bot.comic_data_getter import comics_data_getter
+from telexkcdbot.bot.common_utils import (
     cut_into_chunks,
     cyrillic,
     make_headline,
@@ -18,10 +20,8 @@ from telexkcdbot.common_utils import (
     send_comic,
     suppressed_exceptions,
 )
-from telexkcdbot.databases.database import db
-from telexkcdbot.keyboards import kboard
-from telexkcdbot.middlewares.localization import _
-from telexkcdbot.models import ComicHeadlineInfo
+from telexkcdbot.bot.keyboards import kboard
+from telexkcdbot.bot.middlewares.localization import _
 
 F = TypeVar("F", bound=Callable[..., Any])
 

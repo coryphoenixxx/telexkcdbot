@@ -18,12 +18,12 @@ from aiogram.utils.exceptions import (
 )
 from loguru import logger
 
-from bot import bot
-from config import ADMIN_ID, BASE_DIR, IMG_DIR
-from keyboards import kboard
-from middlewares.localization import _, localization
-from telexkcdbot.comic_data_getter import comics_data_getter
-from telexkcdbot.databases.database import db
+from telexkcdbot.api.databases.database import db
+from telexkcdbot.bot.bot import bot
+from telexkcdbot.bot.comic_data_getter import comics_data_getter
+from telexkcdbot.bot.keyboards import kboard
+from telexkcdbot.bot.middlewares.localization import _, localization
+from telexkcdbot.config import ADMIN_ID, BASE_DIR, IMG_DIR
 
 suppressed_exceptions = (
     AttributeError,
@@ -158,7 +158,7 @@ async def send_comic(
 async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = None) -> None:
     """Sends to users a new comic or an admin message"""
     # TODO: fix looping
-    # TODO: decouple logic
+    # TODO: separate logic
     count = 0
     all_users_ids = await db.users.get_all_users_ids()
 

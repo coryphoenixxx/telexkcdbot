@@ -2,9 +2,9 @@ import asyncpg
 from asyncpg.exceptions import ConnectionDoesNotExistError
 from loguru import logger
 
+from telexkcdbot.api.databases.comics import Comics
+from telexkcdbot.api.databases.users import Users
 from telexkcdbot.config import DATABASE_URL
-from telexkcdbot.databases.comics import Comics
-from telexkcdbot.databases.users import Users
 
 
 class Database:

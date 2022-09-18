@@ -5,12 +5,11 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import BotCommand, CallbackQuery, InputFile
 
-from telexkcdbot.bot import bot
-from telexkcdbot.comic_data_getter import comics_data_getter
-from telexkcdbot.common_utils import send_comic
-from telexkcdbot.config import IMG_DIR
-from telexkcdbot.databases.database import db
-from telexkcdbot.handlers.handlers_utils import (
+from telexkcdbot.api.databases.database import db
+from telexkcdbot.bot.bot import bot
+from telexkcdbot.bot.comic_data_getter import comics_data_getter
+from telexkcdbot.bot.common_utils import send_comic
+from telexkcdbot.bot.handlers.handlers_utils import (
     States,
     calc_new_comic_id,
     flip_next,
@@ -19,8 +18,9 @@ from telexkcdbot.handlers.handlers_utils import (
     send_bookmarks,
     send_menu,
 )
-from telexkcdbot.keyboards import kboard
-from telexkcdbot.middlewares.localization import _, localization
+from telexkcdbot.bot.keyboards import kboard
+from telexkcdbot.bot.middlewares.localization import _, localization
+from telexkcdbot.config import IMG_DIR
 
 
 async def cb_select_lang(call: CallbackQuery, state: FSMContext) -> None:

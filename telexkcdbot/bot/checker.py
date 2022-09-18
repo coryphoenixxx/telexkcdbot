@@ -1,11 +1,11 @@
 import asyncio
 
 import aioschedule
-
 from comic_data_getter import comics_data_getter
 from common_utils import broadcast
-from models import TotalComicData
-from telexkcdbot.databases.database import db
+
+from telexkcdbot.api.databases.database import db
+from telexkcdbot.api.web.models import TotalComicData
 
 
 async def get_and_broadcast_new_comic() -> None:

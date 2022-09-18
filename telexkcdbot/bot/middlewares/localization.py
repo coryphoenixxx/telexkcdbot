@@ -3,8 +3,8 @@ from typing import Any
 from aiogram import types
 from aiogram.contrib.middlewares.i18n import I18nMiddleware
 
+from telexkcdbot.api.databases.database import db
 from telexkcdbot.config import I18N_DOMAIN, LOCALES_DIR
-from telexkcdbot.databases.database import db
 
 
 class Localization(I18nMiddleware):

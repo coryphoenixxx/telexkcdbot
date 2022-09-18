@@ -5,9 +5,9 @@ from typing import Sequence
 from loguru import logger
 from tqdm import tqdm
 
-from telexkcdbot.comic_data_getter import comics_data_getter
-from telexkcdbot.common_utils import cut_into_chunks
-from telexkcdbot.databases.database import db
+from telexkcdbot.api.databases.database import db
+from telexkcdbot.bot.comic_data_getter import comics_data_getter
+from telexkcdbot.bot.common_utils import cut_into_chunks
 
 chunk_size = 20
 buffer = []

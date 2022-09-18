@@ -7,18 +7,18 @@ from aiogram.types import CallbackQuery, InputFile, Message
 from aiogram.utils.exceptions import BadRequest
 from loguru import logger
 
-from telexkcdbot.bot import bot
-from telexkcdbot.common_utils import (
+from telexkcdbot.api.databases.database import db
+from telexkcdbot.bot.bot import bot
+from telexkcdbot.bot.common_utils import (
     broadcast,
     remove_prev_message_kb,
     suppressed_exceptions,
     user_is_unavailable,
 )
+from telexkcdbot.bot.handlers.handlers_utils import States, remove_callback_kb
+from telexkcdbot.bot.keyboards import kboard, support_cb_data
+from telexkcdbot.bot.middlewares.localization import _
 from telexkcdbot.config import ADMIN_ID, LOGS_DIR
-from telexkcdbot.databases.database import db
-from telexkcdbot.handlers.handlers_utils import States, remove_callback_kb
-from telexkcdbot.keyboards import kboard, support_cb_data
-from telexkcdbot.middlewares.localization import _
 
 admin_panel_text_base = "<b>*** ADMIN PANEL ***</b>\n"
 

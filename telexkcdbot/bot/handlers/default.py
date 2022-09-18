@@ -3,10 +3,9 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import CommandStart
 from aiogram.types import InputFile, Message
 
-from telexkcdbot.common_utils import preprocess_text, remove_prev_message_kb
-from telexkcdbot.config import IMG_DIR
-from telexkcdbot.databases.database import db
-from telexkcdbot.handlers.handlers_utils import (
+from telexkcdbot.api.databases.database import db
+from telexkcdbot.bot.common_utils import preprocess_text, remove_prev_message_kb
+from telexkcdbot.bot.handlers.handlers_utils import (
     States,
     flip_next,
     is_cyrillic,
@@ -16,8 +15,9 @@ from telexkcdbot.handlers.handlers_utils import (
     send_headlines_as_text,
     send_menu,
 )
-from telexkcdbot.keyboards import kboard
-from telexkcdbot.middlewares.localization import _
+from telexkcdbot.bot.keyboards import kboard
+from telexkcdbot.bot.middlewares.localization import _
+from telexkcdbot.config import IMG_DIR
 
 
 @rate_limit(3, "start")

@@ -1,6 +1,6 @@
 from loguru import logger
 
-from config import LOGS_DIR
+from telexkcdbot.config import LOGS_DIR
 
 logger.add(f"{LOGS_DIR}/actions.log", rotation="5 MB", level="INFO")
 

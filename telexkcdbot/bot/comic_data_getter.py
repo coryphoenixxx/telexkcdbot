@@ -13,9 +13,9 @@ from googletrans import Translator
 from loguru import logger
 from tqdm import tqdm
 
-from config import BASE_DIR
-from middlewares.localization import _
-from models import RuComicData, TotalComicData, XKCDComicData
+from telexkcdbot.api.web.models import RuComicData, TotalComicData, XKCDComicData
+from telexkcdbot.bot.middlewares.localization import _
+from telexkcdbot.config import BASE_DIR
 
 
 class ComicsDataGetter:
@@ -132,7 +132,7 @@ class ComicsDataGetter:
                 comic_json = await response.json()
 
             # Telegram considers '<' and '>' as html tag symbols, so let remove them
-            comment = comic_json.get("alt").replace("<", "").replace(">", "").strip()
+            comment = comic_json.get("alt").replace("<", "").replace(">", "").strip()  # TODO: regexp
 
             return XKCDComicData(
                 comic_id=comic_id,
