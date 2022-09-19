@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from telexkcdbot.api.web.models import RuComicData, TotalComicData, XKCDComicData
 from telexkcdbot.bot.middlewares.localization import _
-from telexkcdbot.config import BASE_DIR
+from telexkcdbot.config import RU_COMIC_DATA_DIR
 
 
 class ComicsDataGetter:
@@ -50,7 +50,7 @@ class ComicsDataGetter:
         self._translator: Translator = Translator()
 
         self._ru_comics_data_dict: dict = {}
-        self._path_to_ru_comic_data: Path = BASE_DIR / "static/ru_comics_data"
+        self._path_to_ru_comic_data: Path = RU_COMIC_DATA_DIR
 
     @staticmethod
     async def get_xkcd_latest_comic_id() -> int:
