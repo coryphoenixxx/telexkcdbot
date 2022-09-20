@@ -74,7 +74,7 @@ async def process_user_typing(msg: Message, state: FSMContext) -> None:
 
     elif user_input.isdigit():
         comic_id = int(user_input)
-        last_comic_id = await db.comics.get_last_comic_id()
+        last_comic_id = await db.comics.get_latest_id()
 
         if (comic_id > last_comic_id) or (comic_id <= 0):
             await msg.reply(

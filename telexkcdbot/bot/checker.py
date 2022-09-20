@@ -1,7 +1,7 @@
 import asyncio
 
-import aiohttp
 import aioschedule
+from api_client import api
 from comic_data_getter import comics_data_getter
 from common_utils import broadcast
 
@@ -10,15 +10,7 @@ from telexkcdbot.api.web.models import TotalComicData
 
 
 async def get_and_broadcast_new_comic() -> None:
-    async with aiohttp.ClientSession() as session:
-        comic_json = (await session.get("http://localhost:8080/api/comics/last_comic_id")).json()
-
-    # db_last_comic_id = await db.comics.get_last_comic_id()
-    db_last_comic_id = (await comic_json)["last_comic_id"]
-
-    if not db_last_comic_id:  # If Heroku database is down then skip the check
-        return
-
+    db_last_comic_id = await api.get_latest_comic_id()
     real_last_comic_id = await comics_data_getter.get_xkcd_latest_comic_id()
 
     if real_last_comic_id > db_last_comic_id:

@@ -13,10 +13,16 @@ async def api_handler(request: web.Request) -> web.Response:
     return web.json_response({"status": "OK"}, status=200)
 
 
-@router.get("/api/comics/last_comic_id")
+@router.get("/api/comics/latest_id")
 async def get_last_comic_id(request: web.Request) -> web.Response:
-    last_comic_id = await db.comics.get_last_comic_id()
-    return web.json_response({"last_comic_id": last_comic_id}, status=200)
+    latest_id = await db.comics.get_latest_id()
+    return web.json_response({"latest_id": latest_id}, status=200)
+
+
+@router.post("/api/comics")
+async def add_new_comic(request: web.Request) -> web.Response:
+    latest_id = await db.comics.get_latest_id()
+    return web.json_response({"latest_id": latest_id}, status=200)
 
 
 async def init() -> web.Application:

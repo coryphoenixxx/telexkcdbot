@@ -3,6 +3,7 @@ import asyncio
 from aiogram import Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_webhook
+from api_client import api
 from handlers.admin import register_admin_handlers
 from handlers.callbacks import register_callbacks
 from handlers.default import register_default_commands
@@ -30,6 +31,9 @@ async def on_startup(dp: Dispatcher):
     register_default_commands(dp)
 
     await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>", disable_notification=True)
+
+    await api.create()
+    await api.check_connection()
 
     asyncio.create_task(checker())
 

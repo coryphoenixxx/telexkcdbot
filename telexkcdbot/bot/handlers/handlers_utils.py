@@ -196,7 +196,7 @@ async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
             "last": ru_ids[-1],
         }
     else:
-        latest = await db.comics.get_last_comic_id()
+        latest = await db.comics.get_latest_id()
         actions = {
             "prev": comic_id - 1 if comic_id - 1 >= 1 else latest,
             "random": random.randint(1, latest),

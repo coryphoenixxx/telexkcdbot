@@ -31,7 +31,7 @@ class Comics:
         await self.pool.execute(query)
 
     @staticmethod
-    async def records_to_headlines_info(
+    async def _records_to_headlines_info(
         records: list[asyncpg.Record], title_col: str, img_url_col: str
     ) -> list[ComicHeadlineInfo]:
         headlines_info = []
@@ -60,7 +60,7 @@ class Comics:
 
         await self.pool.execute(query, *astuple(comic_data))
 
-    async def get_last_comic_id(self) -> int:
+    async def get_latest_id(self) -> int:
         query = """SELECT comic_id FROM comics
                    ORDER BY comic_id DESC
                    LIMIT 1;"""
@@ -109,7 +109,7 @@ class Comics:
         res = await self.pool.fetch(query, title)
         if not res:
             return []
-        return await self.records_to_headlines_info(
+        return await self._records_to_headlines_info(
             sorted(res, key=lambda x: len(x[title_col])),
             title_col,
             img_url_col,
@@ -122,7 +122,7 @@ class Comics:
                     WHERE comic_id in {tuple(ids)};"""
 
         res = await self.pool.fetch(query)
-        headlines_info = await self.records_to_headlines_info(res, title_col, img_url_col)
+        headlines_info = await self._records_to_headlines_info(res, title_col, img_url_col)
         return [h for h in sorted(headlines_info, key=lambda x: ids.index(x.comic_id))]  # Saved order of ids list
 
     async def toggle_spec_status(self, comic_id: int) -> None:
