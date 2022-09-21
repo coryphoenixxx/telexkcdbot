@@ -4,9 +4,9 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
 
 from telexkcdbot.api.databases.database import db
-from telexkcdbot.api.web.models import ComicData
 from telexkcdbot.bot.middlewares.localization import _
 from telexkcdbot.config import ADMIN_ID
+from telexkcdbot.models import ComicData
 
 support_cb_data = CallbackData("support", "type", "user_id", "message_id")
 

@@ -3,7 +3,7 @@ from typing import Sequence
 
 import asyncpg
 
-from telexkcdbot.api.web.models import ComicData, ComicHeadlineInfo, TotalComicData
+from telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
 
 
 class Comics:

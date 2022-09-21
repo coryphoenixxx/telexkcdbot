@@ -1,9 +1,13 @@
+from dataclasses import asdict
+from datetime import datetime
+
 from aiohttp import web
 from loguru import logger
 
 from telexkcdbot.api.databases.comics_initial_fill import comics_initial_fill
 from telexkcdbot.api.databases.database import db
 from telexkcdbot.config import ADMIN_ID
+from telexkcdbot.models import ComicData, TotalComicData
 
 router = web.RouteTableDef()
 
@@ -13,16 +17,57 @@ async def api_handler(request: web.Request) -> web.Response:
     return web.json_response({"status": "OK"}, status=200)
 
 
-@router.get("/api/comics/latest_id")
-async def get_last_comic_id(request: web.Request) -> web.Response:
-    latest_id = await db.comics.get_latest_id()
-    return web.json_response({"latest_id": latest_id}, status=200)
-
-
 @router.post("/api/comics")
 async def add_new_comic(request: web.Request) -> web.Response:
+    comic_data: dict = await request.json()
+    comic_data["public_date"] = datetime.strptime(comic_data["public_date"], "%Y-%m-%d").date()
+    await db.comics.add_new_comic(TotalComicData(**comic_data))
+    return web.json_response({"comic_id": comic_data["comic_id"]}, status=201)
+
+
+@router.get("/api/comics/latest_id")
+async def get_latest_comic_id(request: web.Request) -> web.Response:
     latest_id = await db.comics.get_latest_id()
     return web.json_response({"latest_id": latest_id}, status=200)
+
+
+@router.get("/api/comics/comics_ids")
+async def get_all_comics_ids(request: web.Request) -> web.Response:
+    comics_ids = await db.comics.get_all_comics_ids()
+    return web.json_response({"comics_ids": comics_ids}, status=200)
+
+
+@router.get("/api/comics/ru_comics_ids")
+async def get_all_ru_comics_ids(request: web.Request) -> web.Response:
+    ru_comics_ids = await db.comics.get_all_ru_comics_ids()
+    return web.json_response({"ru_comics_ids": ru_comics_ids}, status=200)
+
+
+@router.get("/api/comics/{comic_id}")
+async def get_comic_data_by_id(request: web.Request) -> web.Response:
+    comic_id = int(request.match_info["comic_id"])
+    comic_data: ComicData = await db.comics.get_comic_data_by_id(comic_id)
+    comic_data.public_date = str(comic_data.public_date)
+    return web.json_response(asdict(comic_data), status=200)
+
+
+@router.get("/api/comics/comics_headlines/{title}/{lang}")
+async def get_comics_headlines_info_by_title(request: web.Request) -> web.Response:
+    title = request.match_info["title"]
+    lang = request.match_info["lang"]
+    headline_info: list = await db.comics.get_comics_headlines_info_by_title(title, lang)
+
+    headline_info = [asdict(x) for x in headline_info]
+
+    return web.json_response(headline_info, status=200)
+
+
+@router.get("/api/comics/comics_headlines/{ids}")
+async def get_comics_headlines_info_by_ids(request: web.Request) -> web.Response:
+    int(request.match_info["title"])
+    headline_info: ComicData = await db.comics.get_comics_headlines_info_by_ids()
+    headline_info.public_date = str(headline_info.public_date)
+    return web.json_response(asdict(headline_info), status=200)
 
 
 async def init() -> web.Application:

@@ -5,8 +5,7 @@ from api_client import api
 from comic_data_getter import comics_data_getter
 from common_utils import broadcast
 
-from telexkcdbot.api.databases.database import db
-from telexkcdbot.api.web.models import TotalComicData
+from telexkcdbot.models import TotalComicData
 
 
 async def get_and_broadcast_new_comic() -> None:
@@ -17,7 +16,7 @@ async def get_and_broadcast_new_comic() -> None:
         for comic_id in range(db_last_comic_id + 1, real_last_comic_id + 1):
             xkcd_comic_data = await comics_data_getter.get_xkcd_comic_data_by_id(comic_id)
 
-            await db.comics.add_new_comic(
+            await api.add_new_comic(
                 TotalComicData(
                     comic_id=xkcd_comic_data.comic_id,
                     title=xkcd_comic_data.title,

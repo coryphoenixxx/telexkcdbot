@@ -4,7 +4,7 @@ from typing import Sequence
 
 import asyncpg
 
-from telexkcdbot.api.web.models import AdminUsersInfo, MenuKeyboardInfo
+from telexkcdbot.models import AdminUsersInfo, MenuKeyboardInfo
 
 
 class Users:

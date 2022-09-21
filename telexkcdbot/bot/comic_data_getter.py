@@ -13,9 +13,9 @@ from googletrans import Translator
 from loguru import logger
 from tqdm import tqdm
 
-from telexkcdbot.api.web.models import RuComicData, TotalComicData, XKCDComicData
 from telexkcdbot.bot.middlewares.localization import _
 from telexkcdbot.config import RU_COMIC_DATA_DIR
+from telexkcdbot.models import RuComicData, TotalComicData, XKCDComicData
 
 
 class ComicsDataGetter:

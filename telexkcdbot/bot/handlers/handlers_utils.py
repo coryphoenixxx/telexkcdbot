@@ -9,7 +9,6 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 
 from telexkcdbot.api.databases.database import db
-from telexkcdbot.api.web.models import ComicHeadlineInfo
 from telexkcdbot.bot.bot import bot
 from telexkcdbot.bot.comic_data_getter import comics_data_getter
 from telexkcdbot.bot.common_utils import (
@@ -22,6 +21,7 @@ from telexkcdbot.bot.common_utils import (
 )
 from telexkcdbot.bot.keyboards import kboard
 from telexkcdbot.bot.middlewares.localization import _
+from telexkcdbot.models import ComicHeadlineInfo
 
 F = TypeVar("F", bound=Callable[..., Any])
 
