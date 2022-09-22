@@ -7,7 +7,7 @@ from loguru import logger
 from telexkcdbot.api.databases.comics_initial_fill import comics_initial_fill
 from telexkcdbot.api.databases.database import db
 from telexkcdbot.config import ADMIN_ID
-from telexkcdbot.models import ComicData, TotalComicData
+from telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
 
 router = web.RouteTableDef()
 
@@ -51,23 +51,30 @@ async def get_comic_data_by_id(request: web.Request) -> web.Response:
     return web.json_response(asdict(comic_data), status=200)
 
 
-@router.get("/api/comics/comics_headlines/{title}/{lang}")
+@router.get("/api/comics/headlines/")
 async def get_comics_headlines_info_by_title(request: web.Request) -> web.Response:
-    title = request.match_info["title"]
-    lang = request.match_info["lang"]
-    headline_info: list = await db.comics.get_comics_headlines_info_by_title(title, lang)
+    title = request.rel_url.query.get("title")
+    ids = request.rel_url.query.get("ids")
+    lang = request.rel_url.query.get("lang")
 
-    headline_info = [asdict(x) for x in headline_info]
+    if ids is None:
+        headline_info: list[ComicHeadlineInfo] = await db.comics.get_comics_headlines_info_by_title(title, lang)
+        headline_info = [asdict(x) for x in headline_info]
 
-    return web.json_response(headline_info, status=200)
+        return web.json_response(headline_info, status=200)
+    else:
+        ids = [int(x) for x in ids.split(",")]
+        headline_info: list[ComicHeadlineInfo] = await db.comics.get_comics_headlines_info_by_ids(ids, lang)
+        headline_info = [asdict(x) for x in headline_info]
+
+        return web.json_response(headline_info, status=200)
 
 
-@router.get("/api/comics/comics_headlines/{ids}")
-async def get_comics_headlines_info_by_ids(request: web.Request) -> web.Response:
-    int(request.match_info["title"])
-    headline_info: ComicData = await db.comics.get_comics_headlines_info_by_ids()
-    headline_info.public_date = str(headline_info.public_date)
-    return web.json_response(asdict(headline_info), status=200)
+@router.patch("/api/comics/{comic_id}")
+async def toggle_spec_status(request: web.Request) -> web.Response:
+    comic_id = int(request.match_info["comic_id"])
+    await db.comics.toggle_spec_status(comic_id)
+    return web.json_response({"toggled": comic_id}, status=200)
 
 
 async def init() -> web.Application:

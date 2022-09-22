@@ -48,23 +48,27 @@ class ApiClient:
             comics_ids = (await resp.json())["ru_comic_ids"]
             return comics_ids
 
-    async def get_comic_data_by_id(self, comic_id):
+    async def get_comic_data_by_id(self, comic_id: int):
         async with self.session.get(f"/api/comics/{comic_id}") as resp:
             comic_data = await resp.json()
             comic_data["public_date"] = datetime.strptime(comic_data["public_date"], "%Y-%m-%d").date()
             return ComicData(**comic_data)
 
-    async def get_comics_headlines_info_by_title(self, title, lang):
-        async with self.session.get(f"/api/comics/comics_headlines/{title}/{lang}") as resp:
+    async def get_comics_headlines_by_title(self, title: str, lang: str):
+        async with self.session.get(f"/api/comics/headlines/?title={title}&{lang}=lang") as resp:
             headline_info = await resp.json()
             headline_info = [ComicHeadlineInfo(**x) for x in headline_info]
             return headline_info
 
-    async def get_comics_headlines_info_by_ids(self):
-        pass
+    async def get_comics_headlines_by_ids(self, ids: list[int], lang: str):
+        async with self.session.get(f"/api/comics/headlines/?ids={ids}&{lang}=lang") as resp:
+            headline_info = await resp.json()
+            headline_info = [ComicHeadlineInfo(**x) for x in headline_info]
+            return headline_info
 
-    async def toggle_spec_status(self):
-        pass
+    async def toggle_spec_status(self, comic_id: int):
+        async with self.session.patch(f"/api/comics/{comic_id}") as resp:
+            print(resp)
 
 
 api = ApiClient()
