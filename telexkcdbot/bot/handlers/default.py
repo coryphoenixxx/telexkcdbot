@@ -4,6 +4,7 @@ from aiogram.dispatcher.filters import CommandStart
 from aiogram.types import InputFile, Message
 
 from telexkcdbot.api.databases.database import db
+from telexkcdbot.bot.api_client import api
 from telexkcdbot.bot.common_utils import preprocess_text, remove_prev_message_kb
 from telexkcdbot.bot.handlers.handlers_utils import (
     States,
@@ -24,7 +25,7 @@ from telexkcdbot.config import IMG_DIR
 async def cmd_start(msg: Message, state: FSMContext) -> None:
     await remove_prev_message_kb(msg, state)
 
-    await db.users.add_user(msg.from_user.id)
+    await api.add_user(msg.from_user.id)
 
     await msg.answer(
         "<b>Select language | Выберите язык</b>",

@@ -70,11 +70,18 @@ async def get_comics_headlines_info_by_title(request: web.Request) -> web.Respon
         return web.json_response(headline_info, status=200)
 
 
-@router.patch("/api/comics/{comic_id}")
+@router.patch("/api/comics/spec_status/{comic_id}")
 async def toggle_spec_status(request: web.Request) -> web.Response:
     comic_id = int(request.match_info["comic_id"])
     await db.comics.toggle_spec_status(comic_id)
     return web.json_response({"toggled": comic_id}, status=200)
+
+
+@router.post("/api/users")
+async def add_user(request: web.Request) -> web.Response:
+    user_id: dict = (await request.json())["user_id"]
+    await db.users.add_user(user_id=user_id)
+    return web.json_response({"user_id": user_id}, status=201)
 
 
 async def init() -> web.Application:
