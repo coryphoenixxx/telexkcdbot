@@ -30,10 +30,9 @@ async def on_startup(dp: Dispatcher):
     register_callbacks(dp)
     register_default_commands(dp)
 
-    await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>", disable_notification=True)
-
-    await api.create()
     await api.check_connection()
+
+    await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>", disable_notification=True)
 
     asyncio.create_task(checker())
 

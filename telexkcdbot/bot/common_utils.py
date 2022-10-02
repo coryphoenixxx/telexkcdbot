@@ -18,7 +18,7 @@ from aiogram.utils.exceptions import (
 )
 from loguru import logger
 
-from telexkcdbot.api.databases.database import db
+from telexkcdbot.bot.api_client import api
 from telexkcdbot.bot.bot import bot
 from telexkcdbot.bot.comic_data_getter import comics_data_getter
 from telexkcdbot.bot.keyboards import kboard
@@ -71,7 +71,7 @@ async def send_comic(
     :param from_broadcast: User for correct defining in what language send user keyboard
     :return:
     """
-    user_lang = await db.users.get_user_lang(user_id)
+    user_lang = await api.get_user_lang(user_id)
 
     # Fix bug with incorrect keyboard language in broadcasting
     if from_broadcast:
@@ -84,15 +84,15 @@ async def send_comic(
             (
                 last_comic_id,
                 last_comic_lang,
-            ) = await db.users.get_last_comic_info(user_id)
+            ) = await api.get_last_comic_info(user_id)
             if last_comic_id == comic_id and last_comic_lang == "ru" and from_toggle_lang_cb:
                 comic_lang = "en"
             else:
                 comic_lang = "ru"
 
-    await db.users.update_last_comic_info(user_id, comic_id, comic_lang)
+    await api.update_last_comic_info(user_id, comic_id, comic_lang)
 
-    comic_data = await db.comics.get_comic_data_by_id(comic_id, comic_lang)
+    comic_data = await api.get_comic_data_by_id(comic_id, comic_lang)
     (
         comic_id,
         title,
@@ -123,7 +123,9 @@ async def send_comic(
     # Sends the comic image
     try:
         if "http" not in img_url:  # Russian comics saved locally
-            local_img = InputFile(BASE_DIR / img_url)
+            print(f"IMAGE URL: {img_url}")
+            local_img_url = BASE_DIR / "bot" / img_url
+            local_img = InputFile(local_img_url)
             await bot.send_photo(user_id, photo=local_img, disable_notification=True)
         elif img_url.endswith((".png", ".jpg", ".jpeg")):
             await bot.send_photo(user_id, photo=img_url, disable_notification=True)
@@ -160,20 +162,20 @@ async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = No
     # TODO: fix looping
     # TODO: separate logic
     count = 0
-    all_users_ids = await db.users.get_all_users_ids()
+    all_users_ids = await api.get_all_users_ids()
 
     try:
         for user_id in all_users_ids:
             if await user_is_unavailable(user_id):
-                await db.users.delete_user(user_id)
+                await api.delete_user(user_id)
             else:
-                user_lang = await db.users.get_user_lang(user_id)
+                user_lang = await api.get_user_lang(user_id)
 
                 # For sending comic
                 if comic_id:
-                    only_ru_mode = await db.users.get_only_ru_mode_status(user_id)
+                    only_ru_mode = await api.get_only_ru_mode_status(user_id)
                     if not only_ru_mode:  # In only-ru mode users don't get a new English comic
-                        notification_sound = await db.users.get_notification_sound_status(user_id)
+                        notification_sound = await api.get_notification_sound_status(user_id)
 
                         text = (
                             "🔥 <b>And here comes the new comic!</b> 🔥"

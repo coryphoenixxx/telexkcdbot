@@ -150,7 +150,7 @@ class Users:
             only_ru_mode_status=res["only_ru_mode"],
             lang_btn_status=res["lang_btn_status"],
             user_lang=res["user_lang"],
-            last_comic_id=int(res["last_comic_info"][0]),
+            last_comic_id=int(res["last_comic_info"].split("_")[0]),
         )
 
     """BOOKMARKS"""

@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, InputFile, Message
 from aiogram.utils.exceptions import BadRequest
 from loguru import logger
 
-from telexkcdbot.api.databases.database import db
+from telexkcdbot.bot.api_client import api
 from telexkcdbot.bot.bot import bot
 from telexkcdbot.bot.common_utils import (
     broadcast,
@@ -36,7 +36,7 @@ async def cb_users_info(call: CallbackQuery) -> None:
     with suppress(*suppressed_exceptions):
         await call.message.delete()
 
-    users_info = await db.users.get_admin_users_info()
+    users_info = await api.get_admin_users_info()
 
     await call.message.answer(
         text=f"{admin_panel_text_base}"
@@ -48,8 +48,8 @@ async def cb_users_info(call: CallbackQuery) -> None:
 
 
 async def cb_toggle_spec_status(call: CallbackQuery) -> None:
-    last_comic_id, _ = await db.users.get_last_comic_info(ADMIN_ID)
-    await db.comics.toggle_spec_status(last_comic_id)
+    last_comic_id, _ = await api.get_last_comic_info(ADMIN_ID)
+    await api.toggle_spec_status(last_comic_id)
     await call.message.edit_text(
         text=f"{admin_panel_text_base}❗ <b>It's done for {last_comic_id}.</b>",
         reply_markup=await kboard.admin_panel(),
@@ -87,7 +87,7 @@ async def user_support_msg(msg: Message, state: FSMContext) -> None:
     user_id = msg.from_user.id
     await bot.delete_message(user_id, msg.message_id - 1)
 
-    is_banned = await db.users.get_ban_status(user_id)
+    is_banned = await api.get_ban_status(user_id)
     if not is_banned:
         username = msg.from_user.username
         message_id = msg.message_id
@@ -120,7 +120,7 @@ async def cb_answer(call: CallbackQuery, state: FSMContext, callback_data: dict)
 
 async def cb_ban(call: CallbackQuery, callback_data: dict) -> None:
     user_id = int(callback_data["user_id"])
-    await db.users.ban_user(user_id)
+    await api.ban_user(user_id)
     await call.message.delete()
 
 
@@ -131,7 +131,7 @@ async def admin_support_msg(msg: Message, state: FSMContext) -> None:
     if await user_is_unavailable(user_id):
         pass
     else:
-        user_lang = await db.users.get_user_lang(user_id)
+        user_lang = await api.get_user_lang(user_id)
         base_text = "❗ <b>ADMIN ANSWER:\n</b>" if user_lang == "en" else "❗ <b>ОТВЕТ АДМИНА:\n</b>"
         await bot.send_message(
             user_id,

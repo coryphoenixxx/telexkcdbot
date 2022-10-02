@@ -9,7 +9,7 @@ from aiogram.types import Message, Update
 from aiogram.utils.exceptions import Throttled
 from loguru import logger
 
-from telexkcdbot.api.databases.database import db
+from telexkcdbot.bot.api_client import api
 from telexkcdbot.bot.common_utils import (
     preprocess_text,
     remove_prev_message_kb,
@@ -52,7 +52,7 @@ class BigBrother(BaseMiddleware):
 
             action_date = date.today()
             try:
-                await db.users.update_last_action_date(user_id, action_date)
+                await api.update_last_action_date(user_id, action_date)
             except Exception as err:
                 logger.error(f"Couldn't update last action date ({user_id}, {action_date}): {err}")
 

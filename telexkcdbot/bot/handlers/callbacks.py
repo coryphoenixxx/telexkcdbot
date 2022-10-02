@@ -5,7 +5,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import BotCommand, CallbackQuery, InputFile
 
-from telexkcdbot.api.databases.database import db
+from telexkcdbot.bot.api_client import api
 from telexkcdbot.bot.bot import bot
 from telexkcdbot.bot.comic_data_getter import comics_data_getter
 from telexkcdbot.bot.common_utils import send_comic
@@ -29,7 +29,7 @@ async def cb_select_lang(call: CallbackQuery, state: FSMContext) -> None:
     await States.waiting.set()  # Lock user input
     selected_lang = call.data[:2]
     await localization.set_user_locale(selected_lang)
-    await db.users.set_user_lang(call.from_user.id, selected_lang)
+    await api.set_user_lang(call.from_user.id, selected_lang)
     await call.message.delete()
 
     commands_list = [
@@ -70,7 +70,7 @@ async def cb_menu(call: CallbackQuery, state: FSMContext) -> None:
 async def cb_toggle_notification_sound_status(call: CallbackQuery) -> None:
     """Handles "Enable/Disable notification sound" button click"""
 
-    await db.users.toggle_notification_sound_status(call.from_user.id)
+    await api.toggle_notification_sound_status(call.from_user.id)
     await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
 
 
@@ -90,14 +90,14 @@ async def cb_send_bookmarks(call: CallbackQuery, state: FSMContext) -> None:
 async def cb_toggle_lang_btn(call: CallbackQuery) -> None:
     """Handles "Add/Remove 🇷🇺/🇬🇧 Button" button click"""
 
-    await db.users.toggle_lang_btn_status(call.from_user.id)
+    await api.toggle_lang_btn_status(call.from_user.id)
     await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
 
 
 async def cb_toggle_only_ru_mode_status(call: CallbackQuery) -> None:
     """Handles "Только переводы" button click for Russian users"""
 
-    await db.users.toggle_only_ru_mode_status(call.from_user.id)
+    await api.toggle_only_ru_mode_status(call.from_user.id)
     await call.message.edit_reply_markup(reply_markup=await kboard.menu(call.from_user.id))
 
 
@@ -128,7 +128,7 @@ async def cb_continue_xkcding(call: CallbackQuery, state: FSMContext) -> None:
     await state.finish()
     await call.message.delete() if "❗" in call.message.text else await remove_callback_kb(call)
 
-    last_comic_id, last_comic_lang = await db.users.get_last_comic_info(call.from_user.id)
+    last_comic_id, last_comic_lang = await api.get_last_comic_info(call.from_user.id)
     await send_comic(call.from_user.id, comic_id=last_comic_id, comic_lang=last_comic_lang)
 
 
@@ -137,7 +137,7 @@ async def cb_navigation(call: CallbackQuery) -> None:
 
     await remove_callback_kb(call)
     action = call.data.split("_")[1]
-    last_comic_id, _ = await db.users.get_last_comic_info(call.from_user.id)
+    last_comic_id, _ = await api.get_last_comic_info(call.from_user.id)
     new_comic_id = await calc_new_comic_id(call.from_user.id, last_comic_id, action)
     await send_comic(call.from_user.id, comic_id=new_comic_id)
 
@@ -148,7 +148,7 @@ async def cb_toggle_comic_lang(call: CallbackQuery) -> None:
     await remove_callback_kb(call)
 
     new_comic_lang = call.data[-2:]
-    last_comic_id, _ = await db.users.get_last_comic_info(call.from_user.id)
+    last_comic_id, _ = await api.get_last_comic_info(call.from_user.id)
 
     if "flip" in call.data:
         await send_comic(
@@ -176,12 +176,12 @@ async def cb_explain(call: CallbackQuery, state: FSMContext) -> None:
     # Delete message if couldn't get explanation, else remove keyboard
     await call.message.delete() if "❗" in call.message.text else await call.message.edit_reply_markup()
 
-    last_comic_id, last_comic_lang = await db.users.get_last_comic_info(call.from_user.id)
-    comic_data = await db.comics.get_comic_data_by_id(last_comic_id, last_comic_lang)
+    last_comic_id, last_comic_lang = await api.get_last_comic_info(call.from_user.id)
+    comic_data = await api.get_comic_data_by_id(last_comic_id, last_comic_lang)
 
     url = f"https://www.explainxkcd.com/{last_comic_id}"
 
-    user_lang = await db.users.get_user_lang(call.from_user.id)
+    user_lang = await api.get_user_lang(call.from_user.id)
     if user_lang == "ru":
         text = await comics_data_getter.get_ru_explanation(last_comic_id, url)
         text = f"<i>{text}...</i>\n\n<a href='{url}'><u>↪ [ПОЛНЫЙ ТЕКСТ]</u> 🇬🇧</a>"
@@ -212,17 +212,17 @@ async def cb_explain(call: CallbackQuery, state: FSMContext) -> None:
 async def cb_toggle_bookmark_status(call: CallbackQuery) -> None:
     """Handles "❤Bookmark", "💔Unbookmark" buttons click"""
 
-    last_comic_id, last_comic_lang = await db.users.get_last_comic_info(call.from_user.id)
-    user_bookmarks_list = await db.users.get_bookmarks(call.from_user.id)
+    last_comic_id, last_comic_lang = await api.get_last_comic_info(call.from_user.id)
+    user_bookmarks_list = await api.get_bookmarks(call.from_user.id)
 
     if last_comic_id in user_bookmarks_list:
         user_bookmarks_list.remove(last_comic_id)
     else:
         user_bookmarks_list.append(last_comic_id)
 
-    await db.users.update_bookmarks(call.from_user.id, user_bookmarks_list)
+    await api.update_bookmarks(call.from_user.id, user_bookmarks_list)
 
-    comic_data = await db.comics.get_comic_data_by_id(last_comic_id)
+    comic_data = await api.get_comic_data_by_id(last_comic_id)
 
     kb_data = [
         call.from_user.id,
@@ -247,8 +247,8 @@ async def cb_flip_break(call: CallbackQuery, state: FSMContext) -> None:
     """Handles "↩Break" button click in flipping mode"""
 
     user_id = call.from_user.id
-    last_comic_id, last_comic_lang = await db.users.get_last_comic_info(user_id)
-    comic_data = await db.comics.get_comic_data_by_id(last_comic_id)
+    last_comic_id, last_comic_lang = await api.get_last_comic_info(user_id)
+    comic_data = await api.get_comic_data_by_id(last_comic_id)
 
     keyboard = await kboard.navigation(
         user_id,

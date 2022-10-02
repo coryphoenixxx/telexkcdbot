@@ -93,7 +93,7 @@ class Comics:
         res = await self.pool.fetchrow(query, comic_id)
         return ComicData(*res)
 
-    async def get_comics_headlines_info_by_title(self, title: str, lang: str = "en") -> list[ComicHeadlineInfo]:
+    async def get_comics_headlines_by_title(self, title: str, lang: str = "en") -> list[ComicHeadlineInfo]:
         title_col, img_url_col = ("title", "img_url") if lang == "en" else ("ru_title", "ru_img_url")
         query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
 
@@ -115,7 +115,7 @@ class Comics:
             img_url_col,
         )
 
-    async def get_comics_headlines_info_by_ids(self, ids: list, lang: str = "en") -> list[ComicHeadlineInfo]:
+    async def get_comics_headlines_by_ids(self, ids: list, lang: str = "en") -> list[ComicHeadlineInfo]:
         title_col, img_url_col = ("title", "img_url") if lang == "en" else ("ru_title", "ru_img_url")
 
         query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics

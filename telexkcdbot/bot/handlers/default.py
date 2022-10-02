@@ -3,7 +3,6 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import CommandStart
 from aiogram.types import InputFile, Message
 
-from telexkcdbot.api.databases.database import db
 from telexkcdbot.bot.api_client import api
 from telexkcdbot.bot.common_utils import preprocess_text, remove_prev_message_kb
 from telexkcdbot.bot.handlers.handlers_utils import (
@@ -24,7 +23,6 @@ from telexkcdbot.config import IMG_DIR
 @rate_limit(3, "start")
 async def cmd_start(msg: Message, state: FSMContext) -> None:
     await remove_prev_message_kb(msg, state)
-
     await api.add_user(msg.from_user.id)
 
     await msg.answer(
@@ -75,7 +73,7 @@ async def process_user_typing(msg: Message, state: FSMContext) -> None:
 
     elif user_input.isdigit():
         comic_id = int(user_input)
-        last_comic_id = await db.comics.get_latest_id()
+        last_comic_id = await api.get_latest_comic_id()
 
         if (comic_id > last_comic_id) or (comic_id <= 0):
             await msg.reply(
@@ -94,7 +92,7 @@ async def process_user_typing(msg: Message, state: FSMContext) -> None:
 
             await state.update_data(fsm_lang=lang)
 
-            comics_found_list = await db.comics.get_comics_headlines_info_by_title(title=user_input, lang=lang)
+            comics_found_list = await api.get_comics_headlines_by_title(title=user_input, lang=lang)
 
             if not comics_found_list:
                 await msg.reply(
