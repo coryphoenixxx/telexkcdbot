@@ -3,8 +3,7 @@ from datetime import date, timedelta
 from typing import Sequence
 
 import asyncpg
-
-from telexkcdbot.models import AdminUsersInfo, MenuKeyboardInfo
+from src.models import AdminUsersInfo, MenuKeyboardInfo
 
 
 class Users:

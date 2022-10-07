@@ -2,8 +2,7 @@ from dataclasses import astuple
 from typing import Sequence
 
 import asyncpg
-
-from telexkcdbot.models import ComicData, ComicHeadlineInfo, TotalComicData
+from src.models import ComicData, ComicHeadlineInfo, TotalComicData
 
 
 class Comics:

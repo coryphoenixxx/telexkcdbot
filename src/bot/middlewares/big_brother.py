@@ -8,16 +8,15 @@ from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.types import Message, Update
 from aiogram.utils.exceptions import Throttled
 from loguru import logger
-
-from telexkcdbot.bot.api_client import api
-from telexkcdbot.bot.common_utils import (
+from src.bot.api_client import api
+from src.bot.common_utils import (
     preprocess_text,
     remove_prev_message_kb,
     user_is_unavailable,
 )
-from telexkcdbot.bot.keyboards import kboard
-from telexkcdbot.bot.middlewares.localization import _
-from telexkcdbot.config import ADMIN_ID
+from src.bot.keyboards import kboard
+from src.bot.middlewares.localization import _
+from src.config import ADMIN_ID
 
 
 class BigBrother(BaseMiddleware):

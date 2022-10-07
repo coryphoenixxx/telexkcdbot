@@ -11,11 +11,10 @@ from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
 from googletrans import Translator
 from loguru import logger
+from src.bot.middlewares.localization import _
+from src.config import RU_COMIC_DATA_DIR
+from src.models import RuComicData, TotalComicData, XKCDComicData
 from tqdm import tqdm
-
-from telexkcdbot.bot.middlewares.localization import _
-from telexkcdbot.config import RU_COMIC_DATA_DIR
-from telexkcdbot.models import RuComicData, TotalComicData, XKCDComicData
 
 
 class ComicsDataGetter:

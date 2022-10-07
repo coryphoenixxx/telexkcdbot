@@ -2,8 +2,7 @@ from datetime import date, datetime
 
 from aiohttp import ClientSession
 from loguru import logger
-
-from telexkcdbot.models import (
+from src.models import (
     AdminUsersInfo,
     ComicData,
     ComicHeadlineInfo,
@@ -34,6 +33,11 @@ class APIClient:
                     "img_url": comic_data.img_url,
                     "comment": comic_data.comment,
                     "public_date": str(comic_data.public_date),
+                    "is_specific": comic_data.is_specific,
+                    "ru_title": comic_data.ru_title,
+                    "ru_img_url": comic_data.ru_img_url,
+                    "ru_comment": comic_data.ru_comment,
+                    "has_ru_translation": comic_data.has_ru_translation,
                 },
             ) as resp:
                 print(resp)
@@ -91,7 +95,7 @@ class APIClient:
                 print(resp)
 
     ###################
-    ############## USER
+    # USER
     ###################
 
     async def add_user(self, user_id: int):

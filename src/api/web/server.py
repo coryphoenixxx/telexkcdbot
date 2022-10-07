@@ -4,11 +4,9 @@ from datetime import datetime
 
 from aiohttp import web
 from loguru import logger
-
-from telexkcdbot.api.databases.comics_initial_fill import comics_initial_fill
-from telexkcdbot.api.databases.database import db
-from telexkcdbot.config import ADMIN_ID
-from telexkcdbot.models import (
+from src.api.databases.database import db
+from src.config import ADMIN_ID
+from src.models import (
     AdminUsersInfo,
     ComicData,
     ComicHeadlineInfo,
@@ -234,7 +232,6 @@ async def init() -> web.Application:
     app.add_routes(router)
 
     await db.create()
-    await comics_initial_fill()
     await db.users.add_user(ADMIN_ID)
 
     logger.info("Web Server started at http://localhost:8080")
