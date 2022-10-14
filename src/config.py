@@ -15,8 +15,8 @@ WEBHOOK_URL = f"{DOMAIN_NAME}{WEBHOOK_PATH}"
 WEBAPP_HOST = "0.0.0.0"
 PORT = config("PORT", default=5050, cast=int)
 
-BASE_DIR = Path(__file__).parent
-IMG_DIR = BASE_DIR / "bot/static/img"
-LOCALES_DIR = BASE_DIR / "bot/locales"
+BASE_DIR = Path(__file__).parent.parent
 LOGS_DIR = BASE_DIR / "logs"
-RU_COMIC_DATA_DIR = BASE_DIR / "bot/static/ru_comics_data"
+IMG_DIR = BASE_DIR / "src/bot/static/img"
+RU_COMIC_DATA_DIR = BASE_DIR / "src/bot/static/ru_comics_data"
+LOCALES_DIR = BASE_DIR / "src/bot/locales"

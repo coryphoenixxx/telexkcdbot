@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from typing import Sequence
 
 import asyncpg
-from src.models import AdminUsersInfo, MenuKeyboardInfo
+from models import AdminUsersInfo, MenuKeyboardInfo
 
 
 class Users:

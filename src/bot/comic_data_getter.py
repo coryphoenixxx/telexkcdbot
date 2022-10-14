@@ -99,7 +99,7 @@ class ComicsDataGetter:
         """
 
         filename = list((self._path_to_ru_comic_data / "images").glob(f"{comic_id}.*"))[0].name
-        return "static/ru_comics_data/images/" + filename
+        return "images/" + filename
 
     def _translate_to_ru(self, text: str) -> str:
         result: str = self._translator.translate(text, src="en", dest="ru").text

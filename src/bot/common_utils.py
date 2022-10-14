@@ -22,7 +22,7 @@ from src.bot.bot import bot
 from src.bot.comic_data_getter import comics_data_getter
 from src.bot.keyboards import kboard
 from src.bot.middlewares.localization import _, localization
-from src.config import ADMIN_ID, BASE_DIR, IMG_DIR
+from src.config import ADMIN_ID, IMG_DIR, RU_COMIC_DATA_DIR
 
 suppressed_exceptions = (
     AttributeError,
@@ -122,8 +122,7 @@ async def send_comic(
     # Sends the comic image
     try:
         if "http" not in img_url:  # Russian comics saved locally
-            local_img_url = BASE_DIR / "bot" / img_url
-            local_img = InputFile(local_img_url)
+            local_img = InputFile(RU_COMIC_DATA_DIR / img_url)
             await bot.send_photo(user_id, photo=local_img, disable_notification=True)
         elif img_url.endswith((".png", ".jpg", ".jpeg")):
             await bot.send_photo(user_id, photo=img_url, disable_notification=True)

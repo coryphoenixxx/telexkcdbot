@@ -3,10 +3,9 @@ from dataclasses import asdict
 from datetime import datetime
 
 from aiohttp import web
-from loguru import logger
-from src.api.databases.database import db
-from src.config import ADMIN_ID
-from src.models import (
+from config import ADMIN_ID
+from databases.database import db
+from models import (
     AdminUsersInfo,
     ComicData,
     ComicHeadlineInfo,
@@ -233,8 +232,6 @@ async def init() -> web.Application:
 
     await db.create()
     await db.users.add_user(ADMIN_ID)
-
-    logger.info("Web Server started at http://localhost:8080")
 
     return app
 
