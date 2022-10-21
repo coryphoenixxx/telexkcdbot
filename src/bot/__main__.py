@@ -5,15 +5,15 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_webhook
 from api_client import api
 from bot import bot
+from checker import checker
 from comics_initial_fill import comics_initial_fill
+from config import ADMIN_ID, PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
 from handlers.admin import register_admin_handlers
 from handlers.callbacks import register_callbacks
 from handlers.default import register_default_commands
+from loguru import logger
 from middlewares.big_brother import big_brother
 from middlewares.localization import localization
-from src.bot.checker import checker
-from src.config import ADMIN_ID, PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
-from src.logger import logger
 
 storage = MemoryStorage()
 

@@ -4,7 +4,7 @@ import aioschedule
 from api_client import api
 from comic_data_getter import comics_data_getter
 from common_utils import broadcast
-from src.models import TotalComicData
+from models import TotalComicData
 
 
 async def get_and_broadcast_new_comic() -> None:

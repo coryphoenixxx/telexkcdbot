@@ -3,21 +3,19 @@ from contextlib import suppress
 from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
-from aiogram.types import CallbackQuery, InputFile, Message
-from aiogram.utils.exceptions import BadRequest
-from loguru import logger
-from src.bot.api_client import api
-from src.bot.bot import bot
-from src.bot.common_utils import (
+from aiogram.types import CallbackQuery, Message
+from api_client import api
+from bot import bot
+from common_utils import (
     broadcast,
     remove_prev_message_kb,
     suppressed_exceptions,
     user_is_unavailable,
 )
-from src.bot.handlers.handlers_utils import States, remove_callback_kb
-from src.bot.keyboards import kboard, support_cb_data
-from src.bot.middlewares.localization import _
-from src.config import ADMIN_ID, LOGS_DIR
+from config import ADMIN_ID
+from handlers.handlers_utils import States, remove_callback_kb
+from keyboards import kboard, support_cb_data
+from middlewares.localization import _
 
 admin_panel_text_base = "<b>*** ADMIN PANEL ***</b>\n"
 
@@ -56,12 +54,13 @@ async def cb_toggle_spec_status(call: CallbackQuery) -> None:
 
 
 async def cb_send_log(call: CallbackQuery) -> None:
-    filename = LOGS_DIR / "actions.log" if "actions" in call.data else LOGS_DIR / "errors.log"
-
-    try:
-        await call.message.answer_document(InputFile(filename))
-    except BadRequest as err:
-        logger.error(f"Couldn't send logs ({err})")
+    # filename = LOGS_DIR / "actions.log" if "actions" in call.data else LOGS_DIR / "errors.log"
+    #
+    # try:
+    #     await call.message.answer_document(InputFile(filename))
+    # except BadRequest as err:
+    #     logger.error(f"Couldn't send logs ({err})")
+    pass
 
 
 async def cb_type_broadcast_message(call: CallbackQuery) -> None:

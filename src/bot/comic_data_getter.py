@@ -9,11 +9,11 @@ from typing import Optional, Sequence
 import aiohttp
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
+from config import RU_COMIC_DATA_DIR
 from googletrans import Translator
 from loguru import logger
-from src.bot.middlewares.localization import _
-from src.config import RU_COMIC_DATA_DIR
-from src.models import RuComicData, TotalComicData, XKCDComicData
+from middlewares.localization import _
+from models import RuComicData, TotalComicData, XKCDComicData
 from tqdm import tqdm
 
 

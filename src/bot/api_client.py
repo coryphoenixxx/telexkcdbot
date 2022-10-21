@@ -2,7 +2,7 @@ from datetime import date, datetime
 
 from aiohttp import ClientSession
 from loguru import logger
-from src.models import (
+from models import (
     AdminUsersInfo,
     ComicData,
     ComicHeadlineInfo,
@@ -13,7 +13,7 @@ from src.models import (
 
 class APIClient:
     def __init__(self) -> None:
-        self.base_url = "http://localhost:8080"
+        self.base_url = "http://api:8080"
 
     async def check_connection(self):
         async with ClientSession(base_url=self.base_url) as session:

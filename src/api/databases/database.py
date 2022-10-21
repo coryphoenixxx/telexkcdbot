@@ -1,10 +1,9 @@
 import asyncpg
 from asyncpg.exceptions import ConnectionDoesNotExistError
 from config import DATABASE_URL
-
-# from loguru import logger
 from databases.comics import Comics
 from databases.users import Users
+from loguru import logger
 
 
 class Database:
@@ -24,8 +23,7 @@ class Database:
                 _db.pool = Database.pool
                 await _db.create_table()
         except (ConnectionDoesNotExistError, AttributeError, ValueError):
-            # logger.error("Pool was not created")
-            pass
+            logger.error("Pool was not created")
 
     @property
     def pool_size(self) -> int:

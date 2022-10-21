@@ -1,7 +1,5 @@
 FROM python:3-slim as python
-ENV PYTHONUNBUFFERED=true
-WORKDIR /app
-
+WORKDIR /api
 
 
 FROM python as poetry
@@ -10,13 +8,10 @@ ENV POETRY_VIRTUALENVS_IN_PROJECT=true
 ENV PATH="$POETRY_HOME/bin:$PATH"
 RUN python -c 'from urllib.request import urlopen; print(urlopen("https://install.python-poetry.org").read().decode())' | python -
 COPY . ./
-RUN poetry install --without dev,test,bot --no-interaction --no-ansi -vvv
-
+RUN poetry install --no-interaction --no-ansi -vvv
 
 
 FROM python as runtime
-ENV PATH="/app/.venv/bin:$PATH"
-COPY --from=poetry /app /app
+ENV PATH="/api/.venv/bin:$PATH"
+COPY --from=poetry /api /api
 EXPOSE 8080
-
-CMD ["python", "server.py"]

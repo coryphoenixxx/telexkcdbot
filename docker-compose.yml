@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  api:
+    build: ./src/api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    restart: always
+    command: ["./wait-for-it.sh", "db:5432", "--", "python", "server.py"]
+  bot:
+    build: ./src/bot
+    ports:
+      - "5050:5050"
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    env_file:
+      - .env
+    restart: always
+    command: ["./wait-for-it.sh", "api:8080", "--", "python", "__main__.py"]
+  db:
+    image: postgres:14.5-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=telexkcdbot
+    restart: always
+
+
+volumes:
+  postgres_data:

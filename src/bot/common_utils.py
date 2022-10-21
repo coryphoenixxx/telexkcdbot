@@ -16,13 +16,13 @@ from aiogram.utils.exceptions import (
     MessageToEditNotFound,
     UserDeactivated,
 )
+from api_client import api
+from bot import bot
+from comic_data_getter import comics_data_getter
+from config import ADMIN_ID, IMG_DIR, RU_COMIC_DATA_DIR
+from keyboards import kboard
 from loguru import logger
-from src.bot.api_client import api
-from src.bot.bot import bot
-from src.bot.comic_data_getter import comics_data_getter
-from src.bot.keyboards import kboard
-from src.bot.middlewares.localization import _, localization
-from src.config import ADMIN_ID, IMG_DIR, RU_COMIC_DATA_DIR
+from middlewares.localization import _, localization
 
 suppressed_exceptions = (
     AttributeError,
