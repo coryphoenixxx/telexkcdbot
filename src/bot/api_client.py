@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
 from aiohttp import ClientSession
+from config import API_PORT
 from loguru import logger
 from models import (
     AdminUsersInfo,
@@ -13,7 +14,7 @@ from models import (
 
 class APIClient:
     def __init__(self) -> None:
-        self.base_url = "http://api:8080"
+        self.base_url = f"http://api:{API_PORT}"
 
     async def check_connection(self):
         async with ClientSession(base_url=self.base_url) as session:
@@ -40,7 +41,7 @@ class APIClient:
                     "has_ru_translation": comic_data.has_ru_translation,
                 },
             ) as resp:
-                print(resp)
+                pass
 
     async def get_latest_comic_id(self):
         # /api/comics/latest/?field=comic_id
@@ -92,7 +93,7 @@ class APIClient:
         # /api/comics/{comic_id} data = ...
         async with ClientSession(base_url=self.base_url) as session:
             async with session.patch(f"/api/comics/spec_status/?comic_id={comic_id}") as resp:
-                print(resp)
+                pass
 
     ###################
     # USER
@@ -101,12 +102,12 @@ class APIClient:
     async def add_user(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.post("/api/users", json={"user_id": user_id}) as resp:
-                print(resp)
+                pass
 
     async def delete_user(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.delete(f"/api/users/{user_id}") as resp:
-                print(resp)
+                pass
 
     async def get_user_lang(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
@@ -117,7 +118,7 @@ class APIClient:
     async def set_user_lang(self, user_id: int, lang: str):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.patch(f"/api/users/user_lang/{user_id}", json={"user_lang": lang}) as resp:
-                print(resp)
+                pass
 
     async def get_last_comic_info(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
@@ -131,7 +132,7 @@ class APIClient:
                 f"/api/users/last_comic_info/{user_id}",
                 json={"new_comic_id": new_comic_id, "new_comic_lang": new_comic_lang},
             ) as resp:
-                print(resp)
+                pass
 
     async def get_all_users_ids(self):
         async with ClientSession(base_url=self.base_url) as session:
@@ -148,7 +149,7 @@ class APIClient:
     async def toggle_only_ru_mode_status(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.patch(f"/api/users/only_ru_mode_status/{user_id}") as resp:
-                print(resp)
+                pass
 
     async def get_ban_status(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
@@ -159,7 +160,7 @@ class APIClient:
     async def ban_user(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.patch(f"/api/users/{user_id}", json={"is_banned": True}) as resp:
-                print(resp)
+                pass
 
     async def get_lang_btn_status(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
@@ -170,14 +171,14 @@ class APIClient:
     async def toggle_lang_btn_status(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.patch(f"/api/users/lang_btn_status/{user_id}") as resp:
-                print(resp)
+                pass
 
     async def update_last_action_date(self, user_id: int, action_date: date):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.patch(
                 f"/api/users/last_action_date/{user_id}", json={"action_date": str(action_date)}
             ) as resp:
-                print(resp)
+                pass
 
     async def get_user_menu_info(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
@@ -194,7 +195,7 @@ class APIClient:
     async def update_bookmarks(self, user_id: int, new_bookmarks: list[int]):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.patch(f"/api/users/bookmarks/{user_id}", json={"new_bookmarks": new_bookmarks}) as resp:
-                print(resp)
+                pass
 
     async def get_notification_sound_status(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
@@ -205,7 +206,7 @@ class APIClient:
     async def toggle_notification_sound_status(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.patch(f"/api/users/notification_sound_status/{user_id}") as resp:
-                print(resp)
+                pass
 
     async def get_admin_users_info(self):
         async with ClientSession(base_url=self.base_url) as session:

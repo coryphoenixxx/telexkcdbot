@@ -157,9 +157,11 @@ redis/
 .idea/dictionaries/
 .idea/sqldialects.xml
 .idea/workspace.xml
-/.idea/csv-plugin.xml
-/TODO.py
-/mypy.cfg
-/.idea/mypy.xml
-/.idea/telexkcdbot.iml
-/.idea/codeStyles/codeStyleConfig.xml
+.idea/csv-plugin.xml
+TODO.py
+mypy.cfg
+.idea/mypy.xml
+.idea/telexkcdbot.iml
+.idea/codeStyles/codeStyleConfig.xml
+docker-compose.prod.test.yml
+.env.dev

@@ -3,7 +3,7 @@ from dataclasses import asdict
 from datetime import datetime
 
 from aiohttp import web
-from config import ADMIN_ID
+from config import ADMIN_ID, API_PORT
 from databases.database import db
 from models import (
     AdminUsersInfo,
@@ -237,4 +237,4 @@ async def init() -> web.Application:
 
 
 if __name__ == "__main__":
-    web.run_app(init(), port=8080)
+    web.run_app(init(), port=API_PORT)

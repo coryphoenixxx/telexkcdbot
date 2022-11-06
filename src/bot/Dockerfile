@@ -1,4 +1,4 @@
-FROM python:3-slim as python
+FROM python:3.10.8-slim as python
 WORKDIR /bot
 
 
@@ -14,6 +14,3 @@ RUN poetry install --no-interaction --no-ansi -vvv
 FROM python as runtime
 ENV PATH="/bot/.venv/bin:$PATH"
 COPY --from=poetry /bot /bot
-EXPOSE 5050
-EXPOSE 80
-EXPOSE 443

@@ -7,7 +7,7 @@ from api_client import api
 from bot import bot
 from checker import checker
 from comics_initial_fill import comics_initial_fill
-from config import ADMIN_ID, PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
+from config import ADMIN_ID, BOT_PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
 from handlers.admin import register_admin_handlers
 from handlers.callbacks import register_callbacks
 from handlers.default import register_default_commands
@@ -51,5 +51,5 @@ if __name__ == "__main__":
         on_startup=on_startup,
         skip_updates=True,
         host=WEBAPP_HOST,
-        port=PORT,
+        port=BOT_PORT,
     )

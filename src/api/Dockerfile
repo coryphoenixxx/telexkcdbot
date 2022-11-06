@@ -1,4 +1,4 @@
-FROM python:3-slim as python
+FROM python:3.10.8-slim as python
 WORKDIR /api
 
 
@@ -14,4 +14,3 @@ RUN poetry install --no-interaction --no-ansi -vvv
 FROM python as runtime
 ENV PATH="/api/.venv/bin:$PATH"
 COPY --from=poetry /api /api
-EXPOSE 8080
