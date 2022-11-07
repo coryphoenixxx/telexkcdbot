@@ -3,7 +3,6 @@ import random
 from contextlib import suppress
 from typing import Any, Callable, Optional, TypeVar
 
-import numpy
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
@@ -42,7 +41,9 @@ def is_cyrillic(text: str) -> bool:
     return set(text).issubset(cyrillic + punctuation)
 
 
-async def send_headlines_as_text(user_id: int, headlines_info: list[ComicHeadlineInfo]) -> None:
+async def send_headlines_as_text(
+    user_id: int, headlines_info: list[ComicHeadlineInfo]
+) -> None:
     for chunk in cut_into_chunks(headlines_info, 35):
         headlines = []
         for headline_info in chunk:
@@ -74,7 +75,9 @@ async def send_bookmarks(
     if not bookmarks:
         if "❤" in msg_text:
             await bot.delete_message(user_id, message_id)
-        text = _("❗ <b>You have no bookmarks.\nYou can bookmark a comic with the ❤ press.</b>")
+        text = _(
+            "❗ <b>You have no bookmarks.\nYou can bookmark a comic with the ❤ press.</b>"
+        )
         await bot.send_message(user_id, text, reply_markup=keyboard)
     elif len(bookmarks) == 1:
         await bot.send_message(user_id, _("❗ <b>You have one:</b>"))
@@ -159,50 +162,41 @@ async def flip_next(user_id: int, state: FSMContext) -> None:
         # Bot uses a memory cache and sometimes reloaded, losing some data. Perfect crutch!
         await bot.send_message(
             user_id,
-            text=_("❗ <b>Sorry, I was rebooted and forgot all the data... 😢\n" "Please repeat your request.</b>"),
+            text=_(
+                "❗ <b>Sorry, I was rebooted and forgot all the data... 😢\n"
+                "Please repeat your request.</b>"
+            ),
             reply_markup=await kboard.menu_or_xkcding(user_id),
         )
 
 
-def find_closest(ru_ids: list[int], action: str, comic_id: int) -> int:
-    ru_ids_np_arr = numpy.array(ru_ids)
-    if action == "prev":
-        try:
-            closest_prev: int = ru_ids_np_arr[ru_ids_np_arr < comic_id].max()
-            return closest_prev
-        except ValueError:
-            return ru_ids[-1]
-
-    try:
-        closest_next: int = ru_ids_np_arr[ru_ids_np_arr > comic_id].min()
-        return closest_next
-    except ValueError:
-        return ru_ids[0]
-
-
 async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
-    only_ru_mode = await api.get_only_ru_mode_status(user_id)
-
     if action == "first":
         return 1
 
+    only_ru_mode = await api.get_only_ru_mode_status(user_id)
+
     if only_ru_mode:
         ru_ids = sorted(comics_data_getter.ru_comics_ids)
-        actions = {
-            "prev": find_closest(ru_ids, action, comic_id),
+        comic_id_by_action = {
+            "prev": max(filter(lambda x: x < comic_id, ru_ids))
+            if comic_id > ru_ids[0]
+            else ru_ids[-1],
             "random": random.choice(ru_ids),
-            "next": find_closest(ru_ids, action, comic_id),
+            "next": min(filter(lambda x: x > comic_id, ru_ids))
+            if comic_id < ru_ids[-1]
+            else ru_ids[0],
             "last": ru_ids[-1],
         }
     else:
         latest = await api.get_latest_comic_id()
-        actions = {
+        comic_id_by_action = {
             "prev": comic_id - 1 if comic_id - 1 >= 1 else latest,
             "random": random.randint(1, latest),
             "next": comic_id + 1 if comic_id + 1 <= latest else 1,
             "last": latest,
         }
-    return actions[action]
+    return comic_id_by_action[action]
 
 
 def rate_limit(limit: int, key: Optional[str] = None) -> Callable[[F], F]:

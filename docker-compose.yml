@@ -1,4 +1,4 @@
-version: '3.9'
+version: '3.8'
 
 services:
   api:
@@ -9,7 +9,7 @@ services:
     env_file:
       - .env
     restart: always
-    command: ['./wait-for-it.sh', 'db:${DB_PORT}', '--', "python", 'server.py']
+    command: sh -c './wait-for db:${DB_PORT} -- python server.py'
   bot:
     container_name: telexkcdbot-bot
     build: ./src/bot
@@ -21,7 +21,7 @@ services:
     env_file:
       - .env
     restart: always
-    command: ['./wait-for-it.sh', 'api:${API_PORT}', '--', 'python', '__main__.py']
+    command: sh -c './wait-for api:${API_PORT} -- python __main__.py'
   db:
     container_name: telexkcdbot-postgres
     image: onjin/alpine-postgres:13.0

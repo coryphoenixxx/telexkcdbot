@@ -1,4 +1,4 @@
-FROM python:3.10.8-slim as python
+FROM python:3.10.8-alpine as python
 WORKDIR /api
 
 

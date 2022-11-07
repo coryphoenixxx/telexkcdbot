@@ -15,7 +15,7 @@ pre-commit = "^2.20.0"
 pytest = "^7.1.3"
 
 [tool.autoflake]
-check = false
+check = true
 recursive = true
 in-place = true
 remove-all-unused-imports = true
@@ -27,11 +27,6 @@ src_paths = ["telexkcdbot"]
 
 [tool.black]
 line-length = 120
-
-[tool.flake8]
-ignore = ['E203', 'E266', 'E501', 'W503', 'F403', 'F401', 'F841']
-max-line-length = 120
-max-complexity = 12
 
 [tool.mypy]
 python_version = "3.10"
