@@ -1,4 +1,5 @@
 FROM python:3.10.8-alpine as python
+ENV PYTHONUNBUFFERED=1
 WORKDIR /bot
 
 
@@ -14,3 +15,5 @@ RUN poetry install --no-interaction --no-ansi -vvv
 FROM python as runtime
 ENV PATH="/bot/.venv/bin:$PATH"
 COPY --from=poetry /bot /bot
+
+CMD python __main__.py

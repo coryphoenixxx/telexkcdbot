@@ -1,37 +1,61 @@
-version: '3.8'
+version: '3.9'
 
 services:
-  api:
-    container_name: telexkcdbot-api
-    build: ./src/api
-    depends_on:
-      - db
-    env_file:
-      - .env
-    restart: always
-    command: sh -c './wait-for db:${DB_PORT} -- python server.py'
+
   bot:
     container_name: telexkcdbot-bot
     build: ./src/bot
     ports:
-      - '${BOT_PORT}:${BOT_PORT}'
+      - ${BOT_PORT}:5050
     depends_on:
-      - api
-      - db
+      db:
+        condition: service_healthy
+      api:
+        condition: service_started
     env_file:
       - .env
-    restart: always
-    command: sh -c './wait-for api:${API_PORT} -- python __main__.py'
+    restart: unless-stopped
+
+  api:
+    container_name: telexkcdbot-api
+    build: ./src/api
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - ${API_PORT}:5050
+    healthcheck:
+      test: curl -f http://api:5050 || exit 1
+      interval: 1s
+      timeout: 2s
+      start_period: 5s
+      retries: 10
+    restart: unless-stopped
+
   db:
     container_name: telexkcdbot-postgres
     image: onjin/alpine-postgres:13.0
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
     environment:
-      - 'POSTGRES_USER=${POSTGRES_USER}'
-      - 'POSTGRES_PASSWORD=${POSTGRES_PASSWORD}'
-      - 'POSTGRES_DB=${POSTGRES_DB}'
-    restart: always
-
-volumes:
-  postgres_data:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - .:/var/lib/postgresql/data
+      - ./postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+    ports:
+      - ${DB_PORT}:5432
+    healthcheck:
+      test: pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+      interval: 1s
+      timeout: 2s
+      start_period: 5s
+      retries: 10
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1GB
