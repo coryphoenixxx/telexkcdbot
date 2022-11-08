@@ -41,9 +41,7 @@ def is_cyrillic(text: str) -> bool:
     return set(text).issubset(cyrillic + punctuation)
 
 
-async def send_headlines_as_text(
-    user_id: int, headlines_info: list[ComicHeadlineInfo]
-) -> None:
+async def send_headlines_as_text(user_id: int, headlines_info: list[ComicHeadlineInfo]) -> None:
     for chunk in cut_into_chunks(headlines_info, 35):
         headlines = []
         for headline_info in chunk:
@@ -75,9 +73,7 @@ async def send_bookmarks(
     if not bookmarks:
         if "❤" in msg_text:
             await bot.delete_message(user_id, message_id)
-        text = _(
-            "❗ <b>You have no bookmarks.\nYou can bookmark a comic with the ❤ press.</b>"
-        )
+        text = _("❗ <b>You have no bookmarks.\nYou can bookmark a comic with the ❤ press.</b>")
         await bot.send_message(user_id, text, reply_markup=keyboard)
     elif len(bookmarks) == 1:
         await bot.send_message(user_id, _("❗ <b>You have one:</b>"))
@@ -162,10 +158,7 @@ async def flip_next(user_id: int, state: FSMContext) -> None:
         # Bot uses a memory cache and sometimes reloaded, losing some data. Perfect crutch!
         await bot.send_message(
             user_id,
-            text=_(
-                "❗ <b>Sorry, I was rebooted and forgot all the data... 😢\n"
-                "Please repeat your request.</b>"
-            ),
+            text=_("❗ <b>Sorry, I was rebooted and forgot all the data... 😢\n" "Please repeat your request.</b>"),
             reply_markup=await kboard.menu_or_xkcding(user_id),
         )
 
@@ -179,13 +172,9 @@ async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
     if only_ru_mode:
         ru_ids = sorted(comics_data_getter.ru_comics_ids)
         comic_id_by_action = {
-            "prev": max(filter(lambda x: x < comic_id, ru_ids))
-            if comic_id > ru_ids[0]
-            else ru_ids[-1],
+            "prev": max(filter(lambda x: x < comic_id, ru_ids)) if comic_id > ru_ids[0] else ru_ids[-1],
             "random": random.choice(ru_ids),
-            "next": min(filter(lambda x: x > comic_id, ru_ids))
-            if comic_id < ru_ids[-1]
-            else ru_ids[0],
+            "next": min(filter(lambda x: x > comic_id, ru_ids)) if comic_id < ru_ids[-1] else ru_ids[0],
             "last": ru_ids[-1],
         }
     else:

@@ -1,7 +1,6 @@
 from datetime import date, datetime
 
 from aiohttp import ClientSession
-from config import API_PORT
 from loguru import logger
 from models import (
     AdminUsersInfo,
@@ -14,9 +13,9 @@ from models import (
 
 class APIClient:
     def __init__(self) -> None:
-        self.base_url = f"http://api:{API_PORT}"
+        self.base_url = f"http://api:8080"
 
-    async def check_connection(self):
+    async def check_connection(self) -> None:
         async with ClientSession(base_url=self.base_url) as session:
             async with session.get("/api") as resp:
                 status = (await resp.json())["status"]
@@ -109,7 +108,7 @@ class APIClient:
             async with session.delete(f"/api/users/{user_id}") as resp:
                 pass
 
-    async def get_user_lang(self, user_id: int):
+    async def get_user_lang(self, user_id: int) -> str:
         async with ClientSession(base_url=self.base_url) as session:
             async with session.get(f"/api/users/user_lang/{user_id}") as resp:
                 user_lang = (await resp.json())["user_lang"]

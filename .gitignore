@@ -165,3 +165,4 @@ mypy.cfg
 .idea/codeStyles/codeStyleConfig.xml
 docker-compose.prod.test.yml
 .env.dev
+/pgdata/

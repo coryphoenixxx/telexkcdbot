@@ -19,4 +19,5 @@ A functional asynchronous telegram-bot for handy reading xkcd comics.
 - aiogram;
 - asyncpg;
 - aiohttp;
-- Beautiful Soup;
+- BeautifulSoup4;
+- Docker;

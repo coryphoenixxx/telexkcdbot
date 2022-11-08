@@ -3,15 +3,9 @@ from dataclasses import asdict
 from datetime import datetime
 
 from aiohttp import web
-from config import ADMIN_ID, API_PORT
+from config import ADMIN_ID
 from databases.database import db
-from models import (
-    AdminUsersInfo,
-    ComicData,
-    ComicHeadlineInfo,
-    MenuKeyboardInfo,
-    TotalComicData,
-)
+from models import AdminUsersInfo, ComicData, MenuKeyboardInfo, TotalComicData
 
 router = web.RouteTableDef()
 
@@ -63,14 +57,14 @@ async def get_comics_headlines(request: web.Request) -> web.Response:
     lang = request.rel_url.query.get("lang")
 
     if ids is None:
-        headline_info: list[ComicHeadlineInfo] = await db.comics.get_comics_headlines_by_title(title, lang)
-        headline_info = [asdict(x) for x in headline_info]
+        headlines = await db.comics.get_comics_headlines_by_title(title, lang)
+        headline_info = [asdict(x) for x in headlines]
 
         return web.json_response(headline_info, status=200)
     else:
         ids = json.loads(ids)
-        headline_info: list[ComicHeadlineInfo] = await db.comics.get_comics_headlines_by_ids(ids, lang)
-        headline_info = [asdict(x) for x in headline_info]
+        headlines = await db.comics.get_comics_headlines_by_ids(ids, lang)
+        headline_info = [asdict(x) for x in headlines]
 
         return web.json_response(headline_info, status=200)
 
@@ -237,4 +231,4 @@ async def init() -> web.Application:
 
 
 if __name__ == "__main__":
-    web.run_app(init(), port=API_PORT)
+    web.run_app(init(), port=8080)
