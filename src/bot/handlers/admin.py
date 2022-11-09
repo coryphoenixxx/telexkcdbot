@@ -6,13 +6,13 @@ from aiogram.dispatcher.filters import Text
 from aiogram.types import CallbackQuery, Message
 from api_client import api
 from bot import bot
+from bot_config import ADMIN_ID
 from common_utils import (
     broadcast,
     remove_prev_message_kb,
     suppressed_exceptions,
     user_is_unavailable,
 )
-from config import ADMIN_ID
 from handlers.handlers_utils import States, remove_callback_kb
 from keyboards import kboard, support_cb_data
 from middlewares.localization import _

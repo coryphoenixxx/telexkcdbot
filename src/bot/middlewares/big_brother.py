@@ -8,8 +8,8 @@ from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.types import Message, Update
 from aiogram.utils.exceptions import Throttled
 from api_client import api
+from bot_config import ADMIN_ID
 from common_utils import preprocess_text, remove_prev_message_kb, user_is_unavailable
-from config import ADMIN_ID
 from keyboards import kboard
 from loguru import logger
 from middlewares.localization import _

@@ -3,7 +3,7 @@ from typing import Any
 from aiogram import types
 from aiogram.contrib.middlewares.i18n import I18nMiddleware
 from api_client import api
-from config import I18N_DOMAIN, LOCALES_DIR
+from bot_config import I18N_DOMAIN, LOCALES_DIR
 
 
 class Localization(I18nMiddleware):

@@ -18,8 +18,8 @@ from aiogram.utils.exceptions import (
 )
 from api_client import api
 from bot import bot
+from bot_config import ADMIN_ID, IMG_DIR, RU_COMIC_DATA_DIR
 from comic_data_getter import comics_data_getter
-from config import ADMIN_ID, IMG_DIR, RU_COMIC_DATA_DIR
 from keyboards import kboard
 from loguru import logger
 from middlewares.localization import _, localization

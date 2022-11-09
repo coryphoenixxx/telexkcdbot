@@ -5,9 +5,9 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_webhook
 from api_client import api
 from bot import bot
+from bot_config import ADMIN_ID, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
 from checker import checker
 from comics_initial_fill import comics_initial_fill
-from config import ADMIN_ID, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
 from handlers.admin import register_admin_handlers
 from handlers.callbacks import register_callbacks
 from handlers.default import register_default_commands

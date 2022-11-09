@@ -3,8 +3,8 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import CommandStart
 from aiogram.types import InputFile, Message
 from api_client import api
+from bot_config import IMG_DIR
 from common_utils import preprocess_text, remove_prev_message_kb
-from config import IMG_DIR
 from handlers.handlers_utils import (
     States,
     flip_next,

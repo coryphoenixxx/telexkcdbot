@@ -6,9 +6,9 @@ from aiogram.dispatcher.filters import Text
 from aiogram.types import BotCommand, CallbackQuery, InputFile
 from api_client import api
 from bot import bot
+from bot_config import IMG_DIR
 from comic_data_getter import comics_data_getter
 from common_utils import send_comic
-from config import IMG_DIR
 from handlers.handlers_utils import (
     States,
     calc_new_comic_id,

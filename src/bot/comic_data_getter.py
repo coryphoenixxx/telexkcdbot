@@ -8,8 +8,8 @@ from typing import Optional, Sequence
 
 import aiohttp
 from aiohttp import ClientConnectorError
+from bot_config import RU_COMIC_DATA_DIR
 from bs4 import BeautifulSoup
-from config import RU_COMIC_DATA_DIR
 from googletrans import Translator
 from loguru import logger
 from middlewares.localization import _

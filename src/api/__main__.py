@@ -3,7 +3,7 @@ from dataclasses import asdict
 from datetime import datetime
 
 from aiohttp import web
-from config import ADMIN_ID
+from api_config import ADMIN_ID
 from databases.database import db
 from models import AdminUsersInfo, ComicData, MenuKeyboardInfo, TotalComicData
 
