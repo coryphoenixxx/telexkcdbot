@@ -125,7 +125,7 @@ async def cb_continue_xkcding(call: CallbackQuery, state: FSMContext) -> None:
     """Handles "Continue xkcding" button click"""
 
     await state.finish()
-    await call.message.delete() if "❗" in call.message.text else await remove_callback_kb(call)
+    await call.message.delete() if call.message.text else await remove_callback_kb(call)
 
     last_comic_id, last_comic_lang = await api.get_last_comic_info(call.from_user.id)
     await send_comic(call.from_user.id, comic_id=last_comic_id, comic_lang=last_comic_lang)
