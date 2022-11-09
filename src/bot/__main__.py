@@ -1,4 +1,5 @@
 import asyncio
+import platform
 
 from aiogram import Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
@@ -33,7 +34,19 @@ async def on_startup(dp: Dispatcher):
     await api.check_connection()
     await comics_initial_fill()
 
-    await bot.send_message(ADMIN_ID, text="<b>❗ Bot started.</b>", disable_notification=True)
+    await bot.send_message(
+        ADMIN_ID,
+        text=f"""<b>❗ Bot started.</b>
+
+<b>======== Platform Info ========</b>
+<b>System:</b> {platform.uname().system}
+<b>Node Name:</b> {platform.uname().node}
+<b>Release:</b> {platform.uname().release}
+<b>Version:</b> {platform.uname().version}
+<b>Machine:</b> {platform.uname().machine}
+<b>Processor:</b> {platform.uname().processor}""",
+        disable_notification=True,
+    )
 
     asyncio.create_task(checker())
 
