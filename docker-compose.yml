@@ -1,6 +1,45 @@
 version: '3.9'
 
+x-logging: &loki-logging
+  driver: json-file
+  options:
+    tag: "{{.ImageName}}|{{.Name}}|{{.ImageFullID}}|{{.FullID}}"
+
 services:
+
+  loki:
+    image: grafana/loki:2.2.1
+    ports:
+      - "3100"
+    volumes:
+      - ./config/loki/loki-config.yaml:/mnt/config/loki-config.yaml
+    command: -config.file=/mnt/config/loki-config.yaml
+    networks:
+      - loki
+    logging: *loki-logging
+
+  promtail:
+    image: grafana/promtail:2.2.1
+    volumes:
+      - ./config/loki/promtail-config.yaml:/mnt/config/promtail-config.yaml
+      - /var/lib/docker/containers:/host/containers
+    command: -config.file /mnt/config/promtail-config.yaml
+    networks:
+      - loki
+    logging: *loki-logging
+
+  grafana:
+    image: grafana/grafana:9.2.4
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning/:/etc/grafana/provisioning/
+    networks:
+      - loki
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: testloki
+    logging: *loki-logging
 
   bot:
     container_name: telexkcdbot-bot
@@ -15,6 +54,9 @@ services:
     env_file:
       - .env
     restart: unless-stopped
+    networks:
+      - loki
+    logging: *loki-logging
 
   api:
     container_name: telexkcdbot-api
@@ -25,7 +67,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - ${API_PORT}:5050
+      - ${API_PORT}:8080
     healthcheck:
       test: curl -f http://api:5050 || exit 1
       interval: 1s
@@ -33,6 +75,9 @@ services:
       start_period: 5s
       retries: 10
     restart: unless-stopped
+    networks:
+      - loki
+    logging: *loki-logging
 
   db:
     container_name: telexkcdbot-postgres
@@ -54,8 +99,17 @@ services:
       start_period: 5s
       retries: 10
     restart: unless-stopped
+    networks:
+      - loki
     deploy:
       resources:
         limits:
           cpus: '1'
           memory: 1GB
+    logging: *loki-logging
+
+volumes:
+  grafana-data:
+
+networks:
+  loki:

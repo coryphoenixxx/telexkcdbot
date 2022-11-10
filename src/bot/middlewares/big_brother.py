@@ -8,7 +8,6 @@ from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.types import Message, Update
 from aiogram.utils.exceptions import Throttled
 from api_client import api
-from bot_config import ADMIN_ID
 from common_utils import preprocess_text, remove_prev_message_kb, user_is_unavailable
 from keyboards import kboard
 from loguru import logger
@@ -32,18 +31,17 @@ class BigBrother(BaseMiddleware):
                 else update.callback_query.from_user.language_code
             )
 
-            if user_id != ADMIN_ID:  # Don't log admin actions
-                if await user_is_unavailable(user_id):
-                    pass
+            if await user_is_unavailable(user_id):
+                pass
+            else:
+                if update.callback_query:
+                    logger.info(f"{user_id}|{username}|{language_code}|call:{update.callback_query.data}")
+                elif update.message.text:
+                    text = preprocess_text(update.message.text)
+                    if text:
+                        logger.info(f"{user_id}|{username}|{language_code}|text:{text}")
                 else:
-                    if update.callback_query:
-                        logger.info(f"{user_id}|{username}|{language_code}|call:{update.callback_query.data}")
-                    elif update.message.text:
-                        text = preprocess_text(update.message.text)
-                        if text:
-                            logger.info(f"{user_id}|{username}|{language_code}|text:{text}")
-                    else:
-                        logger.info(f"{user_id}|{username}|{language_code}|<other>")
+                    logger.info(f"{user_id}|{username}|{language_code}|<other>")
 
             action_date = date.today()
             try:
