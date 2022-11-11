@@ -6,7 +6,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_webhook
 from api_client import api
 from bot import bot
-from bot_config import ADMIN_ID, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
+from bot_config import ADMIN_ID, BOT_PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
 from checker import checker
 from comics_initial_fill import comics_initial_fill
 from handlers.admin import register_admin_handlers
@@ -64,5 +64,5 @@ if __name__ == "__main__":
         on_startup=on_startup,
         skip_updates=True,
         host=WEBAPP_HOST,
-        port=5050,
+        port=BOT_PORT,
     )

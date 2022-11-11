@@ -45,7 +45,7 @@ services:
     container_name: telexkcdbot-bot
     build: ./src/bot
     ports:
-      - ${BOT_PORT}:5050
+      - ${BOT_PORT}:${BOT_PORT}
     depends_on:
       db:
         condition: service_healthy
@@ -67,9 +67,9 @@ services:
       db:
         condition: service_healthy
     ports:
-      - ${API_PORT}:8080
+      - ${API_PORT}:${API_PORT}
     healthcheck:
-      test: curl -f http://api:5050 || exit 1
+      test: curl -f http://api:{API_PORT} || exit 1
       interval: 1s
       timeout: 2s
       start_period: 5s
@@ -91,7 +91,7 @@ services:
       - .:/var/lib/postgresql/data
       - ./postgresql.conf:/var/lib/postgresql/data/postgresql.conf
     ports:
-      - ${DB_PORT}:5432
+      - ${DB_PORT}:${DB_PORT}
     healthcheck:
       test: pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
       interval: 1s

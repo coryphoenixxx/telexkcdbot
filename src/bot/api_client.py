@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
 from aiohttp import ClientSession
+from bot_config import API_PORT
 from loguru import logger
 from models import (
     AdminUsersInfo,
@@ -13,7 +14,7 @@ from models import (
 
 class APIClient:
     def __init__(self) -> None:
-        self.base_url = f"http://api:8080"
+        self.base_url = f"http://api:{API_PORT}"
 
     async def check_connection(self) -> None:
         async with ClientSession(base_url=self.base_url) as session:
