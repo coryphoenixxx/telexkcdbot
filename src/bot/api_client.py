@@ -1,15 +1,15 @@
 from datetime import date, datetime
 
 from aiohttp import ClientSession
-from bot_config import API_PORT
-from loguru import logger
-from models import (
+from bot.config import API_PORT
+from bot.models import (
     AdminUsersInfo,
     ComicData,
     ComicHeadlineInfo,
     MenuKeyboardInfo,
     TotalComicData,
 )
+from loguru import logger
 
 
 class APIClient:

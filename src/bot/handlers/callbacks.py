@@ -4,12 +4,12 @@ from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import BotCommand, CallbackQuery, InputFile
-from api_client import api
-from bot import bot
-from bot_config import IMG_DIR
-from comic_data_getter import comics_data_getter
-from common_utils import send_comic
-from handlers.handlers_utils import (
+from bot.api_client import api
+from bot.bot import bot
+from bot.comic_data_getter import comics_data_getter
+from bot.common_utils import send_comic
+from bot.config import IMG_DIR
+from bot.handlers.handlers_utils import (
     States,
     calc_new_comic_id,
     flip_next,
@@ -18,8 +18,8 @@ from handlers.handlers_utils import (
     send_bookmarks,
     send_menu,
 )
-from keyboards import kboard
-from middlewares.localization import _, localization
+from bot.keyboards import kboard
+from bot.middlewares.localization import _, localization
 
 
 async def cb_select_lang(call: CallbackQuery, state: FSMContext) -> None:

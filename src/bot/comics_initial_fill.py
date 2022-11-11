@@ -2,10 +2,10 @@ import asyncio
 import sys
 from typing import Sequence
 
-from api_client import api
-from bot_config import CHUNK_SIZE
-from comic_data_getter import comics_data_getter
-from common_utils import cut_into_chunks
+from bot.api_client import api
+from bot.comic_data_getter import comics_data_getter
+from bot.common_utils import cut_into_chunks
+from bot.config import CHUNK_SIZE
 from loguru import logger
 from tqdm import tqdm
 

@@ -1,8 +1,8 @@
 import asyncpg
-from api_config import DATABASE_URL
+from api.config import DATABASE_URL
+from api.databases.comics import Comics
+from api.databases.users import Users
 from asyncpg.exceptions import ConnectionDoesNotExistError
-from databases.comics import Comics
-from databases.users import Users
 from loguru import logger
 
 

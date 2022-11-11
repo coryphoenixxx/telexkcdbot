@@ -16,7 +16,9 @@ API_PORT = config("API_PORT", default=8080, cast=int)
 
 BASE_DIR = Path(__file__).parent
 IMG_DIR = BASE_DIR / "static/img"
-RU_COMIC_DATA_DIR = BASE_DIR / "static/ru_comics_data"
+RU_COMICS_DATA_DIR = BASE_DIR / "static/ru_comics_data"
+RU_COMICS_IMAGES = RU_COMICS_DATA_DIR / "images"
+RU_COMICS_CSV = RU_COMICS_DATA_DIR / "data.csv"
 LOCALES_DIR = BASE_DIR / "locales"
 
 CHUNK_SIZE = config("CHUNK_SIZE", default=20, cast=int)

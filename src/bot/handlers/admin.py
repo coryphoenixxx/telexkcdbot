@@ -4,18 +4,18 @@ from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import CallbackQuery, Message
-from api_client import api
-from bot import bot
-from bot_config import ADMIN_ID
-from common_utils import (
+from bot.api_client import api
+from bot.bot import bot
+from bot.common_utils import (
     broadcast,
     remove_prev_message_kb,
     suppressed_exceptions,
     user_is_unavailable,
 )
-from handlers.handlers_utils import States, remove_callback_kb
-from keyboards import kboard, support_cb_data
-from middlewares.localization import _
+from bot.config import ADMIN_ID
+from bot.handlers.handlers_utils import States, remove_callback_kb
+from bot.keyboards import kboard, support_cb_data
+from bot.middlewares.localization import _
 
 admin_panel_text_base = "<b>*** ADMIN PANEL ***</b>\n"
 

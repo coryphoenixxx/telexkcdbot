@@ -7,40 +7,6 @@ x-logging: &loki-logging
 
 services:
 
-  loki:
-    image: grafana/loki:2.2.1
-    ports:
-      - "3100"
-    volumes:
-      - ./config/loki/loki-config.yaml:/mnt/config/loki-config.yaml
-    command: -config.file=/mnt/config/loki-config.yaml
-    networks:
-      - loki
-    logging: *loki-logging
-
-  promtail:
-    image: grafana/promtail:2.2.1
-    volumes:
-      - ./config/loki/promtail-config.yaml:/mnt/config/promtail-config.yaml
-      - /var/lib/docker/containers:/host/containers
-    command: -config.file /mnt/config/promtail-config.yaml
-    networks:
-      - loki
-    logging: *loki-logging
-
-  grafana:
-    image: grafana/grafana:9.2.4
-    ports:
-      - "3000:3000"
-    volumes:
-      - grafana-data:/var/lib/grafana
-      - ./config/grafana/provisioning/:/etc/grafana/provisioning/
-    networks:
-      - loki
-    environment:
-      GF_SECURITY_ADMIN_PASSWORD: testloki
-    logging: *loki-logging
-
   bot:
     container_name: telexkcdbot-bot
     build: ./src/bot
@@ -71,8 +37,8 @@ services:
     healthcheck:
       test: curl -f http://api:{API_PORT} || exit 1
       interval: 1s
-      timeout: 2s
-      start_period: 5s
+      timeout: 1s
+      start_period: 10s
       retries: 10
     restart: unless-stopped
     networks:
@@ -95,17 +61,52 @@ services:
     healthcheck:
       test: pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
       interval: 1s
-      timeout: 2s
-      start_period: 5s
+      timeout: 1s
+      start_period: 10s
       retries: 10
     restart: unless-stopped
-    networks:
-      - loki
+
     deploy:
       resources:
         limits:
           cpus: '1'
           memory: 1GB
+    networks:
+      - loki
+    logging: *loki-logging
+
+  loki:
+    image: grafana/loki:2.2.1
+    ports:
+      - "3100"
+    volumes:
+      - ./config/loki/loki-config.yaml:/mnt/config/loki-config.yaml
+    command: -config.file=/mnt/config/loki-config.yaml
+    networks:
+      - loki
+    logging: *loki-logging
+
+  promtail:
+    image: grafana/promtail:2.2.1
+    volumes:
+      - ./config/loki/promtail-config.yaml:/mnt/config/promtail-config.yaml
+      - /var/lib/docker/containers:/host/containers
+    command: -config.file /mnt/config/promtail-config.yaml
+    networks:
+      - loki
+    logging: *loki-logging
+
+  grafana:
+    image: grafana/grafana:9.2.4
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning/:/etc/grafana/provisioning/
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: testloki
+    networks:
+      - loki
     logging: *loki-logging
 
 volumes:

@@ -2,10 +2,10 @@ from dataclasses import astuple
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
-from api_client import api
-from bot_config import ADMIN_ID
-from middlewares.localization import _
-from models import ComicData
+from bot.api_client import api
+from bot.config import ADMIN_ID
+from bot.middlewares.localization import _
+from bot.models import ComicData
 
 support_cb_data = CallbackData("support", "type", "user_id", "message_id")
 

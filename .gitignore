@@ -166,3 +166,4 @@ mypy.cfg
 docker-compose.prod.test.yml
 .env.dev
 /pgdata/
+/build_n_push.bat

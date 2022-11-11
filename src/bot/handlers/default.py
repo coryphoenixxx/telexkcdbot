@@ -2,10 +2,10 @@ from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import CommandStart
 from aiogram.types import InputFile, Message
-from api_client import api
-from bot_config import IMG_DIR
-from common_utils import preprocess_text, remove_prev_message_kb
-from handlers.handlers_utils import (
+from bot.api_client import api
+from bot.common_utils import preprocess_text, remove_prev_message_kb
+from bot.config import IMG_DIR
+from bot.handlers.handlers_utils import (
     States,
     flip_next,
     is_cyrillic,
@@ -15,8 +15,8 @@ from handlers.handlers_utils import (
     send_headlines_as_text,
     send_menu,
 )
-from keyboards import kboard
-from middlewares.localization import _
+from bot.keyboards import kboard
+from bot.middlewares.localization import _
 
 
 @rate_limit(3, "start")

@@ -16,13 +16,13 @@ from aiogram.utils.exceptions import (
     MessageToEditNotFound,
     UserDeactivated,
 )
-from api_client import api
-from bot import bot
-from bot_config import ADMIN_ID, IMG_DIR, RU_COMIC_DATA_DIR
-from comic_data_getter import comics_data_getter
-from keyboards import kboard
+from bot.api_client import api
+from bot.bot import bot
+from bot.comic_data_getter import comics_data_getter
+from bot.config import ADMIN_ID, IMG_DIR, RU_COMICS_IMAGES
+from bot.keyboards import kboard
+from bot.middlewares.localization import _, localization
 from loguru import logger
-from middlewares.localization import _, localization
 
 suppressed_exceptions = (
     AttributeError,
@@ -122,7 +122,7 @@ async def send_comic(
     # Sends the comic image
     try:
         if "http" not in img_url:  # Russian comics saved locally
-            local_img = InputFile(RU_COMIC_DATA_DIR / img_url)
+            local_img = InputFile(RU_COMICS_IMAGES / img_url)
             await bot.send_photo(user_id, photo=local_img, disable_notification=True)
         elif img_url.endswith((".png", ".jpg", ".jpeg")):
             await bot.send_photo(user_id, photo=img_url, disable_notification=True)

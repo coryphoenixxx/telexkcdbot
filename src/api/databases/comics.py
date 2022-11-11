@@ -2,7 +2,7 @@ from dataclasses import astuple
 from typing import Sequence
 
 import asyncpg
-from models import ComicData, ComicHeadlineInfo, TotalComicData
+from api.models import ComicData, ComicHeadlineInfo, TotalComicData
 
 
 class Comics:

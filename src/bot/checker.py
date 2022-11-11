@@ -1,10 +1,10 @@
 import asyncio
 
 import aioschedule
-from api_client import api
-from comic_data_getter import comics_data_getter
-from common_utils import broadcast
-from models import TotalComicData
+from bot.api_client import api
+from bot.comic_data_getter import comics_data_getter
+from bot.common_utils import broadcast
+from bot.models import TotalComicData
 
 
 async def get_and_broadcast_new_comic() -> None:

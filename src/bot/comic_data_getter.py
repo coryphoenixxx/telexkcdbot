@@ -3,25 +3,23 @@ import csv
 import sys
 from dataclasses import astuple
 from datetime import date
-from pathlib import Path
 from typing import Optional, Sequence
 
 import aiohttp
 from aiohttp import ClientConnectorError
-from bot_config import RU_COMIC_DATA_DIR
+from bot.config import RU_COMICS_CSV, RU_COMICS_IMAGES
+from bot.middlewares.localization import _
+from bot.models import RuComicData, TotalComicData, XKCDComicData
 from bs4 import BeautifulSoup
 from googletrans import Translator
 from loguru import logger
-from middlewares.localization import _
-from models import RuComicData, TotalComicData, XKCDComicData
 from tqdm import tqdm
 
 
 class ComicsDataGetter:
     def __init__(self) -> None:
-        # Specific comics cannot be displayed correctly in Telegram
         self.ru_comics_ids: Sequence[int] = tuple()
-        self._default_specific_comic_ids: set = {
+        self._default_specific_comic_ids: set = {  # Specific comics cannot be displayed correctly in Telegram
             498,
             826,
             880,
@@ -49,7 +47,6 @@ class ComicsDataGetter:
         self._translator: Translator = Translator()
 
         self._ru_comics_data_dict: dict = {}
-        self._path_to_ru_comic_data: Path = RU_COMIC_DATA_DIR
 
     @staticmethod
     async def get_xkcd_latest_comic_id() -> int:
@@ -97,9 +94,9 @@ class ComicsDataGetter:
         Russian comics images have .png or .jpg extension.
         So let get the actual filename and make a relational path for writing it in the database.
         """
-
-        filename = list((self._path_to_ru_comic_data / "images").glob(f"{comic_id}.*"))[0].name
-        return "images/" + filename
+        # TODO: save filename list in memory
+        filename = list(RU_COMICS_IMAGES.glob(f"{comic_id}.*"))[0].name
+        return filename
 
     def _translate_to_ru(self, text: str) -> str:
         result: str = self._translator.translate(text, src="en", dest="ru").text
@@ -108,7 +105,7 @@ class ComicsDataGetter:
     def retrieve_from_csv_to_dict(self) -> None:
         """Retrieve Russian translation info from local storage csv file to dictionary"""
 
-        with open(self._path_to_ru_comic_data / "data.csv", "r", encoding="utf-8") as csv_file:
+        with open(RU_COMICS_CSV, "r", encoding="utf-8") as csv_file:
             csv_reader = csv.DictReader(csv_file, delimiter=",")
             for row in tqdm(list(csv_reader), file=sys.stdout):
                 comic_id = int(row["comic_id"])
@@ -213,7 +210,6 @@ class ComicsDataGetter:
 
         # Remove unused data in the future (_ru_comics_data_dict takes 30MB of RAM)
         del self._ru_comics_data_dict
-        del self._path_to_ru_comic_data
 
 
 comics_data_getter = ComicsDataGetter()

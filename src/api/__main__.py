@@ -3,9 +3,9 @@ from dataclasses import asdict
 from datetime import datetime
 
 from aiohttp import web
-from api_config import ADMIN_ID, API_PORT
-from databases.database import db
-from models import AdminUsersInfo, ComicData, MenuKeyboardInfo, TotalComicData
+from api.config import ADMIN_ID, API_PORT
+from api.databases.database import db
+from api.models import AdminUsersInfo, ComicData, MenuKeyboardInfo, TotalComicData
 
 router = web.RouteTableDef()
 
