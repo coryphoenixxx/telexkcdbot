@@ -8,7 +8,8 @@ FROM python:3.10.8-alpine
 WORKDIR /app
 COPY . /app/bot
 COPY --from=builder /wheels /wheels
+ENV PYTHONUNBUFFERED 1
+ENV PYTHONDONTWRITEBYTECODE 1
 RUN pip install --no-cache /wheels/*
-RUN rm -rf /wheels
 
-CMD python -m bot
+CMD ["python", "-m", "bot"]

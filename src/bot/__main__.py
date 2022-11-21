@@ -4,6 +4,8 @@ import platform
 from aiogram import Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_webhook
+from loguru import logger
+
 from bot.api_client import api
 from bot.bot import bot
 from bot.checker import checker
@@ -14,7 +16,6 @@ from bot.handlers.callbacks import register_callbacks
 from bot.handlers.default import register_default_commands
 from bot.middlewares.big_brother import big_brother
 from bot.middlewares.localization import localization
-from loguru import logger
 
 storage = MemoryStorage()
 
@@ -43,8 +44,7 @@ async def on_startup(dp: Dispatcher):
 <b>Node Name:</b> {platform.uname().node}
 <b>Release:</b> {platform.uname().release}
 <b>Version:</b> {platform.uname().version}
-<b>Machine:</b> {platform.uname().machine}
-<b>Processor:</b> {platform.uname().processor}""",
+<b>Machine:</b> {platform.uname().machine}""",
         disable_notification=True,
     )
 
