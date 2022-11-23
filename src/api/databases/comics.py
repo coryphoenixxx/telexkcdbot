@@ -2,32 +2,12 @@ from dataclasses import astuple
 from typing import Sequence
 
 import asyncpg
+
 from api.models import ComicData, ComicHeadlineInfo, TotalComicData
 
 
 class Comics:
     pool: asyncpg.Pool
-
-    def __init__(self) -> None:
-        pass
-
-    async def create_table(self) -> None:
-        query = """CREATE TABLE IF NOT EXISTS comics (
-                     id SERIAL NOT NULL,
-                     comic_id INTEGER NOT NULL UNIQUE,
-                     title VARCHAR(128) DEFAULT '...',
-                     img_url VARCHAR(512) DEFAULT '',
-                     comment TEXT DEFAULT '...',
-                     public_date DATE NOT NULL DEFAULT CURRENT_DATE,
-                     is_specific BOOLEAN DEFAULT FALSE,
-                     ru_title VARCHAR(128) DEFAULT '...',
-                     ru_img_url VARCHAR(512) DEFAULT '...',
-                     ru_comment TEXT DEFAULT '...',
-                     has_ru_translation BOOLEAN DEFAULT FALSE);
-
-                   CREATE UNIQUE INDEX IF NOT EXISTS comic_id_uindex ON comics (comic_id);"""
-
-        await self.pool.execute(query)
 
     @staticmethod
     async def _records_to_headlines_info(

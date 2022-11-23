@@ -1,9 +1,10 @@
 import asyncpg
+from asyncpg.exceptions import ConnectionDoesNotExistError
+from loguru import logger
+
 from api.config import DATABASE_URL
 from api.databases.comics import Comics
 from api.databases.users import Users
-from asyncpg.exceptions import ConnectionDoesNotExistError
-from loguru import logger
 
 
 class Database:
@@ -21,7 +22,6 @@ class Database:
 
             for _db in self.__dict__.values():
                 _db.pool = Database.pool
-                await _db.create_table()
         except (ConnectionDoesNotExistError, AttributeError, ValueError):
             logger.error("Pool was not created")
 

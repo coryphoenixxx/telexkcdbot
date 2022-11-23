@@ -3,31 +3,12 @@ from datetime import date, timedelta
 from typing import Sequence
 
 import asyncpg
+
 from api.models import AdminUsersInfo, MenuKeyboardInfo
 
 
 class Users:
     pool: asyncpg.Pool
-
-    def __init__(self) -> None:
-        pass
-
-    async def create_table(self) -> None:
-        query = """CREATE TABLE IF NOT EXISTS users (
-                     id SERIAL NOT NULL,
-                     user_id INTEGER UNIQUE,
-                     user_lang VARCHAR(2) DEFAULT 'en',
-                     last_comic_info VARCHAR(10) DEFAULT '0_en',
-                     bookmarks JSON DEFAULT '[]',
-                     notification_sound_status BOOLEAN DEFAULT FALSE,
-                     lang_btn_status BOOLEAN DEFAULT TRUE,
-                     is_banned BOOLEAN DEFAULT FALSE,
-                     only_ru_mode BOOLEAN DEFAULT FALSE,
-                     last_action_date DATE DEFAULT CURRENT_DATE);
-
-                   CREATE UNIQUE INDEX IF NOT EXISTS user_id_uindex ON users (id);"""
-
-        await self.pool.execute(query)
 
     async def add_user(self, user_id: int) -> None:
         query = """INSERT INTO users (user_id)
