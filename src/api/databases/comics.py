@@ -1,27 +1,12 @@
 from dataclasses import astuple
-from typing import Sequence
 
 import asyncpg
 
-from api.models import ComicData, ComicHeadlineInfo, TotalComicData
+from api.models import TotalComicData
 
 
 class Comics:
     pool: asyncpg.Pool
-
-    @staticmethod
-    async def _records_to_headlines_info(
-        records: list[asyncpg.Record], title_col: str, img_url_col: str
-    ) -> list[ComicHeadlineInfo]:
-        headlines_info = []
-        for record in records:
-            headline_info = ComicHeadlineInfo(
-                comic_id=record["comic_id"],
-                title=record[title_col],
-                img_url=record[img_url_col],
-            )
-            headlines_info.append(headline_info)
-        return headlines_info
 
     async def add_new_comic(self, comic_data: TotalComicData) -> None:
         query = """INSERT INTO comics (comic_id,
@@ -38,71 +23,6 @@ class Comics:
                    ON CONFLICT (comic_id) DO NOTHING;"""
 
         await self.pool.execute(query, *astuple(comic_data))
-
-    async def get_latest_id(self) -> int:
-        query = """SELECT comic_id FROM comics
-                   ORDER BY comic_id DESC
-                   LIMIT 1;"""
-
-        res: int = await self.pool.fetchval(query)
-        return res
-
-    async def get_all_comics_ids(self) -> Sequence[int]:
-        query = """SELECT array_agg(comic_id) FROM comics;"""
-
-        res = await self.pool.fetchval(query)
-        return tuple(res) if res else ()
-
-    async def get_all_ru_comics_ids(self) -> Sequence[int]:
-        query = """SELECT array_agg(comic_id) FROM comics
-                   WHERE has_ru_translation = TRUE;"""
-
-        return tuple(await self.pool.fetchval(query))
-
-    async def get_comic_data_by_id(self, comic_id: int, comic_lang: str = "en") -> ComicData:
-        title_col, img_url_col, comment_col = (
-            ("title", "img_url", "comment") if comic_lang == "en" else ("ru_title", "ru_img_url", "ru_comment")
-        )
-
-        query = f"""SELECT comic_id, {title_col}, {img_url_col}, {comment_col},
-                           public_date, is_specific, has_ru_translation
-                    FROM comics
-                    WHERE comic_id = $1;"""
-
-        res = await self.pool.fetchrow(query, comic_id)
-        return ComicData(*res)
-
-    async def get_comics_headlines_by_title(self, title: str, lang: str = "en") -> list[ComicHeadlineInfo]:
-        title_col, img_url_col = ("title", "img_url") if lang == "en" else ("ru_title", "ru_img_url")
-        query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
-
-                     WHERE {title_col} = $1
-                     OR {title_col} ILIKE format('%s %s%s', '%', $1, '%')
-                     OR {title_col} ILIKE format('%s%s', $1, '%')
-                     OR {title_col} ILIKE format('%s%s %s', '%', $1, '%')
-                     OR {title_col} ILIKE format('%s%s', '%', $1)
-                     OR {title_col} ILIKE format('%s%s, %s', '%', $1, '%')
-                     OR {title_col} ILIKE format('%s%s-%s', '%', $1, '%')
-                     OR {title_col} ILIKE format('%s-%s%s', '%', $1, '%')"""
-
-        res = await self.pool.fetch(query, title)
-        if not res:
-            return []
-        return await self._records_to_headlines_info(
-            sorted(res, key=lambda x: len(x[title_col])),
-            title_col,
-            img_url_col,
-        )
-
-    async def get_comics_headlines_by_ids(self, ids: list, lang: str = "en") -> list[ComicHeadlineInfo]:
-        title_col, img_url_col = ("title", "img_url") if lang == "en" else ("ru_title", "ru_img_url")
-
-        query = f"""SELECT comic_id, {title_col}, {img_url_col} FROM comics
-                    WHERE comic_id in {tuple(ids)};"""
-
-        res = await self.pool.fetch(query)
-        headlines_info = await self._records_to_headlines_info(res, title_col, img_url_col)
-        return [h for h in sorted(headlines_info, key=lambda x: ids.index(x.comic_id))]  # Saved order of ids list
 
     async def toggle_spec_status(self, comic_id: int) -> None:
         query = """UPDATE comics

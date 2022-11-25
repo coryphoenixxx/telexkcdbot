@@ -19,6 +19,62 @@ class APIClient:
                 if status == "OK":
                     logger.info("API is available")
 
+    async def get_latest_comic_id(self):
+        async with ClientSession(base_url=self.base_url) as session:
+            async with session.get("/api/comics/latest_comic_id/") as resp:
+                latest_id = (await resp.json())["latest_id"]
+                return latest_id
+
+    async def get_all_comics_ids(self):
+        async with ClientSession(base_url=self.base_url) as session:
+            async with session.get("/api/comics/comics_ids") as resp:
+                comics_ids = (await resp.json())["comics_ids"]
+                return comics_ids
+
+    async def get_all_ru_comics_ids(self):
+        async with ClientSession(base_url=self.base_url) as session:
+            async with session.get("/api/comics/comics_ids?lang=ru") as resp:
+                comics_ids = (await resp.json())["comics_ids"]
+                return comics_ids
+
+    async def get_comic_data_by_id(self, comic_id: int, comic_lang: str = "en"):
+        async with ClientSession(base_url=self.base_url) as session:
+            fields = "comic_id,title,img_url,comment,public_date,is_specific,has_ru_translation"
+            if comic_lang == "ru":
+                fields = "comic_id,ru_title,ru_img_url,ru_comment,public_date,is_specific,has_ru_translation"
+            async with session.get(f"/api/comics?fields={fields}&comic_ids={comic_id}") as resp:
+                comic_data = (await resp.json())[0]
+
+                if comic_lang == "ru":
+                    comic_data["title"] = comic_data.pop("ru_title")
+                    comic_data["img_url"] = comic_data.pop("ru_img_url")
+                    comic_data["comment"] = comic_data.pop("ru_comment")
+                comic_data["public_date"] = datetime.strptime(comic_data["public_date"], "%Y-%m-%d").date()
+                return ComicData(**comic_data)
+
+    async def get_comics_headlines_by_title(self, title: str, lang: str = "en"):
+        fields = "comic_id,title,img_url"
+        if lang == "ru":
+            fields = "comic_id,ru_title,ru_img_url"
+
+        async with ClientSession(base_url=self.base_url) as session:
+            async with session.get(f"/api/comics?fields={fields}&title={title}") as resp:
+                headline_info = await resp.json()
+                headline_info = [ComicHeadlineInfo(**x) for x in headline_info]
+                return headline_info
+
+    async def get_comics_headlines_by_ids(self, ids: list[int], lang: str = "en"):
+        # TODO: remove, use MtoM for bookmarks ids
+        fields = "comic_id,title,img_url"
+        if lang == "ru":
+            fields = "comic_id,ru_title,ru_img_url"
+
+        async with ClientSession(base_url=self.base_url) as session:
+            async with session.get(f"/api/comics?fields={fields}&comic_ids={','.join(map(str, ids))}") as resp:
+                headline_info = await resp.json()
+                headline_info = [ComicHeadlineInfo(**x) for x in headline_info]
+                return headline_info
+
     async def add_new_comic(self, comic_data: TotalComicData):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.post(
@@ -37,46 +93,6 @@ class APIClient:
                 },
             ) as resp:
                 pass
-
-    async def get_latest_comic_id(self):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.get("/api/comics/latest_id") as resp:
-                latest_id = (await resp.json())["latest_id"]
-                return latest_id
-
-    async def get_all_comics_ids(self):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.get("/api/comics/comics_ids") as resp:
-                comics_ids = (await resp.json())["comics_ids"]
-                return comics_ids
-
-    async def get_all_ru_comics_ids(self):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.get("/api/comics/ru_comics_ids") as resp:
-                comics_ids = (await resp.json())["ru_comic_ids"]
-                return comics_ids
-
-    async def get_comic_data_by_id(self, comic_id: int, comic_lang: str = "en"):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.get(f"/api/comics/?comic_id={comic_id}&comic_lang={comic_lang}") as resp:
-                comic_data = await resp.json()
-                comic_data["public_date"] = datetime.strptime(comic_data["public_date"], "%Y-%m-%d").date()
-                return ComicData(**comic_data)
-
-    async def get_comics_headlines_by_title(self, title: str, lang: str = "en"):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.get(f"/api/comics/headlines/?title={title}&lang={lang}") as resp:
-                headline_info = await resp.json()
-                headline_info = [ComicHeadlineInfo(**x) for x in headline_info]
-                return headline_info
-
-    async def get_comics_headlines_by_ids(self, ids: list[int], lang: str = "en"):
-        # TODO: remove, use MtM for bookmarks ids
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.get(f"/api/comics/headlines/?ids={ids}&lang={lang}") as resp:
-                headline_info = await resp.json()
-                headline_info = [ComicHeadlineInfo(**x) for x in headline_info]
-                return headline_info
 
     async def toggle_spec_status(self, comic_id: int):
         async with ClientSession(base_url=self.base_url) as session:

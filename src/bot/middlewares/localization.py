@@ -2,6 +2,7 @@ from typing import Any
 
 from aiogram import types
 from aiogram.contrib.middlewares.i18n import I18nMiddleware
+
 from bot.api_client import api
 from bot.config import I18N_DOMAIN, LOCALES_DIR
 

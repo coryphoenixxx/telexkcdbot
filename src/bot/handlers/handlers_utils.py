@@ -6,17 +6,11 @@ from typing import Any, Callable, Optional, TypeVar
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
+
 from bot.api_client import api
 from bot.bot import bot
 from bot.comic_data_getter import comics_data_getter
-from bot.common_utils import (
-    cut_into_chunks,
-    cyrillic,
-    make_headline,
-    punctuation,
-    send_comic,
-    suppressed_exceptions,
-)
+from bot.common_utils import cut_into_chunks, cyrillic, make_headline, punctuation, send_comic, suppressed_exceptions
 from bot.keyboards import kboard
 from bot.middlewares.localization import _
 from bot.models import ComicHeadlineInfo

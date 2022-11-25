@@ -23,6 +23,8 @@ services:
     networks:
       - loki
     logging: *loki-logging
+    profiles:
+      - core
 
   api:
     container_name: telexkcdbot-api
@@ -44,6 +46,9 @@ services:
     networks:
       - loki
     logging: *loki-logging
+    profiles:
+      - core
+      - api
 
   db:
     container_name: telexkcdbot-postgres
@@ -75,43 +80,52 @@ services:
     networks:
       - loki
     logging: *loki-logging
+    profiles:
+      - core
+      - api
 
-#  loki:
-#    image: grafana/loki:2.2.1
-#    ports:
-#      - "3100"
-#    volumes:
-#      - ./config/loki/loki-config.yaml:/mnt/config/loki-config.yaml
-#    command: -config.file=/mnt/config/loki-config.yaml
-#    networks:
-#      - loki
-#    logging: *loki-logging
-#
-#  promtail:
-#    image: grafana/promtail:2.2.1
-#    volumes:
-#      - ./config/loki/promtail-config.yaml:/mnt/config/promtail-config.yaml
-#      - /var/lib/docker/containers:/host/containers
-#    command: -config.file /mnt/config/promtail-config.yaml
-#    networks:
-#      - loki
-#    logging: *loki-logging
-#
-#  grafana:
-#    image: grafana/grafana:9.2.4
-#    ports:
-#      - "3000:3000"
-#    volumes:
-#      - grafana-data:/var/lib/grafana
-#      - ./config/grafana/provisioning/:/etc/grafana/provisioning/
-#    environment:
-#      GF_SECURITY_ADMIN_PASSWORD: testloki
-#    networks:
-#      - loki
-#    logging: *loki-logging
-#
-#volumes:
-#  grafana-data:
+  loki:
+    image: grafana/loki:2.2.1
+    ports:
+      - "3100"
+    volumes:
+      - ./config/loki/loki-config.yaml:/mnt/config/loki-config.yaml
+    command: -config.file=/mnt/config/loki-config.yaml
+    networks:
+      - loki
+    logging: *loki-logging
+    profiles:
+      - utils
+
+  promtail:
+    image: grafana/promtail:2.2.1
+    volumes:
+      - ./config/loki/promtail-config.yaml:/mnt/config/promtail-config.yaml
+      - /var/lib/docker/containers:/host/containers
+    command: -config.file /mnt/config/promtail-config.yaml
+    networks:
+      - loki
+    logging: *loki-logging
+    profiles:
+      - utils
+
+  grafana:
+    image: grafana/grafana:9.2.4
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/provisioning/:/etc/grafana/provisioning/
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: testloki
+    networks:
+      - loki
+    logging: *loki-logging
+    profiles:
+      - utils
+
+volumes:
+  grafana-data:
 
 networks:
   loki:

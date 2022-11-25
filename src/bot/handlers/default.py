@@ -2,6 +2,7 @@ from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import CommandStart
 from aiogram.types import InputFile, Message
+
 from bot.api_client import api
 from bot.common_utils import preprocess_text, remove_prev_message_kb
 from bot.config import IMG_DIR

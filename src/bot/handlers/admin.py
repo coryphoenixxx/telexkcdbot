@@ -4,14 +4,10 @@ from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import CallbackQuery, Message
+
 from bot.api_client import api
 from bot.bot import bot
-from bot.common_utils import (
-    broadcast,
-    remove_prev_message_kb,
-    suppressed_exceptions,
-    user_is_unavailable,
-)
+from bot.common_utils import broadcast, remove_prev_message_kb, suppressed_exceptions, user_is_unavailable
 from bot.config import ADMIN_ID
 from bot.handlers.handlers_utils import States, remove_callback_kb
 from bot.keyboards import kboard, support_cb_data

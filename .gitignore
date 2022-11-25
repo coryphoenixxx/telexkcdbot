@@ -163,7 +163,8 @@ mypy.cfg
 .idea/mypy.xml
 .idea/telexkcdbot.iml
 .idea/codeStyles/codeStyleConfig.xml
-docker-compose.prod.test.yml
+docker-compose.prod.yml
 .env.dev
 /pgdata/
 /build_n_push.bat
+/docker-compose.prod.yml

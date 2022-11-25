@@ -2,6 +2,7 @@ from dataclasses import astuple
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
+
 from bot.api_client import api
 from bot.config import ADMIN_ID
 from bot.middlewares.localization import _

@@ -7,13 +7,14 @@ from typing import Optional, Sequence
 
 import aiohttp
 from aiohttp import ClientConnectorError
-from bot.config import RU_COMICS_CSV, RU_COMICS_IMAGES
-from bot.middlewares.localization import _
-from bot.models import RuComicData, TotalComicData, XKCDComicData
 from bs4 import BeautifulSoup
 from googletrans import Translator
 from loguru import logger
 from tqdm import tqdm
+
+from bot.config import RU_COMICS_CSV, RU_COMICS_IMAGES
+from bot.middlewares.localization import _
+from bot.models import RuComicData, TotalComicData, XKCDComicData
 
 
 class ComicsDataGetter:

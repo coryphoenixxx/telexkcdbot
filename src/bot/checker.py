@@ -1,6 +1,7 @@
 import asyncio
 
 import aioschedule
+
 from bot.api_client import api
 from bot.comic_data_getter import comics_data_getter
 from bot.common_utils import broadcast

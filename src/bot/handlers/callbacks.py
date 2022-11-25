@@ -4,6 +4,7 @@ from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import BotCommand, CallbackQuery, InputFile
+
 from bot.api_client import api
 from bot.bot import bot
 from bot.comic_data_getter import comics_data_getter

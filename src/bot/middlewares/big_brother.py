@@ -7,15 +7,12 @@ from aiogram.dispatcher.handler import CancelHandler, current_handler
 from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.types import Message, Update
 from aiogram.utils.exceptions import Throttled
+from loguru import logger
+
 from bot.api_client import api
-from bot.common_utils import (
-    preprocess_text,
-    remove_prev_message_kb,
-    user_is_unavailable,
-)
+from bot.common_utils import preprocess_text, remove_prev_message_kb, user_is_unavailable
 from bot.keyboards import kboard
 from bot.middlewares.localization import _
-from loguru import logger
 
 
 class BigBrother(BaseMiddleware):
