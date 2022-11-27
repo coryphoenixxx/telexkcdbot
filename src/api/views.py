@@ -1,7 +1,6 @@
 import dataclasses
 from dataclasses import asdict
 from datetime import datetime
-from string import ascii_letters, digits
 
 from aiohttp import web
 from loguru import logger
@@ -19,14 +18,6 @@ punctuation = " -(),.:;!?#+*/"
 
 def is_cyrillic(text: str) -> bool:
     return set(text).issubset(cyrillic + punctuation)
-
-
-def preprocess_text(text: str) -> str:
-    """Removes danger symbols from the text for before logging or searching"""
-
-    permitted = ascii_letters + digits + cyrillic + punctuation
-    processed_text = "".join([ch for ch in text.strip() if ch in permitted])[:30]
-    return processed_text
 
 
 @router.get("/api")
@@ -51,7 +42,6 @@ async def get_comics(request: web.Request) -> web.Response:
     conditions = []
 
     if title:
-        title = preprocess_text(title)
         lang_params = ("russian", "ru_title", "ru_comment") if is_cyrillic(title) else ("english", "title", "comment")
 
         title = " & ".join(title.split(" "))

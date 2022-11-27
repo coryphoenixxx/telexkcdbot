@@ -43,12 +43,14 @@ async def cb_select_lang(call: CallbackQuery, state: FSMContext) -> None:
     await bot.set_my_commands(commands=commands_list)
 
     username = call.from_user.username
+    bot_name = (await bot.get_me()).first_name
+
     hello_text = _("<b>❗ Hello, {}!").format(username) if username else _("<b>❗ Hello!")
+
     text = hello_text + _(
-        "\nI'm src — functional telegram bot "
-        "for convenient reading xkcd comics.\n"
+        "\nI'm {} — functional telegram bot for handy reading xkcd comics.\n"
         "<i><a href='https://github.com/coryphoenixxx/telexkcdbot'>[Source code]</a></i></b>"
-    )
+    ).format(bot_name)
     await call.message.answer(text, disable_web_page_preview=True)
 
     await call.message.answer_photo(InputFile(IMG_DIR / "bot_image.png"))
