@@ -60,6 +60,10 @@ class APIClient:
         async with ClientSession(base_url=self.base_url) as session:
             async with session.get(f"/api/comics?fields={fields}&title={title}") as resp:
                 headline_info = await resp.json()
+                if lang == "ru":
+                    for x in headline_info:
+                        x["title"] = x.pop("ru_title")
+                        x["img_url"] = x.pop("ru_img_url")
                 headline_info = [ComicHeadlineInfo(**x) for x in headline_info]
                 return headline_info
 
