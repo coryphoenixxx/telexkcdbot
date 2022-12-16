@@ -44,6 +44,7 @@ class ComicsDataGetter:
             2198,
             2288,
             2445,
+            2712,
         }
         self._translator: Translator = Translator()
 

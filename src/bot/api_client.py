@@ -100,7 +100,7 @@ class APIClient:
 
     async def toggle_spec_status(self, comic_id: int):
         async with ClientSession(base_url=self.base_url) as session:
-            async with session.patch(f"/api/comics/spec_status/?comic_id={comic_id}") as resp:
+            async with session.patch(f"/api/comics/spec_status/{comic_id}") as resp:
                 pass
 
     async def add_user(self, user_id: int):

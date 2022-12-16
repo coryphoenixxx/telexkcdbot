@@ -11,6 +11,7 @@ from aiogram.utils.exceptions import (
     BotBlocked,
     ChatNotFound,
     InvalidHTTPUrlContent,
+    InvalidPeerID,
     MessageCantBeEdited,
     MessageNotModified,
     MessageToEditNotFound,
@@ -244,6 +245,6 @@ def preprocess_text(text: str) -> str:
 async def user_is_unavailable(user_id: int) -> bool:
     try:
         await bot.send_chat_action(user_id, ChatActions.TYPING)
-    except (BotBlocked, UserDeactivated, ChatNotFound):
+    except (BotBlocked, UserDeactivated, ChatNotFound, InvalidPeerID):
         return True
     return False
