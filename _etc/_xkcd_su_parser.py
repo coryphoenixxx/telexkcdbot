@@ -55,7 +55,7 @@ async def get_ru_comic_data_from_xkcd_su(comic_id):
             ru_title = soup.find("div", {"class": "finished_title"}).text
             ru_title = re.search("«(.*)»", ru_title).group(1)
 
-            ru_img_url = soup.find("div", {"class": "comics_img"}).find("img")["src"]
+            ru_img_url = soup.find("div", {"class": "comics_img"}).find("img")["projects"]
 
             ru_comment = soup.find("div", {"class": "finished_alt"}).text
             ru_comment = ru_comment.replace("<", "").replace(">", "").strip()

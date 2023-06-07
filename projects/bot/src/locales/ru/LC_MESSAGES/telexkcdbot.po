@@ -1,0 +1,262 @@
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2022-11-27 20:06+0700\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: ru\n"
+"Language-Team: ru <LL@li.org>\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.9.1\n"
+
+#: src/bot/comic_data_getter.py:163
+msgid ""
+"❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it"
+" later.</b>"
+msgstr ""
+"❗ <b>Объяснение еще не появилось или explainxkcd.com недоступен. "
+"Попробуйте  позже.</b>"
+
+#: src/bot/common_utils.py:118
+msgid ""
+"❗ <b>This comic is special!\n"
+"Better to view it in your browser.</b>"
+msgstr ""
+"❗ <b>Этот комикс особенный!\n"
+"Лучше посмотреть его в браузере.</b>"
+
+#: src/bot/common_utils.py:142
+msgid "❗ <b>Couldn't get image. Press on title to view comic in your browser!</b>"
+msgstr ""
+"❗ <b>Не смог получить изображение. Нажмите на ссылку в названии комикса, "
+"чтобы посмотреть его в браузере!</b>"
+
+#: src/bot/keyboards.py:21
+msgid "<Prev"
+msgstr "<Туда"
+
+#: src/bot/keyboards.py:22
+msgid "🎲Rand"
+msgstr "🎲Случ"
+
+#: src/bot/keyboards.py:23
+msgid "Next>"
+msgstr "Сюда>"
+
+#: src/bot/keyboards.py:25 src/bot/keyboards.py:33
+msgid "❤Bookmark"
+msgstr "❤Добавить"
+
+#: src/bot/keyboards.py:26 src/bot/keyboards.py:34
+msgid "💔Unbookmark"
+msgstr "💔Убрать"
+
+#: src/bot/keyboards.py:27 src/bot/keyboards.py:35
+msgid "📜Explain"
+msgstr "📜Суть"
+
+#: src/bot/keyboards.py:31
+msgid "↩Break"
+msgstr "↩Прекратить"
+
+#: src/bot/keyboards.py:32
+msgid "Forward>"
+msgstr "Дальше>"
+
+#: src/bot/keyboards.py:40
+msgid "🔔 Enable notification sound"
+msgstr "🔔 Звук уведомления вкл."
+
+#: src/bot/keyboards.py:44
+msgid "🔕 Disable notification sound"
+msgstr "🔕 Звук уведомления выкл."
+
+#: src/bot/keyboards.py:49
+msgid "📑 My Bookmarks"
+msgstr "📑 Моё избранное"
+
+#: src/bot/keyboards.py:50
+msgid "Add 🇷🇺RU/🇬🇧EN Button"
+msgstr "Добавить 🇷🇺RU/🇬🇧EN кнопку"
+
+#: src/bot/keyboards.py:51
+msgid "💬 Admin Support"
+msgstr "💬 Связь с админом"
+
+#: src/bot/keyboards.py:52
+msgid "Remove 🇷🇺RU/🇬🇧EN Button"
+msgstr "Убрать 🇷🇺RU/🇬🇧EN кнопку"
+
+#: src/bot/keyboards.py:53
+msgid "Start xkcding!"
+msgstr "Начать"
+
+#: src/bot/keyboards.py:54
+msgid "Continue xkcding!"
+msgstr "Продолжить"
+
+#: src/bot/keyboards.py:55
+msgid "Menu"
+msgstr "Меню"
+
+#: src/bot/handlers/admin.py:21
+msgid "❗ <b>For admin only!</b>"
+msgstr "❗ <b>Только для админа!</b>"
+
+#: src/bot/handlers/admin.py:99
+msgid "❗ <b>The message has been successfully sent to the admin.</b>"
+msgstr "❗ <b>Сообщение админу было успешно отправлено.</b>"
+
+#: src/bot/handlers/callbacks.py:38
+msgid "Start/restart bot + change language"
+msgstr "Старт/рестарт бота + смена языка"
+
+#: src/bot/handlers/callbacks.py:40
+msgid "Show my bookmarks"
+msgstr "Показать моё избранное"
+
+#: src/bot/handlers/callbacks.py:41
+msgid "Show menu"
+msgstr "Показать меню"
+
+#: src/bot/handlers/callbacks.py:48
+msgid "<b>❗ Hello, {}!"
+msgstr "<b>❗ Приветствую, {}!"
+
+#: src/bot/handlers/callbacks.py:48
+msgid "<b>❗ Hello!"
+msgstr "<b>❗ Приветствую!"
+
+#: src/bot/handlers/callbacks.py:52
+msgid ""
+"\n"
+"I'm {} — functional telegram bot for handy reading xkcd comics.\n"
+"<i><a href='https://github.com/coryphoenixxx/telexkcdbot'>[Source "
+"code]</a></i></b>"
+msgstr ""
+"\n"
+"Я {} — функциональный телеграм-бот для удобного чтения xkcd комиксов.\n"
+"<i><a href='https://github.com/coryphoenixxx/projects'>[Исходник]</a></i></b>"
+
+#: src/bot/handlers/callbacks.py:112
+msgid ""
+"❗ <b>Type and send a message (about bugs or suggestions, please). You can"
+" send a screenshot too.</b>"
+msgstr ""
+"❗ <b>Введите и и отправьте сообщение (пожалуйста, насчет багов или "
+"предложений). Скриншоты тоже можно присылать.</b>"
+
+#: src/bot/handlers/default.py:63
+msgid ""
+"❗ <b>You did it. You broke my search engine.\n"
+"You can be proud of yourself!\n"
+"Here's your award:</b>"
+msgstr ""
+"❗ <b>Тебе это удалось. Ты накрыл мою поисковую систему.\n"
+"Можешь гордиться собой!\n"
+"Вот твоя награда:</b>"
+
+#: src/bot/handlers/default.py:80
+msgid "❗ <b>Please, enter a number from 1 to {}!</b>"
+msgstr "❗ <b>Пожалуйста, введите число от 1 до {}!</b>"
+
+#: src/bot/handlers/default.py:88
+msgid "❗ <b>I think there's no necessity to search by one character!</b>"
+msgstr "❗ <b>Я думаю нет никакой необходимости искать по одной букве!</b>"
+
+#: src/bot/handlers/default.py:99
+msgid "❗ <b>There's no such comic title or command!</b>"
+msgstr "❗ <b>Нет такого комикса или такой команды!</b>"
+
+#: src/bot/handlers/default.py:106
+msgid "❗ <b>I found one:</b>"
+msgstr "❗ <b>Есть один у меня:</b>"
+
+#: src/bot/handlers/default.py:113
+msgid "❗ <b>I found <u><b>{}</b></u> comics:</b>"
+msgstr "❗ <b>Нашел <u><b>{}</b></u> комиксов:</b>"
+
+#: src/bot/handlers/default.py:116
+msgid "❗ <b>Now you can flip through the comics:</b>"
+msgstr "❗ <b>Теперь можно перелистывать:</b>"
+
+#: src/bot/handlers/handlers_utils.py:70
+msgid ""
+"❗ <b>You have no bookmarks.\n"
+"You can bookmark a comic with the ❤ press.</b>"
+msgstr ""
+"❗ <b>У вас нет комиксов в избранном.\n"
+"Можете добавить нажатием ❤ под комиксом.</b>"
+
+#: src/bot/handlers/handlers_utils.py:73
+msgid "❗ <b>You have one:</b>"
+msgstr "❗ <b>У вас один комикс в избранном:</b>"
+
+#: src/bot/handlers/handlers_utils.py:78
+msgid "❗ <b>You have <u><b>{}</b></u> bookmarks:</b>"
+msgstr "❗ <b>У вас <u><b>{}</b></u> комиксов в избранном:</b>"
+
+#: src/bot/handlers/handlers_utils.py:87
+msgid ""
+"<b>***** MENU *****</b>\n"
+"\n"
+"• send me the <u><b>number</b></u>, and I'll find a comic with this "
+"number;\n"
+"• send me the <u><b>word</b></u>, and I'll find comics whose titles "
+"contains this word.\n"
+"\n"
+"<u><b>Menu options:</b></u>\n"
+"• adjust the notification sound for the new comic release <i>(every Mon, "
+"Wed and Fri USA time)</i>;\n"
+"• view comics from your bookmarks;\n"
+"• remove language button <i>(under the comic, which have russian "
+"translation)</i> if you don't need it;\n"
+"• contact admin.\n"
+"\n"
+"____________________\n"
+msgstr ""
+"<b>***** МЕНЮ *****</b>\n"
+"\n"
+"• отправьте мне <u><b>число</b></u>, и я найду комикс с таким номером;\n"
+"• отправьте мне <u><b>слово</b></u>, и я найду комиксы с таким словом в "
+"заголовке.\n"
+"\n"
+"<u><b>Опции меню:</b></u>\n"
+"• можно настроить звук уведомлений на рассылку свежего выпуска <i>(каждый"
+" Пон, Ср и Пт по времени в США (в РФ обычно после полуночи по МСК))</i>;"
+"\n"
+"• можно просмотреть комиксы из избранного;\n"
+"• убрать кнопку смены языка комикса <i>(под комиксами, у которых есть "
+"русский перевод)</i>, если она вам не нужна.\n"
+"• написать админу.\n"
+"\n"
+"В режиме \"Только переводы\" я буду присылать сначала перевод, если он "
+"есть.\n"
+"❗ В этом режиме свежие комиксы присылаться <u><b>не будут</b></u>.\n"
+"____________________\n"
+
+#: src/bot/handlers/handlers_utils.py:144
+msgid "❗ <b>The last one:</b>"
+msgstr "❗ <b>Этот последний:</b>"
+
+#: src/bot/handlers/handlers_utils.py:155
+msgid ""
+"❗ <b>Sorry, I was rebooted and forgot all the data... 😢\n"
+"Please repeat your request.</b>"
+msgstr ""
+"❗ <b>К сожалению, я был перезагружен и забыл ваш запрос... 😢\n"
+"Пожалуйста повторите его.</b>"
+
+#: src/bot/middlewares/big_brother.py:91
+msgid "❗❗❗ <b>Too many requests!</b>"
+msgstr "❗❗❗ <b>Слишком частые запросы!</b>"
+
+#: src/bot/middlewares/big_brother.py:100
+msgid "❗ <b>Unlocked.</b>"
+msgstr "❗ <b>Продолжайте.</b>"

@@ -167,4 +167,3 @@ docker-compose.prod.yml
 .env.dev
 /pgdata/
 /build_n_push.bat
-/docker-compose.prod.yml
