@@ -15,7 +15,7 @@
 #         self.comics = Comics()
 #
 #     async def create(self) -> None:
-#         # TODO: ?sslmode=require for db_url
+#         # TODO.txt: ?sslmode=require for db_url
 #
 #         try:
 #             Database.pool = await asyncpg.create_pool(DATABASE_URL, max_size=40, command_timeout=60)

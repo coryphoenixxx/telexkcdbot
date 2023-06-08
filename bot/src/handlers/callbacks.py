@@ -191,7 +191,7 @@ async def cb_explain(call: CallbackQuery, state: FSMContext) -> None:
         text = await comics_data_getter.get_explanation(last_comic_id, url)
         text = f"<i>{text}...</i>\n\n<a href='{url}'><u>↪ [FULL TEXT]</u></a>"
 
-    # TODO: remove duplicated code
+    # TODO.txt: remove duplicated code
     kb_data = [
         call.from_user.id,
         comic_data,

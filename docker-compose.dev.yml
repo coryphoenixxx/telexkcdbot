@@ -2,7 +2,7 @@ services:
 
   bot:
     container_name: telexkcdbot-bot
-    build: projects/bot
+    build: bot
     ports:
       - ${BOT_PORT}:${BOT_PORT}
     depends_on:
@@ -18,7 +18,7 @@ services:
 
   api:
     container_name: telexkcdbot-api
-    build: projects/api
+    build: api
     env_file:
       - .env
     depends_on:

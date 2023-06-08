@@ -52,7 +52,7 @@ async def on_startup(dp: Dispatcher):
 
 
 async def on_shutdown(dp: Dispatcher):
-    # TODO:
+    # TODO.txt:
     pass
 
 

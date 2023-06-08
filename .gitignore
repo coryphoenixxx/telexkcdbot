@@ -158,7 +158,6 @@ redis/
 .idea/sqldialects.xml
 .idea/workspace.xml
 .idea/csv-plugin.xml
-TODO.py
 mypy.cfg
 .idea/mypy.xml
 .idea/telexkcdbot.iml
@@ -167,3 +166,4 @@ docker-compose.prod.yml
 .env.dev
 /pgdata/
 /build_n_push.bat
+/TODO.txt

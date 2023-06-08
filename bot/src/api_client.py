@@ -68,7 +68,7 @@ class APIClient:
                 return headline_info
 
     async def get_comics_headlines_by_ids(self, ids: list[int], lang: str = "en"):
-        # TODO: remove, use MtoM for bookmarks ids
+        # TODO.txt: remove, use MtoM for bookmarks ids
         fields = "comic_id,title,img_url"
         if lang == "ru":
             fields = "comic_id,ru_title,ru_img_url"

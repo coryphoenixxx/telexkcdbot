@@ -96,7 +96,7 @@ class ComicsDataGetter:
         Russian comics images have .png or .jpg extension.
         So let get the actual filename and make a relational path for writing it in the database.
         """
-        # TODO: save filename list in memory
+        # TODO.txt: save filename list in memory
         filename = list(RU_COMICS_IMAGES.glob(f"{comic_id}.*"))[0].name
         return filename
 
@@ -130,7 +130,7 @@ class ComicsDataGetter:
                 comic_json = await response.json()
 
             # Telegram considers '<' and '>' as html tag symbols, so let remove them
-            comment = comic_json.get("alt").replace("<", "").replace(">", "").strip()  # TODO: regexp
+            comment = comic_json.get("alt").replace("<", "").replace(">", "").strip()  # TODO.txt: regexp
 
             return XKCDComicData(
                 comic_id=comic_id,

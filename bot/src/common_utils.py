@@ -157,8 +157,8 @@ async def send_comic(
 
 async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = None) -> None:
     """Sends to users a new comic or an admin message"""
-    # TODO: fix looping
-    # TODO: separate logic
+    # TODO.txt: fix looping
+    # TODO.txt: separate logic
     count = 0
     all_users_ids = await api.get_all_users_ids()
 
