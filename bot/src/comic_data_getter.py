@@ -137,11 +137,9 @@ class ComicsDataGetter:
                 title=comic_json.get("safe_title") if comic_json.get("safe_title") else "...",
                 img_url=self._url_fixer(comic_json.get("img"), comic_id),
                 comment=comment if comment else "...",
-                public_date=date(
-                    day=int(comic_json.get("day")),
-                    month=int(comic_json.get("month")),
-                    year=int(comic_json.get("year")),
-                ),
+                public_date=f"{comic_json.get('day'):0>2}-"
+                            f"{comic_json.get('month'):0>2}-"
+                            f"{comic_json.get('year'):0>2}",
                 is_specific=True if comic_id in self._default_specific_comic_ids else False,
             )
 

@@ -30,7 +30,7 @@ class XKCDComicData:
     title: str = "404"
     img_url: str = "https://www.explainxkcd.com/wiki/images/9/92/not_found.png"
     comment: str = "Page not found!"
-    public_date: date = date(day=1, month=4, year=2008)
+    public_date: str = "01-04-2008"
     is_specific: bool = False
 
 

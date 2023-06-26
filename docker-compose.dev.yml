@@ -15,10 +15,14 @@ services:
     restart: unless-stopped
     profiles:
       - core
+      - bot
+      - base
 
   api:
     container_name: telexkcdbot-api
     build: api
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - .env
     depends_on:
@@ -36,22 +40,24 @@ services:
     profiles:
       - core
       - api
+      - base
 
   db:
     container_name: telexkcdbot-postgres
     image: onjin/alpine-postgres:13.0
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: ${DB_NAME}
       PGDATA: /var/lib/postgresql/data/pgdata
+      PGPORT: ${DB_PORT}
     volumes:
       - .:/var/lib/postgresql/data
       - ./postgresql.conf:/var/lib/postgresql/data/postgresql.conf
     ports:
       - ${DB_PORT}:${DB_PORT}
     healthcheck:
-      test: pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+      test: pg_isready -U ${DB_USER} -d ${DB_NAME}
       interval: 1s
       timeout: 1s
       start_period: 10s
@@ -64,5 +70,5 @@ services:
           memory: 1GB
     profiles:
       - core
-      - api
+#      - api
 

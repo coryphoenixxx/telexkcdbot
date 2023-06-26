@@ -8,9 +8,6 @@ from src.models import AdminUsersInfo, ComicData, ComicHeadlineInfo, MenuKeyboar
 
 
 class APIClient:
-    def __init__(self) -> None:
-        self.base_url = API_URL
-
     async def check_connection(self) -> None:
         async with ClientSession(base_url=self.base_url) as session:
             async with session.get("/api") as resp:
@@ -18,6 +15,9 @@ class APIClient:
 
                 if status == "OK":
                     logger.info("API is available")
+
+    def __init__(self) -> None:
+        self.base_url = API_URL
 
     async def get_latest_comic_id(self):
         async with ClientSession(base_url=self.base_url) as session:
@@ -27,7 +27,8 @@ class APIClient:
 
     async def get_all_comics_ids(self):
         async with ClientSession(base_url=self.base_url) as session:
-            async with session.get("/api/comics/comics_ids") as resp:
+            async with session.get("/api/comics?fields=comic_id") as resp:
+
                 comics_ids = (await resp.json())["comics_ids"]
                 return comics_ids
 
@@ -82,19 +83,19 @@ class APIClient:
     async def add_new_comic(self, comic_data: TotalComicData):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.post(
-                "/api/comics",
-                json={
-                    "comic_id": comic_data.comic_id,
-                    "title": comic_data.title,
-                    "img_url": comic_data.img_url,
-                    "comment": comic_data.comment,
-                    "public_date": str(comic_data.public_date),
-                    "is_specific": comic_data.is_specific,
-                    "ru_title": comic_data.ru_title,
-                    "ru_img_url": comic_data.ru_img_url,
-                    "ru_comment": comic_data.ru_comment,
-                    "has_ru_translation": comic_data.has_ru_translation,
-                },
+                    "/api/comics",
+                    json={
+                        "comic_id": comic_data.comic_id,
+                        "title": comic_data.title,
+                        "image": comic_data.img_url,
+                        "comment": comic_data.comment,
+                        "transcript": "null",
+                        "publication_date": str(comic_data.public_date),
+                        "is_specific": comic_data.is_specific,
+                        "rus_title": comic_data.ru_title,
+                        "rus_image": comic_data.ru_img_url,
+                        "rus_comment": comic_data.ru_comment
+                    },
             ) as resp:
                 pass
 
@@ -133,8 +134,8 @@ class APIClient:
     async def update_last_comic_info(self, user_id: int, new_comic_id: int, new_comic_lang: str):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.patch(
-                f"/api/users/last_comic_info/{user_id}",
-                json={"new_comic_id": new_comic_id, "new_comic_lang": new_comic_lang},
+                    f"/api/users/last_comic_info/{user_id}",
+                    json={"new_comic_id": new_comic_id, "new_comic_lang": new_comic_lang},
             ) as resp:
                 pass
 
@@ -180,7 +181,7 @@ class APIClient:
     async def update_last_action_date(self, user_id: int, action_date: date):
         async with ClientSession(base_url=self.base_url) as session:
             async with session.patch(
-                f"/api/users/last_action_date/{user_id}", json={"action_date": str(action_date)}
+                    f"/api/users/last_action_date/{user_id}", json={"action_date": str(action_date)}
             ) as resp:
                 pass
 

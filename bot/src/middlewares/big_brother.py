@@ -17,7 +17,7 @@ from src.middlewares.localization import _
 
 class BigBrother(BaseMiddleware):
     def __init__(self, limit: float = DEFAULT_RATE_LIMIT, key_prefix: str = "antiflood_"):
-        self.rate_limit = limit
+        self.rate_limfit = limit
         self.prefix = key_prefix
         super(BigBrother, self).__init__()
 

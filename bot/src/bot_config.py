@@ -14,7 +14,7 @@ WEBAPP_HOST = "0.0.0.0"
 BOT_PORT = config("BOT_PORT", default=5050, cast=int)
 
 API_PORT = config("API_PORT", default=8080, cast=int)
-API_URL = config("API_URL", default=f"http://api:{API_PORT}", cast=str)
+API_URL = config("API_URL", default=f"http://localhost:{API_PORT}", cast=str)
 
 BASE_DIR = Path(__file__).parent
 IMG_DIR = BASE_DIR / "static/img"
