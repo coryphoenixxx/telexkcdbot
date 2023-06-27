@@ -1,3 +1,5 @@
+from pprint import pprint
+
 from sqlalchemy import select, func
 from aiohttp import web
 from sqlalchemy.dialects.postgresql import insert
@@ -20,13 +22,21 @@ async def api_handler(request: web.Request) -> web.Response:
 
 
 @router.get('/api/comics/{comic_id:\d+}')
-async def comic(request: web.Request) -> web.Response:
+async def api_get_comic(request: web.Request) -> web.Response:
     comic_id: str = request.match_info['comic_id']
-    fields: str = request.rel_url.query.get('fields')
+    fields_param: str = request.rel_url.query.get('fields')
+
+    fields = tuple(fields_param.split(',')) if fields_param else ()
+
+    if not Comic.validate_fields(fields):
+        return web.json_response(
+            data=ErrorJSONData(message=f"Invalid fields query parameter.").to_dict(),
+            status=400
+        )
 
     async with db_pool() as session:
         async with session.begin():
-            stmt = select(*Comic.columns, func.count(Bookmark.comic_id)) \
+            stmt = select(*Comic.get_columns(fields), func.count(Bookmark.comic_id).label('bookmarked_count')) \
                 .outerjoin(Bookmark) \
                 .where(Comic.comic_id == int(comic_id)) \
                 .group_by(Comic.comic_id)
@@ -40,38 +50,54 @@ async def comic(request: web.Request) -> web.Response:
             status=404
         )
 
-    if fields:
-        response_data = {}
-        for field in fields.split(','):
-            try:
-                response_data[field] = getattr(row, field)
-            except AttributeError:
-                return web.json_response(
-                    data=ErrorJSONData(message=f"Invalid field ({field}) value.").to_dict(),
-                    status=400
-                )
-    else:
-        response_data = dict(row._mapping)
-
     return web.json_response(
-        data=SuccessJSONData(data=response_data).to_dict(),
+        data=SuccessJSONData(data=dict(row._mapping)).to_dict(),
         status=200
     )
 
 
 @router.get('/api/comics')
-async def comics(request: web.Request) -> web.Response:
-    fields: str = request.rel_url.query.get('fields')
-    q: str = request.rel_url.query.get('fields')
+async def api_get_comics(request: web.Request) -> web.Response:
+    fields_param: str = request.rel_url.query.get('fields')
+    q_param: str = request.rel_url.query.get('q')
+    limit_param: str = request.rel_url.query.get('limit')
+
+    fields = tuple(fields_param.split(',')) if fields_param else ()
+
+    if not Comic.validate_fields(fields):
+        return web.json_response(
+            data=ErrorJSONData(message=f"Invalid fields query parameter.").to_dict(),
+            status=400
+        )
+
+    limit = None
+    if limit_param:
+        if not limit_param.isdigit():
+            return web.json_response(
+                data=ErrorJSONData(message=f"Invalid limit query parameter.").to_dict(),
+                status=400
+            )
+        else:
+            limit = int(limit_param)
+
+    async with db_pool() as session:
+        async with session.begin():
+            stmt = select(*Comic.get_columns(fields), func.count(Bookmark.comic_id).label('bookmarked_count')) \
+                .outerjoin(Bookmark) \
+                .group_by(Comic.comic_id) \
+                .limit(limit)
+            rows = (await session.execute(stmt)).fetchall()
+
+        await session.commit()
 
     return web.json_response(
-        {"comics_ids": (0,)},
+        data=SuccessJSONData(data=[dict(row._mapping) for row in rows]).to_dict(),
         status=200
     )
 
 
 @router.post('/api/comics')
-async def add_new_comics(request: web.Request) -> web.Response:
+async def api_post_comics(request: web.Request) -> web.Response:
     comic_data_list = await request.json()
 
     async with db_pool() as session:

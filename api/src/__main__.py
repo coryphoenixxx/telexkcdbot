@@ -1,5 +1,5 @@
 from aiohttp import web
-
+from sqlalchemy import text
 
 from src.api_config import API_PORT
 
@@ -14,7 +14,6 @@ async def init() -> web.Application:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-
     await engine.dispose()
 
     return app
