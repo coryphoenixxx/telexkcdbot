@@ -1,28 +1,13 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from aiohttp import web
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError
 
 from src.databases.base import db_pool
-from src.databases.models import Comic
-
-from dataclasses import dataclass, asdict
+from src.databases.models import Comic, Bookmark
+from src.utils.json_data import ErrorJSONData, SuccessJSONData
 
 router = web.RouteTableDef()
-
-
-@dataclass
-class SuccessJSONData:
-    data: dict | list
-    status: str = "success"
-    message: str = None
-
-
-@dataclass
-class ErrorJSONData:
-    message: str
-    status: str = "error"
-    data: dict | list = None
 
 
 @router.get("/api")
@@ -41,33 +26,35 @@ async def comic(request: web.Request) -> web.Response:
 
     async with db_pool() as session:
         async with session.begin():
-            stmt = select(Comic).where(Comic.comic_id == int(comic_id))
-            result = (await session.execute(stmt)).scalar()
+            stmt = select(*Comic.columns, func.count(Bookmark.comic_id)) \
+                .outerjoin(Bookmark) \
+                .where(Comic.comic_id == int(comic_id)) \
+                .group_by(Comic.comic_id)
+
+            row = (await session.execute(stmt)).fetchone()
         await session.commit()
 
-    if not result:
+    if not row:
         return web.json_response(
-            data=asdict(ErrorJSONData(message=f"Comic {comic_id} doesn't exists.")),
+            data=ErrorJSONData(message=f"Comic {comic_id} doesn't exists.").to_dict(),
             status=404
         )
 
-    comic_data = {}
     if fields:
+        response_data = {}
         for field in fields.split(','):
             try:
-                comic_data[field] = getattr(result, field)
+                response_data[field] = getattr(row, field)
             except AttributeError:
                 return web.json_response(
-                    data=asdict(ErrorJSONData(message=f"Invalid field({field}) value.")),
+                    data=ErrorJSONData(message=f"Invalid field ({field}) value.").to_dict(),
                     status=400
                 )
     else:
-        for field in Comic.__dict__.keys():
-            if not field.startswith('_'):
-                comic_data[field] = getattr(result, field)
+        response_data = dict(row._mapping)
 
     return web.json_response(
-        data=asdict(SuccessJSONData(data=comic_data)),
+        data=SuccessJSONData(data=response_data).to_dict(),
         status=200
     )
 
@@ -98,11 +85,11 @@ async def add_new_comics(request: web.Request) -> web.Response:
             except DBAPIError as err:
                 await session.rollback()
                 return web.json_response(
-                    data=asdict(ErrorJSONData(message="Invalid data types or json structure.")),
+                    data=ErrorJSONData(message="Invalid data types or json structure.").to_dict(),
                     status=400
                 )
 
     return web.json_response(
-        data=asdict(SuccessJSONData(data=comic_data_list)),
+        data=SuccessJSONData(data=comic_data_list).to_dict(),
         status=201
     )

@@ -1,10 +1,25 @@
-from sqlalchemy import Boolean, Column, Date, SmallInteger, String, Table, ForeignKey, Integer, UniqueConstraint, Text
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy import Boolean, Column, Date, SmallInteger, String, ForeignKey, Integer, Text
+from sqlalchemy.orm import relationship
 from datetime import datetime
+from src.databases.base import Base
 
 
-class Base(DeclarativeBase):
-    pass
+class Bookmark(Base):
+    __tablename__ = "bookmarks"
+
+    id = Column(Integer, primary_key=True)
+    comic_id = Column(SmallInteger, ForeignKey('comics.comic_id'))
+    user_id = Column(Integer, ForeignKey('users.user_id'))
+    created_at = Column(Date, default=datetime.utcnow)
+
+
+class WatchHistory(Base):
+    __tablename__ = "watch_history"
+
+    id = Column(Integer, primary_key=True)
+    comic_id = Column(SmallInteger, ForeignKey('comics.comic_id'))
+    user_id = Column(Integer, ForeignKey('users.user_id'))
+    created_at = Column(Date, default=datetime.utcnow)
 
 
 class Comic(Base):
@@ -20,6 +35,7 @@ class Comic(Base):
     rus_comment = Column(String, nullable=True)
     publication_date = Column(String, nullable=False)
     is_specific = Column(Boolean, nullable=False)
+    bookmarks = relationship(Bookmark, backref='comic')
 
 
 class Explanation(Base):
@@ -40,21 +56,4 @@ class User(Base):
     ui_lang = Column(String)
     rus_only_mode = Column(Boolean)
     joined_at = Column(Date, default=datetime.utcnow)
-
-
-class Bookmark(Base):
-    __tablename__ = "bookmarks"
-
-    id = Column(Integer, primary_key=True)
-    comic_id = Column(SmallInteger, ForeignKey('comics.comic_id'))
-    user_id = Column(Integer, ForeignKey('users.user_id'))
-    created_at = Column(Date, default=datetime.utcnow)
-
-
-class WatchHistory(Base):
-    __tablename__ = "watch_history"
-
-    id = Column(Integer, primary_key=True)
-    comic_id = Column(SmallInteger, ForeignKey('comics.comic_id'))
-    user_id = Column(Integer, ForeignKey('users.user_id'))
-    created_at = Column(Date, default=datetime.utcnow)
+    bookmarks = relationship(Bookmark)
