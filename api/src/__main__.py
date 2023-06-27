@@ -1,5 +1,4 @@
 from aiohttp import web
-from sqlalchemy import text
 
 from src.api_config import API_PORT
 

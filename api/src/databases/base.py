@@ -1,12 +1,13 @@
 from pprint import pprint
 from typing import Optional
 
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from src.api_config import DATABASE_URL
 from sqlalchemy.orm import DeclarativeBase
 
-engine = create_async_engine(DATABASE_URL, future=True, echo=True)
+engine = create_async_engine(DATABASE_URL , future=True, echo=True)
 
 db_pool = async_sessionmaker(engine, expire_on_commit=False)
 
@@ -18,9 +19,9 @@ class Base(DeclarativeBase):
             if not cls.validate_fields(col_names):
                 raise AttributeError('Incorrect column name')
             else:
-                return (col for col in cls.__table__.columns if col.name in col_names)
+                return (col for col in cls.__table__.columns if col.name in col_names and not col.name.startswith('_'))
 
-        return cls.__table__.columns
+        return (col for col in cls.__table__.columns if not col.name.startswith('_'))
 
     @classmethod
     def validate_fields(cls, col_names: tuple):

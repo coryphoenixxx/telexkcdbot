@@ -1,6 +1,6 @@
 from pprint import pprint
 
-from sqlalchemy import select, func
+from sqlalchemy import select, func, case
 from aiohttp import web
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError
@@ -62,6 +62,7 @@ async def api_get_comics(request: web.Request) -> web.Response:
     q_param: str = request.rel_url.query.get('q')
     limit_param: str = request.rel_url.query.get('limit')
 
+
     fields = tuple(fields_param.split(',')) if fields_param else ()
 
     if not Comic.validate_fields(fields):
@@ -80,10 +81,14 @@ async def api_get_comics(request: web.Request) -> web.Response:
         else:
             limit = int(limit_param)
 
+    if not q_param:
+        q_param = 'x|!x'
+
     async with db_pool() as session:
         async with session.begin():
             stmt = select(*Comic.get_columns(fields), func.count(Bookmark.comic_id).label('bookmarked_count')) \
                 .outerjoin(Bookmark) \
+                .where(Comic._ts_vector.bool_op("@@")(func.to_tsquery(q_param if q_param else 'x|!x'))) \
                 .group_by(Comic.comic_id) \
                 .limit(limit)
             rows = (await session.execute(stmt)).fetchall()

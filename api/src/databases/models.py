@@ -1,7 +1,43 @@
-from sqlalchemy import Boolean, Column, Date, SmallInteger, String, ForeignKey, Integer, Text
+from sqlalchemy import Boolean, Column, Date, SmallInteger, String, ForeignKey, Integer, Text, \
+    TypeDecorator, Computed, Index
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from src.databases.base import Base
+
+from sqlalchemy.dialects.postgresql import TSVECTOR
+
+
+# class TSVector(TypeDecorator):
+#     impl = TSVECTOR
+#     cache_ok = True
+
+class TSVector(TypeDecorator):
+    impl = TSVECTOR
+    cache_ok = True
+
+    class comparator_factory(TSVECTOR.Comparator):
+        def match(self, other, **kwargs):
+            if 'postgresql_regconfig' not in kwargs:
+                if 'regconfig' in self.type.options:
+                    kwargs['postgresql_regconfig'] = (
+                        self.type.options['regconfig']
+                    )
+            return TSVECTOR.Comparator.match(self, other, **kwargs)
+
+        def __or__(self, other):
+            return self.op('||')(other)
+
+    def __init__(self, *args, **kwargs):
+        """
+        Initializes new TSVectorType
+
+        :param *args: list of column names
+        :param **kwargs: various other options for this TSVectorType
+        """
+        self.columns = args
+        self.options = kwargs
+        super().__init__()
 
 
 class Bookmark(Base):
@@ -35,7 +71,27 @@ class Comic(Base):
     rus_comment = Column(String, nullable=True)
     publication_date = Column(String, nullable=False)
     is_specific = Column(Boolean, nullable=False)
-    bookmarks = relationship(Bookmark, backref='comic')
+
+    @hybrid_property
+    def book(self):
+        return
+
+    @book.expression
+    def book(cls):
+        return
+
+
+    _ts_vector = Column(
+        TSVector(),
+        Computed(
+            "to_tsvector('english', title || ' ' || comment || ' ' || rus_title || ' ' || rus_comment)",
+            persisted=True
+        )
+    )
+
+    __table_args__ = (
+        Index('ix__comics___ts_vector__', _ts_vector, postgresql_using='gin'),
+    )
 
 
 class Explanation(Base):

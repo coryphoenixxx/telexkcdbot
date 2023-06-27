@@ -70,5 +70,6 @@ services:
           memory: 1GB
     profiles:
       - core
-#      - api
+      - api
+      - db
 

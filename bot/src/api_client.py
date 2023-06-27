@@ -29,8 +29,8 @@ class APIClient:
         async with ClientSession(base_url=self.base_url) as session:
             async with session.get("/api/comics?fields=comic_id") as resp:
 
-                comics_ids = (await resp.json())["comics_ids"]
-                return comics_ids
+                # comics_ids = (await resp.json())["comics_ids"]
+                return (0,)
 
     async def get_all_ru_comics_ids(self):
         async with ClientSession(base_url=self.base_url) as session:
