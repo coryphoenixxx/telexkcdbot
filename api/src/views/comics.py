@@ -1,38 +1,52 @@
 from functools import wraps
-from pprint import pprint
 
 from sqlalchemy import select, func
 from aiohttp import web
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError
 
-from src.databases.base import db_pool, Base
-from src.databases.models import Comic, Bookmark, User
+from src.databases.base import db_pool
+from src.databases.models import Comic, Bookmark, Base
 from src.utils.json_data import ErrorJSONData, SuccessJSONData
 
 router = web.RouteTableDef()
+
+
+class InvalidQueryError(Exception):
+    def __init__(self, param, value):
+        self.message = f"Invalid {param} ({value}) query parameter."
+        super().__init__(self.message)
 
 
 def validate_queries(handler_func):
     @wraps(handler_func)
     async def wrapped(request: web.Request):
         queries = request.rel_url.query
-
         fields = queries.get('fields')
 
-        if fields:
-            field_list = fields.split(',')
-            resource_ = request.rel_url.raw_parts[2]
-            model = Base.get_model_by_tablename(resource_)
+        try:
+            for param in ('user_id', 'limit', 'offset'):
+                value = queries.get(param)
+                if value:
+                    if not value.lstrip('-').isdigit():
+                        raise InvalidQueryError(param, value)
 
-            invalid_fields = set(field_list) - set(model.get_all_column_names())
+            if fields:
+                field_list = fields.split(',')
+                resource_ = request.rel_url.raw_parts[2]
+                model = Base.get_model_by_tablename(resource_)
 
-            if invalid_fields:
-                invalid_fields = ', '.join(invalid_fields)
-                return web.json_response(
-                    data=ErrorJSONData(message=f"Invalid fields ({invalid_fields}) query parameter.").to_dict(),
-                    status=422
-                )
+                invalid_fields = set(field_list) - set(model.get_all_column_names())
+                if invalid_fields:
+                    raise InvalidQueryError(param='fields', value=', '.join(invalid_fields))
+
+        except InvalidQueryError as err:
+            return web.json_response(
+                data=ErrorJSONData(
+                    message=err.message
+                ).to_dict(),
+                status=422
+            )
 
         return await handler_func(request)
 
@@ -53,11 +67,16 @@ async def api_handler(request: web.Request) -> web.Response:
 async def api_get_comic(request: web.Request) -> web.Response:
     comic_id: str = request.match_info['comic_id']
     fields: str = request.rel_url.query.get('fields')
+    user_id: str = request.rel_url.query.get('user_id')
 
     selected_columns = Comic.get_columns(fields)
-
     if not fields or 'bookmarked_count' in fields:
         selected_columns.append(func.count(Bookmark.comic_id).label('bookmarked_count'))
+
+    group_by_columns = [Comic.comic_id]
+    if user_id:
+        subquery = Comic.bookmarked_by_user(user_id=int(user_id), comic_id=int(comic_id))
+        selected_columns.append(subquery.label('bookmarked_by_user'))
 
     async with db_pool() as session:
         async with session.begin():
@@ -65,7 +84,7 @@ async def api_get_comic(request: web.Request) -> web.Response:
                 .select_from(Comic, Bookmark) \
                 .outerjoin(Bookmark) \
                 .where(Comic.comic_id == int(comic_id)) \
-                .group_by(Comic.comic_id)
+                .group_by(*group_by_columns)
 
             row = (await session.execute(stmt)).fetchone()
         await session.commit()

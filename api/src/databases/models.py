@@ -1,16 +1,44 @@
+from typing import Optional
+
 from sqlalchemy import Boolean, Column, Date, SmallInteger, String, ForeignKey, Integer, Text, Computed, Index, func, \
-    BigInteger
-from sqlalchemy.orm import relationship
+    BigInteger, select, and_
+from sqlalchemy.orm import relationship, DeclarativeBase
 from datetime import datetime
 
-from sqlalchemy_utils import TSVectorType, aggregated
+from sqlalchemy_utils import TSVectorType
 
-from src.databases.base import Base
+
+class Base(DeclarativeBase):
+    _additional_column_names = None
+
+    @classmethod
+    def get_columns(cls, fields: Optional[str] = None):
+        columns = [c for c in cls.__table__.columns if not c.name.startswith('_')]
+        if fields:
+            return [c for c in columns if c.name in fields]
+        return columns
+
+    @classmethod
+    def get_all_column_names(cls):
+        column_names = [c.name for c in cls.get_columns()]
+        if cls._additional_column_names:
+            column_names.extend(cls._additional_column_names)
+        return column_names
+
+    @classmethod
+    def get_model_by_tablename(cls, tablename):
+        """Return model class reference mapped to table.
+
+        :param tablename: String with name of table.
+        :return: Model class reference or None.
+        """
+        table_name_to_class = {m.tables[0].name: m.class_ for m in Base.registry.mappers}
+        return table_name_to_class.get(tablename)
 
 
 class Comic(Base):
     __tablename__ = 'comics'
-    additional_column_names = ('bookmarked_count', 'bookmarked_by_user')
+    _additional_column_names = ('bookmarked_count', 'bookmarked_by_user')
 
     comic_id = Column(SmallInteger, primary_key=True)
     title = Column(String, nullable=False)
@@ -30,6 +58,13 @@ class Comic(Base):
             persisted=True
         )
     )
+
+    @classmethod
+    def bookmarked_by_user(cls, user_id: int, comic_id: int):
+        return select((func.count('*') > 0)) \
+            .select_from(Bookmark) \
+            .where(and_(Bookmark.user_id == user_id, Bookmark.comic_id == comic_id)) \
+            .scalar_subquery()
 
     __table_args__ = (
         Index('ix__comics___ts_vector__', _ts_vector, postgresql_using='gin'),

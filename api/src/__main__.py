@@ -1,10 +1,10 @@
 from aiohttp import web
 
 from src.api_config import API_PORT
-
 from src.databases.base import engine
-from src.views.comics import router
 from src.databases.models import Base
+
+from src.views.comics import router
 
 
 async def init() -> web.Application:
