@@ -1,34 +1,8 @@
-from sqlalchemy import select, func, and_
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy import func, select, and_
+from sqlalchemy.dialects.postgresql import insert
 
-from src.api_config import DATABASE_URL
-from src.databases.models import Comic, Bookmark, Base
-
-
-class BaseDB:
-    engine = create_async_engine(DATABASE_URL, future=True, echo=True)
-    pool = async_sessionmaker(engine, expire_on_commit=False)
-
-    @classmethod
-    async def init(cls):
-        async with cls.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)
-        await cls.engine.dispose()
-
-
-class SessionFactory:
-    _db = BaseDB
-
-    def __init__(self):
-        _session = None
-
-    async def __aenter__(self):
-        self._session = self._db.pool()
-        await self._session.begin()
-        return self._session
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self._session.commit()
+from src.database.base import BaseDB, SessionFactory
+from src.database.models import Comic, Bookmark
 
 
 class ComicDB(BaseDB):
@@ -45,7 +19,7 @@ class ComicDB(BaseDB):
         if user_id:
             subquery = select((func.count('*') > 0)) \
                 .select_from(Bookmark) \
-                .where(and_(Bookmark.user_id == int(user_id), Bookmark.comic_id == int(comic_id))) \
+                .where(and_(Bookmark.user_id == int(user_id), Bookmark.comic_id == comic_id)) \
                 .scalar_subquery() \
                 .label('bookmarked_by_user')
             select_columns.append(subquery)
@@ -54,7 +28,7 @@ class ComicDB(BaseDB):
             stmt = select(*select_columns) \
                 .select_from(Comic, Bookmark) \
                 .outerjoin(Bookmark) \
-                .where(Comic.comic_id == int(comic_id)) \
+                .where(Comic.comic_id == comic_id) \
                 .group_by(Comic.comic_id)
 
             row = (await session.execute(stmt)).fetchone()
@@ -88,8 +62,21 @@ class ComicDB(BaseDB):
 
             rows = (await session.execute(stmt)).fetchall()
 
-        return rows
+        meta = {
+            'meta': {
+                'limit': limit,
+                'offset': offset,
+                'total': len(rows)
+            }
+        }
 
+        return rows, meta
 
-class UserDB(BaseDB):
-    ...
+    @classmethod
+    async def add_comic(cls, comic_data_list):
+        async with SessionFactory() as session:
+            await session.execute(
+                insert(Comic).on_conflict_do_nothing(),
+                comic_data_list
+            )
+

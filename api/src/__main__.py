@@ -1,8 +1,7 @@
 from aiohttp import web
 
 from src.api_config import API_PORT
-from src.databases.base import BaseDB
-
+from src.database.base import BaseDB
 from src.views.comics import router
 
 

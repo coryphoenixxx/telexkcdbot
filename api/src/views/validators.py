@@ -4,8 +4,8 @@ import jsonschema
 from aiohttp import web
 from jsonschema import ValidationError
 
-from src.databases.models import Base
-from src.utils.json_data import ErrorJSONData
+from src.database.models import Base
+from src.utils.json_response_data import ErrorJSONData
 
 
 class InvalidQueryError(Exception):
@@ -27,6 +27,8 @@ def validate_queries(handler_func):
                         raise InvalidQueryError(param_name, value)
                     else:
                         valid_query_params[param_name] = int(value)
+                else:
+                    valid_query_params[param_name] = 0
 
             fields_param: str = request.rel_url.query.get('fields')
             if fields_param:

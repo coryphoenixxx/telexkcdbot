@@ -1,10 +1,9 @@
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import Boolean, Column, Date, SmallInteger, String, ForeignKey, Integer, Text, Computed, Index, \
     BigInteger
 from sqlalchemy.orm import relationship, DeclarativeBase
-from datetime import datetime
-
 from sqlalchemy_utils import TSVectorType
 
 
