@@ -87,7 +87,7 @@ async def api_get_comic(request: web.Request, valid_query_params: dict) -> web.R
 @router.post('/api/comics')
 @validate_json(comic_json_schema)
 async def api_post_comics(request: web.Request, comic_data_list: dict) -> web.Response:
-    async with ComicDB.db_pool() as session:
+    async with ComicDB.pool() as session:
         async with session.begin():
             await session.execute(
                 insert(Comic).on_conflict_do_nothing(),

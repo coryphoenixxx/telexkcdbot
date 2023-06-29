@@ -7,13 +7,28 @@ from src.databases.models import Comic, Bookmark, Base
 
 class BaseDB:
     engine = create_async_engine(DATABASE_URL, future=True, echo=True)
-    db_pool = async_sessionmaker(engine, expire_on_commit=False)
+    pool = async_sessionmaker(engine, expire_on_commit=False)
 
     @classmethod
     async def init(cls):
         async with cls.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         await cls.engine.dispose()
+
+
+class SessionFactory:
+    _db = BaseDB
+
+    def __init__(self):
+        _session = None
+
+    async def __aenter__(self):
+        self._session = self._db.pool()
+        await self._session.begin()
+        return self._session
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self._session.commit()
 
 
 class ComicDB(BaseDB):
@@ -35,16 +50,15 @@ class ComicDB(BaseDB):
                 .label('bookmarked_by_user')
             select_columns.append(subquery)
 
-        async with super().db_pool() as session:
-            async with session.begin():
-                stmt = select(*select_columns) \
-                    .select_from(Comic, Bookmark) \
-                    .outerjoin(Bookmark) \
-                    .where(Comic.comic_id == int(comic_id)) \
-                    .group_by(Comic.comic_id)
+        async with SessionFactory() as session:
+            stmt = select(*select_columns) \
+                .select_from(Comic, Bookmark) \
+                .outerjoin(Bookmark) \
+                .where(Comic.comic_id == int(comic_id)) \
+                .group_by(Comic.comic_id)
 
-                row = (await session.execute(stmt)).fetchone()
-            await session.commit()
+            row = (await session.execute(stmt)).fetchone()
+
         return row
 
 
