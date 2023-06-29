@@ -59,13 +59,6 @@ class Comic(Base):
         )
     )
 
-    @classmethod
-    def bookmarked_by_user(cls, user_id: int, comic_id: int):
-        return select((func.count('*') > 0)) \
-            .select_from(Bookmark) \
-            .where(and_(Bookmark.user_id == user_id, Bookmark.comic_id == comic_id)) \
-            .scalar_subquery()
-
     __table_args__ = (
         Index('ix__comics___ts_vector__', _ts_vector, postgresql_using='gin'),
     )
