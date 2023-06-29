@@ -33,7 +33,7 @@ def validate_queries(handler_func):
                 resource_ = request.rel_url.raw_parts[2]
                 model = Base.get_model_by_tablename(resource_)
 
-                invalid_fields = set(fields_param.split(',')) - set(model.get_all_column_names())
+                invalid_fields = set(fields_param.split(',')) - set(model.valid_column_names)
                 if invalid_fields:
                     raise InvalidQueryError(param='fields', value=', '.join(invalid_fields))
                 else:
@@ -44,6 +44,8 @@ def validate_queries(handler_func):
                 data=ErrorJSONData(message=err.message).to_dict(),
                 status=422
             )
+
+        valid_query_params['q'] = request.rel_url.query.get('q')
 
         return await handler_func(request, valid_query_params)
 

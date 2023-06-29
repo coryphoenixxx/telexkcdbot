@@ -61,6 +61,35 @@ class ComicDB(BaseDB):
 
         return row
 
+    @classmethod
+    async def get_comic_list(cls, valid_query_params):
+        fields, limit, offset, q = (valid_query_params.get(param) for param in ('fields', 'limit', 'offset', 'q'))
+
+        select_columns = Comic.get_columns(fields)
+
+        if not fields or 'bookmarked_count' in fields:
+            select_columns.append(func.count(Bookmark.comic_id).label('bookmarked_count'))
+
+        async with SessionFactory() as session:
+            stmt = select(*select_columns) \
+                .outerjoin(Bookmark)
+
+            if q:
+                stmt = stmt.where(Comic._ts_vector.bool_op("@@")(func.to_tsquery(q)))
+
+            stmt = stmt.group_by(Comic.comic_id) \
+                .order_by(Comic.comic_id)
+
+            if limit:
+                stmt = stmt.limit(limit)
+
+            if offset:
+                stmt = stmt.offset(offset)
+
+            rows = (await session.execute(stmt)).fetchall()
+
+        return rows
+
 
 class UserDB(BaseDB):
     ...

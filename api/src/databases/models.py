@@ -1,7 +1,7 @@
 from typing import Optional
 
-from sqlalchemy import Boolean, Column, Date, SmallInteger, String, ForeignKey, Integer, Text, Computed, Index, func, \
-    BigInteger, select, and_
+from sqlalchemy import Boolean, Column, Date, SmallInteger, String, ForeignKey, Integer, Text, Computed, Index, \
+    BigInteger
 from sqlalchemy.orm import relationship, DeclarativeBase
 from datetime import datetime
 
@@ -15,15 +15,8 @@ class Base(DeclarativeBase):
     def get_columns(cls, fields: Optional[str] = None):
         columns = [c for c in cls.__table__.columns if not c.name.startswith('_')]
         if fields:
-            return [c for c in columns if c.name in fields]
+            return [c for c in columns if c.name in fields.split(',')]
         return columns
-
-    @classmethod
-    def get_all_column_names(cls):
-        column_names = [c.name for c in cls.get_columns()]
-        if cls._additional_column_names:
-            column_names.extend(cls._additional_column_names)
-        return column_names
 
     @classmethod
     def get_model_by_tablename(cls, tablename):
@@ -35,10 +28,17 @@ class Base(DeclarativeBase):
         table_name_to_class = {m.tables[0].name: m.class_ for m in Base.registry.mappers}
         return table_name_to_class.get(tablename)
 
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__()
+        additional_column_names = kwargs.get('additional_column_names')
+        cls.valid_column_names = [c.name for c in cls.get_columns()]
 
-class Comic(Base):
+        if additional_column_names:
+            cls.valid_column_names.extend(additional_column_names)
+
+
+class Comic(Base, additional_column_names=('bookmarked_count', 'bookmarked_by_user')):
     __tablename__ = 'comics'
-    _additional_column_names = ('bookmarked_count', 'bookmarked_by_user')
 
     comic_id = Column(SmallInteger, primary_key=True)
     title = Column(String, nullable=False)

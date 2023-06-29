@@ -9,9 +9,7 @@ from src.views.comics import router
 async def init() -> web.Application:
     app = web.Application()
     app.add_routes(router)
-
     await BaseDB.init()
-
     return app
 
 

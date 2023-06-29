@@ -37,51 +37,15 @@ async def api_get_comic(request: web.Request, valid_query_params: dict) -> web.R
     )
 
 
-# @router.get('/api/comics')
-# async def api_get_comics(request: web.Request) -> web.Response:
-#     fields_param: str = request.rel_url.query.get('fields')
-#     q_param: str = request.rel_url.query.get('q')
-#     limit_param: str = request.rel_url.query.get('limit')
-#
-#     fields = tuple(fields_param.split(',')) if fields_param else ()
-#
-#     if not Comic.validate_fields(fields):
-#         return web.json_response(
-#             data=ErrorJSONData(message=f"Invalid fields query parameter.").to_dict(),
-#             status=400
-#         )
-#
-#     limit = None
-#     if limit_param:
-#         if not limit_param.isdigit():
-#             return web.json_response(
-#                 data=ErrorJSONData(message=f"Invalid limit query parameter.").to_dict(),
-#                 status=400
-#             )
-#         else:
-#             limit = int(limit_param)
-#
-#     async with db_pool() as session:
-#         async with session.begin():
-#             stmt = select(
-#                 *Comic.get_columns(fields), func.count(Bookmark.comic_id).label('bookmarked_count')
-#             ).outerjoin(Bookmark)
-#
-#             if q_param:
-#                 stmt = stmt.where(Comic._ts_vector.bool_op("@@")(func.to_tsquery(q_param)))
-#
-#             stmt = stmt.group_by(Comic.comic_id).limit(limit)
-#
-#             rows = (await session.execute(stmt)).fetchall()
-#
-#         await session.commit()
-#
-#     return web.json_response(
-#         data=SuccessJSONData(data=[dict(row._mapping) for row in rows]).to_dict(),
-#         status=200
-#     )
-#
-#
+@router.get('/api/comics')
+@validate_queries
+async def api_get_comics(request: web.Request, valid_query_params: dict) -> web.Response:
+    rows = await ComicDB.get_comic_list(valid_query_params)
+
+    return web.json_response(
+        data=SuccessJSONData(data=[dict(row._mapping) for row in rows]).to_dict(),
+        status=200
+    )
 
 
 @router.post('/api/comics')
