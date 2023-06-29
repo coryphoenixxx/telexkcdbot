@@ -1,15 +1,42 @@
+from functools import wraps
 from pprint import pprint
 
-from sqlalchemy import select, func, case
+from sqlalchemy import select, func
 from aiohttp import web
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError
 
-from src.databases.base import db_pool
-from src.databases.models import Comic, Bookmark
+from src.databases.base import db_pool, Base
+from src.databases.models import Comic, Bookmark, User
 from src.utils.json_data import ErrorJSONData, SuccessJSONData
 
 router = web.RouteTableDef()
+
+
+def validate_queries(handler_func):
+    @wraps(handler_func)
+    async def wrapped(request: web.Request):
+        queries = request.rel_url.query
+
+        fields = queries.get('fields')
+
+        if fields:
+            field_list = fields.split(',')
+            resource_ = request.rel_url.raw_parts[2]
+            model = Base.get_model_by_tablename(resource_)
+
+            invalid_fields = set(field_list) - set(model.get_all_column_names())
+
+            if invalid_fields:
+                invalid_fields = ', '.join(invalid_fields)
+                return web.json_response(
+                    data=ErrorJSONData(message=f"Invalid fields ({invalid_fields}) query parameter.").to_dict(),
+                    status=422
+                )
+
+        return await handler_func(request)
+
+    return wrapped
 
 
 @router.get("/api")
@@ -22,21 +49,20 @@ async def api_handler(request: web.Request) -> web.Response:
 
 
 @router.get('/api/comics/{comic_id:\d+}')
+@validate_queries
 async def api_get_comic(request: web.Request) -> web.Response:
     comic_id: str = request.match_info['comic_id']
-    fields_param: str = request.rel_url.query.get('fields')
+    fields: str = request.rel_url.query.get('fields')
 
-    fields = tuple(fields_param.split(',')) if fields_param else ()
+    selected_columns = Comic.get_columns(fields)
 
-    if not Comic.validate_fields(fields):
-        return web.json_response(
-            data=ErrorJSONData(message=f"Invalid fields query parameter.").to_dict(),
-            status=400
-        )
+    if not fields or 'bookmarked_count' in fields:
+        selected_columns.append(func.count(Bookmark.comic_id).label('bookmarked_count'))
 
     async with db_pool() as session:
         async with session.begin():
-            stmt = select(*Comic.get_columns(fields), func.count(Bookmark.comic_id).label('bookmarked_count')) \
+            stmt = select(*selected_columns) \
+                .select_from(Comic, Bookmark) \
                 .outerjoin(Bookmark) \
                 .where(Comic.comic_id == int(comic_id)) \
                 .group_by(Comic.comic_id)
@@ -62,7 +88,6 @@ async def api_get_comics(request: web.Request) -> web.Response:
     q_param: str = request.rel_url.query.get('q')
     limit_param: str = request.rel_url.query.get('limit')
 
-
     fields = tuple(fields_param.split(',')) if fields_param else ()
 
     if not Comic.validate_fields(fields):
@@ -81,16 +106,17 @@ async def api_get_comics(request: web.Request) -> web.Response:
         else:
             limit = int(limit_param)
 
-    if not q_param:
-        q_param = 'x|!x'
-
     async with db_pool() as session:
         async with session.begin():
-            stmt = select(*Comic.get_columns(fields), func.count(Bookmark.comic_id).label('bookmarked_count')) \
-                .outerjoin(Bookmark) \
-                .where(Comic._ts_vector.bool_op("@@")(func.to_tsquery(q_param if q_param else 'x|!x'))) \
-                .group_by(Comic.comic_id) \
-                .limit(limit)
+            stmt = select(
+                *Comic.get_columns(fields), func.count(Bookmark.comic_id).label('bookmarked_count')
+            ).outerjoin(Bookmark)
+
+            if q_param:
+                stmt = stmt.where(Comic._ts_vector.bool_op("@@")(func.to_tsquery(q_param)))
+
+            stmt = stmt.group_by(Comic.comic_id).limit(limit)
+
             rows = (await session.execute(stmt)).fetchall()
 
         await session.commit()
