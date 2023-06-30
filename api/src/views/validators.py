@@ -23,23 +23,26 @@ def validate_queries(handler_func):
             for param_name in ('user_id', 'limit', 'offset'):
                 value = request.rel_url.query.get(param_name)
                 if value:
-                    if not value.lstrip('-').isdigit():
+                    if not value.isdigit():
                         raise InvalidQueryError(param_name, value)
-                    else:
-                        valid_query_params[param_name] = int(value)
-                else:
-                    valid_query_params[param_name] = 0
+                    valid_query_params[param_name] = int(value)
+                valid_query_params[param_name] = 0
 
-            fields_param: str = request.rel_url.query.get('fields')
-            if fields_param:
+            order = request.rel_url.query.get('order')
+            if order and order not in ('+', '-'):
+                raise InvalidQueryError('order', order)
+            valid_query_params['order'] = order
+
+            fields: str = request.rel_url.query.get('fields')
+            if fields:
                 resource_ = request.rel_url.raw_parts[2]
+                print(request.rel_url.raw_parts)
                 model = Base.get_model_by_tablename(resource_)
 
-                invalid_fields = set(fields_param.split(',')) - set(model.valid_column_names)
+                invalid_fields = set(fields.split(',')) - set(model.valid_column_names)
                 if invalid_fields:
                     raise InvalidQueryError(param='fields', value=', '.join(invalid_fields))
-                else:
-                    valid_query_params['fields'] = fields_param
+                valid_query_params['fields'] = fields
 
         except InvalidQueryError as err:
             return web.json_response(
@@ -77,16 +80,16 @@ def validate_json(json_schema):
     def wrapper(handler_func):
         @wraps(handler_func)
         async def wrapped(request: web.Request):
-            entity = await request.json()
+            json_ = await request.json()
 
             try:
-                jsonschema.validate(instance=entity, schema=json_schema)
+                jsonschema.validate(instance=json_, schema=json_schema)
             except ValidationError as err:
                 return web.json_response(
                     data=ErrorJSONData(message=f"Invalid json: {err.message}").to_dict(),
                     status=400
                 )
-            return await handler_func(request, entity)
+            return await handler_func(request, json_)
 
         return wrapped
 

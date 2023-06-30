@@ -6,9 +6,9 @@ from loguru import logger
 from tqdm import tqdm
 
 from src.api_client import api
+from src.bot_config import CHUNK_SIZE
 from src.comic_data_getter import comics_data_getter
 from src.common_utils import cut_into_chunks
-from src.bot_config import CHUNK_SIZE
 
 buffer = []
 sem = asyncio.Semaphore(64)  # Limits simultaneous connections on Windows
@@ -44,7 +44,7 @@ async def comics_initial_fill() -> None:
     latest = await comics_data_getter.get_xkcd_latest_comic_id()
 
     pbar = tqdm(total=latest, file=sys.stdout)
-    for chunk in cut_into_chunks(list(range(1, 65)), CHUNK_SIZE):
+    for chunk in cut_into_chunks(list(range(1, 1000)), CHUNK_SIZE):
         await get_comics_data(chunk, all_comics_ids)
         await write_to_db()
         logger.info(f"GOT {chunk[0]}-{chunk[-1]} chunk")

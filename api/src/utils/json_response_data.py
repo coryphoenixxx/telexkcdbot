@@ -3,9 +3,9 @@ from dataclasses import dataclass, asdict
 
 @dataclass
 class SuccessJSONData:
-    data: dict | list
     status: str = "success"
     message: str = None
+    data: dict | list = None
 
     def to_dict(self):
         return asdict(self)
@@ -13,8 +13,8 @@ class SuccessJSONData:
 
 @dataclass
 class ErrorJSONData:
-    message: str
     status: str = "error"
+    message: str = None
     data: dict | list = None
 
     def to_dict(self):

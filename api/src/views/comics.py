@@ -35,13 +35,24 @@ async def api_get_comic(request: web.Request, valid_query_params: dict) -> web.R
     )
 
 
+@router.get('/api/comics/search')
+@validate_queries
+async def api_get_found_comics(request: web.Request, valid_query_params: dict) -> web.Response:
+    rows, meta = await ComicDB.get_found_comic_list(valid_query_params)
+
+    return web.json_response(
+        data=meta | SuccessJSONData(data=[dict(row._mapping) for row in rows]).to_dict(),
+        status=200
+    )
+
+
 @router.get('/api/comics')
 @validate_queries
 async def api_get_comics(request: web.Request, valid_query_params: dict) -> web.Response:
     rows, meta = await ComicDB.get_comic_list(valid_query_params)
 
     return web.json_response(
-        data=SuccessJSONData(data=[dict(row._mapping) for row in rows]).to_dict() | meta,
+        data=meta | SuccessJSONData(data=[dict(row._mapping) for row in rows]).to_dict(),
         status=200
     )
 
