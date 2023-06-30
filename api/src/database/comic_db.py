@@ -79,4 +79,3 @@ class ComicDB(BaseDB):
                 insert(Comic).on_conflict_do_nothing(),
                 comic_data_list
             )
-

@@ -2,7 +2,6 @@ import asyncio
 import csv
 import sys
 from dataclasses import astuple
-from datetime import date
 from typing import Optional, Sequence
 
 import aiohttp

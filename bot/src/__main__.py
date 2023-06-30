@@ -1,19 +1,19 @@
 import platform
+
 from aiogram import Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_webhook
+from loguru import logger
+
 from src.api_client import api
-from src.bot_instance import bot
-from src.checker import checker
-from src.comics_initial_fill import comics_initial_fill
 from src.bot_config import ADMIN_ID, BOT_PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
+from src.bot_instance import bot
+from src.comics_initial_fill import comics_initial_fill
 from src.handlers.admin import register_admin_handlers
 from src.handlers.callbacks import register_callbacks
 from src.handlers.default import register_default_commands
 from src.middlewares.big_brother import big_brother
 from src.middlewares.localization import localization
-from loguru import logger
-import asyncio
 
 storage = MemoryStorage()
 

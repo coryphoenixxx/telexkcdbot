@@ -5,7 +5,7 @@ description = "telexkcdbot API microservice"
 authors = ["coryphoenixxx <coryphoenixxx@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/coryphoenixxx/telexkcdbot"
+repository = "https://github.com/coryphoenixxx/telexkcdbot/api"
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -17,41 +17,7 @@ sqlalchemy = "^2.0"
 asyncpg = "^0.27"
 alembic = "^1.11.1"
 sqlalchemy-utils = "^0.41.1"
-jsonschema = "^4.17.3"
-
-
-[tool.poetry.group.dev.dependencies]
-pre-commit = "^2.20.0"
-pytest = "^7.1.3"
-
-[tool.autoflake]
-check = false
-recursive = true
-in-place = true
-remove-all-unused-imports = true
-remove-unused-variables = true
-
-[tool.isort]
-profile = "black"
-skip = [".gitignore"]
-src_paths = ["src"]
-line_length = 120
-include_trailing_comma = "true"
-
-[tool.black]
-line-length = 120
-targer-version = ["py311"]
-
-[tool.mypy]
-python_version = "3.11"
-disallow_untyped_defs = false
-ignore_missing_imports = true
-no_implicit_optional = true
-check_untyped_defs = true
-warn_return_any = false
-
-[tool.pytest.ini_options]
-addopts = "-ra -q"
+jsonschema = "^4.17"
 
 [build-system]
 requires = ["poetry-core"]

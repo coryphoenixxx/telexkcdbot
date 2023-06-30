@@ -72,5 +72,3 @@ def do_run_migrations(connection):
 
 
 run_migrations_online()
-
-
