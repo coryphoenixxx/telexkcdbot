@@ -5,14 +5,22 @@ from src.database.models import Base
 
 
 class BaseDB:
-    _engine = create_async_engine(DATABASE_URL, future=True, echo=True)
-    pool = async_sessionmaker(_engine, expire_on_commit=False)
+    _instance = None
+    pool: async_sessionmaker
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super().__new__()
+        return cls._instance
 
     @classmethod
     async def init(cls):
-        async with cls._engine.begin() as conn:
+        engine = create_async_engine(DATABASE_URL, echo=False, echo_pool=True, pool_size=10)
+        cls.pool = async_sessionmaker(engine, expire_on_commit=True)
+
+        async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        await cls._engine.dispose()
+        await engine.dispose()
 
 
 class SessionFactory:

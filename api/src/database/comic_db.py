@@ -19,7 +19,7 @@ class ComicDB(BaseDB):
         if user_id:
             subquery = select((func.count('*') > 0)) \
                 .select_from(Bookmark) \
-                .where(and_(Bookmark.user_id == int(user_id), Bookmark.comic_id == comic_id)) \
+                .where(and_(Bookmark.user_id == user_id, Bookmark.comic_id == comic_id)) \
                 .scalar_subquery() \
                 .label('bookmarked_by_user')
             select_columns.append(subquery)
@@ -52,9 +52,9 @@ class ComicDB(BaseDB):
 
             stmt = stmt.group_by(Comic.comic_id)
 
-            if not order or order == '+':
+            if not order or order == 'esc':
                 stmt = stmt.order_by(Comic.comic_id)
-            elif order == '-':
+            elif order == 'desc':
                 stmt = stmt.order_by(Comic.comic_id.desc())
 
             if limit:
@@ -108,7 +108,7 @@ class ComicDB(BaseDB):
         return rows, meta
 
     @classmethod
-    async def add_comic(cls, comic_data_list):
+    async def add_comics(cls, comic_data_list):
         async with SessionFactory() as session:
             await session.execute(
                 insert(Comic).on_conflict_do_nothing(),
