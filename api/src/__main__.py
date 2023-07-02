@@ -1,5 +1,4 @@
 from aiohttp import web
-
 from src.api_config import API_PORT
 from src.database.base import BaseDB
 from src.views.routes import Router

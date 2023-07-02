@@ -4,7 +4,6 @@ from aiogram import Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.utils.executor import start_webhook
 from loguru import logger
-
 from src.api_client import api
 from src.bot_config import ADMIN_ID, BOT_PORT, WEBAPP_HOST, WEBHOOK_PATH, WEBHOOK_URL
 from src.bot_instance import bot
@@ -46,7 +45,7 @@ async def on_startup(dp: Dispatcher):
         disable_notification=True,
     )
 
-    #asyncio.create_task(checker())
+    # asyncio.create_task(checker())
 
     logger.info("Bot started.")
 

@@ -1,14 +1,13 @@
 import asyncio
 import sys
-from typing import Sequence
+from collections.abc import Sequence
 
 from loguru import logger
-from tqdm import tqdm
-
 from src.api_client import api
 from src.bot_config import CHUNK_SIZE
 from src.comic_data_getter import comics_data_getter
 from src.common_utils import cut_into_chunks
+from tqdm import tqdm
 
 buffer = []
 sem = asyncio.Semaphore(64)  # Limits simultaneous connections on Windows

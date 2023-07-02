@@ -8,7 +8,6 @@ from aiogram.dispatcher.middlewares import BaseMiddleware
 from aiogram.types import Message, Update
 from aiogram.utils.exceptions import Throttled
 from loguru import logger
-
 from src.api_client import api
 from src.common_utils import preprocess_text, remove_prev_message_kb, user_is_unavailable
 from src.keyboards import kboard
@@ -19,7 +18,7 @@ class BigBrother(BaseMiddleware):
     def __init__(self, limit: float = DEFAULT_RATE_LIMIT, key_prefix: str = "antiflood_"):
         self.rate_limfit = limit
         self.prefix = key_prefix
-        super(BigBrother, self).__init__()
+        super().__init__()
 
     @staticmethod
     async def on_pre_process_update(update: Update, data: dict) -> None:
@@ -71,9 +70,7 @@ class BigBrother(BaseMiddleware):
             raise CancelHandler()
 
     async def message_throttled(self, msg: Message, throttled: Throttled) -> None:
-        """
-        Notify user only on first exceed and notify about unlocking only on last exceed
-        """
+        """Notify user only on first exceed and notify about unlocking only on last exceed."""
         await remove_prev_message_kb(msg)
 
         handler = current_handler.get()

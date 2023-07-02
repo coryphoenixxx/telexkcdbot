@@ -1,5 +1,4 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-
 from src.api_config import DATABASE_URL
 from src.database.models import Base
 

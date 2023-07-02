@@ -1,13 +1,12 @@
-from aiohttp import web
-
 import src.views.comic_views as comics
+from aiohttp import web
 from src.utils.json_response_dataclasses import SuccessJSONData
 
 
 class Router:
     __app: web.Application = None
     __routes = [
-        web.get('/api/comics/{comic_id:\d+}', comics.api_get_comic),
+        web.get('/api/comics/{comic_id:\\d+}', comics.api_get_comic),
         web.get('/api/comics', comics.api_get_comics),
         web.post('/api/comics', comics.api_post_comics),
         web.get('/api/comics/search', comics.api_get_found_comics),
@@ -26,5 +25,5 @@ class Router:
 
         return web.json_response(
             data=SuccessJSONData(message="API is available.").to_dict(),
-            status=200
+            status=200,
         )

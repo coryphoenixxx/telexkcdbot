@@ -167,3 +167,6 @@ docker-compose.prod.yml
 /pgdata/
 /build_n_push.bat
 /TODO.txt
+/api/.idea/
+/bot/.idea/
+/.ruff_cache/

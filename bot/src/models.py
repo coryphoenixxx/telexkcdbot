@@ -11,7 +11,7 @@ class ComicHeadlineInfo:
 
 @dataclass
 class ComicData:
-    """Used for sending comic to user"""
+    """Used for sending comic to user."""
 
     comic_id: int
     title: str
@@ -24,7 +24,7 @@ class ComicData:
 
 @dataclass
 class XKCDComicData:
-    """English-specific comic data"""
+    """English-specific comic data."""
 
     comic_id: int = 404
     title: str = "404"

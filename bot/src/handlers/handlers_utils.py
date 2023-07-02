@@ -1,12 +1,12 @@
 import asyncio
 import random
+from collections.abc import Callable
 from contextlib import suppress
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, TypeVar
 
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
-
 from src.api_client import api
 from src.bot_instance import bot
 from src.comic_data_getter import comics_data_getter
@@ -44,7 +44,7 @@ async def send_headlines_as_text(user_id: int, headlines_info: list[ComicHeadlin
                     comic_id=headline_info.comic_id,
                     title=headline_info.title,
                     img_url=headline_info.img_url,
-                )
+                ),
             )
         await bot.send_message(
             user_id,
@@ -97,7 +97,7 @@ async def send_menu(user_id: int) -> None:
 • contact admin.
 
 ____________________
-"""
+""",
     )
     user_lang = await api.get_user_lang(user_id)
     users_num = len(await api.get_all_users_ids())
@@ -122,13 +122,12 @@ ____________________
 
 
 async def flip_next(user_id: int, state: FSMContext) -> None:
-    """Handles flipping mode - when user views his bookmarks or found comics"""
-
+    """Handles flipping mode - when user views his bookmarks or found comics."""
     fsm_list = (await state.get_data()).get("fsm_list")
 
     if fsm_list:
         fsm_lang = (await state.get_data()).get("fsm_lang")
-        comic_lang = "en" if not fsm_lang else fsm_lang
+        comic_lang = fsm_lang if fsm_lang else "en"
 
         comic_id = fsm_list.pop(0)
         await state.update_data(fsm_list=fsm_list)
@@ -182,13 +181,13 @@ async def calc_new_comic_id(user_id: int, comic_id: int, action: str) -> int:
     return comic_id_by_action[action]
 
 
-def rate_limit(limit: int, key: Optional[str] = None) -> Callable[[F], F]:
+def rate_limit(limit: int, key: str | None = None) -> Callable[[F], F]:
     """Decorator for configuring rate limit and key in different functions."""
 
     def decorator(func: F) -> F:
-        setattr(func, "throttling_rate_limit", limit)
+        func.throttling_rate_limit = limit
         if key:
-            setattr(func, "throttling_key", key)
+            func.throttling_key = key
         return func
 
     return decorator

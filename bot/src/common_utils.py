@@ -1,4 +1,9 @@
 import asyncio
+from collections.abc import Callable, Generator
+from contextlib import suppress
+from dataclasses import astuple
+from string import ascii_letters, digits
+
 from aiogram.dispatcher import FSMContext
 from aiogram.types import ChatActions, InputFile, Message
 from aiogram.utils.exceptions import (
@@ -12,17 +17,13 @@ from aiogram.utils.exceptions import (
     MessageToEditNotFound,
     UserDeactivated,
 )
+from loguru import logger
 from src.api_client import api
+from src.bot_config import ADMIN_ID, IMG_DIR, RU_COMICS_IMAGES
 from src.bot_instance import bot
 from src.comic_data_getter import comics_data_getter
-from src.bot_config import ADMIN_ID, IMG_DIR, RU_COMICS_IMAGES
 from src.keyboards import kboard
 from src.middlewares.localization import _, localization
-from contextlib import suppress
-from dataclasses import astuple
-from loguru import logger
-from string import ascii_letters, digits
-from typing import Callable, Generator, Optional
 
 suppressed_exceptions = (
     AttributeError,
@@ -35,12 +36,10 @@ cyrillic = "АаБбВвГгДдЕеЁёЖжЗзИиЙйКкЛлМмНнОоПп
 punctuation = " -(),.:;!?#+*/"
 
 
-def make_headline(comic_id: int, title: str, img_url: str, public_date: Optional[str] = None) -> str:
-    """
-    Makes the headline string like <number>. <title> and optional <public date>.
+def make_headline(comic_id: int, title: str, img_url: str, public_date: str | None = None) -> str:
+    """Makes the headline string like <number>. <title> and optional <public date>.
     Don't add public date and aligns the text a little for flipping mode.
     """
-
     if "http" not in img_url:  # If it's local storage russian comic image don't make link
         link = title
     else:
@@ -50,7 +49,7 @@ def make_headline(comic_id: int, title: str, img_url: str, public_date: Optional
         link = f"<a href='{url}'>{title}</a>"
 
     if public_date:
-        return f'<b>{str(comic_id)}. "{link}"</b>   <i>({public_date})</i>'
+        return f'<b>{comic_id!s}. "{link}"</b>   <i>({public_date})</i>'
     return f"<b>{str(comic_id) + '.':7}</b>\"{link}\""
 
 
@@ -62,8 +61,7 @@ async def send_comic(
         from_toggle_lang_cb: bool = False,
         from_broadcast: bool = False,
 ) -> None:
-    """
-    :param user_id:
+    """:param user_id:
     :param comic_id:
     :param keyboard:
     :param comic_lang: In what language to send the comic
@@ -85,10 +83,7 @@ async def send_comic(
                 last_comic_id,
                 last_comic_lang,
             ) = await api.get_last_comic_info(user_id)
-            if last_comic_id == comic_id and last_comic_lang == "ru" and from_toggle_lang_cb:
-                comic_lang = "en"
-            else:
-                comic_lang = "ru"
+            comic_lang = "en" if last_comic_id == comic_id and last_comic_lang == "ru" and from_toggle_lang_cb else "ru"
 
     await api.update_last_comic_info(user_id, comic_id, comic_lang)
 
@@ -155,8 +150,8 @@ async def send_comic(
     )
 
 
-async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = None) -> None:
-    """Sends to users a new comic or an admin message"""
+async def broadcast(msg_text: str | None = None, comic_id: int | None = None) -> None:
+    """Sends to users a new comic or an admin message."""
     # TODO.txt: fix looping
     # TODO.txt: separate logic
     count = 0
@@ -178,7 +173,7 @@ async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = No
                         text = (
                             "🔥 <b>And here comes the new comic!</b> 🔥"
                             if user_lang == "en"
-                            else "🔥 <b>А вот и свежий выпуск!</b> 🔥"
+                            else "🔥 <b>A вот и свежий выпуск!</b> 🔥"
                         )
 
                         if notification_sound:
@@ -198,7 +193,7 @@ async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = No
                     title_text = (
                         "❗ <u><b>ADMIN MESSAGE:</b></u>\n"
                         if user_lang == "en"
-                        else "❗ <u><b>СООБЩЕНИЕ ОТ АДМИНА:</b></u>\n"
+                        else "❗ <u><b>СООБЩЕНИЕ OT АДМИНА:</b></u>\n"
                     )
                     text = title_text + str(msg_text)
 
@@ -221,7 +216,7 @@ async def broadcast(msg_text: Optional[str] = None, comic_id: Optional[int] = No
         logger.info(broadcast_final_text)
 
 
-async def remove_prev_message_kb(msg: Message, state: Optional[FSMContext] = None) -> None:
+async def remove_prev_message_kb(msg: Message, state: FSMContext | None = None) -> None:
     if state:
         await state.reset_data()
     with suppress(*suppressed_exceptions):
@@ -234,8 +229,7 @@ def cut_into_chunks(lst: list, chunk_size: int) -> Generator[list, None, None]:
 
 
 def preprocess_text(text: str) -> str:
-    """Removes danger symbols from the text for before logging or searching"""
-
+    """Removes danger symbols from the text for before logging or searching."""
     permitted = ascii_letters + digits + cyrillic + punctuation
     processed_text = "".join([ch for ch in text.strip() if ch in permitted])[:30]
     return processed_text

@@ -1,9 +1,19 @@
 from datetime import datetime
-from typing import Optional
 
-from sqlalchemy import Boolean, Column, Date, SmallInteger, String, ForeignKey, Integer, Text, Computed, Index, \
-    BigInteger
-from sqlalchemy.orm import relationship, DeclarativeBase
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    Computed,
+    Date,
+    ForeignKey,
+    Index,
+    Integer,
+    SmallInteger,
+    String,
+    Text,
+)
+from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy_utils import TSVectorType
 
 
@@ -11,7 +21,7 @@ class Base(DeclarativeBase):
     _additional_column_names = None
 
     @classmethod
-    def get_columns(cls, fields: Optional[str] = None):
+    def get_columns(cls, fields: str | None = None):
         columns = [c for c in cls.__table__.columns if not c.name.startswith('_')]
         if fields:
             return [c for c in columns if c.name in fields.split(',')]
@@ -54,8 +64,8 @@ class Comic(Base, additional_column_names=('bookmarked_count', 'bookmarked_by_us
         TSVectorType(),
         Computed(
             "to_tsvector('english', title || ' ' || comment || ' ' || rus_title || ' ' || rus_comment)",
-            persisted=True
-        )
+            persisted=True,
+        ),
     )
 
     __table_args__ = (

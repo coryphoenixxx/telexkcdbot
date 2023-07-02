@@ -2,7 +2,6 @@ from typing import Any
 
 from aiogram import types
 from aiogram.contrib.middlewares.i18n import I18nMiddleware
-
 from src.api_client import api
 from src.bot_config import I18N_DOMAIN, LOCALES_DIR
 
@@ -13,8 +12,7 @@ class Localization(I18nMiddleware):
         return await api.get_user_lang(user.id)
 
     async def set_user_locale(self, locale: str) -> None:
-        """Forcibly set the locale to the context"""
-
+        """Forcibly set the locale to the context."""
         self.ctx_locale.set(locale)
 
 

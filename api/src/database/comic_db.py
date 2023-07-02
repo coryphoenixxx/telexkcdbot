@@ -1,8 +1,7 @@
-from sqlalchemy import func, select, and_
+from sqlalchemy import and_, func, select
 from sqlalchemy.dialects.postgresql import insert
-
 from src.database.base import BaseDB, SessionFactory
-from src.database.models import Comic, Bookmark
+from src.database.models import Bookmark, Comic
 
 
 class ComicDB(BaseDB):
@@ -17,7 +16,7 @@ class ComicDB(BaseDB):
             select_columns.append(func.count(Bookmark.comic_id).label('bookmarked_count'))
 
         if user_id:
-            subquery = select((func.count('*') > 0)) \
+            subquery = select(func.count('*') > 0) \
                 .select_from(Bookmark) \
                 .where(and_(Bookmark.user_id == user_id, Bookmark.comic_id == comic_id)) \
                 .scalar_subquery() \
@@ -68,8 +67,8 @@ class ComicDB(BaseDB):
             'meta': {
                 'limit': limit,
                 'offset': offset,
-                'total': len(rows)
-            }
+                'total': len(rows),
+            },
         }
 
         return rows, meta
@@ -101,8 +100,8 @@ class ComicDB(BaseDB):
             'meta': {
                 'limit': limit,
                 'offset': offset,
-                'total': len(rows)
-            }
+                'total': len(rows),
+            },
         }
 
         return rows, meta
@@ -112,5 +111,5 @@ class ComicDB(BaseDB):
         async with SessionFactory() as session:
             await session.execute(
                 insert(Comic).on_conflict_do_nothing(),
-                comic_data_list
+                comic_data_list,
             )

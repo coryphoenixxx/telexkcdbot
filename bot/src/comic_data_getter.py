@@ -1,24 +1,23 @@
 import asyncio
 import csv
 import sys
+from collections.abc import Sequence
 from dataclasses import astuple
-from typing import Optional, Sequence
 
 import aiohttp
 from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
-from googletrans import Translator
+from deep_translator import GoogleTranslator
 from loguru import logger
-from tqdm import tqdm
-
 from src.bot_config import RU_COMICS_CSV, RU_COMICS_IMAGES
 from src.middlewares.localization import _
 from src.models import RuComicData, TotalComicData, XKCDComicData
+from tqdm import tqdm
 
 
 class ComicsDataGetter:
     def __init__(self) -> None:
-        self.ru_comics_ids: Sequence[int] = tuple()
+        self.ru_comics_ids: Sequence[int] = ()
         self._default_specific_comic_ids: set = {  # Specific comics cannot be displayed correctly in Telegram
             498,
             826,
@@ -45,7 +44,7 @@ class ComicsDataGetter:
             2445,
             2712,
         }
-        self._translator: Translator = Translator()
+        self.translator = GoogleTranslator(source='en', target='ru')
 
         self._ru_comics_data_dict: dict = {}
 
@@ -59,23 +58,21 @@ class ComicsDataGetter:
     @staticmethod
     def _url_fixer(url: str, comic_id: int) -> str:
         """Telegram doesn't upload original image, so let replace their urls."""
-
         correct_urls = {
             109: "https://www.explainxkcd.com/wiki/images/5/50/spoiler_alert.png",
             658: "https://www.explainxkcd.com/wiki/images/1/1c/orbitals.png",
             2522: "https://www.explainxkcd.com/wiki/images/b/bf/two_factor_security_key.png",
         }
 
-        if comic_id in correct_urls.keys():
+        if comic_id in correct_urls:
             return correct_urls[comic_id]
         return url
 
     @staticmethod
-    async def _get_soup(url: str) -> Optional[BeautifulSoup]:
-        """Gets soup of explanation text for further parsing"""
-
+    async def _get_soup(url: str) -> BeautifulSoup | None:
+        """Gets soup of explanation text for further parsing."""
         attempts = 3
-        for attempt in range(attempts):
+        for _attempt in range(attempts):
             async with aiohttp.ClientSession() as session:
                 try:
                     response = await session.get(url)
@@ -91,8 +88,7 @@ class ComicsDataGetter:
         return None
 
     def _process_path(self, comic_id: str) -> str:
-        """
-        Russian comics images have .png or .jpg extension.
+        """Russian comics images have .png or .jpg extension.
         So let get the actual filename and make a relational path for writing it in the database.
         """
         # TODO.txt: save filename list in memory
@@ -100,13 +96,12 @@ class ComicsDataGetter:
         return filename
 
     def _translate_to_ru(self, text: str) -> str:
-        result: str = self._translator.translate(text, src="en", dest="ru").text
+        result: str = self.translator.translate(text)
         return result
 
     def retrieve_from_csv_to_dict(self) -> None:
-        """Retrieve Russian translation info from local storage csv file to dictionary"""
-
-        with open(RU_COMICS_CSV, "r", encoding="utf-8") as csv_file:
+        """Retrieve Russian translation info from local storage csv file to dictionary."""
+        with open(RU_COMICS_CSV, encoding="utf-8") as csv_file:
             csv_reader = csv.DictReader(csv_file, delimiter=",")
             for row in tqdm(list(csv_reader), file=sys.stdout):
                 comic_id = int(row["comic_id"])
@@ -118,8 +113,7 @@ class ComicsDataGetter:
                 )
 
     async def get_xkcd_comic_data_by_id(self, comic_id: int) -> XKCDComicData:
-        """Gets English comic data from xkcd.com"""
-
+        """Gets English comic data from xkcd.com."""
         if comic_id == 404:
             return XKCDComicData()  # 404 comic doesn't exist, so return default
         else:
@@ -139,27 +133,25 @@ class ComicsDataGetter:
                 public_date=f"{comic_json.get('day'):0>2}-"
                             f"{comic_json.get('month'):0>2}-"
                             f"{comic_json.get('year'):0>2}",
-                is_specific=True if comic_id in self._default_specific_comic_ids else False,
+                is_specific=comic_id in self._default_specific_comic_ids,
             )
 
     async def get_ru_comic_data_by_id(self, comic_id: int) -> RuComicData:
-        """Gets russian comic data from dictionary by comic id"""
-
+        """Gets russian comic data from dictionary by comic id."""
         ru_comic_data = self._ru_comics_data_dict.get(comic_id)
         if not ru_comic_data:
             return RuComicData()  # return empty
         return self._ru_comics_data_dict[comic_id]
 
     async def get_total_comic_data(self, comic_id: int) -> TotalComicData:
-        """Unions all comic data"""
-
+        """Unions all comic data."""
         xkcd_comic_data = await self.get_xkcd_comic_data_by_id(comic_id)
         ru_comic_data = await self.get_ru_comic_data_by_id(comic_id)
         return TotalComicData(*(astuple(xkcd_comic_data) + astuple(ru_comic_data)))
 
     async def get_explanation(self, comic_id: int, url: str) -> str:
         no_explanation_text: str = _(
-            "❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it later.</b>"
+            "❗ <b>There's no explanation yet or explainxkcd.com is unavailable. Try it later.</b>",
         )
 
         try:

@@ -4,11 +4,10 @@ from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import CallbackQuery, Message
-
 from src.api_client import api
+from src.bot_config import ADMIN_ID
 from src.bot_instance import bot
 from src.common_utils import broadcast, remove_prev_message_kb, suppressed_exceptions, user_is_unavailable
-from src.bot_config import ADMIN_ID
 from src.handlers.handlers_utils import States, remove_callback_kb
 from src.keyboards import kboard, support_cb_data
 from src.middlewares.localization import _
@@ -126,7 +125,7 @@ async def admin_support_msg(msg: Message, state: FSMContext) -> None:
         pass
     else:
         user_lang = await api.get_user_lang(user_id)
-        base_text = "❗ <b>ADMIN ANSWER:\n</b>" if user_lang == "en" else "❗ <b>ОТВЕТ АДМИНА:\n</b>"
+        base_text = "❗ <b>ADMIN ANSWER:\n</b>" if user_lang == "en" else "❗ <b>OTBET АДМИНА:\n</b>"
         await bot.send_message(
             user_id,
             text=base_text + msg.text,

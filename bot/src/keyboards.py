@@ -2,7 +2,6 @@ from dataclasses import astuple
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.callback_data import CallbackData
-
 from src.api_client import api
 from src.bot_config import ADMIN_ID
 from src.middlewares.localization import _
@@ -76,8 +75,7 @@ class Keyboard:
         cur_comic_lang: str,
         kb: str,
     ) -> list[str]:
-        """Inserts 🇷🇺/🇬🇧 button in keyboard under the comic"""
-
+        """Inserts 🇷🇺/🇬🇧 button in keyboard under the comic."""
         lang_btn_enabled = await api.get_lang_btn_status(user_id)
         if lang_btn_enabled and has_ru:
             if cur_comic_lang == "en":

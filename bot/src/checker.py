@@ -1,7 +1,6 @@
 import asyncio
 
 import aioschedule
-
 from src.api_client import api
 from src.comic_data_getter import comics_data_getter
 from src.common_utils import broadcast
@@ -23,7 +22,7 @@ async def get_and_broadcast_new_comic() -> None:
                     img_url=xkcd_comic_data.img_url,
                     comment=xkcd_comic_data.comment,
                     public_date=xkcd_comic_data.public_date,
-                )
+                ),
             )
         await broadcast(comic_id=real_last_comic_id)
 

@@ -2,10 +2,9 @@ from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import CommandStart
 from aiogram.types import InputFile, Message
-
 from src.api_client import api
-from src.common_utils import preprocess_text, remove_prev_message_kb
 from src.bot_config import IMG_DIR
+from src.common_utils import preprocess_text, remove_prev_message_kb
 from src.handlers.handlers_utils import (
     States,
     flip_next,
@@ -63,8 +62,8 @@ async def process_user_typing(msg: Message, state: FSMContext) -> None:
             _(
                 "❗ <b>You did it. You broke my search engine.\n"
                 "You can be proud of yourself!\n"
-                "Here's your award:</b>"
-            )
+                "Here's your award:</b>",
+            ),
         )
         await msg.answer_photo(
             InputFile(IMG_DIR / "candy.jpg"),

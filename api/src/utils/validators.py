@@ -3,7 +3,6 @@ from functools import wraps
 import jsonschema
 from aiohttp import web
 from jsonschema import ValidationError
-
 from src.database.models import Base
 from src.utils.json_response_dataclasses import ErrorJSONData
 
@@ -51,7 +50,7 @@ def validate_queries(handler_func):
         except InvalidQueryError as err:
             return web.json_response(
                 data=ErrorJSONData(message=err.message).to_dict(),
-                status=422
+                status=422,
             )
 
         valid_query_params['q'] = request.rel_url.query.get('q')
@@ -75,7 +74,7 @@ comic_json_schema = {
         "publication_date": {"type": "string"},
         "is_specific": {"type": "boolean"},
     },
-    "required": ["comic_id", "title", "image", "comment", "transcript", "is_specific"]
+    "required": ["comic_id", "title", "image", "comment", "transcript", "is_specific"],
 }
 
 
@@ -90,7 +89,7 @@ def validate_json(json_schema):
             except ValidationError as err:
                 return web.json_response(
                     data=ErrorJSONData(message=f"Invalid json: {err.message}").to_dict(),
-                    status=400
+                    status=400,
                 )
             return await handler_func(request, json_)
 

@@ -2,19 +2,17 @@ from datetime import date, datetime
 
 from aiohttp import ClientSession
 from loguru import logger
-
 from src.bot_config import API_URL
 from src.models import AdminUsersInfo, ComicData, ComicHeadlineInfo, MenuKeyboardInfo, TotalComicData
 
 
 class APIClient:
     async def check_connection(self) -> None:
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.get("/api") as resp:
-                status = (await resp.json())["status"]
+        async with ClientSession(base_url=self.base_url) as session, session.get("/api") as resp:
+            status = (await resp.json())["status"]
 
-                if status == "OK":
-                    logger.info("API is available")
+            if status == "OK":
+                logger.info("API is available")
 
     def __init__(self) -> None:
         self.base_url = API_URL
@@ -26,11 +24,10 @@ class APIClient:
                 return latest_id
 
     async def get_all_comics_ids(self):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.get("/api/comics?fields=comic_id") as resp:
+        async with ClientSession(base_url=self.base_url) as session, session.get("/api/comics?fields=comic_id") as resp:
 
-                # comics_ids = (await resp.json())["comics_ids"]
-                return (0,)
+            # comics_ids = (await resp.json())["comics_ids"]
+            return (0,)
 
     async def get_all_ru_comics_ids(self):
         async with ClientSession(base_url=self.base_url) as session:
@@ -81,23 +78,22 @@ class APIClient:
                 return headline_info
 
     async def add_new_comic(self, comic_data: TotalComicData):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.post(
-                    "/api/comics",
-                    json={
-                        "comic_id": comic_data.comic_id,
-                        "title": comic_data.title,
-                        "image": comic_data.img_url,
-                        "comment": comic_data.comment,
-                        "transcript": "null",
-                        "publication_date": str(comic_data.public_date),
-                        "is_specific": comic_data.is_specific,
-                        "rus_title": comic_data.ru_title,
-                        "rus_image": comic_data.ru_img_url,
-                        "rus_comment": comic_data.ru_comment
-                    },
-            ) as resp:
-                pass
+        async with ClientSession(base_url=self.base_url) as session, session.post(
+                "/api/comics",
+                json={
+                    "comic_id": comic_data.comic_id,
+                    "title": comic_data.title,
+                    "image": comic_data.img_url,
+                    "comment": comic_data.comment,
+                    "transcript": "null",
+                    "publication_date": str(comic_data.public_date),
+                    "is_specific": comic_data.is_specific,
+                    "rus_title": comic_data.ru_title,
+                    "rus_image": comic_data.ru_img_url,
+                    "rus_comment": comic_data.ru_comment,
+                },
+        ) as resp:
+            pass
 
     async def toggle_spec_status(self, comic_id: int):
         async with ClientSession(base_url=self.base_url) as session:
@@ -110,9 +106,8 @@ class APIClient:
                 pass
 
     async def delete_user(self, user_id: int):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.delete(f"/api/users/{user_id}") as resp:
-                pass
+        async with ClientSession(base_url=self.base_url) as session, session.delete(f"/api/users/{user_id}") as resp:
+            pass
 
     async def get_user_lang(self, user_id: int) -> str:
         async with ClientSession(base_url=self.base_url) as session:
@@ -132,18 +127,16 @@ class APIClient:
                 return last_comic_info
 
     async def update_last_comic_info(self, user_id: int, new_comic_id: int, new_comic_lang: str):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.patch(
-                    f"/api/users/last_comic_info/{user_id}",
-                    json={"new_comic_id": new_comic_id, "new_comic_lang": new_comic_lang},
-            ) as resp:
-                pass
+        async with ClientSession(base_url=self.base_url) as session, session.patch(
+                f"/api/users/last_comic_info/{user_id}",
+                json={"new_comic_id": new_comic_id, "new_comic_lang": new_comic_lang},
+        ) as resp:
+            pass
 
     async def get_all_users_ids(self):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.get("/api/users/users_ids") as resp:
-                users_ids = (await resp.json())["users_ids"]
-                return users_ids
+        async with ClientSession(base_url=self.base_url) as session, session.get("/api/users/users_ids") as resp:
+            users_ids = (await resp.json())["users_ids"]
+            return users_ids
 
     async def get_only_ru_mode_status(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
@@ -179,11 +172,10 @@ class APIClient:
                 pass
 
     async def update_last_action_date(self, user_id: int, action_date: date):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.patch(
-                    f"/api/users/last_action_date/{user_id}", json={"action_date": str(action_date)}
-            ) as resp:
-                pass
+        async with ClientSession(base_url=self.base_url) as session, session.patch(
+                f"/api/users/last_action_date/{user_id}", json={"action_date": str(action_date)},
+        ) as resp:
+            pass
 
     async def get_user_menu_info(self, user_id: int):
         async with ClientSession(base_url=self.base_url) as session:
@@ -214,10 +206,9 @@ class APIClient:
                 pass
 
     async def get_admin_users_info(self):
-        async with ClientSession(base_url=self.base_url) as session:
-            async with session.get("/api/users/admin_users_info") as resp:
-                admin_users_info = await resp.json()
-                return AdminUsersInfo(**admin_users_info)
+        async with ClientSession(base_url=self.base_url) as session, session.get("/api/users/admin_users_info") as resp:
+            admin_users_info = await resp.json()
+            return AdminUsersInfo(**admin_users_info)
 
 
 api = APIClient()
