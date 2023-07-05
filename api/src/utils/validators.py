@@ -2,9 +2,8 @@ from functools import wraps
 
 import jsonschema
 from aiohttp import web
-from jsonschema import ValidationError
 from src.database.models import Base
-from src.utils.json_response_dataclasses import ErrorJSONData
+from src.utils.json_response import ErrorJSONData, json_response
 
 
 class InvalidQueryError(Exception):
@@ -29,7 +28,6 @@ def validate_queries(handler_func):
                     valid_query_params[param_name] = 0
 
             order = request.rel_url.query.get('order')
-
             if order and order not in ('esc', 'desc'):
                 raise InvalidQueryError('order', order)
             else:
@@ -38,7 +36,6 @@ def validate_queries(handler_func):
             fields: str = request.rel_url.query.get('fields')
             if fields:
                 resource_ = request.rel_url.raw_parts[2]
-                print(request.rel_url.raw_parts)
                 model = Base.get_model_by_tablename(resource_)  # dirty
 
                 invalid_fields = set(fields.split(',')) - set(model.valid_column_names)
@@ -48,8 +45,8 @@ def validate_queries(handler_func):
                     valid_query_params['fields'] = fields
 
         except InvalidQueryError as err:
-            return web.json_response(
-                data=ErrorJSONData(message=err.message).to_dict(),
+            return json_response(
+                data=ErrorJSONData(message=err.message),
                 status=422,
             )
 
@@ -86,9 +83,9 @@ def validate_json(json_schema):
 
             try:
                 jsonschema.validate(instance=json_, schema=json_schema)
-            except ValidationError as err:
-                return web.json_response(
-                    data=ErrorJSONData(message=f"Invalid json: {err.message}").to_dict(),
+            except jsonschema.ValidationError as err:
+                return json_response(
+                    data=ErrorJSONData(message=f"Invalid json: {err.message}"),
                     status=400,
                 )
             return await handler_func(request, json_)

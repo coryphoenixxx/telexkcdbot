@@ -21,8 +21,8 @@ services:
   api:
     container_name: telexkcdbot-api
     build: api
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+#    extra_hosts:
+#      - "host.docker.internal:host-gateway"
     env_file:
       - .env
     depends_on:

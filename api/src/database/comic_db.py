@@ -1,19 +1,27 @@
 from sqlalchemy import and_, func, select
 from sqlalchemy.dialects.postgresql import insert
-from src.database.base import BaseDB, SessionFactory
+from src.database.base import SessionFactory
 from src.database.models import Bookmark, Comic
 
 
-class ComicDB(BaseDB):
-    @classmethod
-    async def get_comic_detail(cls, comic_id, valid_query_params):
-        fields = valid_query_params.get('fields')
-        user_id = valid_query_params.get('user_id')
-
+class ComicDB:
+    @staticmethod
+    def get_select_columns(fields):
         select_columns = Comic.get_columns(fields)
 
         if not fields or 'bookmarked_count' in fields:
             select_columns.append(func.count(Bookmark.comic_id).label('bookmarked_count'))
+        return select_columns
+
+    @classmethod
+    async def get_comic_detail(
+            cls,
+            comic_id: int,
+            fields: str | None = None,
+            user_id: int | None = None,
+            **kwargs,
+    ):
+        select_columns = cls.get_select_columns(fields)
 
         if user_id:
             subquery = select(func.count('*') > 0) \
@@ -35,15 +43,15 @@ class ComicDB(BaseDB):
         return row
 
     @classmethod
-    async def get_comic_list(cls, valid_query_params):
-        fields, limit, offset, order = (
-            valid_query_params.get(param) for param in ('fields', 'limit', 'offset', 'order')
-        )
-
-        select_columns = Comic.get_columns(fields)
-
-        if not fields or 'bookmarked_count' in fields:
-            select_columns.append(func.count(Bookmark.comic_id).label('bookmarked_count'))
+    async def get_comic_list(
+            cls,
+            fields: str | None = None,
+            limit: int | None = None,
+            offset: int | None = None,
+            order: str | None = None,
+            **kwargs,
+    ):
+        select_columns = cls.get_select_columns(fields)
 
         async with SessionFactory() as session:
             stmt = select(*select_columns) \
@@ -74,13 +82,15 @@ class ComicDB(BaseDB):
         return rows, meta
 
     @classmethod
-    async def get_found_comic_list(cls, valid_query_params):
-        fields, limit, offset, q = (valid_query_params.get(param) for param in ('fields', 'limit', 'offset', 'q'))
-
-        select_columns = Comic.get_columns(fields)
-
-        if not fields or 'bookmarked_count' in fields:
-            select_columns.append(func.count(Bookmark.comic_id).label('bookmarked_count'))
+    async def get_found_comic_list(
+            cls,
+            fields: str | None = None,
+            limit: int | None = None,
+            offset: int | None = None,
+            q: str | None = None,
+            **kwargs,
+    ):
+        select_columns = cls.get_select_columns(fields)
 
         async with SessionFactory() as session:
             stmt = select(*select_columns) \
@@ -107,9 +117,9 @@ class ComicDB(BaseDB):
         return rows, meta
 
     @classmethod
-    async def add_comics(cls, comic_data_list):
+    async def add_comics(cls, comic_data_list: list[dict]):
         async with SessionFactory() as session:
             await session.execute(
-                insert(Comic).on_conflict_do_nothing(),
+                insert(Comic).returning(Comic.comic_id).on_conflict_do_nothing(),
                 comic_data_list,
             )

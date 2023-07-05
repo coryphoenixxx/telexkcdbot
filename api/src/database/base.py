@@ -4,17 +4,11 @@ from src.database.models import Base
 
 
 class BaseDB:
-    _instance = None
     pool: async_sessionmaker
-
-    def __new__(cls, *args, **kwargs):
-        if not cls._instance:
-            cls._instance = super().__new__()
-        return cls._instance
 
     @classmethod
     async def init(cls):
-        engine = create_async_engine(DATABASE_URL, echo=False, echo_pool=True, pool_size=10)
+        engine = create_async_engine(DATABASE_URL, echo=False, echo_pool=True, pool_size=20)
         cls.pool = async_sessionmaker(engine, expire_on_commit=True)
 
         async with engine.begin() as conn:

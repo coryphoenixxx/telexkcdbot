@@ -21,7 +21,7 @@ class Base(DeclarativeBase):
     _additional_column_names = None
 
     @classmethod
-    def get_columns(cls, fields: str | None = None):
+    def get_columns(cls, fields: str | None = None) -> list[Column]:
         columns = [c for c in cls.__table__.columns if not c.name.startswith('_')]
         if fields:
             return [c for c in columns if c.name in fields.split(',')]
@@ -39,14 +39,15 @@ class Base(DeclarativeBase):
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__()
-        additional_column_names = kwargs.get('additional_column_names')
+
         cls.valid_column_names = [c.name for c in cls.get_columns()]
 
-        if additional_column_names:
-            cls.valid_column_names.extend(additional_column_names)
+        extra_column_names = kwargs.get('extra_column_names')
+        if extra_column_names:
+            cls.valid_column_names.extend(extra_column_names)
 
 
-class Comic(Base, additional_column_names=('bookmarked_count', 'bookmarked_by_user')):
+class Comic(Base, extra_column_names=('bookmarked_count', 'bookmarked_by_user')):
     __tablename__ = 'comics'
 
     comic_id = Column(SmallInteger, primary_key=True)
@@ -63,7 +64,9 @@ class Comic(Base, additional_column_names=('bookmarked_count', 'bookmarked_by_us
     _ts_vector = Column(
         TSVectorType(),
         Computed(
-            "to_tsvector('english', title || ' ' || comment || ' ' || rus_title || ' ' || rus_comment)",
+            "to_tsvector('english', " +
+            "title || ' ' || comment || ' ' || rus_title || ' ' || rus_comment" +
+            ")",
             persisted=True,
         ),
     )
