@@ -2,7 +2,7 @@ from pathlib import Path
 
 from decouple import config
 
-TG_API_TOKEN = config("API_TOKEN")
+TG_API_TOKEN = config("TG_API_TOKEN")
 ADMIN_ID = config("ADMIN_ID", cast=int)
 
 I18N_DOMAIN = "telexkcdbot"

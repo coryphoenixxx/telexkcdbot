@@ -1,16 +1,14 @@
 from aiohttp import web
-from src.api_config import API_PORT
-from src.database.base import BaseDB
+
+from src.database.base import SessionFactory
+from src.config import load_config
+
 from src.views.router import Router
 
-
-async def setup(application: web.Application) -> web.Application:
-    await BaseDB.init()
-    Router.setup_routes(application)
-    return application
-
-
-app = web.Application()
-
 if __name__ == "__main__":
-    web.run_app(setup(app), port=API_PORT)
+    config = load_config()
+    SessionFactory.configure(config.postgres_dsn)
+    app = web.Application()
+    Router.setup_routes(app)
+
+    web.run_app(app, port=config.api_port)

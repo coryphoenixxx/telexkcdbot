@@ -4,7 +4,7 @@ from src.database.base import SessionFactory
 from src.database.models import Bookmark, Comic
 
 
-class ComicDB:
+class ComicDb:
     @staticmethod
     def get_select_columns(fields):
         select_columns = Comic.get_columns(fields)
