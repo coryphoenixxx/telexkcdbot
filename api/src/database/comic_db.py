@@ -6,12 +6,16 @@ from src.database.models import Bookmark, Comic
 
 class ComicDb:
     @staticmethod
-    def get_select_columns(fields):
-        select_columns = Comic.get_columns(fields)
+    def _get_select_columns(fields):
+        select_columns = Comic.filter_columns(fields)
 
         if not fields or 'bookmarked_count' in fields:
             select_columns.append(func.count(Bookmark.comic_id).label('bookmarked_count'))
         return select_columns
+
+    @staticmethod
+    async def _get_total(session):
+        return (await session.execute(select(func.count('*')).select_from(Comic))).scalar()
 
     @classmethod
     async def get_comic_detail(
@@ -19,24 +23,22 @@ class ComicDb:
             comic_id: int,
             fields: str | None = None,
             user_id: int | None = None,
-            **kwargs,
     ):
-        select_columns = cls.get_select_columns(fields)
+        select_columns = cls._get_select_columns(fields)
 
         if user_id:
             subquery = select(func.count('*') > 0) \
                 .select_from(Bookmark) \
                 .where(and_(Bookmark.user_id == user_id, Bookmark.comic_id == comic_id)) \
                 .scalar_subquery() \
-                .label('bookmarked_by_user')
+                .label('is_bookmarked_by_user')
             select_columns.append(subquery)
 
         async with SessionFactory() as session:
             stmt = select(*select_columns) \
-                .select_from(Comic, Bookmark) \
                 .outerjoin(Bookmark) \
                 .where(Comic.comic_id == comic_id) \
-                .group_by(Comic.comic_id)
+                .group_by(Comic)
 
             row = (await session.execute(stmt)).fetchone()
 
@@ -49,33 +51,32 @@ class ComicDb:
             limit: int | None = None,
             offset: int | None = None,
             order: str | None = None,
-            **kwargs,
     ):
-        select_columns = cls.get_select_columns(fields)
+        select_columns = cls._get_select_columns(fields)
 
         async with SessionFactory() as session:
             stmt = select(*select_columns) \
-                .outerjoin(Bookmark)
+                .outerjoin(Bookmark) \
+                .group_by(Comic)
 
-            stmt = stmt.group_by(Comic.comic_id)
-
-            if not order or order == 'esc':
+            if order == 'esc':
                 stmt = stmt.order_by(Comic.comic_id)
             elif order == 'desc':
                 stmt = stmt.order_by(Comic.comic_id.desc())
-
             if limit:
                 stmt = stmt.limit(limit)
             if offset:
                 stmt = stmt.offset(offset)
 
             rows = (await session.execute(stmt)).fetchall()
+            total = await cls._get_total(session)
 
         meta = {
             'meta': {
                 'limit': limit,
                 'offset': offset,
-                'total': len(rows),
+                'count': len(rows),
+                'total': total,
             },
         }
 
@@ -88,15 +89,14 @@ class ComicDb:
             limit: int | None = None,
             offset: int | None = None,
             q: str | None = None,
-            **kwargs,
     ):
-        select_columns = cls.get_select_columns(fields)
+        select_columns = cls._get_select_columns(fields)
 
         async with SessionFactory() as session:
             stmt = select(*select_columns) \
                 .outerjoin(Bookmark) \
                 .where(Comic._ts_vector.bool_op("@@")(func.to_tsquery(q))) \
-                .group_by(Comic.comic_id) \
+                .group_by(Comic) \
                 .order_by(func.ts_rank(Comic._ts_vector, func.to_tsquery(q)).desc())
 
             if limit:
@@ -105,12 +105,14 @@ class ComicDb:
                 stmt = stmt.offset(offset)
 
             rows = (await session.execute(stmt)).fetchall()
+            total = await cls._get_total(session)
 
         meta = {
             'meta': {
                 'limit': limit,
                 'offset': offset,
-                'total': len(rows),
+                'count': len(rows),
+                'total': total,
             },
         }
 

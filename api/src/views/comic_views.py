@@ -1,12 +1,19 @@
 from aiohttp import web
 from src.database.comic_db import ComicDb
 from src.utils.json_response import ErrorJSONData, SuccessJSONData, json_response
-from src.utils.validators import comic_json_schema, validate_json, validate_queries
+from src.utils.validators import (
+    ComicQueryParams,
+    ComicJSONSchema,
+    ComicsQueryParams,
+    ComicsSearchQueryParams,
+    validate_post_json,
+    validate_queries,
+)
 from src.views.router import Router
 
 
 @Router.routes.get('/api/comics/{comic_id:\\d+}')
-@validate_queries
+@validate_queries(validator=ComicQueryParams)
 async def api_get_comic(request: web.Request, valid_query_params: dict) -> web.Response:
     comic_id = int(request.match_info['comic_id'])
 
@@ -25,11 +32,9 @@ async def api_get_comic(request: web.Request, valid_query_params: dict) -> web.R
 
 
 @Router.routes.get('/api/comics')
-@validate_queries
+@validate_queries(validator=ComicsQueryParams)
 async def api_get_comics(request: web.Request, valid_query_params: dict) -> web.Response:
     rows, meta = await ComicDb.get_comic_list(**valid_query_params)
-
-    # TODO: if not rows
 
     return json_response(
         data=meta | SuccessJSONData(data=rows),
@@ -38,7 +43,7 @@ async def api_get_comics(request: web.Request, valid_query_params: dict) -> web.
 
 
 @Router.routes.get('/api/comics/search')
-@validate_queries
+@validate_queries(validator=ComicsSearchQueryParams)
 async def api_get_found_comics(request: web.Request, valid_query_params: dict) -> web.Response:
     rows, meta = await ComicDb.get_found_comic_list(**valid_query_params)
 
@@ -49,7 +54,7 @@ async def api_get_found_comics(request: web.Request, valid_query_params: dict) -
 
 
 @Router.routes.post('/api/comics')
-@validate_json(comic_json_schema)
+@validate_post_json(validator=ComicJSONSchema)
 async def api_post_comics(request: web.Request, comic_data_list: list[dict]) -> web.Response:
     await ComicDb.add_comics(comic_data_list)
 

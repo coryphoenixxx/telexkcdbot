@@ -1,3 +1,4 @@
+import functools
 from datetime import datetime
 
 from sqlalchemy import (
@@ -8,64 +9,68 @@ from sqlalchemy import (
     Date,
     ForeignKey,
     Index,
-    Integer,
     SmallInteger,
     String,
     Text,
 )
-from sqlalchemy.orm import DeclarativeBase, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy_utils import TSVectorType
 
 
 class Base(DeclarativeBase):
-    _additional_column_names = None
+    valid_column_names = None
+    _id = Column(SmallInteger, autoincrement=True, primary_key=True)
 
     @classmethod
-    def get_columns(cls, fields: str | None = None) -> list[Column]:
-        columns = [c for c in cls.__table__.columns if not c.name.startswith('_')]
+    def filter_columns(cls, fields: str | None = None):
         if fields:
-            return [c for c in columns if c.name in fields.split(',')]
-        return columns
-
-    @classmethod
-    def get_model_by_tablename(cls, tablename):
-        """Return model class reference mapped to table.
-
-        :param tablename: String with name of table.
-        :return: Model class reference or None.
-        """
-        table_name_to_class = {m.tables[0].name: m.class_ for m in Base.registry.mappers}
-        return table_name_to_class.get(tablename)
+            return [c for c in cls.columns if c.name in fields.split(',')]
+        return list(cls.columns)
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__()
-
-        cls.valid_column_names = [c.name for c in cls.get_columns()]
-
         extra_column_names = kwargs.get('extra_column_names')
         if extra_column_names:
-            cls.valid_column_names.extend(extra_column_names)
+            cls.valid_column_names = cls.column_names + extra_column_names
+
+    @classmethod
+    @property
+    @functools.cache
+    def columns(cls) -> tuple[Column]:
+        return tuple(c for c in cls.__table__.columns if not c.name.startswith('_'))
+
+    @classmethod
+    @property
+    @functools.cache
+    def column_names(cls) -> tuple[str]:
+        return tuple(c.name for c in cls.columns)
+
+    def __repr__(self):
+        values = [f"{name!r}={getattr(self, name)!r}" for name in self.column_names]
+        return f"{self.__class__.__name__!r}({', '.join(values)})"
 
 
-class Comic(Base, extra_column_names=('bookmarked_count', 'bookmarked_by_user')):
+class Comic(Base, extra_column_names=('bookmarked_count',)):
     __tablename__ = 'comics'
 
-    comic_id = Column(SmallInteger, primary_key=True)
-    title = Column(String, nullable=False)
-    image = Column(String, nullable=False)
-    comment = Column(String, nullable=False)
-    transcript = Column(Text, nullable=False)
-    rus_title = Column(String, nullable=True)
-    rus_image = Column(String, nullable=True)
-    rus_comment = Column(String, nullable=True)
-    publication_date = Column(String, nullable=False)
-    is_specific = Column(Boolean, nullable=False)
+    comic_id: Mapped[int] = mapped_column(SmallInteger, nullable=False, unique=True)
+    title: Mapped[str] = mapped_column(String, nullable=False)
+    image: Mapped[str] = mapped_column(String, nullable=False)
+    comment: Mapped[str] = mapped_column(String, nullable=False)
+    transcript: Mapped[str] = mapped_column(Text, nullable=False)
+    rus_title: Mapped[str] = mapped_column(String, nullable=True)
+    rus_image: Mapped[str] = mapped_column(String, nullable=True)
+    rus_comment: Mapped[str] = mapped_column(String, nullable=True)
+    publication_date: Mapped[str] = mapped_column(String, nullable=False)
+    is_specific: Mapped[bool] = mapped_column(Boolean, nullable=False)
     bookmarks = relationship('Bookmark', backref='comic')
+    explanation = relationship('Explanation', backref='comic', uselist=False, lazy=True)
+
     _ts_vector = Column(
         TSVectorType(),
         Computed(
-            "to_tsvector('english', " +
-            "title || ' ' || comment || ' ' || rus_title || ' ' || rus_comment" +
+            "to_tsvector(" +
+            "'english', title || ' ' || comment || ' ' || rus_title || ' ' || rus_comment" +
             ")",
             persisted=True,
         ),
@@ -77,9 +82,8 @@ class Comic(Base, extra_column_names=('bookmarked_count', 'bookmarked_by_user'))
 
 
 class Explanation(Base):
-    __tablename__ = 'explanation'
+    __tablename__ = 'explanations'
 
-    _pk = Column(SmallInteger, primary_key=True)
     text = Column(Text)
     translation = Column(Text)
     comic_id = Column(SmallInteger, ForeignKey('comics.comic_id'))
@@ -88,19 +92,18 @@ class Explanation(Base):
 class User(Base):
     __tablename__ = 'users'
 
-    tg_id = Column(BigInteger, primary_key=True)
+    tg_id = Column(BigInteger, nullable=False, unique=True)
     tg_lang_code = Column(SmallInteger)
     ui_lang = Column(String)
     rus_only_mode = Column(Boolean)
     joined_at = Column(Date, default=datetime.utcnow)
     last_activity_at = Column(Date)
-    bookmarks = relationship('Bookmark')
+    bookmarks = relationship('Bookmark', backref='user')
 
 
 class Bookmark(Base):
     __tablename__ = 'bookmarks'
 
-    _pk = Column(Integer, primary_key=True)
     comic_id = Column(SmallInteger, ForeignKey('comics.comic_id'))
     user_id = Column(BigInteger, ForeignKey('users.tg_id'))
     created_at = Column(Date, default=datetime.utcnow)
@@ -109,7 +112,6 @@ class Bookmark(Base):
 class WatchHistory(Base):
     __tablename__ = 'watch_history'
 
-    _pk = Column(Integer, primary_key=True)
     comic_id = Column(SmallInteger, ForeignKey('comics.comic_id'))
     user_id = Column(BigInteger, ForeignKey('users.tg_id'))
     created_at = Column(Date, default=datetime.utcnow)

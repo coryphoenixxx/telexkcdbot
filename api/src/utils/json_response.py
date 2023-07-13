@@ -7,15 +7,9 @@ from sqlalchemy import Row
 
 
 @dataclass
-class BaseJSONData:
-    status: str = None
-    message: str = None
-    data: dict | list[dict] = None
-
-
-@dataclass
-class SuccessJSONData(BaseJSONData):
+class SuccessJSONData:
     status: str = "success"
+    data: dict | list[dict] = None
 
     def __post_init__(self):
         if self.data:
@@ -32,8 +26,18 @@ class SuccessJSONData(BaseJSONData):
 
 
 @dataclass
-class ErrorJSONData(BaseJSONData):
+class ErrorJSONData:
     status: str = "error"
+    errors: str | None | list = None
+
+    def __post_init__(self):
+        if self.errors:
+            err_list = []
+            for error in json.loads(self.errors):
+                for key in ('type', 'ctx', 'url'):
+                    error.pop(key)
+                err_list.append(error)
+            self.errors = err_list
 
 
 class DataClassJSONEncoder(json.JSONEncoder):

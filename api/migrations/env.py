@@ -1,9 +1,7 @@
-import asyncio
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
-from sqlalchemy.ext.asyncio import AsyncEngine
 from src.config import load_config
 from src.database.models import Base
 
@@ -11,7 +9,7 @@ from src.database.models import Base
 # access to the values within the .ini file in use.
 config = context.config
 
-api_config = load_config()
+app_config = load_config()
 
 # section = config.config_ini_section
 # config.set_section_option(section, "DB_USER", api_config.db.user)
@@ -32,7 +30,7 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 config.set_main_option(
     'sqlalchemy.url',
-    api_config.postgres_dsn + "?async_fallback=True"
+    app_config.db.postgres_dsn + "?async_fallback=True",
 )
 
 
@@ -80,7 +78,7 @@ def run_migrations_online():
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata,
         )
 
         with context.begin_transaction():

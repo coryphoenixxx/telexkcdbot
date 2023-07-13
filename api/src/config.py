@@ -1,10 +1,17 @@
 from dataclasses import dataclass
+
 from decouple import config
 
 
 @dataclass
-class Config:
+class DbConfig:
     postgres_dsn: str
+    sqla_echo: bool
+
+
+@dataclass
+class Config:
+    db: DbConfig
     api_port: str
 
 
@@ -15,9 +22,14 @@ def load_config():
     port = config('DB_PORT', default='5432')
     database = config('DB_NAME', default='telexkcdbot')
 
+    sqla_echo = config('SQLA_ECHO', default=False, cast=bool)
+
     api_port = config('API_PORT')
 
     return Config(
-        postgres_dsn=f"postgresql+asyncpg://{user}:{password}@{hostname}:{port}/{database}",
-        api_port=api_port
+        db=DbConfig(
+            postgres_dsn=f"postgresql+asyncpg://{user}:{password}@{hostname}:{port}/{database}",
+            sqla_echo=sqla_echo,
+        ),
+        api_port=api_port,
     )

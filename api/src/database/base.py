@@ -1,12 +1,18 @@
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from src.config import DbConfig
 
 
 class SessionFactory:
     pool: async_sessionmaker
 
     @classmethod
-    def configure(cls, db_url):
-        engine = create_async_engine(db_url, echo=True, echo_pool=True, pool_size=20)
+    def configure(cls, db_config: DbConfig):
+        engine = create_async_engine(
+            db_config.postgres_dsn,
+            echo=db_config.sqla_echo,
+            echo_pool=db_config.sqla_echo,
+            pool_size=20,
+        )
         cls.pool = async_sessionmaker(bind=engine, expire_on_commit=True)
 
     async def __aenter__(self):
