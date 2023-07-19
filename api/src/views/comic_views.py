@@ -9,10 +9,10 @@ from src.utils.validators import (
     validate_post_json,
     validate_queries,
 )
-from src.router import Router
+from src.router import router
 
 
-@Router.routes.get('/api/comics/{comic_id:\\d+}')
+@router.get('/api/comics/{comic_id:\\d+}')
 @validate_queries(validator=ComicQueryParams)
 async def api_get_comic_by_id(request: web.Request, valid_query_params: dict) -> web.Response:
     comic_id = int(request.match_info['comic_id'])
@@ -31,7 +31,7 @@ async def api_get_comic_by_id(request: web.Request, valid_query_params: dict) ->
     )
 
 
-@Router.routes.get('/api/comics')
+@router.get('/api/comics')
 @validate_queries(validator=ComicsQueryParams)
 async def api_get_comic_list(request: web.Request, valid_query_params: dict) -> web.Response:
     rows, meta = await ComicRepo.get_list(**valid_query_params)
@@ -42,7 +42,7 @@ async def api_get_comic_list(request: web.Request, valid_query_params: dict) -> 
     )
 
 
-@Router.routes.get('/api/comics/search')
+@router.get('/api/comics/search')
 @validate_queries(validator=ComicsSearchQueryParams)
 async def api_search_comics(request: web.Request, valid_query_params: dict) -> web.Response:
     rows, meta = await ComicRepo.search(**valid_query_params)
@@ -53,7 +53,7 @@ async def api_search_comics(request: web.Request, valid_query_params: dict) -> w
     )
 
 
-@Router.routes.get('/api/comics/{comic_id:\\d+}/favorites-count')
+@router.get('/api/comics/{comic_id:\\d+}/favorites-count')
 async def api_get_comic_favorites_count(request: web.Request) -> web.Response:
     comic_id = int(request.match_info['comic_id'])
 
@@ -68,7 +68,7 @@ async def api_get_comic_favorites_count(request: web.Request) -> web.Response:
     )
 
 
-@Router.routes.post('/api/comics')
+@router.post('/api/comics')
 @validate_post_json(validator=ComicJSONSchema)
 async def api_post_comics(request: web.Request, comic_data_list: list[dict]) -> web.Response:
     await ComicRepo.add(comic_data_list)
