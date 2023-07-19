@@ -30,7 +30,7 @@ class ComicFieldsParamMixin(BaseModel):
 
 
 class ComicQueryParams(ComicFieldsParamMixin):
-    user_id: int | None = Field(gt=0, default=None)
+    ...
 
 
 class ComicsQueryParams(LimitOffsetParamsMixin, ComicFieldsParamMixin):
@@ -48,8 +48,10 @@ def validate_queries(validator):
             try:
                 valid_query_params = validator(**request.rel_url.query)
             except ValidationError as err:
+                errors = _clean_errors(err)
+
                 return json_response(
-                    data=ErrorJSONData(errors=err.json()),
+                    data=ErrorJSONData(detail=errors),
                     status=422,
                 )
             return await handler(request, valid_query_params.dict())
@@ -81,8 +83,10 @@ def validate_post_json(validator):
             try:
                 validator(**request_json)
             except ValidationError as err:
+                errors = _clean_errors(err)
+
                 return json_response(
-                    data=ErrorJSONData(errors=err.json()),
+                    data=ErrorJSONData(detail=errors),
                     status=400,
                 )
             return await handler(request, request_json)
@@ -90,3 +94,13 @@ def validate_post_json(validator):
         return wrapped
 
     return wrapper
+
+
+def _clean_errors(error_obj: ValidationError) -> list:
+    errors = []
+    for err in error_obj.errors(include_url=False):
+        errors.append({
+            'loc': err.get('loc'),
+            'msg': err.get('msg'),
+        })
+    return errors

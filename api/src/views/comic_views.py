@@ -1,5 +1,5 @@
 from aiohttp import web
-from src.database.comic_db import ComicDb
+from src.database.repositories import ComicRepo
 from src.utils.json_response import ErrorJSONData, SuccessJSONData, json_response
 from src.utils.validators import (
     ComicQueryParams,
@@ -9,19 +9,19 @@ from src.utils.validators import (
     validate_post_json,
     validate_queries,
 )
-from src.views.router import Router
+from src.router import Router
 
 
 @Router.routes.get('/api/comics/{comic_id:\\d+}')
 @validate_queries(validator=ComicQueryParams)
-async def api_get_comic(request: web.Request, valid_query_params: dict) -> web.Response:
+async def api_get_comic_by_id(request: web.Request, valid_query_params: dict) -> web.Response:
     comic_id = int(request.match_info['comic_id'])
 
-    row = await ComicDb.get_comic_detail(comic_id, **valid_query_params)
+    row = await ComicRepo.get_by_id(comic_id, **valid_query_params)
 
     if not row:
         return json_response(
-            data=ErrorJSONData(message=f"Comic {comic_id} doesn't exists."),
+            data=ErrorJSONData(detail=[{"reason": f"Comic {comic_id} doesn't exists."}]),
             status=404,
         )
 
@@ -33,8 +33,8 @@ async def api_get_comic(request: web.Request, valid_query_params: dict) -> web.R
 
 @Router.routes.get('/api/comics')
 @validate_queries(validator=ComicsQueryParams)
-async def api_get_comics(request: web.Request, valid_query_params: dict) -> web.Response:
-    rows, meta = await ComicDb.get_comic_list(**valid_query_params)
+async def api_get_comic_list(request: web.Request, valid_query_params: dict) -> web.Response:
+    rows, meta = await ComicRepo.get_list(**valid_query_params)
 
     return json_response(
         data=meta | SuccessJSONData(data=rows),
@@ -44,8 +44,8 @@ async def api_get_comics(request: web.Request, valid_query_params: dict) -> web.
 
 @Router.routes.get('/api/comics/search')
 @validate_queries(validator=ComicsSearchQueryParams)
-async def api_get_found_comics(request: web.Request, valid_query_params: dict) -> web.Response:
-    rows, meta = await ComicDb.get_found_comic_list(**valid_query_params)
+async def api_search_comics(request: web.Request, valid_query_params: dict) -> web.Response:
+    rows, meta = await ComicRepo.search(**valid_query_params)
 
     return json_response(
         data=meta | SuccessJSONData(data=rows),
@@ -53,10 +53,25 @@ async def api_get_found_comics(request: web.Request, valid_query_params: dict) -
     )
 
 
+@Router.routes.get('/api/comics/{comic_id:\\d+}/favorites-count')
+async def api_get_comic_favorites_count(request: web.Request) -> web.Response:
+    comic_id = int(request.match_info['comic_id'])
+
+    favorites_count = await ComicRepo.get_favorites_count(comic_id)
+
+    return json_response(
+        data=SuccessJSONData(data={
+            "comic_id": comic_id,
+            "favorites_count": favorites_count
+        }),
+        status=200,
+    )
+
+
 @Router.routes.post('/api/comics')
 @validate_post_json(validator=ComicJSONSchema)
 async def api_post_comics(request: web.Request, comic_data_list: list[dict]) -> web.Response:
-    await ComicDb.add_comics(comic_data_list)
+    await ComicRepo.add(comic_data_list)
 
     return json_response(
         data=SuccessJSONData(data=comic_data_list),

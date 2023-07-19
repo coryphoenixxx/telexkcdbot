@@ -28,16 +28,7 @@ class SuccessJSONData:
 @dataclass
 class ErrorJSONData:
     status: str = "error"
-    errors: str | None | list = None
-
-    def __post_init__(self):
-        if self.errors:
-            err_list = []
-            for error in json.loads(self.errors):
-                for key in ('type', 'ctx', 'url'):
-                    error.pop(key)
-                err_list.append(error)
-            self.errors = err_list
+    detail: dict | list = None
 
 
 class DataClassJSONEncoder(json.JSONEncoder):

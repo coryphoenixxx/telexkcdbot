@@ -16,7 +16,6 @@ class Router:
     async def api_entrypoint(cls, request: web.Request) -> web.Response:
         return json_response(
             data=SuccessJSONData(
-                message="API is available.",
                 data=[r.path for r in cls.routes],
             ),
             status=200,

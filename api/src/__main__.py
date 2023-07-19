@@ -1,7 +1,7 @@
 from aiohttp import web
 from src.config import load_config
 from src.database.base import SessionFactory
-from src.views.router import Router
+from src.router import Router
 
 if __name__ == "__main__":
     config = load_config()
