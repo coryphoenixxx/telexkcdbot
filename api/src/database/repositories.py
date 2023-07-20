@@ -1,7 +1,7 @@
-from sqlalchemy import and_, func, select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from src.database.base import SessionFactory
-from src.database.models import Favorite, Comic
+from src.database.models import Comic, Favorite
 
 
 class ComicRepo:
@@ -65,12 +65,12 @@ class ComicRepo:
             offset: int | None = None,
             q: str | None = None,
     ):
-        select_columns = Comic.filter_columns(fields)
+        selected_columns = Comic.filter_columns(fields)
 
         async with SessionFactory() as session:
-            stmt = select(*select_columns) \
-                .where(Comic._ts_vector.bool_op("@@")(func.to_tsquery(q))) \
-                .order_by(func.ts_rank(Comic._ts_vector, func.to_tsquery(q)).desc())
+            stmt = select(*selected_columns) \
+                .where(Comic.search_vector_.bool_op("@@")(func.to_tsquery(q))) \
+                .order_by(func.ts_rank(Comic.search_vector_, func.to_tsquery(q)).desc())
 
             if limit:
                 stmt = stmt.limit(limit)
@@ -94,7 +94,7 @@ class ComicRepo:
     @classmethod
     async def add(
             cls,
-            comic_data: list[dict] | dict  # TODO:
+            comic_data: list[dict] | dict,  # TODO:
     ):
         async with SessionFactory() as session:
             await session.execute(
@@ -105,7 +105,7 @@ class ComicRepo:
     @classmethod
     async def get_favorites_count(
             cls,
-            comic_id: int
+            comic_id: int,
     ):
         async with SessionFactory() as session:
             stmt = select(func.count('*')) \

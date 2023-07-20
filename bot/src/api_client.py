@@ -85,7 +85,7 @@ class APIClient:
                     "title": comic_data.title,
                     "image": comic_data.img_url,
                     "comment": comic_data.comment,
-                    "transcript": "null",
+                    "transcript": '',
                     "publication_date": str(comic_data.public_date),
                     "is_specific": comic_data.is_specific,
                     "rus_title": comic_data.ru_title,

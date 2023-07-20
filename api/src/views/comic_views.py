@@ -1,15 +1,15 @@
 from aiohttp import web
 from src.database.repositories import ComicRepo
+from src.router import router
 from src.utils.json_response import ErrorJSONData, SuccessJSONData, json_response
 from src.utils.validators import (
-    ComicQueryParams,
     ComicJSONSchema,
+    ComicQueryParams,
     ComicsQueryParams,
     ComicsSearchQueryParams,
     validate_post_json,
     validate_queries,
 )
-from src.router import router
 
 
 @router.get('/api/comics/{comic_id:\\d+}')
@@ -62,7 +62,7 @@ async def api_get_comic_favorites_count(request: web.Request) -> web.Response:
     return json_response(
         data=SuccessJSONData(data={
             "comic_id": comic_id,
-            "favorites_count": favorites_count
+            "favorites_count": favorites_count,
         }),
         status=200,
     )

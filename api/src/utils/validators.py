@@ -66,7 +66,7 @@ class ComicJSONSchema(BaseModel):
     title: str
     image: str
     comment: str
-    transcript: str
+    transcript: str | None
     rus_title: str | None
     rus_image: str | None
     rus_comment: str | None
