@@ -11,7 +11,7 @@ class SessionFactory:
             db_config.postgres_dsn,
             echo=db_config.sqla_echo,
             echo_pool=db_config.sqla_echo,
-            pool_size=20,
+            pool_size=db_config.pool_size,
         )
         cls.pool = async_sessionmaker(bind=engine, expire_on_commit=True)
 

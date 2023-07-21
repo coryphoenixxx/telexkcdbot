@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 from functools import wraps
 
@@ -39,6 +40,12 @@ class ComicsQueryParams(LimitOffsetParamsMixin, ComicFieldsParamMixin):
 
 class ComicsSearchQueryParams(LimitOffsetParamsMixin, ComicFieldsParamMixin):
     q: str | None = None
+
+    @field_validator('q')
+    def validate_q(cls, v):
+        v = re.sub(r'[^a-zA-Za-яA-Я0-9]', ' ', v).replace('\\', ' ')
+        v = re.sub(r'\s+', ' ', v.strip()).replace(' ', ' & ')
+        return v
 
 
 def validate_queries(validator):

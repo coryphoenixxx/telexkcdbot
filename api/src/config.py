@@ -7,6 +7,7 @@ from decouple import config
 class DbConfig:
     postgres_dsn: str
     sqla_echo: bool
+    pool_size: int
 
 
 @dataclass
@@ -23,6 +24,7 @@ def load_config():
     database = config('DB_NAME', default='telexkcdbot')
 
     sqla_echo = config('SQLA_ECHO', default=False, cast=bool)
+    pool_size = config('POOL_SIZE', default=10, cast=int)
 
     api_port = config('API_PORT')
 
@@ -30,6 +32,7 @@ def load_config():
         db=DbConfig(
             postgres_dsn=f"postgresql+asyncpg://{user}:{password}@{hostname}:{port}/{database}",
             sqla_echo=sqla_echo,
+            pool_size=pool_size,
         ),
         api_port=api_port,
     )

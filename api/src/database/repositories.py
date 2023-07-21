@@ -1,3 +1,4 @@
+
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from src.database.base import SessionFactory
@@ -69,8 +70,7 @@ class ComicRepo:
 
         async with SessionFactory() as session:
             stmt = select(*selected_columns) \
-                .where(Comic.search_vector_.bool_op("@@")(func.to_tsquery(q))) \
-                .order_by(func.ts_rank(Comic.search_vector_, func.to_tsquery(q)).desc())
+                .where(Comic.search_vector_.match(q))
 
             if limit:
                 stmt = stmt.limit(limit)
