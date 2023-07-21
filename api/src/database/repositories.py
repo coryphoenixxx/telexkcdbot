@@ -1,75 +1,51 @@
-
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
-from src.database.base import SessionFactory
 from src.database.models import Comic, Favorite
 
 
-class ComicRepo:
-    @classmethod
-    async def get_by_id(
-            cls,
-            comic_id: int,
-            fields: str | None = None,
-    ):
-        selected_columns = Comic.filter_columns(fields)
+class ComicRepository:
+    def __init__(self, session_factory):
+        self._session = session_factory
 
-        async with SessionFactory() as session:
-            stmt = select(*selected_columns) \
+    async def get_by_id(self, comic_id: int) -> dict | None:
+        async with self._session() as session:
+            stmt = select(Comic) \
                 .where(Comic.comic_id == comic_id)
 
-            row = (await session.execute(stmt)).fetchone()
+            comic = (await session.scalars(stmt)).one_or_none()
+            result = comic.as_dict()
+        return result
 
-        return row
-
-    @classmethod
     async def get_list(
-            cls,
-            fields: str | None = None,
+            self,
             limit: int | None = None,
             offset: int | None = None,
-            order: str | None = 'esc',
-    ):
-        selected_columns = Comic.filter_columns(fields)
+            order: str | None = None,
+    ) -> tuple[list[dict], int]:
+        async with self._session() as session:
+            stmt = select(Comic)
 
-        async with SessionFactory() as session:
-            stmt = select(*selected_columns)
+            stmt = stmt.order_by(Comic.comic_id.desc()) if order == 'desc' else stmt.order_by(Comic.comic_id)
 
-            if order == 'esc':
-                stmt = stmt.order_by(Comic.comic_id)
-            elif order == 'desc':
-                stmt = stmt.order_by(Comic.comic_id.desc())
             if limit:
                 stmt = stmt.limit(limit)
+
             if offset:
                 stmt = stmt.offset(offset)
 
-            rows = (await session.execute(stmt)).fetchall()
-            total = (await session.execute(select(func.count('*')).select_from(Comic))).scalar()
+            result = [comic.as_dict() for comic in (await session.scalars(stmt))]
+            total = (await session.scalar(select(func.count(Comic.comic_id))))
 
-        meta = {
-            'meta': {
-                'limit': limit,
-                'offset': offset,
-                'count': len(rows),
-                'total': total,
-            },
-        }
+        return result, total
 
-        return rows, meta
-
-    @classmethod
     async def search(
-            cls,
-            fields: str | None = None,
+            self,
+            q: str | None = None,
             limit: int | None = None,
             offset: int | None = None,
-            q: str | None = None,
-    ):
-        selected_columns = Comic.filter_columns(fields)
-
-        async with SessionFactory() as session:
-            stmt = select(*selected_columns) \
+    ) -> tuple[list[dict], int]:
+        async with self._session() as session:
+            stmt = select(Comic) \
                 .where(Comic.search_vector_.match(q))
 
             if limit:
@@ -77,41 +53,30 @@ class ComicRepo:
             if offset:
                 stmt = stmt.offset(offset)
 
-            rows = (await session.execute(stmt)).fetchall()
-            total = (await session.execute(select(func.count('*')).select_from(Comic))).scalar()
+            result = [comic.as_dict() for comic in (await session.scalars(stmt))]
+            total = (await session.scalar(select(func.count(Comic.comic_id))))
 
-        meta = {
-            'meta': {
-                'limit': limit,
-                'offset': offset,
-                'count': len(rows),
-                'total': total,
-            },
-        }
+        return result, total
 
-        return rows, meta
-
-    @classmethod
-    async def add(
-            cls,
-            comic_data: list[dict] | dict,  # TODO:
-    ):
-        async with SessionFactory() as session:
-            await session.execute(
-                insert(Comic).returning(Comic.comic_id).on_conflict_do_nothing(),
-                comic_data,
-            )
-
-    @classmethod
-    async def get_favorites_count(
-            cls,
+    async def get_favorite_count(
+            self,
             comic_id: int,
     ):
-        async with SessionFactory() as session:
-            stmt = select(func.count('*')) \
-                .select_from(Favorite) \
+        async with self._session() as session:
+            stmt = select(func.count(Favorite.fav_id)) \
                 .where(Favorite.comic_id == comic_id)
 
-            favorites_count = (await session.execute(stmt)).scalar()
+            favorites_count = (await session.scalar(stmt))
 
         return favorites_count
+
+    async def add(
+            self,
+            comic_data: list[dict] | dict,
+    ):
+        async with self._session() as session:
+            comic_id = await session.scalar(
+                insert(Comic).returning(Comic.comic_id),
+                comic_data,
+            )
+        return comic_id

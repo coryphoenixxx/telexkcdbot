@@ -9,8 +9,8 @@ from src.utils.json_response import ErrorJSONData, json_response
 
 
 class OrderType(str, Enum):
-    desc = "desc"
-    esc = "esc"
+    DESC = "desc"
+    ESC = "esc"
 
 
 class LimitOffsetParamsMixin(BaseModel):
@@ -35,7 +35,7 @@ class ComicQueryParams(ComicFieldsParamMixin):
 
 
 class ComicsQueryParams(LimitOffsetParamsMixin, ComicFieldsParamMixin):
-    order: OrderType | None = OrderType.esc
+    order: OrderType | None = OrderType.ESC
 
 
 class ComicsSearchQueryParams(LimitOffsetParamsMixin, ComicFieldsParamMixin):
@@ -61,7 +61,7 @@ def validate_queries(validator):
                     data=ErrorJSONData(detail=errors),
                     status=422,
                 )
-            return await handler(request, valid_query_params.dict())
+            return await handler(request, **valid_query_params.dict())
 
         return wrapped
 

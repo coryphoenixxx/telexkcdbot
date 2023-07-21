@@ -20,12 +20,6 @@ from sqlalchemy_utils import TSVectorType
 
 class Base(DeclarativeBase):
     @classmethod
-    def filter_columns(cls, fields: str):
-        if fields:
-            return [c for c in cls.columns if c.name in fields.split(',')]
-        return cls.columns
-
-    @classmethod
     @property
     @functools.cache
     def columns(cls) -> tuple[Column]:
@@ -37,9 +31,12 @@ class Base(DeclarativeBase):
     def column_names(cls) -> tuple[str]:
         return tuple(c.name for c in cls.columns)
 
+    def as_dict(self) -> dict:
+        return {name: getattr(self, name) for name in self.column_names}
+
     def __repr__(self):
-        values = [f"{name!r}={getattr(self, name)!r}" for name in self.column_names]
-        return f"{self.__class__.__name__!r}({', '.join(values)!r})"
+        values = [f"{name}={getattr(self, name)}" for name in self.column_names]
+        return f"{self.__class__.__name__}({', '.join(values)})"
 
 
 class Comic(Base):

@@ -14,6 +14,7 @@ class SessionFactory:
             pool_size=db_config.pool_size,
         )
         cls.pool = async_sessionmaker(bind=engine, expire_on_commit=True)
+        return cls
 
     async def __aenter__(self):
         self._session = self.pool()
