@@ -1,6 +1,7 @@
 import re
 from enum import Enum
 from functools import wraps
+from json import JSONDecodeError
 
 from aiohttp import web
 from pydantic import BaseModel, Field, ValidationError, field_validator
@@ -68,8 +69,7 @@ def validate_queries(validator):
     return wrapper
 
 
-class ComicJSONSchema(BaseModel):
-    comic_id: int
+class BaseJSONSchema(BaseModel):
     title: str
     image: str
     comment: str
@@ -81,13 +81,20 @@ class ComicJSONSchema(BaseModel):
     is_specific: bool
 
 
-def validate_post_json(validator):
+class PostComicJSONSchema(BaseJSONSchema):
+    comic_id: int
+
+
+class PutComicJSONSchema(BaseJSONSchema):
+    ...
+
+
+def validate_request_json(validator):
     def wrapper(handler):
         @wraps(handler)
         async def wrapped(request: web.Request):
-            request_json = await request.json()
-
             try:
+                request_json = await request.json()
                 validator(**request_json)
             except ValidationError as err:
                 errors = _clean_errors(err)
@@ -96,6 +103,14 @@ def validate_post_json(validator):
                     data=ErrorJSONData(detail=errors),
                     status=400,
                 )
+            except (JSONDecodeError, TypeError):
+                return json_response(
+                    data=ErrorJSONData(
+                        detail=[{'reason': "Invalid JSON format."}],
+                    ),
+                    status=400,
+                )
+
             return await handler(request, request_json)
 
         return wrapped

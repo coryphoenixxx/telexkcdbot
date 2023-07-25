@@ -7,12 +7,13 @@ class Router(web.RouteTableDef):
         from src.views import comic_views, user_views  # noqa: F401
 
         app.router.add_routes(self)
-        app.router.add_route('GET', '/api', self._api_base_entrypoint)
+        app.router.add_route('GET', '/api', self._api_base_endpoint)
 
-    async def _api_base_entrypoint(self, request: web.Request) -> web.Response:
+    async def _api_base_endpoint(self, request: web.Request) -> web.Response:
+
         return json_response(
             data=SuccessJSONData(
-                data=[r.path for r in self],
+                data=[f"{r.method} {r.path}" for r in self],
             ),
             status=200,
         )

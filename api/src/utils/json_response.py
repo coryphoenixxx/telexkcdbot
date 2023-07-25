@@ -8,7 +8,7 @@ from aiohttp import web
 @dataclass
 class SuccessJSONData:
     status: str = "success"
-    data: dict = None
+    data: dict | list[dict] = None
 
 
 @dataclass
