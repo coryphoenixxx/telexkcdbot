@@ -1,4 +1,4 @@
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select, update, delete
 from sqlalchemy.dialects.postgresql import insert
 from src.database.models import Comic, Favorite
 
@@ -80,5 +80,16 @@ class ComicRepository:
                 .returning(Comic)
 
             comic = await session.scalar(stmt, comic_data)
+
+            return comic.as_dict() if comic else None
+
+    async def delete(self, comic_id: int):
+
+        async with self._session() as session:
+            stmt = delete(Comic) \
+                .where(Comic.comic_id == comic_id) \
+                .returning(Comic)
+
+            comic = await session.scalar(stmt)
 
             return comic.as_dict() if comic else None

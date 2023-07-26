@@ -6,20 +6,20 @@ from aiohttp import web
 
 
 @dataclass
-class SuccessJSONData:
+class SuccessPayload:
     status: str = "success"
     data: dict | list[dict] = None
 
 
 @dataclass
-class SuccessJSONDataWithMeta:
+class SuccessPayloadWithMeta:
     status: str = "success"
     meta: dict = None
     data: list[dict] = None
 
 
 @dataclass
-class ErrorJSONData:
+class ErrorPayload:
     status: str = "error"
     detail: dict | list = None
 

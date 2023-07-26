@@ -2,7 +2,7 @@ from aiohttp import web
 from sqlalchemy.exc import IntegrityError
 from src.database.repositories import ComicRepository
 from src.router import router
-from src.utils.json_response import ErrorJSONData, SuccessJSONData, SuccessJSONDataWithMeta, json_response
+from src.utils.json_response import ErrorPayload, SuccessPayload, SuccessPayloadWithMeta, json_response
 from src.utils.validators import (
     ComicQueryParams,
     ComicsQueryParams,
@@ -30,7 +30,7 @@ async def api_get_comic_by_id(request: web.Request, fields: str | None) -> web.R
 
     if not comic_data:
         return json_response(
-            data=ErrorJSONData(detail=[{"reason": f"Comic {comic_id} doesn't exists."}]),
+            data=ErrorPayload(detail=[{"reason": f"Comic {comic_id} doesn't exists."}]),
             status=404,
         )
 
@@ -38,7 +38,7 @@ async def api_get_comic_by_id(request: web.Request, fields: str | None) -> web.R
     data['favorite_count'] = favorite_count
 
     return json_response(
-        data=SuccessJSONData(data=data),
+        data=SuccessPayload(data=data),
         status=200,
     )
 
@@ -65,7 +65,7 @@ async def api_get_comic_list(
     data = [filter_fields(comic_data, fields) for comic_data in comic_list]
 
     return json_response(
-        data=SuccessJSONDataWithMeta(meta=meta, data=data),
+        data=SuccessPayloadWithMeta(meta=meta, data=data),
         status=200,
     )
 
@@ -92,7 +92,7 @@ async def api_search_comics(
     data = [filter_fields(comic_data, fields) for comic_data in comic_list]
 
     return json_response(
-        data=SuccessJSONDataWithMeta(meta=meta, data=data),
+        data=SuccessPayloadWithMeta(meta=meta, data=data),
         status=200,
     )
 
@@ -106,12 +106,12 @@ async def api_post_comics(request: web.Request, comic_data: list[dict] | dict) -
         comic_data = await comic_repo.add(comic_data)
     except IntegrityError:
         return json_response(
-            data=ErrorJSONData(detail=[{'reason': "A comic with the same id, title and comment already exists."}]),
+            data=ErrorPayload(detail=[{'reason': "A comic with the same id, title and comment already exists."}]),
             status=409,
         )
 
     return json_response(
-        data=SuccessJSONData(data=comic_data),
+        data=SuccessPayload(data=comic_data),
         status=201,
     )
 
@@ -127,17 +127,34 @@ async def api_update_comic(request: web.Request, new_comic_data: dict) -> web.Re
         comic_data = await comic_repo.update(comic_id, new_comic_data)
     except IntegrityError:
         return json_response(
-            data=ErrorJSONData(detail=[{'reason': "A comic with the same id, title and comment already exists."}]),
+            data=ErrorPayload(detail=[{'reason': "A comic with the same id, title and comment already exists."}]),
             status=409,
         )
 
     if not comic_data:
         return json_response(
-            data=ErrorJSONData(detail=[{"reason": f"Comic {comic_id} doesn't exists."}]),
+            data=ErrorPayload(detail=[{"reason": f"Comic {comic_id} doesn't exists."}]),
             status=404,
         )
 
     return json_response(
-        data=SuccessJSONData(data=comic_data),
+        data=SuccessPayload(data=comic_data),
         status=200,
     )
+
+
+@router.delete('/api/comics/{comic_id:\\d+}')
+async def api_delete_comic(request: web.Request):
+    comic_id = int(request.match_info['comic_id'])
+
+    comic_repo = ComicRepository(session_factory=request.app.session_factory)
+
+    comic_data = await comic_repo.delete(comic_id)
+
+    if not comic_data:
+        return json_response(
+            data=ErrorPayload(detail=[{"reason": f"Comic {comic_id} doesn't exists."}]),
+            status=404,
+        )
+
+    return json_response(status=204)

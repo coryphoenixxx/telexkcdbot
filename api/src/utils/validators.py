@@ -6,7 +6,7 @@ from json import JSONDecodeError
 from aiohttp import web
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from src.database.models import Comic
-from src.utils.json_response import ErrorJSONData, json_response
+from src.utils.json_response import ErrorPayload, json_response
 
 
 class OrderType(str, Enum):
@@ -59,7 +59,7 @@ def validate_queries(validator):
                 errors = _clean_errors(err)
 
                 return json_response(
-                    data=ErrorJSONData(detail=errors),
+                    data=ErrorPayload(detail=errors),
                     status=422,
                 )
             return await handler(request, **valid_query_params.dict())
@@ -100,12 +100,12 @@ def validate_request_json(validator):
                 errors = _clean_errors(err)
 
                 return json_response(
-                    data=ErrorJSONData(detail=errors),
+                    data=ErrorPayload(detail=errors),
                     status=400,
                 )
             except (JSONDecodeError, TypeError):
                 return json_response(
-                    data=ErrorJSONData(
+                    data=ErrorPayload(
                         detail=[{'reason': "Invalid JSON format."}],
                     ),
                     status=400,

@@ -64,8 +64,8 @@ class Comic(Base):
         ),
     )
 
-    favorites = relationship('Favorite', backref='comic', cascade='all,delete')
-    explanation = relationship('Explanation', backref='comic', uselist=False, lazy=True, cascade='all,delete')
+    favorites = relationship('Favorite', backref='comic', cascade='all, delete')
+    explanation = relationship('Explanation', backref='comic', cascade='all, delete')
 
     __table_args__ = (
         Index('ix__comics___ts_vector__', search_vector_, postgresql_using='gin'),
@@ -79,7 +79,7 @@ class Explanation(Base):
     explanation_id = Column(SmallInteger, primary_key=True)
     text = Column(Text, unique=True)
     translation = Column(Text)
-    comic_id = Column(SmallInteger, ForeignKey('comics.comic_id'))
+    comic_id = Column(SmallInteger, ForeignKey('comics.comic_id', ondelete='CASCADE'))
 
 
 class User(Base):
@@ -92,15 +92,15 @@ class User(Base):
     joined_at = Column(Date, default=datetime.utcnow)
     last_activity_at = Column(Date)
 
-    favorites = relationship('Favorite', backref='user', cascade='all,delete')
+    favorites = relationship('Favorite', backref='user', cascade='all, delete')
 
 
 class Favorite(Base):
     __tablename__ = 'favorites'
 
     fav_id = Column(SmallInteger, primary_key=True)
-    comic_id = Column(SmallInteger, ForeignKey('comics.comic_id'))
-    user_id = Column(BigInteger, ForeignKey('users.tg_id'))
+    comic_id = Column(SmallInteger, ForeignKey('comics.comic_id', ondelete='CASCADE'))
+    user_id = Column(BigInteger, ForeignKey('users.tg_id', ondelete='CASCADE'))
     created_at = Column(Date, default=datetime.utcnow)
 
     __table_args__ = (

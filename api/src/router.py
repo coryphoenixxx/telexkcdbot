@@ -1,5 +1,5 @@
 from aiohttp import web
-from src.utils.json_response import SuccessJSONData, json_response
+from src.utils.json_response import SuccessPayload, json_response
 
 
 class Router(web.RouteTableDef):
@@ -12,7 +12,7 @@ class Router(web.RouteTableDef):
     async def _api_base_endpoint(self, request: web.Request) -> web.Response:
 
         return json_response(
-            data=SuccessJSONData(
+            data=SuccessPayload(
                 data=[f"{r.method} {r.path}" for r in self],
             ),
             status=200,
