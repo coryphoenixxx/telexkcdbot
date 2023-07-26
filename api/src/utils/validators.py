@@ -5,7 +5,7 @@ from json import JSONDecodeError
 
 from aiohttp import web
 from pydantic import BaseModel, Field, ValidationError, field_validator
-from src.database.models import Comic
+from src.database import dto
 from src.utils.json_response import ErrorPayload, json_response
 
 
@@ -15,8 +15,8 @@ class OrderType(str, Enum):
 
 
 class LimitOffsetParamsMixin(BaseModel):
-    limit: int | None = Field(gt=0, default=0)
-    offset: int | None = Field(gt=0, default=0)
+    limit: int | None = Field(gt=0, default=None)
+    offset: int | None = Field(gt=0, default=None)
 
 
 class ComicFieldsParamMixin(BaseModel):
@@ -25,9 +25,9 @@ class ComicFieldsParamMixin(BaseModel):
     @field_validator('fields')
     def validate_fields(cls, v):
         if v:
-            invalid_fields = set(v.split(',')) - set(Comic.column_names)
+            invalid_fields = set(v.split(',')) - set(dto.Comic.field_names)
             if invalid_fields:
-                raise ValueError(f"Invalid 'fields' query param. Must be one of: {', '.join(Comic.column_names)}")
+                raise ValueError(f"Invalid 'fields' query param. Must be one of: {', '.join(dto.Comic.field_names)}")
         return v
 
 
@@ -36,11 +36,11 @@ class ComicQueryParams(ComicFieldsParamMixin):
 
 
 class ComicsQueryParams(LimitOffsetParamsMixin, ComicFieldsParamMixin):
-    order: OrderType | None = OrderType.ESC
+    order: OrderType = OrderType.ESC
 
 
 class ComicsSearchQueryParams(LimitOffsetParamsMixin, ComicFieldsParamMixin):
-    q: str | None = None
+    q: str
 
     @field_validator('q')
     def validate_q(cls, v):

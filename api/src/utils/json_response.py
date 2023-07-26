@@ -12,9 +12,17 @@ class SuccessPayload:
 
 
 @dataclass
+class Meta:
+    limit: int | None
+    offset: int | None
+    count: int
+    total: int
+
+
+@dataclass
 class SuccessPayloadWithMeta:
     status: str = "success"
-    meta: dict = None
+    meta: Meta = None
     data: list[dict] = None
 
 
