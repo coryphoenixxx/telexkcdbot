@@ -1,4 +1,3 @@
-
 from aiohttp import web
 from sqlalchemy.exc import IntegrityError
 from src.database.repositories import ComicRepository
@@ -8,7 +7,7 @@ from src.utils.validators import (
     ComicQueryParams,
     ComicsQueryParams,
     ComicsSearchQueryParams,
-    PostComicJSONSchema,
+    PostComicSchema,
     PutComicJSONSchema,
     validate_queries,
     validate_request_json,
@@ -17,19 +16,24 @@ from src.utils.validators import (
 
 @router.get('/api/comics/{comic_id:\\d+}')
 @validate_queries(validator=ComicQueryParams)
-async def api_get_comic_by_id(request: web.Request, fields: str | None) -> web.Response:
+async def api_get_comic_by_id(request: web.Request, language: str | None, fields: str | None) -> web.Response:
     comic_id = int(request.match_info['comic_id'])
 
     comic_repo = ComicRepository(session_factory=request.app.session_factory)
-    comic = await comic_repo.get_by_id(comic_id)
+    comic_dto = await comic_repo.get_by_id(comic_id)
 
-    if not comic:
+    if not comic_dto:
         return json_response(
             data=ErrorPayload(detail=[{"reason": f"Comic {comic_id} doesn't exists."}]),
             status=404,
         )
 
-    response_data = comic.filter_fields(fields)
+    response_data = comic_dto.filter_fields(fields)
+
+    if language:
+        response_data = comic_dto.flatten(fields, language)
+
+    # response_data = comic_dto.to_detail(language=language).filter_fields(fields) if language else comic_dto
 
     return json_response(
         data=SuccessPayload(data=response_data),
@@ -41,15 +45,16 @@ async def api_get_comic_by_id(request: web.Request, fields: str | None) -> web.R
 @validate_queries(validator=ComicsQueryParams)
 async def api_get_comic_list(
         request: web.Request,
+        language: str,
         fields: str | None,
         limit: int | None,
         offset: int | None,
-        order: int | None,
+        order: str | None,
 ) -> web.Response:
     comic_repo = ComicRepository(session_factory=request.app.session_factory)
     comics, total = await comic_repo.get_list(limit, offset, order)
 
-    response_data = [comic.filter_fields(fields) for comic in comics]
+    response_data = comics
 
     return json_response(
         data=SuccessPayloadWithMeta(
@@ -68,15 +73,16 @@ async def api_get_comic_list(
 @validate_queries(validator=ComicsSearchQueryParams)
 async def api_search_comics(
         request: web.Request,
+        language: str,
         fields: str | None,
         limit: int | None,
         offset: int | None,
-        q: str | None,
+        q: str,
 ) -> web.Response:
     comic_repo = ComicRepository(session_factory=request.app.session_factory)
     comics, total = await comic_repo.search(q, limit, offset)
 
-    response_data = [comic.filter_fields(fields) for comic in comics]
+    # response_data = [comic.filter_fields(fields) for comic in comics]
 
     return json_response(
         data=SuccessPayloadWithMeta(
@@ -86,18 +92,18 @@ async def api_search_comics(
                 count=len(comics),
                 total=total,
             ),
-            data=response_data),
+            data=comics),
         status=200,
     )
 
 
 @router.post('/api/comics')
-@validate_request_json(validator=PostComicJSONSchema)
-async def api_post_comics(request: web.Request, comic_data: list[dict] | dict) -> web.Response:
+@validate_request_json(validator=PostComicSchema)
+async def api_post_comics(request: web.Request, comic_data: PostComicSchema) -> web.Response:
     comic_repo = ComicRepository(session_factory=request.app.session_factory)
 
     try:
-        comic_data = await comic_repo.add(comic_data)
+        comic_dto = await comic_repo.create(comic_data)
     except IntegrityError:
         return json_response(
             data=ErrorPayload(detail=[{'reason': "A comic with the same id, title and comment already exists."}]),
@@ -105,14 +111,14 @@ async def api_post_comics(request: web.Request, comic_data: list[dict] | dict) -
         )
 
     return json_response(
-        data=SuccessPayload(data=comic_data),
+        data=SuccessPayload(data=comic_dto),
         status=201,
     )
 
 
 @router.put('/api/comics/{comic_id:\\d+}')
 @validate_request_json(validator=PutComicJSONSchema)
-async def api_update_comic(request: web.Request, new_comic_data: dict) -> web.Response:
+async def api_put_comic(request: web.Request, new_comic_data: PutComicJSONSchema) -> web.Response:
     comic_id = int(request.match_info['comic_id'])
 
     comic_repo = ComicRepository(session_factory=request.app.session_factory)

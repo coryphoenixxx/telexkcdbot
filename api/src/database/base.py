@@ -18,7 +18,6 @@ class SessionFactory:
 
     async def __aenter__(self):
         self._session = self.pool()
-        await self._session.begin()
         return self._session
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):

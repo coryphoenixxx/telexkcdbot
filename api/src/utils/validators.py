@@ -25,21 +25,21 @@ class ComicFieldsParamMixin(BaseModel):
     @field_validator('fields')
     def validate_fields(cls, v):
         if v:
-            invalid_fields = set(v.split(',')) - set(dto.Comic.field_names)
+            invalid_fields = set(v.split(',')) - set(dto.ComicFlatten.field_names)
             if invalid_fields:
-                raise ValueError(f"Invalid 'fields' query param. Must be one of: {', '.join(dto.Comic.field_names)}")
+                raise ValueError(f"Invalid 'fields' query param. Must be one of: {', '.join(dto.ComicFlatten.field_names)}")
         return v
 
 
 class ComicQueryParams(ComicFieldsParamMixin):
-    ...
+    language: str | None = None
 
 
-class ComicsQueryParams(LimitOffsetParamsMixin, ComicFieldsParamMixin):
+class ComicsQueryParams(LimitOffsetParamsMixin, ComicQueryParams):
     order: OrderType = OrderType.ESC
 
 
-class ComicsSearchQueryParams(LimitOffsetParamsMixin, ComicFieldsParamMixin):
+class ComicsSearchQueryParams(LimitOffsetParamsMixin, ComicQueryParams):
     q: str
 
     @field_validator('q')
@@ -69,19 +69,21 @@ def validate_queries(validator):
     return wrapper
 
 
-class BaseJSONSchema(BaseModel):
+class ComicTranslationSchema(BaseModel):
+    language_code: str
     title: str
-    image: str
+    image_url: str
     comment: str
-    transcript: str | None
-    rus_title: str | None
-    rus_image: str | None
-    rus_comment: str | None
+    transcript: str
+
+
+class BaseJSONSchema(BaseModel):
     publication_date: str
     is_specific: bool
+    translations: list[ComicTranslationSchema]
 
 
-class PostComicJSONSchema(BaseJSONSchema):
+class PostComicSchema(BaseJSONSchema):
     comic_id: int
 
 
@@ -95,7 +97,7 @@ def validate_request_json(validator):
         async def wrapped(request: web.Request):
             try:
                 request_json = await request.json()
-                validator(**request_json)
+                x = validator(**request_json)
             except ValidationError as err:
                 errors = _clean_errors(err)
 
@@ -111,7 +113,7 @@ def validate_request_json(validator):
                     status=400,
                 )
 
-            return await handler(request, request_json)
+            return await handler(request, x)
 
         return wrapped
 

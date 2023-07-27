@@ -1,20 +1,22 @@
-
 from sqlalchemy import delete, select, update
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import selectinload
 from src.database import dto, models
+from src.utils.validators import PostComicSchema, PutComicJSONSchema
 
 
 class ComicRepository:
     def __init__(self, session_factory):
         self._session = session_factory
 
+    @staticmethod
+    def _get_by_id_query(comic_id: int):
+        return select(models.Comic) \
+            .options(selectinload(models.Comic.translations)) \
+            .where(models.Comic.comic_id == comic_id)
+
     async def get_by_id(self, comic_id: int) -> dto.Comic | None:
-
         async with self._session() as session:
-            stmt = select(models.Comic) \
-                .where(models.Comic.comic_id == comic_id)
-
-            comic = (await session.scalars(stmt)).one_or_none()
+            comic = (await session.scalars(self._get_by_id_query(comic_id))).one_or_none()
 
             return comic.to_dto() if comic else None
 
@@ -24,18 +26,19 @@ class ComicRepository:
             offset: int | None,
             order: str = 'esc',
     ) -> tuple[list[dto.Comic], int]:
-
         async with self._session() as session:
             stmt = select(models.Comic) \
+                .options(selectinload(models.Comic.translations)) \
                 .limit(limit) \
                 .offset(offset)
             if order == 'desc':
                 stmt = stmt.order_by(models.Comic.comic_id.desc())
 
-            comics = (await session.scalars(stmt)).all()
+            result = (await session.scalars(stmt)).unique().all()
+
             total = await session.scalar(models.Comic.total_count)
 
-            return [comic.to_dto() for comic in comics], total
+            return [comic.to_dto() for comic in result], total
 
     async def search(
             self,
@@ -43,51 +46,56 @@ class ComicRepository:
             limit: int | None,
             offset: int | None,
     ) -> tuple[list[dto.Comic], int]:
-
         async with self._session() as session:
             stmt = select(models.Comic) \
+                .join(models.Comic.translations) \
+                .options(selectinload(models.Comic.translations)) \
+                .where(models.ComicTranslation.search_vector.match(q)) \
                 .limit(limit) \
-                .offset(offset) \
-                .where(models.Comic.search_vector.match(q))
+                .offset(offset)
 
-            comics = (await session.scalars(stmt)).all()
+            comics = (await session.scalars(stmt)).unique().all()
             total = await session.scalar(models.Comic.total_count)
 
             return [comic.to_dto() for comic in comics], total
 
-    async def add(self, comic_data: dict) -> dto.Comic:
-
+    async def create(self, comic_data: PostComicSchema) -> dto.Comic:
         async with self._session() as session:
-            stmt = insert(models.Comic) \
-                .values(**comic_data) \
-                .returning(models.Comic.comic_id)
-            comic_id = await session.scalar(stmt)
+            comic = models.Comic(
+                comic_id=comic_data.comic_id,
+                publication_date=comic_data.publication_date,
+                is_specific=comic_data.is_specific,
+                translations=[models.ComicTranslation(**tr.model_dump()) for tr in comic_data.translations],
+            )
 
-            comic = (await session.scalars(
-                select(models.Comic).where(models.Comic.comic_id == comic_id),
-            )).one()
+            session.add(comic)
+
+            await session.commit()
+            await session.refresh(comic)
+
+            comic = (await session.scalars(self._get_by_id_query(comic.comic_id))).one()
 
             return comic.to_dto()
 
-    async def update(self, comic_id: int, comic_data: dict) -> dto.Comic | None:
-
+    async def update(self, comic_id: int, comic_data: PutComicJSONSchema) -> dto.Comic | None:
         async with self._session() as session:
-            stmt = update(models.Comic) \
-                .where(models.Comic.comic_id == comic_id) \
-                .values(**comic_data) \
-                .returning(models.Comic.comic_id)
+            stmt = update(models.Comic).values(
+                comic_id=comic_id,
+                publication_date=comic_data.publication_date,
+                is_specific=comic_data.is_specific,
+            )
+            await session.execute(stmt)
 
-            comic_id = await session.scalar(stmt)
+            translations = [{'comic_id': comic_id} | tr.model_dump() for tr in comic_data.translations]
 
-            if comic_id:
-                comic = (await session.scalars(
-                    select(models.Comic).where(models.Comic.comic_id == comic_id),
-                )).one()
-                return comic.to_dto()
-            return None
+            await session.execute(update(models.ComicTranslation), translations)
+            await session.commit()
+
+            comic = (await session.scalars(self._get_by_id_query(comic_id))).one()
+
+            return comic.to_dto(translation=comic.translations)
 
     async def delete(self, comic_id: int) -> int:
-
         async with self._session() as session:
             stmt = delete(models.Comic) \
                 .where(models.Comic.comic_id == comic_id) \
