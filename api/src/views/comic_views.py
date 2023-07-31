@@ -1,5 +1,6 @@
 from aiohttp import web
 from sqlalchemy.exc import IntegrityError
+from src import types
 from src.database.repositories import ComicRepository
 from src.router import router
 from src.utils.json_response import ErrorPayload, Meta, SuccessPayload, SuccessPayloadWithMeta, json_response
@@ -7,8 +8,6 @@ from src.utils.validators import (
     ComicQueryParams,
     ComicsQueryParams,
     ComicsSearchQueryParams,
-    PostComicSchema,
-    PutComicJSONSchema,
     validate_queries,
     validate_request_json,
 )
@@ -16,7 +15,12 @@ from src.utils.validators import (
 
 @router.get('/api/comics/{comic_id:\\d+}')
 @validate_queries(validator=ComicQueryParams)
-async def api_get_comic_by_id(request: web.Request, language: str | None, fields: str | None) -> web.Response:
+async def api_get_comic_by_id(
+        request: web.Request,
+        language: types.LanguageCode | None,
+        fields: str | None,
+) -> web.Response:
+
     comic_id = int(request.match_info['comic_id'])
 
     comic_repo = ComicRepository(session_factory=request.app.session_factory)
@@ -28,12 +32,7 @@ async def api_get_comic_by_id(request: web.Request, language: str | None, fields
             status=404,
         )
 
-    response_data = comic_dto.filter_fields(fields)
-
-    if language:
-        response_data = comic_dto.flatten(fields, language)
-
-    # response_data = comic_dto.to_detail(language=language).filter_fields(fields) if language else comic_dto
+    response_data = comic_dto.filter(language, fields)
 
     return json_response(
         data=SuccessPayload(data=response_data),
@@ -45,23 +44,24 @@ async def api_get_comic_by_id(request: web.Request, language: str | None, fields
 @validate_queries(validator=ComicsQueryParams)
 async def api_get_comic_list(
         request: web.Request,
-        language: str,
+        language: types.LanguageCode,
         fields: str | None,
         limit: int | None,
         offset: int | None,
-        order: str | None,
+        order: types.OrderType | None,
 ) -> web.Response:
-    comic_repo = ComicRepository(session_factory=request.app.session_factory)
-    comics, total = await comic_repo.get_list(limit, offset, order)
 
-    response_data = comics
+    comic_repo = ComicRepository(session_factory=request.app.session_factory)
+    comic_dto_list, total = await comic_repo.get_list(limit, offset, order)
+
+    response_data = [comic_dto.filter(language, fields) for comic_dto in comic_dto_list]
 
     return json_response(
         data=SuccessPayloadWithMeta(
             meta=Meta(
                 limit=limit,
                 offset=offset,
-                count=len(comics),
+                count=len(comic_dto_list),
                 total=total,
             ),
             data=response_data),
@@ -73,33 +73,35 @@ async def api_get_comic_list(
 @validate_queries(validator=ComicsSearchQueryParams)
 async def api_search_comics(
         request: web.Request,
-        language: str,
+        language: types.LanguageCode,
         fields: str | None,
         limit: int | None,
         offset: int | None,
         q: str,
 ) -> web.Response:
-    comic_repo = ComicRepository(session_factory=request.app.session_factory)
-    comics, total = await comic_repo.search(q, limit, offset)
 
-    # response_data = [comic.filter_fields(fields) for comic in comics]
+    comic_repo = ComicRepository(session_factory=request.app.session_factory)
+    comic_dto_list, total = await comic_repo.search(q, limit, offset)
+
+    response_data = [comic_dto.filter(language, fields) for comic_dto in comic_dto_list]
 
     return json_response(
         data=SuccessPayloadWithMeta(
             meta=Meta(
                 limit=limit,
                 offset=offset,
-                count=len(comics),
+                count=len(comic_dto_list),
                 total=total,
             ),
-            data=comics),
+            data=response_data),
         status=200,
     )
 
 
 @router.post('/api/comics')
-@validate_request_json(validator=PostComicSchema)
-async def api_post_comics(request: web.Request, comic_data: PostComicSchema) -> web.Response:
+@validate_request_json(validator=types.PostComic)
+async def api_post_comics(request: web.Request, comic_data: types.PostComic) -> web.Response:
+
     comic_repo = ComicRepository(session_factory=request.app.session_factory)
 
     try:
@@ -111,14 +113,14 @@ async def api_post_comics(request: web.Request, comic_data: PostComicSchema) -> 
         )
 
     return json_response(
-        data=SuccessPayload(data=comic_dto),
+        data=SuccessPayload(data=comic_dto.model_dump()),
         status=201,
     )
 
 
 @router.put('/api/comics/{comic_id:\\d+}')
-@validate_request_json(validator=PutComicJSONSchema)
-async def api_put_comic(request: web.Request, new_comic_data: PutComicJSONSchema) -> web.Response:
+@validate_request_json(validator=types.PutComic)
+async def api_put_comic(request: web.Request, new_comic_data: types.PutComic) -> web.Response:
     comic_id = int(request.match_info['comic_id'])
 
     comic_repo = ComicRepository(session_factory=request.app.session_factory)
@@ -138,7 +140,7 @@ async def api_put_comic(request: web.Request, new_comic_data: PutComicJSONSchema
         )
 
     return json_response(
-        data=SuccessPayload(data=comic_data),
+        data=SuccessPayload(data=comic_data.model_dump()),
         status=200,
     )
 
@@ -148,7 +150,6 @@ async def api_delete_comic(request: web.Request):
     comic_id = int(request.match_info['comic_id'])
 
     comic_repo = ComicRepository(session_factory=request.app.session_factory)
-
     del_comic_id = await comic_repo.delete(comic_id)
 
     if not del_comic_id:

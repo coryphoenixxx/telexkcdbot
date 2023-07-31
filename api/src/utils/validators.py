@@ -1,17 +1,12 @@
 import re
-from enum import Enum
 from functools import wraps
 from json import JSONDecodeError
 
 from aiohttp import web
 from pydantic import BaseModel, Field, ValidationError, field_validator
-from src.database import dto
+from src import types
+from src.types import OrderType
 from src.utils.json_response import ErrorPayload, json_response
-
-
-class OrderType(str, Enum):
-    DESC = "desc"
-    ESC = "esc"
 
 
 class LimitOffsetParamsMixin(BaseModel):
@@ -23,16 +18,17 @@ class ComicFieldsParamMixin(BaseModel):
     fields: str | None = None
 
     @field_validator('fields')
-    def validate_fields(cls, v):
-        if v:
-            invalid_fields = set(v.split(',')) - set(dto.ComicFlatten.field_names)
+    def validate_fields(cls, fields: str | None):
+        if fields:
+            invalid_fields = set(fields.split(',')) - set(types.ComicDTO.valid_field_names)
             if invalid_fields:
-                raise ValueError(f"Invalid 'fields' query param. Must be one of: {', '.join(dto.ComicFlatten.field_names)}")
-        return v
+                raise ValueError(
+                    f"Invalid 'fields' query param. Must be one of: {', '.join(types.ComicDTO.valid_field_names)}")
+        return fields
 
 
 class ComicQueryParams(ComicFieldsParamMixin):
-    language: str | None = None
+    language: types.LanguageCode | None = None
 
 
 class ComicsQueryParams(LimitOffsetParamsMixin, ComicQueryParams):
@@ -69,35 +65,13 @@ def validate_queries(validator):
     return wrapper
 
 
-class ComicTranslationSchema(BaseModel):
-    language_code: str
-    title: str
-    image_url: str
-    comment: str
-    transcript: str
-
-
-class BaseJSONSchema(BaseModel):
-    publication_date: str
-    is_specific: bool
-    translations: list[ComicTranslationSchema]
-
-
-class PostComicSchema(BaseJSONSchema):
-    comic_id: int
-
-
-class PutComicJSONSchema(BaseJSONSchema):
-    ...
-
-
 def validate_request_json(validator):
     def wrapper(handler):
         @wraps(handler)
         async def wrapped(request: web.Request):
             try:
                 request_json = await request.json()
-                x = validator(**request_json)
+                valid_request_data = validator(**request_json)
             except ValidationError as err:
                 errors = _clean_errors(err)
 
@@ -113,7 +87,7 @@ def validate_request_json(validator):
                     status=400,
                 )
 
-            return await handler(request, x)
+            return await handler(request, valid_request_data)
 
         return wrapped
 

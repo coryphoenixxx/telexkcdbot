@@ -17,7 +17,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, column_property, declared_attr, relationship
 from sqlalchemy_utils import TSVectorType
-from src.database import dto
+from src import types
 
 
 class Base(DeclarativeBase):
@@ -39,7 +39,7 @@ class Favorite(Base):
 class ComicTranslation(Base):
     __tablename__ = 'comic_translations'
 
-    def __create_tsvector_exp(*field_names):
+    def __to_tsvector_exp(*field_names):
         return f"""to_tsvector('english', {" || ' ' || ".join(field_names)})"""
 
     comic_id = Column(SmallInteger, ForeignKey('comics.comic_id', ondelete='CASCADE'), primary_key=True)
@@ -52,7 +52,7 @@ class ComicTranslation(Base):
     search_vector = Column(
         TSVectorType,
         Computed(
-            __create_tsvector_exp('title', 'comment', 'transcript'),
+            __to_tsvector_exp('title', 'comment', 'transcript'),
             persisted=True,
         ),
     )
@@ -62,8 +62,8 @@ class ComicTranslation(Base):
         UniqueConstraint('title', 'image_url', 'comment', name='uix__comics'),
     )
 
-    def to_dto(self):
-        return dto.ComicTranslation(
+    def to_dto(self) -> types.ComicTranslation:
+        return types.ComicTranslation(
             language_code=self.language_code,
             title=self.title,
             image_url=self.image_url,
@@ -94,18 +94,13 @@ class Comic(Base):
     def total_count(cls):
         return select(func.count(cls.comic_id))
 
-    def to_dto(self):
-        translations = {}
-
-        for tr in self.translations:
-            translations.update(tr.to_dto().as_dict())
-
-        return dto.Comic(
+    def to_dto(self) -> types.ComicDTO:
+        return types.ComicDTO(
             comic_id=self.comic_id,
             is_specific=self.is_specific,
             favorite_count=self.favorite_count,
             publication_date=self.publication_date,
-            translations=translations,
+            translations=[tr.to_dto() for tr in self.translations],
         )
 
 

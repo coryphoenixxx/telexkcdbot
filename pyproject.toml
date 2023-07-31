@@ -14,10 +14,10 @@ ruff = "^0.0.275"
 pre-commit = "^3.3"
 
 [tool.ruff]
-# select = ["B", "E", "W", "F", "N", "COM", "I", "ASYNC", "PL", "RUF", "SIM", "C90", "ARG", "T20", "C4", "UP"]
-select = []
+select = ["B", "E", "W", "F", "N", "COM", "I", "ASYNC", "PL", "RUF", "SIM", "C90", "ARG", "T20", "C4", "UP"]
+# select = []
 
-ignore = []
+ignore = ["N805", "PLR0913"]
 
 fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
 unfixable = []
