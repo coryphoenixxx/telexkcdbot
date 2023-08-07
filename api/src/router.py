@@ -10,7 +10,6 @@ class Router(web.RouteTableDef):
         app.router.add_route('GET', '/api', self._api_base_endpoint)
 
     async def _api_base_endpoint(self, _: web.Request) -> web.Response:
-
         return json_response(
             data=SuccessPayload(
                 data=[f"{r.method} {r.path}" for r in self],

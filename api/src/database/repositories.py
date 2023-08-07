@@ -15,7 +15,7 @@ class ComicRepository:
             .where(models.Comic.comic_id == comic_id)
 
     async def get_by_id(self, comic_id: int) -> types.ComicDTO | None:
-        async with self._session() as session:
+        async with self._session() as session, session.begin():
             comic: models.Comic = (await session.scalars(self._get_by_id_stmt(comic_id))).one_or_none()
 
             return comic.to_dto() if comic else None
@@ -27,7 +27,7 @@ class ComicRepository:
             order: types.OrderType,
     ) -> tuple[list[types.ComicDTO], int]:
 
-        async with self._session() as session:
+        async with self._session() as session, session.begin():
             stmt = select(models.Comic) \
                 .options(selectinload(models.Comic.translations)) \
                 .limit(limit) \
@@ -48,7 +48,7 @@ class ComicRepository:
             offset: int | None,
     ) -> tuple[list[types.ComicDTO], int]:
 
-        async with self._session() as session:
+        async with self._session() as session, session.begin():
             stmt = select(models.Comic) \
                 .join(models.Comic.translations) \
                 .options(selectinload(models.Comic.translations)) \
@@ -63,7 +63,7 @@ class ComicRepository:
 
     async def create(self, comic_data: types.ComicDTO) -> types.ComicDTO:
 
-        async with self._session() as session:
+        async with self._session() as session, session.begin():
             comic = models.Comic(
                 **comic_data.model_dump(exclude={'translations'}),
                 translations=[
@@ -77,16 +77,13 @@ class ComicRepository:
 
             session.add(comic)
 
-            await session.commit()
-            await session.refresh(comic)
-
             comic = (await session.scalars(self._get_by_id_stmt(comic.comic_id))).one()
 
             return comic.to_dto()
 
     async def update(self, comic_id: int, new_comic_data: types.PutComic) -> types.ComicDTO | None:
 
-        async with self._session() as session:
+        async with self._session() as session, session.begin():
             translations = [{'comic_id': comic_id} | tr.model_dump() for tr in new_comic_data.translations]
 
             await session.execute(update(models.ComicTranslation), translations)
@@ -97,7 +94,6 @@ class ComicRepository:
             )
 
             await session.execute(stmt)
-            await session.commit()
 
             comic = (await session.scalars(self._get_by_id_stmt(comic_id))).one()
 
@@ -105,7 +101,7 @@ class ComicRepository:
 
     async def delete(self, comic_id: int) -> int:
 
-        async with self._session() as session:
+        async with self._session() as session, session.begin():
             stmt = delete(models.Comic) \
                 .where(models.Comic.comic_id == comic_id) \
                 .returning(models.Comic.comic_id)
