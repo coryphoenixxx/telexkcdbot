@@ -26,6 +26,5 @@ pydantic = "^2.0"
 pytest-aiohttp = "^1.0.4"
 
 [tool.pytest.ini_options]
-python_files = "test*.py"
-pythonpath = "src tests"
 asyncio_mode = "auto"
+pythonopath = "src"
