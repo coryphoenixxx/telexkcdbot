@@ -12,6 +12,10 @@ class PG(BaseModel):
     password: str
     db: str
 
+    @property
+    def postgres_dsn(self):
+        return f"postgresql+{self.driver}://{self.user}:{self.password}@{self.host}:{self.port}/{self.db}"
+
 
 class SQLA(BaseModel):
     echo: bool

@@ -1,49 +1,35 @@
 from aiohttp import web
-from sqlalchemy import URL
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
+
 from src.config import Config
+from src.middlewares.db_session_middleware import db_session_middleware_factory
 from src.router import router
 
 
-def create_postgres_dsn(
-        driver: str,
-        user: str,
-        password: str,
-        host: str,
-        port: int,
-        db: str,
-) -> str:
-    postgres_dsn = URL.create(
-        drivername='postgresql+' + driver,
-        username=user,
-        password=password,
-        host=host,
-        port=port,
-        database=db,
-    )
-
-    return str(postgres_dsn)
-
-
-def create_engine(config: Config):
+def create_engine(config: Config) -> AsyncEngine:
     engine = create_async_engine(
-        url=create_postgres_dsn(**config.pg.model_dump()),
+        url=config.pg.postgres_dsn,
         echo=config.sqla.echo,
         echo_pool=config.sqla.echo,
         pool_size=config.sqla.pool_size,
         pool_pre_ping=True,
     )
+    engine.connect()
 
     return engine
 
 
-def setup(config: Config):
-    app = web.Application()
+def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    return async_sessionmaker(bind=engine)
 
+
+def setup_app(config: Config) -> web.Application:
     engine = create_engine(config)
-    engine.connect()
+    session_factory = create_session_factory(engine)
 
-    app.session_factory = async_sessionmaker(bind=engine)
+    app = web.Application(middlewares=[
+        db_session_middleware_factory(session_factory),
+    ])
 
     router.setup_routes(app)
 

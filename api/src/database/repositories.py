@@ -1,12 +1,14 @@
 from sqlalchemy import delete, select, update
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
+
 from src import types
 from src.database import models
 
 
 class ComicRepository:
-    def __init__(self, session_factory):
-        self._session = session_factory
+    def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
+        self._session_factory = session_factory
 
     @staticmethod
     def _get_by_id_stmt(comic_id: int):
@@ -15,7 +17,7 @@ class ComicRepository:
             .where(models.Comic.comic_id == comic_id)
 
     async def get_by_id(self, comic_id: int) -> types.ComicDTO | None:
-        async with self._session() as session, session.begin():
+        async with self._session_factory() as session:
             comic: models.Comic = (await session.scalars(self._get_by_id_stmt(comic_id))).one_or_none()
 
             return comic.to_dto() if comic else None
@@ -26,8 +28,7 @@ class ComicRepository:
             offset: int | None,
             order: types.OrderType,
     ) -> tuple[list[types.ComicDTO], int]:
-
-        async with self._session() as session, session.begin():
+        async with self._session_factory() as session, session.begin():
             stmt = select(models.Comic) \
                 .options(selectinload(models.Comic.translations)) \
                 .limit(limit) \
@@ -47,8 +48,7 @@ class ComicRepository:
             limit: int | None,
             offset: int | None,
     ) -> tuple[list[types.ComicDTO], int]:
-
-        async with self._session() as session, session.begin():
+        async with self._session_factory() as session, session.begin():
             stmt = select(models.Comic) \
                 .join(models.Comic.translations) \
                 .options(selectinload(models.Comic.translations)) \
@@ -61,9 +61,8 @@ class ComicRepository:
 
             return [comic.to_dto() for comic in comics], total
 
-    async def create(self, comic_data: types.ComicDTO) -> types.ComicDTO:
-
-        async with self._session() as session, session.begin():
+    async def create(self, comic_data: types.PostComic) -> types.ComicDTO:
+        async with self._session_factory() as session, session.begin():
             comic = models.Comic(
                 **comic_data.model_dump(exclude={'translations'}),
                 translations=[
@@ -82,8 +81,7 @@ class ComicRepository:
             return comic.to_dto()
 
     async def update(self, comic_id: int, new_comic_data: types.PutComic) -> types.ComicDTO | None:
-
-        async with self._session() as session, session.begin():
+        async with self._session_factory() as session, session.begin():
             translations = [{'comic_id': comic_id} | tr.model_dump() for tr in new_comic_data.translations]
 
             await session.execute(update(models.ComicTranslation), translations)
@@ -100,8 +98,7 @@ class ComicRepository:
             return comic.to_dto()
 
     async def delete(self, comic_id: int) -> int:
-
-        async with self._session() as session, session.begin():
+        async with self._session_factory() as session, session.begin():
             stmt = delete(models.Comic) \
                 .where(models.Comic.comic_id == comic_id) \
                 .returning(models.Comic.comic_id)

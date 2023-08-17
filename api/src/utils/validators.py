@@ -48,7 +48,7 @@ class ComicsSearchQueryParams(LimitOffsetParamsMixin, ComicQueryParams):
 def validate_queries(validator):
     def wrapper(handler):
         @wraps(handler)
-        async def wrapped(request: web.Request):
+        async def wrapped(request: web.Request, session_factory):
             try:
                 valid_query_params = validator(**request.rel_url.query)
             except ValidationError as err:
@@ -58,7 +58,7 @@ def validate_queries(validator):
                     data=ErrorPayload(detail=errors),
                     status=422,
                 )
-            return await handler(request, **valid_query_params.dict())
+            return await handler(request, session_factory, **valid_query_params.dict())
 
         return wrapped
 
@@ -68,7 +68,7 @@ def validate_queries(validator):
 def validate_request_json(validator):
     def wrapper(handler):
         @wraps(handler)
-        async def wrapped(request: web.Request):
+        async def wrapped(request: web.Request, session_factory):
             try:
                 request_json = await request.json()
                 valid_request_data = validator(**request_json)
@@ -87,7 +87,7 @@ def validate_request_json(validator):
                     status=400,
                 )
 
-            return await handler(request, valid_request_data)
+            return await handler(request, session_factory, valid_request_data)
 
         return wrapped
 

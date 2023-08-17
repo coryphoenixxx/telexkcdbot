@@ -27,4 +27,5 @@ pytest-aiohttp = "^1.0.4"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-pythonopath = "src"
+addopts = ["-s", "-v"]
+#pythonopath = ["src"]

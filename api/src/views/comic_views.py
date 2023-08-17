@@ -1,5 +1,7 @@
 from aiohttp import web
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
 from src import types
 from src.database.repositories import ComicRepository
 from src.router import router
@@ -17,13 +19,13 @@ from src.utils.validators import (
 @validate_queries(validator=ComicQueryParams)
 async def api_get_comic_by_id(
         request: web.Request,
+        session_factory: async_sessionmaker[AsyncSession],
         language: types.LanguageCode | None,
         fields: str | None,
 ) -> web.Response:
-
     comic_id = int(request.match_info['comic_id'])
 
-    comic_repo = ComicRepository(session_factory=request.app.session_factory)
+    comic_repo = ComicRepository(session_factory)
     comic_dto = await comic_repo.get_by_id(comic_id)
 
     if not comic_dto:
@@ -43,15 +45,15 @@ async def api_get_comic_by_id(
 @router.get('/api/comics')
 @validate_queries(validator=ComicsQueryParams)
 async def api_get_comic_list(
-        request: web.Request,
+        _: web.Request,
+        session_factory: async_sessionmaker[AsyncSession],
         language: types.LanguageCode,
         fields: str | None,
         limit: int | None,
         offset: int | None,
         order: types.OrderType | None,
 ) -> web.Response:
-
-    comic_repo = ComicRepository(session_factory=request.app.session_factory)
+    comic_repo = ComicRepository(session_factory)
     comic_dto_list, total = await comic_repo.get_list(limit, offset, order)
 
     response_data = [comic_dto.filter(language, fields) for comic_dto in comic_dto_list]
@@ -72,15 +74,15 @@ async def api_get_comic_list(
 @router.get('/api/comics/search')
 @validate_queries(validator=ComicsSearchQueryParams)
 async def api_search_comics(
-        request: web.Request,
+        _: web.Request,
+        session_factory: async_sessionmaker[AsyncSession],
         language: types.LanguageCode,
         fields: str | None,
         limit: int | None,
         offset: int | None,
         q: str,
 ) -> web.Response:
-
-    comic_repo = ComicRepository(session_factory=request.app.session_factory)
+    comic_repo = ComicRepository(session_factory)
     comic_dto_list, total = await comic_repo.search(q, limit, offset)
 
     response_data = [comic_dto.filter(language, fields) for comic_dto in comic_dto_list]
@@ -100,9 +102,12 @@ async def api_search_comics(
 
 @router.post('/api/comics')
 @validate_request_json(validator=types.PostComic)
-async def api_post_comics(request: web.Request, comic_data: types.PostComic) -> web.Response:
-
-    comic_repo = ComicRepository(session_factory=request.app.session_factory)
+async def api_post_comics(
+        _: web.Request,
+        session_factory: async_sessionmaker[AsyncSession],
+        comic_data: types.PostComic,
+) -> web.Response:
+    comic_repo = ComicRepository(session_factory)
 
     try:
         comic_dto = await comic_repo.create(comic_data)
@@ -120,10 +125,14 @@ async def api_post_comics(request: web.Request, comic_data: types.PostComic) -> 
 
 @router.put('/api/comics/{comic_id:\\d+}')
 @validate_request_json(validator=types.PutComic)
-async def api_put_comic(request: web.Request, new_comic_data: types.PutComic) -> web.Response:
+async def api_put_comic(
+        request: web.Request,
+        session_factory: async_sessionmaker[AsyncSession],
+        new_comic_data: types.PutComic,
+) -> web.Response:
     comic_id = int(request.match_info['comic_id'])
 
-    comic_repo = ComicRepository(session_factory=request.app.session_factory)
+    comic_repo = ComicRepository(session_factory)
 
     try:
         comic_data = await comic_repo.update(comic_id, new_comic_data)
@@ -146,10 +155,10 @@ async def api_put_comic(request: web.Request, new_comic_data: types.PutComic) ->
 
 
 @router.delete('/api/comics/{comic_id:\\d+}')
-async def api_delete_comic(request: web.Request):
+async def api_delete_comic(request: web.Request, session_factory: async_sessionmaker[AsyncSession] ):
     comic_id = int(request.match_info['comic_id'])
 
-    comic_repo = ComicRepository(session_factory=request.app.session_factory)
+    comic_repo = ComicRepository(session_factory)
     del_comic_id = await comic_repo.delete(comic_id)
 
     if not del_comic_id:
