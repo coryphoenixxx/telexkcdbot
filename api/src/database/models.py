@@ -1,4 +1,6 @@
+import operator
 from datetime import datetime
+from functools import reduce
 
 from sqlalchemy import (
     BigInteger,
@@ -17,7 +19,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, column_property, declared_attr, relationship
 from sqlalchemy_utils import TSVectorType
-from src import types
+
+from src import dtos
 
 
 class Base(DeclarativeBase):
@@ -62,14 +65,15 @@ class ComicTranslation(Base):
         UniqueConstraint('title', 'image_url', 'comment', name='uix__comics'),
     )
 
-    def to_dto(self) -> types.ComicTranslation:
-        return types.ComicTranslation(
-            language_code=self.language_code,
-            title=self.title,
-            image_url=self.image_url,
-            comment=self.comment,
-            transcript=self.transcript,
-        )
+    def to_dict(self) -> dtos.ComicTranslations:
+        return {
+            self.language_code: dtos.ComicTranslationContent(
+                title=self.title,
+                image_url=self.image_url,
+                comment=self.comment,
+                transcript=self.transcript,
+            ),
+        }
 
 
 class Comic(Base):
@@ -77,7 +81,8 @@ class Comic(Base):
 
     comic_id = Column(SmallInteger, primary_key=True)
     publication_date = Column(String, nullable=False)
-    is_specific = Column(Boolean, nullable=False, default=False)
+    is_special = Column(Boolean, nullable=False, default=False)
+    reddit_url = Column(String, nullable=False)
 
     favorite_count = column_property(
         select(func.count('*'))
@@ -94,13 +99,14 @@ class Comic(Base):
     def total_count(cls):
         return select(func.count(cls.comic_id))
 
-    def to_dto(self) -> types.ComicDTO:
-        return types.ComicDTO(
+    def to_dto(self) -> dtos.ComicResponse:
+        return dtos.ComicResponse(
             comic_id=self.comic_id,
-            is_specific=self.is_specific,
+            is_special=self.is_special,
             favorite_count=self.favorite_count,
             publication_date=self.publication_date,
-            translations=[tr.to_dto() for tr in self.translations],
+            reddit_url=self.reddit_url,
+            translations=reduce(operator.ior, [tr.to_dict() for tr in self.translations], {}),
         )
 
 

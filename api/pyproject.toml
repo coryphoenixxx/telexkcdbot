@@ -21,6 +21,7 @@ alembic = "^1.11.1"
 sqlalchemy-utils = "^0.41.1"
 pydantic-settings = "^2.0"
 pydantic = "^2.0"
+uvloop = "^0.17.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest-aiohttp = "^1.0.4"

@@ -2,7 +2,7 @@ import pytest
 import sqlalchemy as sa
 from src.config import Config
 from src.database.models import Base
-from src.setup import create_engine, create_session_factory, setup_app
+from src.setup import create_app, create_engine, create_session_factory
 
 
 @pytest.fixture(scope='session')
@@ -31,7 +31,7 @@ def db_setup_teardown(engine):
 
 @pytest.fixture(scope='function', autouse=True)
 def app(test_config):
-    return setup_app(test_config)
+    return create_app(test_config)
 
 
 @pytest.fixture(scope='function', autouse=True)

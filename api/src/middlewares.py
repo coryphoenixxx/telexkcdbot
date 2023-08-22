@@ -9,4 +9,5 @@ def db_session_middleware_factory(session_factory: async_sessionmaker[AsyncSessi
     async def db_session_middleware(request: web.Request, handler: Callable):
         response = await handler(request, session_factory)
         return response
+
     return db_session_middleware
