@@ -9,9 +9,8 @@ from src.schemas import mytypes
 from src.schemas.queries import ComicQueryParams
 from src.services.comics_service import ComicsService
 from src.utils.exceptions import NotFoundError
-from src.utils.filters import filter_keys, filter_langs
 from src.utils.json_response import ErrorPayload, SuccessPayload, json_response
-from src.utils.validators import clean_errors, validate_request_json
+from src.utils.validators import validate_request_json
 
 
 @router.get('/api/comics/{comic_id:\\d+}')
@@ -24,10 +23,8 @@ async def api_get_comic_by_id(
     try:
         params = ComicQueryParams(**request.rel_url.query)
     except ValidationError as err:
-        errors = clean_errors(err)
-
         return json_response(
-            data=ErrorPayload(detail=errors),
+            data=ErrorPayload(detail=err),
             status=422,
         )
 
@@ -35,17 +32,11 @@ async def api_get_comic_by_id(
         comic_dto = await ComicsService(ComicsRepo(session_factory)).get_comic_by_id(comic_id)
     except NotFoundError:
         return json_response(
-            data=ErrorPayload(detail=[{"reason": f"Comic {comic_id} doesn't exists."}]),
+            data=ErrorPayload(detail={"reason": f"Comic {comic_id} doesn't exists."}),
             status=404,
         )
 
-    fields = params.fields.split(',') if params.fields else None
-    languages = params.languages.split(',') if params.languages else None
-
-    response_data = filter_keys(
-        filter_langs(comic_dto.to_dict(), languages),
-        fields,
-    )
+    response_data = comic_dto.filter(params.languages, params.fields)
 
     return json_response(
         data=SuccessPayload(data=response_data),
