@@ -27,9 +27,11 @@ def create_app(config: Config) -> web.Application:
     engine = create_engine(config)
     session_factory = create_session_factory(engine)
 
-    app = web.Application(middlewares=[
-        db_session_middleware_factory(session_factory),
-    ])
+    app = web.Application(
+        client_max_size=1024 ** 2 * 5,
+        middlewares=[
+            db_session_middleware_factory(session_factory),
+        ])
 
     router.setup_routes(app)
 

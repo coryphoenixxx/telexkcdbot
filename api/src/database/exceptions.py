@@ -1,0 +1,9 @@
+class NotFoundError(Exception):
+    ...
+
+
+class AlreadyExistsError(Exception):
+    ...
+
+class SameTextInfoError(Exception):
+    ...

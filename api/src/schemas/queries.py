@@ -1,8 +1,8 @@
 import re
 
 from pydantic import BaseModel, Field, field_validator
-from src.schemas import mytypes
-from src.schemas.mytypes import LanguageCode, OrderType
+from src.schemas import schemas
+from src.schemas.schemas import LanguageCode, OrderType
 
 
 class LimitOffsetParamsMixin(BaseModel):
@@ -16,10 +16,12 @@ class ComicFieldsParamMixin(BaseModel):
     @field_validator('fields')
     def validate_fields(cls, fields: str | None):
         if fields:
-            invalid_fields = set(fields.split(',')) - set(mytypes.ComicSchema.valid_field_names)
+            invalid_fields = set(fields.split(',')) - set(schemas.ComicValidFields.valid_field_names)
             if invalid_fields:
                 raise ValueError(
-                    f"Invalid 'fields' query param. Must be one of: {', '.join(mytypes.ComicSchema.valid_field_names)}")
+                    f"Invalid 'fields' query param. Must be one of: "
+                    f"{', '.join(schemas.ComicValidFields.valid_field_names)}",
+                )
         return fields
 
 

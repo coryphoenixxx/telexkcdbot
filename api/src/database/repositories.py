@@ -1,5 +1,9 @@
+from pathlib import Path
+
+import aiofiles
+from aiofiles import os
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from src import dtos
@@ -7,19 +11,38 @@ from src.database import models
 
 
 class ComicsRepo:
-    def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
-        self._session_factory = session_factory
+    def __init__(self, session: AsyncSession):
+        self._session = session
 
-    @staticmethod
-    def _get_by_id_stmt(comic_id: int):
-        return select(models.Comic) \
-            .options(selectinload(models.Comic.translations)) \
-            .where(models.Comic.comic_id == comic_id)
+    async def create(self, comic_dto: dtos.ComicRequestDto) -> models.Comic:
+        async with self._session, self._session.begin():
+            translations = []
+            for lang_code, content in comic_dto.translations.items():
+                translations.append(
+                    models.ComicTranslation(
+                        comic_id=comic_dto.comic_id,
+                        language_code=lang_code,
+                        **content.to_dict(),
+                    ),
+                )
+
+            comic_model = models.Comic(
+                **comic_dto.to_dict(exclude=('translations',)),
+                translations=translations,
+            )
+
+            self._session.add(comic_model)
+
+            comic_model = (await self._session.scalars(self._get_by_id_stmt(comic_model.comic_id))).one()
+
+            await self._session.commit()
+
+        return comic_model
 
     async def get_by_id(self, comic_id: int) -> models.Comic | None:
-        async with self._session_factory() as session:
-            comic: models.Comic = (await session.scalars(self._get_by_id_stmt(comic_id))).one_or_none()
-            return comic
+        async with self._session:
+            comic_model: models.Comic = (await self._session.scalars(self._get_by_id_stmt(comic_id))).one_or_none()
+            return comic_model
 
     # async def get_list(
     #         self,
@@ -60,29 +83,7 @@ class ComicsRepo:
     #
     #         return [comic.to_dto() for comic in comics], total
     #
-    async def create(self, comic_dto: dtos.ComicRequest) -> models.Comic:
-        async with self._session_factory() as session, session.begin():
-            translations = []
 
-            for lang_code, tr_content in comic_dto.translations.items():
-                translations.append(
-                    models.ComicTranslation(
-                        comic_id=comic_dto.comic_id,
-                        language_code=lang_code,
-                        **tr_content.to_dict(),
-                    ),
-                )
-
-            comic = models.Comic(
-                **comic_dto.to_dict(exclude=('translations',)),
-                translations=translations,
-            )
-
-            session.add(comic)
-
-            comic = (await session.scalars(self._get_by_id_stmt(comic.comic_id))).one()
-
-        return comic
     #
     # async def update(self, comic_id: int, new_comic_data: types.PutComic) -> types.ComicDTO | None:
     #     async with self._session_factory() as session, session.begin():
@@ -110,3 +111,26 @@ class ComicsRepo:
     #         comic_id = await session.scalar(stmt)
     #
     #         return comic_id
+
+    @staticmethod
+    def _get_by_id_stmt(comic_id: int):
+        return select(models.Comic) \
+            .options(selectinload(models.Comic.translations)) \
+            .where(models.Comic.comic_id == comic_id)
+
+
+class ComicFilesRepo:
+    root = '../static/images'
+
+    async def save(self, dst_path: str | Path, file: bytearray) -> str:
+        full_path = Path(self.root + dst_path)
+        await os.makedirs(full_path.parent, exist_ok=True)
+        async with aiofiles.open(full_path, 'wb') as f:
+            await f.write(file)
+        return str(full_path)
+
+    async def get(self, path):
+        ...
+
+    async def delete(self, path):
+        ...

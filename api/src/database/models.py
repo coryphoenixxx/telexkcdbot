@@ -49,8 +49,8 @@ class ComicTranslation(Base):
     language_code = Column(String(2), nullable=False, primary_key=True)
     title = Column(String, nullable=False)
     comment = Column(String, nullable=False)
-    image_url = Column(String, nullable=False)
-    transcript = Column(Text, nullable=False)
+    image_url = Column(String, nullable=True)
+    transcript = Column(Text, nullable=True)  # TODO: ts_vector?
 
     search_vector = Column(
         TSVectorType,
@@ -62,12 +62,12 @@ class ComicTranslation(Base):
 
     __table_args__ = (
         Index('ix__comics___ts_vector__', search_vector, postgresql_using='gin'),
-        UniqueConstraint('title', 'image_url', 'comment', name='uix__comics'),
+        UniqueConstraint('title', 'transcript', 'comment', name='uix__comics'),
     )
 
     def to_dict(self) -> dtos.ComicTranslations:
         return {
-            self.language_code: dtos.ComicTranslationContent(
+            self.language_code: dtos.ComicTranslationDto(
                 title=self.title,
                 image_url=self.image_url,
                 comment=self.comment,
@@ -82,7 +82,8 @@ class Comic(Base):
     comic_id = Column(SmallInteger, primary_key=True)
     publication_date = Column(String, nullable=False)
     is_special = Column(Boolean, nullable=False, default=False)
-    reddit_url = Column(String, nullable=False)
+    reddit_url = Column(String, nullable=True)
+    # xkcd_url
 
     favorite_count = column_property(
         select(func.count('*'))
@@ -99,8 +100,8 @@ class Comic(Base):
     def total_count(cls):
         return select(func.count(cls.comic_id))
 
-    def to_dto(self) -> dtos.ComicResponse:
-        return dtos.ComicResponse(
+    def to_dto(self) -> dtos.ComicResponseDto:
+        return dtos.ComicResponseDto(
             comic_id=self.comic_id,
             is_special=self.is_special,
             favorite_count=self.favorite_count,

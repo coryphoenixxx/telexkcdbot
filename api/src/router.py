@@ -1,7 +1,7 @@
 from aiohttp import web
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from src.utils.json_response import SuccessPayload, json_response
+from src.helpers.json_response import SuccessPayload, json_response
 
 
 class Router(web.RouteTableDef):

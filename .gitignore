@@ -170,3 +170,4 @@ docker-compose.prod.yml
 /api/.idea/
 /bot/.idea/
 /.ruff_cache/
+/api/static/

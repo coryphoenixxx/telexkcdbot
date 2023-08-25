@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 from enum import Enum
 from typing import Any
 
-from src.utils.filters import filter_keys
+from src.helpers.filters import filter_keys
 
 
 class LanguageCode(str, Enum):
@@ -12,18 +12,21 @@ class LanguageCode(str, Enum):
 
 
 @dataclass(slots=True)
-class ComicTranslationContent:
+class ComicTranslationDto:
     title: str
-    image_url: str
     comment: str
     transcript: str
+    image_url: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
 
 
-ComicTranslations = Mapping[LanguageCode, ComicTranslationContent]
+ComicTranslations = Mapping[LanguageCode, ComicTranslationDto]
 
 
 @dataclass(slots=True)
-class ComicResponse:
+class ComicResponseDto:
     comic_id: int
     publication_date: str
     is_special: bool
@@ -54,5 +57,26 @@ class ComicResponse:
 
 
 @dataclass(slots=True)
-class ComicRequest:
-    ...
+class ComicRequestDto:
+    comic_id: int
+    publication_date: str
+    is_special: bool
+    reddit_url: str
+    translations: ComicTranslations
+
+    def to_dict(self, exclude=Sequence[str]) -> dict[str, Any]:
+        d = asdict(self)
+        for field in exclude:
+            d.pop(field)
+        return d
+
+
+@dataclass
+class ImageObjDto:
+    comic_id: int
+    language: LanguageCode
+    image_binary: bytearray
+
+    @property
+    def dst_path(self):
+        return f"/{self.language.value}/{self.comic_id}.webp"

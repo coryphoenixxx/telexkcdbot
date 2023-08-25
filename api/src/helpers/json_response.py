@@ -1,6 +1,7 @@
 import json
 from dataclasses import asdict, dataclass, is_dataclass
 from functools import partial
+from typing import Any
 
 from aiohttp import web
 from pydantic import ValidationError
@@ -57,3 +58,15 @@ class DataClassJSONEncoder(json.JSONEncoder):
 def json_response(*args, **kwargs):
     kwargs['dumps'] = partial(json.dumps, cls=DataClassJSONEncoder)
     return web.json_response(*args, **kwargs)
+
+
+def json_error_response(reason: str | None = None, detail: Any = None, code: int = 400):
+    # TODO
+    if reason:
+        detail = {'reason': reason}
+    return json_response(
+        data=ErrorPayload(
+            detail=detail,
+        ),
+        status=code,
+    )
