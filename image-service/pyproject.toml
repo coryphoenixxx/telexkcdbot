@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "image-service"
+version = "0.1.0"
+description = ""
+authors = ["coryphoenixxx <coryphoenixxx@gmail.com>"]
+readme = "README.md"
+packages = [{include = "image_service"}]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+webptools = "^0.0.9"
+bottle = "^0.12.25"
+bjoern = "^3.2.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
