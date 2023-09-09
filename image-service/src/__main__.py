@@ -1,6 +1,5 @@
 import json
 import os
-from uuid import uuid4
 
 import bjoern
 import bottle
@@ -12,35 +11,26 @@ from src.conversion import convert
 
 @get('/healthcheck')
 def hello_handler():
-    response.status = 200
-    response.content_type = 'application/json'
+    response.content_type, response.status = 'application/json', 200
     return json.dumps({'status': "ok"})
 
 
 @post('/convert')
 def convert_handler():
-    comic_id = request.query.comic_id
-    language = request.query.lang
-    tmp_image = request.query.path
+    input_image, output_image = request.query.input, request.query.output
 
-    if not comic_id or not language or not tmp_image:
+    if not input_image or not output_image:
         response_obj, status_code = {
             'status': "error",
-            'reason': "Invalid query strings: path, lang or comic_id!",
-        }, 400
+            'reason': "Invalid query strings: input_image or output_image!",
+        }, 422
     else:
         quality = request.query.get('q', app.config['default_q'])
         extension = request.query.get('ext', 'jpg')
 
-        filename = f"{comic_id}-{language}_{uuid4().hex}.webp"
-
-        dst_dir, tmp_dir = app.config['dir']['dst'], app.config['dir']['tmp']
-        os.makedirs(dst_dir, exist_ok=True)
-        os.makedirs(tmp_dir, exist_ok=True)
-
         status, err = convert(
-            input_path=tmp_dir + tmp_image,
-            output_path=dst_dir + filename,
+            input_path=app.config['dir']['tmp'] + input_image,
+            output_path=app.config['dir']['dst'] + output_image,
             bin_path=app.config['bin']['gif2webp'] if extension == 'gif' else app.config['bin']['cwebp'],
             q=quality,
         )
@@ -53,11 +43,10 @@ def convert_handler():
         else:
             response_obj, status_code = {
                 'status': "success",
-                'image': filename,
+                'image': output_image,
             }, 201
 
-    response.content_type = 'application/json'
-    response.status = status_code
+    response.content_type, response.status = 'application/json', status_code
     return json.dumps(response_obj)
 
 
@@ -65,6 +54,9 @@ if __name__ == '__main__':
     app = bottle.default_app()
 
     load_config(app)
+
+    os.makedirs(app.config['dir']['dst'], exist_ok=True)
+    os.makedirs(app.config['dir']['tmp'], exist_ok=True)
 
     bjoern.run(
         app,
