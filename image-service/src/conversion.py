@@ -1,16 +1,13 @@
-from webptools import cwebp, grant_permission
-
-grant_permission()
-
-bin_path = "cwebp"
+from webptools import cwebp
 
 
-def convert(input_path: str, output_path: str, quality: int = 85) -> tuple[bool, str | None]:
-    result = cwebp(
+def convert(input_path: str, output_path: str, bin_path: str, q: int = 85) -> tuple[bool, str | None]:
+    result: dict = cwebp(
         input_image=input_path,
         output_image=output_path,
-        option=f"-q {quality}",
+        option=f"-q {q}",
         logging="-v",
+        bin_path=bin_path,
     )
 
     if result['exit_code'] != 0:
