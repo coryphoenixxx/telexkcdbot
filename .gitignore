@@ -170,3 +170,5 @@ docker-compose.prod.yml
 /api/.idea/
 /bot/.idea/
 /.ruff_cache/
+/image-service/static/
+/image-service/tmp/

@@ -1,4 +1,4 @@
-FROM tecktron/python-bjoern:python-3.11-slim AS python
+FROM python:3.11.3-alpine AS python
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -18,9 +18,11 @@ RUN python -c 'from urllib.request import urlopen; print(urlopen("https://instal
 COPY . ./
 RUN poetry install --no-interaction --no-ansi -vvv
 
+
 FROM python AS runtime
 
 ENV PATH="/app/.venv/bin:$PATH"
 COPY --from=poetry /app /app
+
 
 CMD ["python", "-m", "src"]

@@ -1,12 +1,11 @@
-
 from webptools import cwebp
 
 
-def convert(input_path: str, output_path: str, bin_path: str, q: int = 85) -> tuple[bool, str | None]:
+def convert_to_webp(input_path: str, output_path: str, bin_path: str, quality: int) -> tuple[bool, str | None]:
     result: dict = cwebp(
         input_image=input_path,
         output_image=output_path,
-        option=f"-q {q}",
+        option=f"-q {quality}",
         logging="-v",
         bin_path=bin_path,
     )

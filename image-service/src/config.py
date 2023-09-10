@@ -1,23 +1,17 @@
 import decouple
-from bottle import Bottle
-from webptools import grant_permission
+from bottle import ConfigDict
 
 
-def load_config(app: Bottle):
-    app.config.update({
+def load_config() -> ConfigDict:
+    return ConfigDict(**{
         'port': decouple.config('PORT', default=8080, cast=int),
         'host': decouple.config('HOST', default='0.0.0.0'),
         'bin': {
             'cwebp': decouple.config('CWEBP_PATH', default='cwebp'),
             'gif2webp': decouple.config('GIF2WEBP_PATH', default='gif2webp'),
         },
-        'default_q': decouple.config('DEFAULT_QUALITY', default=85),
-        'dir': {
-            'dst': decouple.config('DST_DIR', default='/static/images/'),
-            'tmp': decouple.config('TMP_DIR', default='/tmp/'),
-        },
-        'debug': decouple.config('DEBUG', default=False, cast=bool),
+        'output_dir': decouple.config('OUTPUT_DIR', default='/static/images/comics/'),
+        'worker_num': decouple.config('WORKER_NUM', default=3, cast=int),
+        'max_size': decouple.config('MAX_UPLOAD_SIZE', default=5 * 1024 * 1024, cast=int),
+        'quality': decouple.config('DEFAULT_QUALITY', default=85, cast=int),
     })
-
-    if app.config['bin']['cwebp'] == 'cwebp' or app.config['bin']['gif2webp'] == 'gif2webp':
-        grant_permission()

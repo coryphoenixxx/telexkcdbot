@@ -3,3 +3,4 @@
 Dockerfile
 .env.template
 .dockerignore
+__pycache__

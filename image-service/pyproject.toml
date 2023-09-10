@@ -9,8 +9,8 @@ readme = "README.md"
 python = "^3.11"
 webptools = "^0.0.9"
 bottle = "^0.12.25"
-bjoern = "^3.2.2"
 python-decouple = "^3.8"
+gunicorn = "^21.2.0"
 
 
 [build-system]
