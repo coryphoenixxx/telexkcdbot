@@ -42,7 +42,8 @@ def convert_handler():
         status, err = convert_to_webp(
             input_path=temp_file.name,
             output_path=app.config.output_dir + output_image_filename,
-            bin_path=app.config.bin['gif2webp'] if extension == 'gif' else app.config.bin['cwebp'],
+            bin_dir=app.config.bin,
+            extension=extension,
             quality=app.config.quality,
         )
 
