@@ -3,8 +3,8 @@ import json
 from bottle import response
 
 
-def json_success_response(status_code: int = 200, **kwargs):
-    response.content_type, response.status = 'application/json', status_code
+def json_success_response(**kwargs):
+    response.content_type, response.status = 'application/json', 200
     return json.dumps({
         'status': "success",
         **kwargs,

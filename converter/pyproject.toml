@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "image-service"
+name = "converter"
 version = "0.1.0"
 description = ""
 authors = ["coryphoenixxx <coryphoenixxx@gmail.com>"]
