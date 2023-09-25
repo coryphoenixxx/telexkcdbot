@@ -1,4 +1,4 @@
-FROM python:3.11.3-alpine AS python
+FROM python:3.11.5-alpine AS python
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -24,5 +24,6 @@ FROM python AS runtime
 ENV PATH="/app/.venv/bin:$PATH"
 COPY --from=poetry /app /app
 
+RUN apk update && apk add --no-cache libmagic
 
 CMD ["python", "-m", "src"]

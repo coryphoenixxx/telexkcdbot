@@ -1,12 +1,18 @@
 import os
+from pathlib import Path
 from tempfile import NamedTemporaryFile
-from uuid import uuid4
 
-from bottle import FileUpload, request, static_file
+import magic
+from bottle import FileUpload, redirect, request, static_file
 
 from src.app import app
 from src.conversion import convert_to_webp
-from src.utils import json_error_response, json_success_response
+from src.helpers import CustomError, handle_response, json_success_response, read_image_to_file
+
+
+@app.get('/')
+def root_handler():
+    redirect('/healthcheck')
 
 
 @app.get('/healthcheck')
@@ -15,51 +21,47 @@ def hello_handler():
 
 
 @app.post('/convert')
+@handle_response
 def convert_handler():
     image: FileUpload = request.files.get('image')
-    quality_param = request.query.quality
-    format_param = request.query.format
 
     if not image:
-        return json_error_response("Empty body!")
+        raise CustomError("Empty body!")
 
     if image.filename == 'empty':
-        return json_error_response("No attached file!")
+        raise CustomError("No attached file!")
 
-    extension = image.content_type.split('/')[1]
-    if extension not in app.config.supported_extensions:
-        return json_error_response(
-            f"Invalid image extension! Must be one of: {', '.join(app.config.supported_extensions)}.", 415,
-        )
+    tmp_dir = app.config.tmp_dir
+    if not os.path.exists(tmp_dir):
+        raise CustomError("Invalid temp directory!")
 
-    with NamedTemporaryFile(dir=app.config.tmp_dir) as temp_file:
-        image.save(temp_file)
+    with NamedTemporaryFile(dir=tmp_dir) as input_file, \
+            NamedTemporaryFile(dir=tmp_dir) as output_file:
 
-        input_image_size = temp_file.tell()
-        output_filename = f"{uuid4().hex}.webp"
-        output_path = app.config.static_dir + output_filename
+        image_file = read_image_to_file(image.file, input_file, app.config.max_size)
 
-        status, error = convert_to_webp(
-            input_path=temp_file.name,
-            output_path=output_path,
+        extension = magic.from_file(filename=image_file.name, mime=True).split('/')[1]
+        if extension not in app.config.supported_extensions.split(','):
+            raise CustomError(f"Invalid image extension! Supported: {app.config.supported_extensions}.")
+
+        quality_param = request.query.quality
+        convert_to_webp(
+            input_path=image_file.name,
+            output_path=output_file.name,
             bin_dir=app.config.bin,
             extension=extension,
             quality=quality_param if quality_param else app.config.quality,
         )
 
-    if not status:
-        return json_error_response(error.strip(), 422)
-    elif format_param == 'image':
-        return static_file(
-            filename=output_filename,
-            root=app.config.static_dir,
+        response = static_file(
+            filename=Path(output_file.name).name,
+            root=tmp_dir,
             mimetype='image/webp',
         )
-    else:
-        output_image_size = os.path.getsize(output_path)
+
+        input_image_size, output_image_size = os.path.getsize(image_file.name), os.path.getsize(output_file.name)
         compression_ratio = round((input_image_size - output_image_size) * 100 / input_image_size, 2)
-        return json_success_response(
-            input_image=image.filename,
-            output_image=output_filename,
-            compression_ratio=f"{compression_ratio}%",
-        )
+        response.set_header('x-compression-ratio', compression_ratio)
+        response.set_header('x-input-filename', image.filename)
+
+        return response

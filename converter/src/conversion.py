@@ -1,5 +1,7 @@
 from webptools import cwebp
 
+from src.helpers import ConversionError
+
 
 def convert_to_webp(
         input_path: str,
@@ -7,7 +9,7 @@ def convert_to_webp(
         bin_dir: dict,
         extension: str,
         quality: int,
-) -> tuple[bool, str | None]:
+):
     result: dict = cwebp(
         input_image=input_path,
         output_image=output_path,
@@ -16,6 +18,5 @@ def convert_to_webp(
     )
 
     if result['exit_code'] != 0:
-        return False, result['stderr'].decode()
-    else:
-        return True, None
+        # TODO: log: image name, error msg
+        raise ConversionError(message=result['stderr'].decode().strip())
