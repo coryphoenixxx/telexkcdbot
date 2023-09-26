@@ -22,10 +22,31 @@ class SQLA(BaseModel):
     pool_size: int
 
 
+class IMG(BaseModel):
+    converter_url: str
+    images_dir: str
+    supported_extensions: str
+    image_max_size: int
+
+    def __init__(self, **kwargs):
+        kwargs['image_max_size'] = eval(kwargs['image_max_size'])
+        super().__init__(**kwargs)
+
+
+class API(BaseModel):
+    port: int
+    client_max_size: int
+
+    def __init__(self, **kwargs):
+        kwargs['client_max_size'] = eval(kwargs['client_max_size'])
+        super().__init__(**kwargs)
+
+
 class Config(BaseSettings):
     pg: PG
     sqla: SQLA
-    api_port: int
+    img: IMG
+    api: API
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent.parent / '.env',

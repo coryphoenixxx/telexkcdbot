@@ -6,14 +6,14 @@ from src import dtos
 
 
 class OrderType(str, Enum):
-    DESC = "desc"
-    ESC = "esc"
+    DESC = 'desc'
+    ESC = 'esc'
 
 
 # StrEnum
 class LanguageCode(str, Enum):
-    EN = "en"
-    RU = "ru"
+    EN = 'en'
+    RU = 'ru'
 
     @classmethod
     def as_str(cls):
@@ -48,24 +48,30 @@ class ComicValidFields(ComicBase, ComicFavCountMixin, ComicIDMixin):
     ...
 
 
-class RequestComicSchema(ComicIDMixin, ComicBase):
-    ...
+class ComicOriginRequestSchema(BaseModel):
+    comic_id: int
+    publication_date: str
+    is_special: bool
+    reddit_url: str
+    title: str
+    comment: str
+    transcript: str
+    image: str | None = None
 
-    def to_dto(self) -> dtos.ComicRequestDto:
-        translations = {}
+    def to_dto(self, image_path: str | None = None):
+        translation = dtos.ComicRequestTranslationDTO(
+            comic_id=self.comic_id,
+            language_code=LanguageCode('en'),
+            title=self.title,
+            comment=self.comment,
+            transcript=self.transcript,
+            image_url=image_path,
+        )
 
-        for lang_code, _content in self.translations.items():
-            translations[lang_code] = dtos.ComicTranslationDto(
-                title=self.translations[lang_code].title,
-                comment=self.translations[lang_code].comment,
-                transcript=self.translations[lang_code].transcript,
-                image_url=None,
-            )
-
-        return dtos.ComicRequestDto(
+        return dtos.ComicOriginRequestDTO(
             comic_id=self.comic_id,
             publication_date=self.publication_date,
             is_special=self.is_special,
             reddit_url=self.reddit_url,
-            translations=translations,
+            text_data=translation,
         )

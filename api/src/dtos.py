@@ -56,27 +56,52 @@ class ComicResponseDto:
         return comic_data
 
 
+# @dataclass(slots=True)
+# class ComicRequestDto:
+#     comic_id: int
+#     publication_date: str
+#     is_special: bool
+#     reddit_url: str
+#     translations: ComicTranslations
+#
+#     def to_dict(self, exclude=Sequence[str]) -> dict[str, Any]:
+#         d = asdict(self)
+#         for field in exclude:
+#             d.pop(field)
+#         return d
+
+
 @dataclass(slots=True)
-class ComicRequestDto:
+class ImageObjDto:
+    comic_lang: str
+    comic_id: int
+    path: str
+    extension: str
+
+
+
+@dataclass(slots=True)
+class ComicRequestTranslationDTO:
+    comic_id: int
+    language_code: LanguageCode
+    title: str
+    comment: str
+    transcript: str
+    image_url: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass(slots=True)
+class ComicOriginRequestDTO:
     comic_id: int
     publication_date: str
     is_special: bool
     reddit_url: str
-    translations: ComicTranslations
+    text_data: ComicRequestTranslationDTO
 
-    def to_dict(self, exclude=Sequence[str]) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
-        for field in exclude:
-            d.pop(field)
+        d.pop('text_data')
         return d
-
-
-@dataclass
-class ImageObjDto:
-    comic_id: int
-    language: LanguageCode
-    image_binary: bytearray
-
-    @property
-    def dst_path(self):
-        return f"/{self.language.value}/{self.comic_id}.webp"

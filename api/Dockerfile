@@ -1,9 +1,11 @@
-FROM python:3.11.3-alpine as python
+FROM python:3.11.5-alpine as python
+
 ENV PYTHONUNBUFFERED=1
 WORKDIR /api
 
 
 FROM python as poetry
+
 ENV POETRY_HOME=/opt/poetry
 ENV POETRY_VIRTUALENVS_IN_PROJECT=true
 ENV PATH="$POETRY_HOME/bin:$PATH"
@@ -13,7 +15,10 @@ RUN poetry install --no-interaction --no-ansi -vvv
 
 
 FROM python as runtime
+
 ENV PATH="/api/.venv/bin:$PATH"
 COPY --from=poetry /api /api
+
+RUN apk update && apk add --no-cache libmagic
 
 CMD ["python", "-m", "src"]

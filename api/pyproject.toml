@@ -23,6 +23,7 @@ pydantic-settings = "^2.0"
 pydantic = "^2.0"
 uvloop = "^0.17.0"
 aiofiles = "^23.2.1"
+python-magic = "^0.4.27"
 
 [tool.poetry.group.dev.dependencies]
 pytest-aiohttp = "^1.0.4"
