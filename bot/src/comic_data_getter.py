@@ -9,10 +9,9 @@ from aiohttp import ClientConnectorError
 from bs4 import BeautifulSoup
 from deep_translator import GoogleTranslator
 from loguru import logger
-from src.bot_config import RU_COMICS_CSV, RU_COMICS_IMAGES
-from src.middlewares.localization import _
-from src.models import RuComicData, TotalComicData, XKCDComicData
 from tqdm import tqdm
+
+from api import RU_COMICS_CSV, RU_COMICS_IMAGES, RuComicData, TotalComicData, XKCDComicData, _
 
 
 class ComicsDataGetter:

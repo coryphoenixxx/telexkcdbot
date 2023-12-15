@@ -13,22 +13,19 @@ repository = "https://github.com/coryphoenixxx/telexkcdbot/api"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-aiohttp = "^3.8"
-aiosignal = "^1.2.0"
-sqlalchemy = "^2.0"
-asyncpg = "^0.28"
-alembic = "^1.11.1"
-sqlalchemy-utils = "^0.41.1"
-pydantic-settings = "^2.0"
-pydantic = "^2.0"
-uvloop = "^0.17.0"
+fastapi = "^0.104.1"
+uvicorn = {extras = ["standard"], version = "^0.24.0.post1"}
+sqlalchemy = "^2.0.23"
+alembic = "^1.13.0"
+pydantic-settings = "^2.1.0"
+asyncpg = "^0.29.0"
+python-multipart = "^0.0.6"
 aiofiles = "^23.2.1"
 python-magic = "^0.4.27"
-
-[tool.poetry.group.dev.dependencies]
-pytest-aiohttp = "^1.0.4"
+pillow = "^10.1.0"
+orjson = "^3.9.10"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 addopts = ["-s", "-v"]
-#pythonopath = ["src"]
+pythonopath = [".venv/bin"]

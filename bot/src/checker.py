@@ -1,10 +1,8 @@
 import asyncio
 
 import aioschedule
-from src.api_client import api
-from src.comic_data_getter import comics_data_getter
-from src.common_utils import broadcast
-from src.models import TotalComicData
+
+from api import TotalComicData, api, broadcast, comics_data_getter
 
 
 async def get_and_broadcast_new_comic() -> None:
@@ -17,7 +15,7 @@ async def get_and_broadcast_new_comic() -> None:
 
             await api.add_new_comic(
                 TotalComicData(
-                    comic_id=xkcd_comic_data.comic_id,
+                    comic_id=xkcd_comic_data.id,
                     title=xkcd_comic_data.title,
                     img_url=xkcd_comic_data.img_url,
                     comment=xkcd_comic_data.comment,

@@ -4,22 +4,24 @@ from aiogram import Dispatcher
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.types import BotCommand, CallbackQuery, InputFile
-from src.api_client import api
-from src.bot_config import IMG_DIR
-from src.bot_instance import bot
-from src.comic_data_getter import comics_data_getter
-from src.common_utils import send_comic
-from src.handlers.handlers_utils import (
+
+from api import (
+    IMG_DIR,
     States,
+    _,
+    api,
+    bot,
     calc_new_comic_id,
+    comics_data_getter,
     flip_next,
     is_explained_func,
+    kboard,
+    localization,
     remove_callback_kb,
     send_bookmarks,
+    send_comic,
     send_menu,
 )
-from src.keyboards import kboard
-from src.middlewares.localization import _, localization
 
 
 async def cb_select_lang(call: CallbackQuery, state: FSMContext) -> None:
@@ -33,7 +35,7 @@ async def cb_select_lang(call: CallbackQuery, state: FSMContext) -> None:
     commands_list = [
         BotCommand(
             command="start",
-            description=_("Start/restart bot + change language"),
+            description=_("Start/restart bot (deprecated) + change language"),
         ),
         BotCommand(command="bookmarks", description=_("Show my bookmarks")),
         BotCommand(command="menu", description=_("Show menu")),
@@ -46,7 +48,7 @@ async def cb_select_lang(call: CallbackQuery, state: FSMContext) -> None:
     hello_text = _("<b>❗ Hello, {}!").format(username) if username else _("<b>❗ Hello!")
 
     text = hello_text + _(
-        "\nI'm {} — functional telegram bot for handy reading xkcd comics.\n"
+        "\nI'm {} — functional telegram bot (deprecated) for handy reading xkcd comics.\n"
         "<i><a href='https://github.com/coryphoenixxx/telexkcdbot'>[Source code]</a></i></b>",
     ).format(bot_name)
     await call.message.answer(text, disable_web_page_preview=True)

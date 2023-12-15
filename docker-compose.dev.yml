@@ -1,7 +1,7 @@
 services:
 
   bot:
-    container_name: telexkcdbot-bot
+    container_name: telexkcdbot-bot (deprecated)
     build: bot
     ports:
       - ${BOT_PORT}:${BOT_PORT}
@@ -15,14 +15,14 @@ services:
     restart: unless-stopped
     profiles:
       - core
-      - bot
+      - bot (deprecated)
       - base
 
   api:
     container_name: telexkcdbot-api
     build: api
-#    extra_hosts:
-#      - "host.docker.internal:host-gateway"
+    #    extra_hosts:
+    #      - "host.docker.internal:host-gateway"
     env_file:
       - api/.env
     depends_on:
