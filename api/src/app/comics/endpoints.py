@@ -5,11 +5,11 @@ from pydantic import Json
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from starlette import status
 
-from api.app.comics.image_utils.reader import ImageReader
-from api.app.comics.image_utils.types import ComicImageType
-from api.core.database import db
-from api.core.utils.uow import UOW
+from src.core.database import db
+from src.core.utils.uow import UOW
 
+from .image_utils.reader import ImageReader
+from .image_utils.types import ComicImageType
 from .schemas import ComicCreateSchema
 from .services import ComicsService
 

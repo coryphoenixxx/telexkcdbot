@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from api.app.comics.repositories import ComicRepo
-from api.app.comics.translations.repositories import ComicTranslationRepo
+from src.app.comics.repositories import ComicRepo
+from src.app.comics.translations.repositories import ComicTranslationRepo
 
 
 class UOW:

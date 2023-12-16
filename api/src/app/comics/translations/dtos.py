@@ -2,8 +2,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from api.app.comics.image_utils.types import ComicImageType
-from api.core.types import LanguageCode
+from src.app.comics.image_utils.types import ComicImageType
+from src.core.types import LanguageCode
 
 
 @dataclass(slots=True)

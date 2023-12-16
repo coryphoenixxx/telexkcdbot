@@ -1,6 +1,6 @@
 from sqlalchemy.exc import DatabaseError
 
-from api.core.utils.uow import UOW
+from src.core.utils.uow import UOW
 
 from .dtos import ComicCreateDTO
 from .image_utils.dtos import ComicImageDTO

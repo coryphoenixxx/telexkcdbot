@@ -1,11 +1,11 @@
 import uvicorn
 
-from api.core.config import UvicornConfig, settings
+from .core.config import UvicornConfig, settings
 
 
 def run_application(config: UvicornConfig):
     uvicorn.run(
-        app="api.app:app",
+        app="src.app:app",
         loop="uvloop",
         host=config.host,
         port=config.port,

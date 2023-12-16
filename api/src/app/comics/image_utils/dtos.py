@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from functools import total_ordering
 from pathlib import Path
 
-from api.core.types import LanguageCode
+from src.core.types import LanguageCode
 
 from .types import ComicImageType, ImageFormat
 

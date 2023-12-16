@@ -11,9 +11,10 @@ from PIL import Image
 from starlette import status
 from starlette.datastructures import UploadFile
 
-from api.app.comics.image_utils.dtos import ComicImageDTO
-from api.app.comics.image_utils.types import ComicImageType, ImageFormat
-from api.core.types import LanguageCode
+from src.core.types import LanguageCode
+
+from .dtos import ComicImageDTO
+from .types import ComicImageType, ImageFormat
 
 
 class ImageReader:

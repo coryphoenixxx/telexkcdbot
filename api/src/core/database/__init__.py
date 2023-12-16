@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
-from api.core.config import DbConfig, settings
+from src.core.config import DbConfig, settings
 
 
 class Base(DeclarativeBase):
