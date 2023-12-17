@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Generator
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -7,19 +8,8 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, declared_attr, mapped_column
 
 from src.core.config import DbConfig, settings
-
-
-class Base(DeclarativeBase):
-    __abstract__ = True
-
-    @declared_attr.directive
-    def __tablename__(cls) -> str:
-        return f"{cls.__name__.lower()}s"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
 
 
 class Database:
@@ -44,7 +34,11 @@ class Database:
             expire_on_commit=False,
         )
 
-    def session_factory(self):
+    @property
+    def engine(self) -> AsyncEngine:
+        return self._engine
+
+    def get_session_factory(self) -> Generator[async_sessionmaker, None, None]:
         yield self._session_factory
 
     async def connect(self):

@@ -1,4 +1,4 @@
-FROM python:3.11.7-alpine as python
+FROM python:3.11.6-alpine as python
 
 ENV PYTHONUNBUFFERED=1
 WORKDIR /api
@@ -19,4 +19,4 @@ ENV PATH="/api/.venv/bin:$PATH"
 COPY --from=poetry /api /api
 RUN apk update && apk add --no-cache libmagic
 
-CMD python -m src
+CMD alembic upgrade head && python -m src

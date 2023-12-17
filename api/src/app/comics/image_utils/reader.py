@@ -48,11 +48,11 @@ class ImageReader:
             await asyncio.sleep(cls._CLEANER_SLEEP_SEC)
 
     async def read(
-        self,
-        upload: UploadFile | None,
-        comic_id: int,
-        language: LanguageCode = LanguageCode.EN,
-        img_type: ComicImageType = ComicImageType.DEFAULT,
+            self,
+            upload: UploadFile | None,
+            issue_number: int,
+            language: LanguageCode = LanguageCode.EN,
+            img_type: ComicImageType = ComicImageType.DEFAULT,
     ) -> ComicImageDTO | None:
         if not upload or not upload.filename:
             return None
@@ -61,7 +61,7 @@ class ImageReader:
         temp_img_format = self._validate_format(temp_img_path)
 
         return ComicImageDTO(
-            comic_id=comic_id,
+            issue_number=issue_number,
             language=language,
             path=temp_img_path,
             type=img_type,

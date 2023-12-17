@@ -10,7 +10,7 @@ from .types import ComicImageType, ImageFormat
 @dataclass(slots=True)
 @total_ordering
 class ComicImageDTO:
-    comic_id: int
+    issue_number: int | None
     language: LanguageCode
     path: Path
     type: ComicImageType

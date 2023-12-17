@@ -1,3 +1,5 @@
+from functools import cached_property
+
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from src.app.comics.repositories import ComicRepo
@@ -8,11 +10,11 @@ class UOW:
     def __init__(self, session_factory: async_sessionmaker[AsyncSession]):
         self._session_factory = session_factory
 
-    @property
+    @cached_property
     def comic_repo(self):
         return ComicRepo(self._session)
 
-    @property
+    @cached_property
     def comic_translation_repo(self):
         return ComicTranslationRepo(self._session)
 

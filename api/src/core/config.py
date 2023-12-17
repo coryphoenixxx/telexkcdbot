@@ -15,7 +15,7 @@ class DBConfig(BaseModel):
 
     @property
     def dsn(self):
-        return f"{self.driver}://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}"
+        return f"postgresql+{self.driver}://{self.user}:{self.password}@{self.host}:{self.port}/{self.dbname}"
 
 
 class SQLAConfig(BaseModel):

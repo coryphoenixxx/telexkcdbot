@@ -21,14 +21,14 @@ class ImageSaver:
     def db_path(self) -> str:
         return (
             f"{self._IMAGES_DIR_PREFIX}/"
-            f"{self._temp_image_dto.comic_id}/"
+            f"{self._temp_image_dto.issue_number}/"
             f"{self._temp_image_dto.language}/"
             f"{self._temp_image_dto.type}.{self._temp_image_dto.format}"
         )
 
     @cached_property
     def abs_file_path(self) -> Path:
-        return self._STATIC_ROOT / Path(f"{self.db_path}")
+        return self._STATIC_ROOT / self.db_path
 
     async def save(self):
         await aos.makedirs(self.abs_file_path.parent, exist_ok=True)

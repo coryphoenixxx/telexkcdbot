@@ -15,6 +15,7 @@ pre-commit = "^3.3"
 black = "^23.11.0"
 
 [tool.ruff]
+ignore-init-module-imports = true
 select = ["B", "E", "W", "F", "N", "COM", "I", "ASYNC", "PL", "RUF", "SIM", "C90", "ARG", "T20", "C4", "UP"]
 ignore = ["N805", "PLR0913", "PLR2004", "B904", "PLR0911", "PLR0912", "C901", "B008", "ARG001"]
 fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]

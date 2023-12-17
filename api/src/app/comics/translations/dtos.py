@@ -1,20 +1,23 @@
-from dataclasses import asdict, dataclass
-from pathlib import Path
-from typing import Any
+from dataclasses import dataclass, field
 
 from src.app.comics.image_utils.types import ComicImageType
 from src.core.types import LanguageCode
 
 
+def images_default_factory():
+    return {
+        ComicImageType.DEFAULT: None,
+        ComicImageType.ENLARGED: None,
+        ComicImageType.THUMBNAIL: None,
+    }
+
+
 @dataclass(slots=True)
-class ComicTranslationCreateDTO:
-    comic_id: int
+class TranslationCreateDTO:
     title: str
     tooltip: str | None
     transcript: str | None
     news_block: str | None
-    language_code: LanguageCode
-    images: dict[ComicImageType, Path] | None
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+    images: dict[ComicImageType, str | None] = field(default_factory=images_default_factory)
+    language_code: LanguageCode = LanguageCode.EN
+    is_draft: bool = False
