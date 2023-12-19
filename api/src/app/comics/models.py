@@ -9,12 +9,16 @@ from src.core.database.base import Base, PkIdMixin
 
 class ComicTagAssociation(Base, PkIdMixin):
     __tablename__ = "comic_tag_association"
-    __table_args__ = (
-        UniqueConstraint("comic_id", "tag_id"),
-    )
+    __table_args__ = (UniqueConstraint("comic_id", "tag_id"),)
 
-    comic_id: Mapped[int] = mapped_column(ForeignKey("comics.issue_number"), primary_key=True )
-    tag_id: Mapped[int] = mapped_column(ForeignKey("tags.id"), primary_key=True)
+    comic_id: Mapped[int] = mapped_column(
+        ForeignKey("comics.issue_number", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    tag_id: Mapped[int] = mapped_column(
+        ForeignKey("tags.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
 
 
 class TagModel(Base, PkIdMixin):

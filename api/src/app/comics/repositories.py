@@ -3,6 +3,7 @@ from collections.abc import Sequence
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.sql.expression import true
 
 from src.app.comics.dtos import ComicCreateDTO
 from src.app.comics.models import ComicModel, ComicTagAssociation, TagModel
@@ -27,7 +28,8 @@ class ComicRepo:
     async def add_tags(self, tags: list[str]) -> Sequence[TagModel]:
         stmt = insert(TagModel).values([{"name": tag_name} for tag_name in tags])
         update_stmt = stmt.on_conflict_do_update(
-            constraint="uq_tags_name", set_={"name": stmt.excluded.name},
+            constraint="uq_tags_name",
+            set_={"name": stmt.excluded.name},
         ).returning(TagModel)
 
         result = (await self._session.scalars(update_stmt)).all()
@@ -35,6 +37,6 @@ class ComicRepo:
         return result
 
     async def get_extra_num(self) -> int:
-        stmt = select(func.count("*")).select_from(ComicModel).where(ComicModel.is_extra is True)
+        stmt = select(func.count("*")).select_from(ComicModel).where(ComicModel.is_extra == true())
         extra_num = await self._session.scalar(stmt)
         return extra_num
