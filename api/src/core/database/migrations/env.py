@@ -6,9 +6,9 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from src.app.comics.models import Comic
+from src.app.comics.models import ComicModel, ComicTagAssociation, TagModel
 from src.core.database import db
-from src.core.database.base_model import Base
+from src.core.database.base import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

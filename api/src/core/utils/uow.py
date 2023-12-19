@@ -1,4 +1,5 @@
 from functools import cached_property
+from types import TracebackType
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
@@ -15,13 +16,18 @@ class UOW:
         return ComicRepo(self._session)
 
     @cached_property
-    def comic_translation_repo(self):
+    def translation_repo(self):
         return ComicTranslationRepo(self._session)
 
     async def __aenter__(self):
         self._session: AsyncSession = self._session_factory()
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc_val: BaseException | None,
+            exc_tb: TracebackType | None,
+    ):
         if exc_type:
             await self.rollback()
         await self._session.close()
