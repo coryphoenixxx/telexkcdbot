@@ -2,7 +2,6 @@ import datetime as dt
 
 from sqlalchemy import ForeignKey, SmallInteger, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy_utils import URLType
 
 from src.core.database.base import Base, PkIdMixin
 
@@ -43,10 +42,10 @@ class ComicModel(Base):
 
     issue_number: Mapped[int] = mapped_column(SmallInteger, primary_key=True, autoincrement=False)
     publication_date: Mapped[dt.date]
-    xkcd_url: Mapped[str | None] = mapped_column(URLType)
-    reddit_url: Mapped[str | None] = mapped_column(URLType)
-    explain_url: Mapped[str | None] = mapped_column(URLType)
-    link_on_click: Mapped[str | None] = mapped_column(URLType)
+    xkcd_url: Mapped[str | None]
+    reddit_url: Mapped[str | None]
+    explain_url: Mapped[str | None]
+    link_on_click: Mapped[str | None]
     is_interactive: Mapped[bool] = mapped_column(default=False)
     is_extra: Mapped[bool] = mapped_column(default=False)
 
