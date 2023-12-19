@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.expression import true
 
 from src.app.comics.dtos import ComicCreateDTO
-from src.app.comics.models import ComicModel, ComicTagAssociation, TagModel
+from .models import ComicModel, ComicTagAssociation, TagModel
 
 
 class ComicRepo:
@@ -16,11 +16,17 @@ class ComicRepo:
     async def create(self, comic_dto: ComicCreateDTO) -> ComicModel:
         tags = await self.add_tags(comic_dto.tags)
 
-        stmt = insert(ComicModel).values(comic_dto.to_dict(exclude=("tags", "translation"))).returning(ComicModel)
+        stmt = (
+            insert(ComicModel)
+            .values(comic_dto.to_dict(exclude=("tags", "translation")))
+            .returning(ComicModel)
+        )
 
         comic = await self._session.scalar(stmt)
 
-        stmt = insert(ComicTagAssociation).values([{"comic_id": comic.issue_number, "tag_id": tag.id} for tag in tags])
+        stmt = insert(ComicTagAssociation).values(
+            [{"comic_id": comic.issue_number, "tag_id": tag.id} for tag in tags]
+        )
         await self._session.execute(stmt)
 
         return comic

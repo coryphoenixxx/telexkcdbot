@@ -4,11 +4,12 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.responses import ORJSONResponse
 
-from src.app.comics.endpoints import router as comics_router
+
 from src.app.comics.image_utils.reader import ImageReader
 from src.app.comics.services import ImageSaver
 from src.core.config import AppConfig, settings
 from src.core.database import db
+from src.app.comics.endpoints import router as comics_router
 
 
 def init_router(app: FastAPI):

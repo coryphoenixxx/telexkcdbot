@@ -6,6 +6,6 @@ class OrderType(StrEnum):
     ESC = "esc"
 
 
-class LanguageCode(StrEnum):
-    EN = "en"
-    RU = "ru"
+class LanguageEnum(StrEnum):
+    EN = "EN"
+    RU = "RU"

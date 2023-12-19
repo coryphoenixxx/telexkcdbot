@@ -3,7 +3,9 @@ import datetime as dt
 from sqlalchemy import ForeignKey, SmallInteger, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database.base import Base, PkIdMixin
+from src.core.database.base import Base
+from src.core.database.mixins import PkIdMixin
+from .translations.models import TranslationModel
 
 
 class ComicTagAssociation(Base, PkIdMixin):
@@ -52,6 +54,11 @@ class ComicModel(Base):
     tags: Mapped[list["TagModel"]] = relationship(
         back_populates="comics",
         secondary="comic_tag_association",
+        cascade="all, delete",
+    )
+
+    translations: Mapped[list["TranslationModel"]] = relationship(
+        back_populates="comic",
         cascade="all, delete",
     )
 

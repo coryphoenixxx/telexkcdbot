@@ -1,12 +1,8 @@
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase
 
 
 class Base(DeclarativeBase):
     __abstract__ = True
-
-
-class PkIdMixin:
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
 
 Base.metadata.naming_convention = {

@@ -11,10 +11,10 @@ from PIL import Image
 from starlette import status
 from starlette.datastructures import UploadFile
 
-from src.core.types import LanguageCode
+from src.core.types import LanguageEnum
 
 from .dtos import ComicImageDTO
-from .types import ComicImageType, ImageFormat
+from .types import ImageTypeEnum, ImageFormatEnum
 
 
 class ImageReader:
@@ -51,8 +51,8 @@ class ImageReader:
             self,
             upload: UploadFile | None,
             issue_number: int,
-            language: LanguageCode = LanguageCode.EN,
-            img_type: ComicImageType = ComicImageType.DEFAULT,
+            language: LanguageEnum = LanguageEnum.EN,
+            img_type: ImageTypeEnum = ImageTypeEnum.DEFAULT,
     ) -> ComicImageDTO | None:
         if not upload or not upload.filename:
             return None
@@ -83,13 +83,13 @@ class ImageReader:
         return Path(temp.name)
 
     @staticmethod
-    def _validate_format(filename: Path) -> ImageFormat:
+    def _validate_format(filename: Path) -> ImageFormatEnum:
         try:
-            fmt = ImageFormat(magic.from_file(filename=filename, mime=True).split("/")[1])
+            fmt = ImageFormatEnum(magic.from_file(filename=filename, mime=True).split("/")[1])
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail=f"Unsupported image type. Supported: {', '.join([fmt.value for fmt in ImageFormat])}",
+                detail=f"Unsupported image type. Supported: {', '.join([fmt.value for fmt in ImageFormatEnum])}",
             )
 
         return fmt
