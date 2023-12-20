@@ -3,8 +3,8 @@ from enum import StrEnum
 
 class ImageTypeEnum(StrEnum):
     DEFAULT = "default"
-    ENLARGED = "enlarged"
-    THUMBNAIL = "thumbnail"
+    ENLARGED = "2x"
+    THUMBNAIL = "thumb"
 
 
 class ImageFormatEnum(StrEnum):

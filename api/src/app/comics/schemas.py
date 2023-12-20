@@ -1,9 +1,6 @@
 import datetime as dt
 
-from pydantic import BaseModel, HttpUrl, model_validator, field_validator
-
-from .dtos import ComicCreateDTO
-from .translations.dtos import TranslationCreateDTO
+from pydantic import BaseModel, HttpUrl, field_validator, model_validator
 
 
 class ComicCreateSchema(BaseModel):
@@ -29,7 +26,7 @@ class ComicCreateSchema(BaseModel):
             for tag in tags:
                 if not tag.strip() or len(tag) < 3:
                     raise ValueError(f"Tag №{tags.index(tag) + 1} is invalid.")
-            return list(set([tag.strip() for tag in tags]))
+            return list({tag.strip() for tag in tags})
 
     @model_validator(mode="after")
     def check_issue_number_and_is_extra_conflict(self) -> "ComicCreateSchema":
@@ -38,23 +35,3 @@ class ComicCreateSchema(BaseModel):
         if not self.issue_number and not self.is_extra:
             raise ValueError("Comics without an issue number cannot be not extra.")
         return self
-
-    def to_dto(self) -> ComicCreateDTO:
-        return ComicCreateDTO(
-            issue_number=self.issue_number,
-            publication_date=self.publication_date,
-            xkcd_url=str(self.xkcd_url),
-            explain_url=str(self.explain_url),
-            reddit_url=str(self.reddit_url),
-            link_on_click=str(self.link_on_click),
-            is_interactive=self.is_interactive,
-            is_extra=self.is_extra,
-            tags=self.tags,
-            translation=TranslationCreateDTO(
-                issue_number=self.issue_number,
-                title=self.title,
-                tooltip=self.tooltip,
-                transcript=self.transcript,
-                news_block=self.news_block,
-            ),
-        )

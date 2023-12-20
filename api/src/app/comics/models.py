@@ -5,6 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database.base import Base
 from src.core.database.mixins import PkIdMixin
+
 from .translations.models import TranslationModel
 
 

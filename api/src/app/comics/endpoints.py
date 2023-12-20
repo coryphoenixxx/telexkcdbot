@@ -1,15 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import Json
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
-from starlette import status
 
 from src.core.database import db
 from src.core.utils.uow import UOW
 
+from .dtos import ComicGetDTO
 from .image_utils.reader import ImageReader
-from .image_utils.types import ImageTypeEnum
 from .schemas import ComicCreateSchema
 from .services import ComicsService
 
@@ -39,7 +38,7 @@ COMIC_EXAMPLE_JSON = """
 
 @router.post("")
 async def create_comic(
-    data: Annotated[
+    comic_json_data: Annotated[
         Json[ComicCreateSchema],
         Form(
             description=f"<textarea>Example: {COMIC_EXAMPLE_JSON}</textarea>",
@@ -50,27 +49,10 @@ async def create_comic(
     session_factory: async_sessionmaker[AsyncSession] = Depends(db.get_session_factory),
     image_reader: ImageReader = Depends(),
 ):
-    comic_dto = data.to_dto()
-
-    temp_image_dto, temp_image_2x_dto = (
-        await image_reader.read(
-            image,
-            comic_dto.issue_number,
-        ),
-        await image_reader.read(
-            image_2x,
-            comic_dto.issue_number,
-            img_type=ImageTypeEnum.ENLARGED,
-        ),
+    comic_get_dto: ComicGetDTO = await ComicsService(uow=UOW(session_factory)).create_comic(
+        comic_create_schema=comic_json_data,
+        tmp_image=await image_reader.read(image),
+        tmp_image_2x=await image_reader.read(image_2x),
     )
 
-    if (temp_image_dto and temp_image_2x_dto) and (temp_image_dto >= temp_image_2x_dto):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Images conflict. Second image must be enlarged.",
-        )
-
-    await ComicsService(uow=UOW(session_factory)).create_comic(
-        comic_dto=comic_dto,
-        images=[img for img in (temp_image_dto, temp_image_2x_dto) if img],
-    )
+    return comic_get_dto
