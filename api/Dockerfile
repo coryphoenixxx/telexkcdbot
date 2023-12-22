@@ -17,6 +17,5 @@ RUN poetry install --no-interaction --no-ansi -vvv
 FROM python as runtime
 ENV PATH="/api/.venv/bin:$PATH"
 COPY --from=poetry /api /api
-RUN apk update && apk add --no-cache libmagic
 
 CMD alembic upgrade head && python -m src

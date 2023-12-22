@@ -9,11 +9,25 @@ from .types import ImageFormatEnum, ImageTypeEnum
 
 @dataclass(slots=True)
 @total_ordering
-class ComicImageDTO:
-    issue_number: int | None
+class ImageDTO:
     path: Path
     format_: ImageFormatEnum
-    dimensions: tuple[int, int]
+    size: tuple[int, int]
+
+    def __eq__(self, other: "ImageDTO"):
+        return (self.size[0] == other.size[0]) and (self.size[1] == other.size[1])
+
+    def __lt__(self, other: "ImageDTO"):
+        return (self.size[0] < other.size[0]) and (self.size[1] < other.size[1])
+
+    def is_2x_of(self, other: "ImageDTO"):
+        x_diff, y_diff = (self.size[0] - other.size[0] * 2, self.size[1] - other.size[1] * 2)
+        return x_diff == y_diff and x_diff <= 5
+
+
+@dataclass(slots=True)
+class ComicImageDTO(ImageDTO):
+    issue_number: int | None = None
     language: LanguageEnum = LanguageEnum.EN
     type_: ImageTypeEnum = ImageTypeEnum.DEFAULT
 
@@ -21,17 +35,6 @@ class ComicImageDTO:
 
     @property
     def db_path(self) -> str:
-        return (
-            f"{self._IMAGES_DIR_PREFIX}/"
-            f"{self.issue_number:04d}/"
-            f"{self.language}/"
-            f"{self.type_}.{self.format_}"
-        )
-
-    def __eq__(self, other: "ComicImageDTO"):
-        return ((self.dimensions[0] == other.dimensions[0])
-                and (self.dimensions[1] == other.dimensions[1]))
-
-    def __lt__(self, other: "ComicImageDTO"):
-        return ((self.dimensions[0] < other.dimensions[0])
-                and (self.dimensions[1] < other.dimensions[1]))
+        if not self.issue_number:
+            raise ValueError
+        return f"{self._IMAGES_DIR_PREFIX}/{self.issue_number:04d}/{self.language}/{self.type_}.{self.format_}"

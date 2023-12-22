@@ -1,6 +1,6 @@
 import datetime as dt
 
-from sqlalchemy import ForeignKey, SmallInteger, UniqueConstraint
+from sqlalchemy import ForeignKey, SmallInteger
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database.base import Base
@@ -9,9 +9,8 @@ from src.core.database.mixins import PkIdMixin
 from .translations.models import TranslationModel
 
 
-class ComicTagAssociation(Base, PkIdMixin):
+class ComicTagAssociation(Base):
     __tablename__ = "comic_tag_association"
-    __table_args__ = (UniqueConstraint("comic_id", "tag_id"),)
 
     comic_id: Mapped[int] = mapped_column(
         ForeignKey("comics.issue_number", ondelete="CASCADE"),

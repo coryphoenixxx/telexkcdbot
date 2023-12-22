@@ -12,7 +12,7 @@ class TranslationCreateDTO:
     transcript: str | None
     news_block: str | None
     images: dict[ImageTypeEnum, str | None] = field(
-        default_factory=lambda: {k.value: None for k in ImageTypeEnum}
+        default_factory=lambda: {k.value: None for k in ImageTypeEnum},
     )
     language: LanguageEnum = LanguageEnum.EN
     is_draft: bool = False

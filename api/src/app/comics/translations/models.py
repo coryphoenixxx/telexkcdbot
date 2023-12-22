@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from src.app.comics.models import ComicModel
 
 
-class TranslationModel(Base, PkIdMixin):
+class TranslationModel(PkIdMixin, Base):
     __tablename__ = "translations"
 
     issue_number: Mapped[int] = mapped_column(

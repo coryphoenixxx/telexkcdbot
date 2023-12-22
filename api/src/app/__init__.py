@@ -1,5 +1,5 @@
 import asyncio
-import os
+
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -8,7 +8,7 @@ from fastapi.responses import ORJSONResponse
 
 from src.app.comics.endpoints import router as comics_router
 from src.app.comics.image_utils.cleaner import cleaner
-from src.app.comics.image_utils.reader import ImageReader
+from src.app.comics.image_utils.upload_reader import UploadImageReader
 from src.app.comics.services import ImageSaver
 from src.core.config import AppConfig, settings
 from src.core.database import db
@@ -39,7 +39,7 @@ def create_app(config: AppConfig) -> FastAPI:
 
     init_router(app)
 
-    ImageReader.setup(upload_max_size=eval(config.upload_max_size), temp_dir=config.temp_dir)
+    UploadImageReader.setup(upload_max_size=eval(config.upload_max_size), temp_dir=config.temp_dir)
     ImageSaver.setup(static_dir=config.static_dir)
 
     return app

@@ -1,19 +1,19 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from pydantic import Json
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from starlette import status
 
 from src.core.database import db
 from src.core.utils.uow import UOW
 
-from .dtos import ComicGetDTO
-from .image_utils.reader import ImageReader
+from .dtos import ComicGetDTO, ComicTotalDTO
+from .image_utils.upload_reader import UploadImageReader
 from .schemas import ComicCreateSchema
 from .services import ComicsService
 
 router = APIRouter(
-    prefix="/comics",
     tags=["Comics"],
 )
 
@@ -36,23 +36,43 @@ COMIC_EXAMPLE_JSON = """
 """
 
 
-@router.post("")
+@router.post("/comics", status_code=status.HTTP_201_CREATED)
 async def create_comic(
-    comic_json_data: Annotated[
-        Json[ComicCreateSchema],
-        Form(
-            description=f"<textarea>Example: {COMIC_EXAMPLE_JSON}</textarea>",
-        ),
-    ],
-    image: Annotated[UploadFile, File()] = None,
-    image_2x: Annotated[UploadFile, File()] = None,
-    session_factory: async_sessionmaker[AsyncSession] = Depends(db.get_session_factory),
-    image_reader: ImageReader = Depends(),
+        comic_json_data: Annotated[
+            Json[ComicCreateSchema],
+            Form(
+                description=f"<textarea>Example: {COMIC_EXAMPLE_JSON}</textarea>",
+            ),
+        ],
+        image: Annotated[UploadFile, File()] = None,
+        image_2x: Annotated[UploadFile, File()] = None,
+        session_factory: async_sessionmaker[AsyncSession] = Depends(db.get_session_factory),
+        image_reader: UploadImageReader = Depends(),
 ):
-    comic_get_dto: ComicGetDTO = await ComicsService(uow=UOW(session_factory)).create_comic(
-        comic_create_schema=comic_json_data,
-        tmp_image=await image_reader.read(image),
-        tmp_image_2x=await image_reader.read(image_2x),
+    image_obj, image_2x_obj = await image_reader.read(image, image_2x)
+    comic_dto = ComicTotalDTO.from_request(comic_json_data, image_obj, image_2x_obj)
+
+    comic_get_dto: ComicGetDTO = await ComicsService(
+        uow=UOW(session_factory),
+    ).create_comic(
+        comic_dto=comic_dto,
     )
 
+    return comic_get_dto
+
+
+@router.get("/comics/{issue_number}")
+async def get_comic_by_issue_number(
+        issue_number: int,
+        session_factory: async_sessionmaker[AsyncSession] = Depends(db.get_session_factory),
+):
+    comic_get_dto = await ComicsService(
+        uow=(UOW(session_factory)),
+    ).get_comic_by_issue_number(issue_number)
+
+    if not comic_get_dto:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Comic with issue_number {issue_number} doesn't exists.",
+        )
     return comic_get_dto
