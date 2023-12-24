@@ -1,6 +1,6 @@
 import datetime as dt
 
-from sqlalchemy import ForeignKey, SmallInteger
+from sqlalchemy import DateTime, ForeignKey, Index, SmallInteger, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database.base import Base
@@ -13,7 +13,7 @@ class ComicTagAssociation(Base):
     __tablename__ = "comic_tag_association"
 
     comic_id: Mapped[int] = mapped_column(
-        ForeignKey("comics.issue_number", ondelete="CASCADE"),
+        ForeignKey("comics.id", ondelete="CASCADE"),
         primary_key=True,
     )
     tag_id: Mapped[int] = mapped_column(
@@ -22,7 +22,7 @@ class ComicTagAssociation(Base):
     )
 
 
-class TagModel(Base, PkIdMixin):
+class TagModel(PkIdMixin, Base):
     __tablename__ = "tags"
 
     name: Mapped[str] = mapped_column(unique=True)
@@ -32,17 +32,23 @@ class TagModel(Base, PkIdMixin):
         secondary="comic_tag_association",
     )
 
+    def __eq__(self, other: "TagModel"):
+        return hash(self) == hash(other)
+
+    def __hash__(self):
+        return hash(self.name)
+
     def __str__(self):
-        return f"{self.__class__.__name__}(name={self.name})"
+        return f"{self.__class__.__name__}({self.id=}, {self.name=})"
 
     def __repr__(self):
         return str(self)
 
 
-class ComicModel(Base):
+class ComicModel(PkIdMixin, Base):
     __tablename__ = "comics"
 
-    issue_number: Mapped[int] = mapped_column(SmallInteger, primary_key=True, autoincrement=False)
+    issue_number: Mapped[int | None] = mapped_column(SmallInteger)
     publication_date: Mapped[dt.date]
     xkcd_url: Mapped[str | None]
     reddit_url: Mapped[str | None]
@@ -50,6 +56,12 @@ class ComicModel(Base):
     link_on_click: Mapped[str | None]
     is_interactive: Mapped[bool] = mapped_column(default=False)
     is_extra: Mapped[bool] = mapped_column(default=False)
+
+    created_at: Mapped[dt.date] = mapped_column(
+        DateTime(timezone=True),
+        default=dt.datetime.utcnow(),
+        server_default=func.now(),
+    )
 
     tags: Mapped[list["TagModel"]] = relationship(
         back_populates="comics",
@@ -63,7 +75,16 @@ class ComicModel(Base):
     )
 
     def __str__(self):
-        return f"{self.__class__.__name__}(issue_number={self.issue_number})"
+        return f"{self.__class__.__name__}({self.id=}, {self.issue_number=})"
 
     def __repr__(self):
         return str(self)
+
+    __table_args__ = (
+        Index(
+            "ix_unique_issue_number_if_not_none",
+            "issue_number",
+            unique=True,
+            postgresql_where=(issue_number.isnot(None)),
+        ),
+    )

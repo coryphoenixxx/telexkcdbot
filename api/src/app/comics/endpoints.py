@@ -17,7 +17,8 @@ router = APIRouter(
     tags=["Comics"],
 )
 
-COMIC_EXAMPLE_JSON = """
+COMIC_EXAMPLE_JSON_DESC = """
+<textarea>Example
 {
     "issue_number": 1,
     "publication_date": "2010-10-10",
@@ -33,6 +34,7 @@ COMIC_EXAMPLE_JSON = """
     "transcript": "Some transcript",
     "news_block": "Some news"
 }
+</textarea>
 """
 
 
@@ -41,16 +43,16 @@ async def create_comic(
         comic_json_data: Annotated[
             Json[ComicCreateSchema],
             Form(
-                description=f"<textarea>Example: {COMIC_EXAMPLE_JSON}</textarea>",
+                description=COMIC_EXAMPLE_JSON_DESC,
             ),
         ],
         image: Annotated[UploadFile, File()] = None,
         image_2x: Annotated[UploadFile, File()] = None,
         session_factory: async_sessionmaker[AsyncSession] = Depends(db.get_session_factory),
-        image_reader: UploadImageReader = Depends(),
 ):
-    image_obj, image_2x_obj = await image_reader.read(image, image_2x)
-    comic_dto = ComicTotalDTO.from_request(comic_json_data, image_obj, image_2x_obj)
+    image_obj, image_2x_obj = await UploadImageReader().read(image, image_2x)
+
+    comic_dto = ComicTotalDTO.from_request_data(comic_json_data, image_obj, image_2x_obj)
 
     comic_get_dto: ComicGetDTO = await ComicsService(
         uow=UOW(session_factory),

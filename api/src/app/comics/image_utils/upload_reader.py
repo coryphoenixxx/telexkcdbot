@@ -16,6 +16,7 @@ class UploadImageReader:
     _TEMP_DIR: Path
     _UPLOAD_MAX_SIZE: int
     _CHUNK_SIZE: int = 1024 * 256
+    _SUPPORTED_IMAGE_FORMATS: tuple = tuple(fmt.value for fmt in ImageFormatEnum)
 
     @classmethod
     def setup(cls, upload_max_size: int, temp_dir: str):
@@ -49,8 +50,7 @@ class UploadImageReader:
             size=imagesize.get(tmp_path),
         )
 
-    @staticmethod
-    def _get_real_image_format(path: Path) -> ImageFormatEnum:
+    def _get_real_image_format(self, path: Path) -> ImageFormatEnum:
         try:
             kind = filetype.guess(path)
             if kind is None:
@@ -59,7 +59,7 @@ class UploadImageReader:
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail=f"Unsupported image type. Supported: {', '.join([fmt.value for fmt in ImageFormatEnum])}",
+                detail=f"Unsupported image type. Supported: {', '.join(self._SUPPORTED_IMAGE_FORMATS)}",
             )
         return fmt
 

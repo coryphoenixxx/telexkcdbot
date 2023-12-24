@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 class TranslationModel(PkIdMixin, Base):
     __tablename__ = "translations"
 
-    issue_number: Mapped[int] = mapped_column(
-        ForeignKey("comics.issue_number", ondelete="CASCADE"),
+    comic_id: Mapped[int] = mapped_column(
+        ForeignKey("comics.id", ondelete="CASCADE"),
         primary_key=True,
     )
 
@@ -31,8 +31,18 @@ class TranslationModel(PkIdMixin, Base):
 
     def __str__(self):
         return (
-            f"{self.__class__.__name__}" f"(issue_number={self.issue_number}, title={self.title})"
+            f"{self.__class__.__name__}"
+            f"({self.id=}, {self.comic_id=}, {self.language}, {self.title=})"
         )
 
     def __repr__(self):
         return str(self)
+
+    __table_args__ = (
+        Index(
+            "ix_unique_non_draft",
+            "comic_id",
+            unique=True,
+            postgresql_where=(~is_draft),
+        ),
+    )

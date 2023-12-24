@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from functools import total_ordering
 from pathlib import Path
+from uuid import uuid4
 
 from src.core.types import LanguageEnum
 
@@ -34,7 +35,7 @@ class ComicImageDTO(ImageDTO):
     _IMAGES_DIR_PREFIX: str = "images/comics"
 
     @property
-    def db_path(self) -> str:
+    def rel_path(self) -> str:
         if not self.issue_number:
-            raise ValueError
+            return f"{self._IMAGES_DIR_PREFIX}/extras/{uuid4().hex}/{self.language}/{self.type_}.{self.format_}"
         return f"{self._IMAGES_DIR_PREFIX}/{self.issue_number:04d}/{self.language}/{self.type_}.{self.format_}"
