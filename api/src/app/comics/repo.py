@@ -1,4 +1,5 @@
-from sqlalchemy import select
+from sqlalchemy import select, Sequence
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.strategy_options import joinedload
 
@@ -48,11 +49,19 @@ class ComicRepo:
         )
         return (await self._session.scalars(stmt)).unique().one_or_none()
 
-    async def add_tags(self, tags: list[str]) -> list[TagModel]:
+    async def add_tags(self, tags: list[str]) -> Sequence[TagModel]:
         input_tags = {TagModel(name=tag_name) for tag_name in tags}
-        all_tags = set((await self._session.execute(select(TagModel))).scalars().all())
-        new_tags = input_tags - all_tags
 
-        result = list({tag for tag in all_tags if tag in input_tags} | new_tags)
+        stmt = (
+            insert(TagModel)
+            .values([{"name": tag.name} for tag in input_tags])
+            .on_conflict_do_nothing(
+                constraint="uq_tags_name",
+            )
+        )
 
-        return result
+        await self._session.execute(stmt)
+
+        stmt = select(TagModel).where(TagModel.name.in_((tag.name for tag in input_tags)))
+
+        return (await self._session.scalars(stmt)).all()

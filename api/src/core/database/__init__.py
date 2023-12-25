@@ -32,6 +32,7 @@ class Database:
         return async_sessionmaker(
             bind=engine,
             expire_on_commit=False,
+            autoflush=False,
         )
 
     @property

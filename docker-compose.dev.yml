@@ -53,7 +53,7 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
       - .:/var/lib/postgresql/data
-      - ./postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+      - ./postgresql.conf:/var/lib/postgresql/data/pgdata/postgresql.conf
     ports:
       - ${DB_PORT}:${DB_PORT}
     healthcheck:
