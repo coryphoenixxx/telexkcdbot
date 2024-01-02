@@ -43,10 +43,7 @@ class FastAPIConfig(BaseModel):
 
 class AppConfig(BaseModel):
     fastapi: FastAPIConfig = FastAPIConfig()
-    static_dir: str
-    temp_dir: str
     upload_max_size: str
-    supported_formats: list[str]
 
 
 class Environment(StrEnum):

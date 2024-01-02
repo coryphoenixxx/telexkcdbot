@@ -1,11 +1,11 @@
-from sqlalchemy import select, Sequence
+from sqlalchemy import Sequence, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.strategy_options import joinedload
 
-from src.app.comics.dtos import ComicCreateDTO
-
+from .dtos import ComicCreateDTO
 from .models import ComicModel, TagModel
+from .translations.models import TranslationModel
 
 
 class ComicRepo:
@@ -23,7 +23,6 @@ class ComicRepo:
             explain_url=comic_create_dto.explain_url,
             link_on_click=comic_create_dto.link_on_click,
             is_interactive=comic_create_dto.is_interactive,
-            is_extra=comic_create_dto.is_extra,
             tags=tags,
         )
 
@@ -36,25 +35,21 @@ class ComicRepo:
     async def get_by_id(self, comic_id: int):
         stmt = (
             select(ComicModel)
-            .options(joinedload(ComicModel.translations), joinedload(ComicModel.tags))
+            .options(
+                joinedload(ComicModel.translations).joinedload(TranslationModel.images),
+                joinedload(ComicModel.tags),
+            )
             .where(ComicModel.id == comic_id)
         )
-        return (await self._session.scalars(stmt)).unique().one_or_none()
 
-    async def get_by_issue_number(self, issue_number: int):
-        stmt = (
-            select(ComicModel)
-            .options(joinedload(ComicModel.translations), joinedload(ComicModel.tags))
-            .where(ComicModel.issue_number == issue_number)
-        )
         return (await self._session.scalars(stmt)).unique().one_or_none()
 
     async def add_tags(self, tags: list[str]) -> Sequence[TagModel]:
-        input_tags = {TagModel(name=tag_name) for tag_name in tags}
+        tag_models = (TagModel(name=tag_name) for tag_name in tags)
 
         stmt = (
             insert(TagModel)
-            .values([{"name": tag.name} for tag in input_tags])
+            .values([{"name": tag.name} for tag in tag_models])
             .on_conflict_do_nothing(
                 constraint="uq_tags_name",
             )
@@ -62,6 +57,6 @@ class ComicRepo:
 
         await self._session.execute(stmt)
 
-        stmt = select(TagModel).where(TagModel.name.in_((tag.name for tag in input_tags)))
+        stmt = select(TagModel).where(TagModel.name.in_(tags))
 
         return (await self._session.scalars(stmt)).all()

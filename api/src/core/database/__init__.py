@@ -31,8 +31,8 @@ class Database:
     def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
         return async_sessionmaker(
             bind=engine,
-            expire_on_commit=False,
-            autoflush=False,
+            expire_on_commit=True,
+            autoflush=True,
         )
 
     @property

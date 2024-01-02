@@ -1,5 +1,7 @@
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from src.app.comics.images.models import TranslationImageModel
 
 from .dtos import TranslationCreateDTO
 from .models import TranslationModel
@@ -10,22 +12,27 @@ class TranslationRepo:
         self._session = session
 
     async def add_to_comic(
-        self,
-        comic_id,
-        translation_dto: TranslationCreateDTO,
-    ) -> TranslationModel:
-
+            self,
+            comic_id,
+            translation_dto: TranslationCreateDTO,
+    ):
         stmt = (
-            insert(TranslationModel).values(
-                comic_id=comic_id,
-                title=translation_dto.title,
-                tooltip=translation_dto.tooltip,
-                transcript=translation_dto.transcript,
-                news_block=translation_dto.news_block,
-                images=translation_dto.images,
-                language=translation_dto.language,
-                is_draft=translation_dto.is_draft,
-            ).returning(TranslationModel)
+            select(TranslationImageModel)
+            .where(TranslationImageModel.id.in_(translation_dto.image_ids))
         )
-        result = (await self._session.scalars(stmt)).one()
-        return result
+        image_models = (await self._session.scalars(stmt)).all()
+
+        assert len(image_models) == len(translation_dto.image_ids), "Invalid image ids!"
+
+        translation_model = TranslationModel(
+            comic_id=comic_id,
+            title=translation_dto.title,
+            tooltip=translation_dto.tooltip,
+            transcript=translation_dto.transcript,
+            news_block=translation_dto.news_block,
+            language=translation_dto.language,
+            is_draft=translation_dto.is_draft,
+            images=image_models,
+        )
+
+        self._session.add(translation_model)

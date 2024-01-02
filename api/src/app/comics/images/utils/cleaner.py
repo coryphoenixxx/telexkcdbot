@@ -8,7 +8,8 @@ _CLEANER_SLEEP_SEC = 60 * 5
 _CLEAN_AFTER_SEC = 60
 
 
-async def cleaner(temp_dir: Path):
+async def cleaner():
+    temp_dir = Path('./.tmp')
     while True:
         temp_file_list = await aos.listdir(temp_dir)
         if temp_file_list:

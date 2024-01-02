@@ -6,7 +6,9 @@ from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+from src.app.comics.images.models import TranslationImageModel
 from src.app.comics.models import ComicModel, ComicTagAssociation, TagModel
+from src.app.comics.translations.models import TranslationModel
 from src.core.database import db
 from src.core.database.base import Base
 

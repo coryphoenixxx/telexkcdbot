@@ -1,11 +1,13 @@
+from dataclasses import dataclass
 from enum import StrEnum
 
 
-class OrderType(StrEnum):
-    DESC = "desc"
-    ESC = "esc"
-
-
-class LanguageEnum(StrEnum):
+class Language(StrEnum):
     EN = "EN"
     RU = "RU"
+
+
+@dataclass
+class Dimensions:
+    width: int
+    height: int

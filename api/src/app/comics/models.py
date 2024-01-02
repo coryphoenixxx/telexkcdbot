@@ -32,14 +32,8 @@ class TagModel(PkIdMixin, Base):
         secondary="comic_tag_association",
     )
 
-    def __eq__(self, other: "TagModel"):
-        return hash(self) == hash(other)
-
-    def __hash__(self):
-        return hash(self.name)
-
     def __str__(self):
-        return f"{self.__class__.__name__}({self.id=}, {self.name=})"
+        return f"{self.__class__.__name__}(id={self.id}, name={self.name})"
 
     def __repr__(self):
         return str(self)
@@ -55,7 +49,6 @@ class ComicModel(PkIdMixin, Base):
     explain_url: Mapped[str | None]
     link_on_click: Mapped[str | None]
     is_interactive: Mapped[bool] = mapped_column(default=False)
-    is_extra: Mapped[bool] = mapped_column(default=False)
 
     created_at: Mapped[dt.date] = mapped_column(
         DateTime(timezone=True),
@@ -75,7 +68,7 @@ class ComicModel(PkIdMixin, Base):
     )
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.id=}, {self.issue_number=})"
+        return f"{self.__class__.__name__}(id={self.id}, issue_number={self.issue_number})"
 
     def __repr__(self):
         return str(self)

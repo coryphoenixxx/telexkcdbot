@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Unpack
 
 import filetype
 import imagesize
@@ -8,54 +9,41 @@ from fastapi import HTTPException
 from starlette import status
 from starlette.datastructures import UploadFile
 
-from src.app.comics.image_utils.dtos import ImageDTO
-from src.app.comics.image_utils.types import ImageFormatEnum
+from src.app.comics.images.dtos import ImageObj
+from src.app.comics.images.types import ImageFormat
+from src.core.config import settings
+from src.core.types import Dimensions
 
 
 class UploadImageReader:
-    _TEMP_DIR: Path
-    _UPLOAD_MAX_SIZE: int
-    _CHUNK_SIZE: int = 1024 * 256
-    _SUPPORTED_IMAGE_FORMATS: tuple = tuple(fmt.value for fmt in ImageFormatEnum)
+    _TEMP_DIR: Path = Path('./.tmp')
+    _UPLOAD_MAX_SIZE: int = eval(settings.app.upload_max_size)
+    _CHUNK_SIZE: int = 1024 * 64
+    _SUPPORTED_IMAGE_FORMATS: tuple = tuple(ImageFormat)
 
-    @classmethod
-    def setup(cls, upload_max_size: int, temp_dir: str):
-        cls._TEMP_DIR = Path(temp_dir)
-        cls._UPLOAD_MAX_SIZE = upload_max_size
-        os.makedirs(temp_dir, exist_ok=True)
-
-    async def read(self, image: UploadFile | None, image_2x: UploadFile | None) -> tuple[ImageDTO, ImageDTO]:
-        image_obj, image_2x_obj = await self.read_one(image), await self.read_one(image_2x)
-
-        if image_obj and image_2x_obj:
-            if image_obj >= image_2x_obj:
-                image_obj, image_2x_obj = image_2x_obj, image_obj
-            if not image_2x_obj.is_2x_of(image_obj):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Images conflict. One image must be 2x from the other.",
-                )
-
-        return image_obj, image_2x_obj
+    async def read_many(
+            self,
+            *images: Unpack[UploadFile | None],
+    ) -> list[ImageObj | None]:
+        return [await self.read_one(img) for img in images]
 
     async def read_one(self, upload: UploadFile | None):
         if not upload or not upload.filename:
             return None
 
         tmp_path = await self._read_to_temp(upload)
-
-        return ImageDTO(
+        return ImageObj(
             path=tmp_path,
             format_=self._get_real_image_format(tmp_path),
-            size=imagesize.get(tmp_path),
+            dimensions=Dimensions(*imagesize.get(tmp_path)),
         )
 
-    def _get_real_image_format(self, path: Path) -> ImageFormatEnum:
+    def _get_real_image_format(self, path: Path) -> ImageFormat:
         try:
             kind = filetype.guess(path)
             if kind is None:
                 raise ValueError
-            fmt = ImageFormatEnum(kind.extension)
+            fmt = ImageFormat(kind.extension)
         except ValueError:
             raise HTTPException(
                 status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
@@ -64,6 +52,7 @@ class UploadImageReader:
         return fmt
 
     async def _read_to_temp(self, file: UploadFile) -> Path:
+        os.makedirs(self._TEMP_DIR, exist_ok=True)
         async with NamedTemporaryFile(delete=False, dir=self._TEMP_DIR) as temp:
             file_size = 0
             while chunk := await file.read(self._CHUNK_SIZE):

@@ -1,14 +1,13 @@
 import asyncio
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 from fastapi import APIRouter, FastAPI
 from fastapi.responses import ORJSONResponse
 
 from src.app.comics.endpoints import router as comics_router
-from src.app.comics.image_utils.cleaner import cleaner
-from src.app.comics.image_utils.upload_reader import UploadImageReader
-from src.app.comics.services import ImageSaver
+from src.app.comics.images.endpoints import router as image_router
+from src.app.comics.images.utils.cleaner import cleaner
+from src.app.comics.images.utils.upload_reader import UploadImageReader
 from src.core.config import AppConfig, settings
 from src.core.database import db
 
@@ -16,13 +15,14 @@ from src.core.database import db
 def init_router(app: FastAPI):
     router = APIRouter(prefix="/api")
     router.include_router(comics_router)
+    router.include_router(image_router)
     app.include_router(router)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db.connect()
-    task = asyncio.create_task(cleaner(temp_dir=Path(settings.app.temp_dir)))
+    asyncio.create_task(cleaner())
     yield
     await db.disconnect()
 
@@ -37,9 +37,6 @@ def create_app(config: AppConfig) -> FastAPI:
     )
 
     init_router(app)
-
-    UploadImageReader.setup(upload_max_size=eval(config.upload_max_size), temp_dir=config.temp_dir)
-    ImageSaver.setup(static_dir=config.static_dir)
 
     return app
 
