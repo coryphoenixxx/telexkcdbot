@@ -9,7 +9,7 @@ from .translations.dtos import TranslationCreateDTO, TranslationGetDTO
 
 
 @dataclass(slots=True)
-class ComicCreateDTO:
+class ComicCreateBaseDTO:
     issue_number: int | None
     publication_date: dt.date
     xkcd_url: str | None
@@ -22,16 +22,16 @@ class ComicCreateDTO:
 
 @dataclass(slots=True)
 class ComicCreateTotalDTO:
-    comic: ComicCreateDTO
+    comic_base: ComicCreateBaseDTO
     en_translation: TranslationCreateDTO
 
     @classmethod
-    def from_request_data(
+    def from_request(
             cls,
             comic_create_schema: ComicCreateSchema,
     ) -> "ComicCreateTotalDTO":
-        comic_dto = ComicCreateTotalDTO(
-            comic=ComicCreateDTO(
+        return ComicCreateTotalDTO(
+            comic_base=ComicCreateBaseDTO(
                 issue_number=comic_create_schema.issue_number,
                 publication_date=comic_create_schema.publication_date,
                 xkcd_url=cast_or_none(str, comic_create_schema.xkcd_url),
@@ -50,8 +50,6 @@ class ComicCreateTotalDTO:
             ),
         )
 
-        return comic_dto
-
 
 @dataclass(slots=True)
 class ComicGetDTO:
@@ -69,10 +67,10 @@ class ComicGetDTO:
     @classmethod
     def from_model(cls, model: ComicModel) -> "ComicGetDTO":
         translations = {}
-        for tr in model.translations:  # type: TranslationModel
+        for tr in model.translations:
             images = {}
 
-            for img in tr.images:  # type: TranslationImageModel
+            for img in tr.images:
                 images[img.version] = {
                     "dimensions": (img.dimensions.width, img.dimensions.height),
                     "path": img.path,

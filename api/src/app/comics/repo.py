@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.strategy_options import joinedload
 
-from .dtos import ComicCreateDTO
+from .dtos import ComicCreateBaseDTO
 from .models import ComicModel, TagModel
 from .translations.models import TranslationModel
 
@@ -12,8 +12,8 @@ class ComicRepo:
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def create(self, comic_create_dto: ComicCreateDTO) -> int:
-        tags = await self.add_tags(comic_create_dto.tags)
+    async def create(self, comic_create_dto: ComicCreateBaseDTO) -> int:
+        tags = await self._add_tags(comic_create_dto.tags)
 
         comic_model = ComicModel(
             issue_number=comic_create_dto.issue_number,
@@ -32,7 +32,7 @@ class ComicRepo:
 
         return comic_model.id
 
-    async def get_by_id(self, comic_id: int):
+    async def get_by_id(self, comic_id: int) -> ComicModel:
         stmt = (
             select(ComicModel)
             .options(
@@ -44,7 +44,10 @@ class ComicRepo:
 
         return (await self._session.scalars(stmt)).unique().one_or_none()
 
-    async def add_tags(self, tags: list[str]) -> Sequence[TagModel]:
+    async def _add_tags(self, tags: list[str]) -> Sequence[TagModel]:
+        if not tags:
+            return []
+
         tag_models = (TagModel(name=tag_name) for tag_name in tags)
 
         stmt = (

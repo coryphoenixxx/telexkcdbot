@@ -3,7 +3,7 @@ from pathlib import Path
 
 from src.core.types import Dimensions, Language
 
-from .types import ImageFormat, ImageVersion
+from .types import ImageFormat, TranslationImageVersion
 
 
 @dataclass(slots=True)
@@ -17,7 +17,7 @@ class ImageObj:
 class TranslationImageDTO:
     issue_number: int | None
     en_title: str
-    version: ImageVersion
+    version: TranslationImageVersion
     language: Language
     is_draft: bool
     image_obj: ImageObj

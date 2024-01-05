@@ -1,21 +1,21 @@
-FROM python:3.11.6-alpine as python
+FROM python:3.9 as requirements-stage
 
-ENV PYTHONUNBUFFERED=1
-WORKDIR /api
+WORKDIR /tmp
 
+RUN pip install poetry
 
-FROM python as poetry
+COPY ./pyproject.toml ./poetry.lock* /tmp/
 
-ENV POETRY_HOME=/opt/poetry
-ENV POETRY_VIRTUALENVS_IN_PROJECT=true
-ENV PATH="$POETRY_HOME/bin:$PATH"
-RUN python -c 'from urllib.request import urlopen; print(urlopen("https://install.python-poetry.org").read().decode())' | python -
-COPY . ./
-RUN poetry install --no-interaction --no-ansi -vvv
+RUN poetry export -f requirements.txt --output requirements.txt --without-hashes
 
 
-FROM python as runtime
-ENV PATH="/api/.venv/bin:$PATH"
-COPY --from=poetry /api /api
 
-CMD alembic upgrade head && python -m src
+FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11
+
+COPY --from=requirements-stage /tmp/requirements.txt /app/requirements.txt
+
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+
+
+COPY . /app
+WORKDIR /app

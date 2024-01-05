@@ -1,19 +1,18 @@
 import uvicorn
 
-from .core.config import UvicornConfig, settings
-
-
-def run_application(config: UvicornConfig):
-    uvicorn.run(
-        app="src.app:app",
-        loop="uvloop",
-        host=config.host,
-        port=config.port,
-        reload=config.reload,
-        workers=config.workers,
-        lifespan="on",
-    )
-
+from .core.settings import get_settings
 
 if __name__ == "__main__":
-    run_application(config=settings.uvicorn)
+    settings = get_settings()
+
+    uvicorn.run(
+        app="src.app:create_app",
+        factory=True,
+        loop="uvloop",
+        http="httptools",
+        host=settings.uvicorn.host,
+        port=settings.uvicorn.port,
+        reload=settings.uvicorn.reload,
+        workers=settings.uvicorn.workers,
+        lifespan="on",
+    )

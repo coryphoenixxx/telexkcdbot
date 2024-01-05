@@ -7,13 +7,16 @@ from slugify import slugify
 from src.app.comics.images.dtos import TranslationImageDTO
 
 
-class ImageFileSaveHelper:
-    _STATIC_ROOT: Path = Path('./static').absolute()
+class ImageFileSaver:
+    _IMAGES_URL_PREFIX = 'images/comics/'
+
+    def __init__(self, static_dir: str):
+        self._static_dir = Path(static_dir).absolute()
 
     async def save(self, img: TranslationImageDTO) -> str:
-        rel_path = 'images/comics/' + self._build_rel_path(img)
+        rel_path = self._IMAGES_URL_PREFIX + self._build_rel_path(img)
 
-        new_path = self._STATIC_ROOT / rel_path
+        new_path = self._static_dir / rel_path
 
         await aos.makedirs(new_path.parent, exist_ok=True)
         await aos.replace(img.image_obj.path, new_path)

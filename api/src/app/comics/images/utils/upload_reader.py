@@ -5,21 +5,25 @@ from typing import Unpack
 import filetype
 import imagesize
 from aiofiles.tempfile import NamedTemporaryFile
-from fastapi import HTTPException
-from starlette import status
 from starlette.datastructures import UploadFile
 
 from src.app.comics.images.dtos import ImageObj
+from src.app.comics.images.exceptions import (
+    UnsupportedImageFormatError,
+    UploadExceedLimitError,
+    UploadFileIsEmpty,
+)
 from src.app.comics.images.types import ImageFormat
-from src.core.config import settings
 from src.core.types import Dimensions
 
 
 class UploadImageReader:
-    _TEMP_DIR: Path = Path('./.tmp')
-    _UPLOAD_MAX_SIZE: int = eval(settings.app.upload_max_size)
     _CHUNK_SIZE: int = 1024 * 64
-    _SUPPORTED_IMAGE_FORMATS: tuple = tuple(ImageFormat)
+
+    def __init__(self, tmp_dir: str, upload_max_size: int):
+        self._tmp_dir = Path(tmp_dir)
+        self._upload_max_size = upload_max_size
+        self._supported_formats = tuple(ImageFormat)
 
     async def read_many(
             self,
@@ -45,27 +49,18 @@ class UploadImageReader:
                 raise ValueError
             fmt = ImageFormat(kind.extension)
         except ValueError:
-            raise HTTPException(
-                status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-                detail=f"Unsupported image type. Supported: {', '.join(self._SUPPORTED_IMAGE_FORMATS)}",
-            )
+            raise UnsupportedImageFormatError(supported_formats=self._supported_formats)
         return fmt
 
     async def _read_to_temp(self, file: UploadFile) -> Path:
-        os.makedirs(self._TEMP_DIR, exist_ok=True)
-        async with NamedTemporaryFile(delete=False, dir=self._TEMP_DIR) as temp:
+        os.makedirs(self._tmp_dir, exist_ok=True)
+        async with NamedTemporaryFile(delete=False, dir=self._tmp_dir) as temp:
             file_size = 0
             while chunk := await file.read(self._CHUNK_SIZE):
                 file_size += len(chunk)
-                if file_size > self._UPLOAD_MAX_SIZE:
-                    raise HTTPException(
-                        status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-                        detail=f"Too large. Max upload size: {self._UPLOAD_MAX_SIZE}.",
-                    )
+                if file_size > self._upload_max_size:
+                    raise UploadExceedLimitError(upload_max_size=self._upload_max_size)
                 await temp.write(chunk)
             if file_size == 0:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="File is empty.",
-                )
+                raise UploadFileIsEmpty
         return Path(temp.name)

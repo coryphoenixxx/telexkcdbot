@@ -7,7 +7,7 @@ from src.core.database.base import Base
 from src.core.database.mixins import PkIdMixin
 from src.core.types import Dimensions
 
-from .types import ImageVersion
+from .types import TranslationImageVersion
 
 if TYPE_CHECKING:
     from src.app.comics.translations.models import TranslationModel
@@ -20,9 +20,15 @@ class TranslationImageModel(PkIdMixin, Base):
         ForeignKey("translations.id", ondelete="SET NULL"),
     )
 
-    version: Mapped[ImageVersion] = mapped_column(String(20))
+    version: Mapped[TranslationImageVersion] = mapped_column(String(20))
     path: Mapped[str]
     converted_path: Mapped[str | None]
     dimensions: Mapped[Dimensions] = composite(mapped_column("width"), mapped_column("height"))
 
     translation: Mapped["TranslationModel"] = relationship(back_populates="images")
+
+    def __str__(self):
+        return f"{self.__class__.__name__}(id={self.id}, path={self.path})"
+
+    def __repr__(self):
+        return str(self)

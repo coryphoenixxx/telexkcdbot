@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import NewType
+
+TranslationImageId = NewType("TranslationImageId", int)
 
 
 @dataclass(slots=True)
@@ -9,7 +12,7 @@ class ImageInfo:
     converted: str = None
 
 
-class ImageVersion(StrEnum):
+class TranslationImageVersion(StrEnum):
     DEFAULT = "default"
     DOUBLE_SIZE = "2x"
     LARGE = "large"

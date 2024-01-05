@@ -1,31 +1,33 @@
-from src.core.database.uow import UOW
+from src.core.database import DatabaseHolder
 
 from .dtos import ComicCreateTotalDTO, ComicGetDTO
-from .repo import ComicRepo
-from .translations.repo import TranslationRepo
+from .exceptions import ComicNotFoundError
 
 
-class ComicsService:
-    def __init__(self, uow: UOW):
-        self._uow = uow
+class ComicService:
+    def __init__(self, holder: DatabaseHolder):
+        self._holder = holder
 
     async def create_comic(
             self,
             comic_dto: ComicCreateTotalDTO,
     ) -> ComicGetDTO:
-        async with self._uow:  # type: UOW
-            comic_repo = ComicRepo(self._uow.session)
-            translation_repo = TranslationRepo(self._uow.session)
+        async with self._holder:
+            comic_id = await self._holder.comic_repo.create(comic_dto.comic_base)
 
-            comic_id = await comic_repo.create(comic_dto.comic)
-            await translation_repo.add_to_comic(comic_id, comic_dto.en_translation)
-            await self._uow.commit()
+            await self._holder.translation_repo.add_to_comic(comic_id, comic_dto.en_translation)
 
-            comic_model = await comic_repo.get_by_id(comic_id)
+            await self._holder.commit()
+
+            comic_model = await self._holder.comic_repo.get_by_id(comic_id)
 
         return ComicGetDTO.from_model(comic_model)
 
     async def get_comic_by_id(self, comic_id: int) -> ComicGetDTO:
-        comic_model = await ComicRepo(self._uow.session).get_by_id(comic_id)
-        if comic_model:
-            return ComicGetDTO.from_model(comic_model)
+        async with self._holder:
+            comic_model = await self._holder.comic_repo.get_by_id(comic_id)
+
+        if not comic_model:
+            raise ComicNotFoundError(comic_id=comic_id)
+
+        return ComicGetDTO.from_model(comic_model)

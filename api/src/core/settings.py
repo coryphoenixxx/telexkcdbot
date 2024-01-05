@@ -44,6 +44,8 @@ class FastAPIConfig(BaseModel):
 class AppConfig(BaseModel):
     fastapi: FastAPIConfig = FastAPIConfig()
     upload_max_size: str
+    tmp_dir: str
+    static_dir: str
 
 
 class Environment(StrEnum):
@@ -52,8 +54,8 @@ class Environment(StrEnum):
 
 
 class Settings(BaseSettings):
-    db: DbConfig
     uvicorn: UvicornConfig
+    db: DbConfig
     app: AppConfig
     env: Environment
 
@@ -73,6 +75,3 @@ def get_settings():
         settings.app.fastapi.docs_url = None
         settings.app.fastapi.redoc_url = None
     return settings
-
-
-settings = get_settings()

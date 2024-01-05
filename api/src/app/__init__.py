@@ -1,44 +1,53 @@
-import asyncio
-from contextlib import asynccontextmanager
-
-from fastapi import APIRouter, FastAPI
+from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
-from src.app.comics.endpoints import router as comics_router
-from src.app.comics.images.endpoints import router as image_router
-from src.app.comics.images.utils.cleaner import cleaner
-from src.app.comics.images.utils.upload_reader import UploadImageReader
-from src.core.config import AppConfig, settings
-from src.core.database import db
+from src.core.database import DatabaseHolder, create_engine, create_session_factory
+from src.core.settings import get_settings
+
+from .cleaner import Cleaner
+from .comics.images.utils import UploadImageReader
+from .comics.images.utils.image_saver import ImageFileSaver
+from .dependency_stubs import (
+    CleanerStub,
+    DatabaseHolderStub,
+    DbEngineStub,
+    ImageFileSaverStub,
+    UploadImageReaderStub,
+)
+from .events import lifespan
+from .exception_handlers import register_exceptions
+from .router import register_routers
 
 
-def init_router(app: FastAPI):
-    router = APIRouter(prefix="/api")
-    router.include_router(comics_router)
-    router.include_router(image_router)
-    app.include_router(router)
+def create_app() -> FastAPI:
+    settings = get_settings()
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await db.connect()
-    asyncio.create_task(cleaner())
-    yield
-    await db.disconnect()
-
-
-def create_app(config: AppConfig) -> FastAPI:
     app = FastAPI(
         lifespan=lifespan,
-        debug=config.fastapi.debug,
-        docs_url=config.fastapi.docs_url,
-        redoc_url=config.fastapi.redoc_url,
+        debug=settings.app.fastapi.debug,
+        docs_url=settings.app.fastapi.docs_url,
+        redoc_url=settings.app.fastapi.redoc_url,
         default_response_class=ORJSONResponse,
     )
 
-    init_router(app)
+    register_routers(app)
+    register_exceptions(app)
+
+    engine = create_engine(settings.db)
+    session_factory = create_session_factory(engine)
+
+    app.dependency_overrides.update(
+        {
+            DbEngineStub: lambda: engine,
+            DatabaseHolderStub: lambda: DatabaseHolder(session_factory=session_factory),
+            CleanerStub: lambda: Cleaner(tmp_dir=settings.app.tmp_dir),
+            UploadImageReaderStub:
+                lambda: UploadImageReader(
+                    tmp_dir=settings.app.tmp_dir,
+                    upload_max_size=eval(settings.app.upload_max_size),
+                ),
+            ImageFileSaverStub: lambda: ImageFileSaver(static_dir=settings.app.static_dir),
+        },
+    )
 
     return app
-
-
-app = create_app(config=settings.app)

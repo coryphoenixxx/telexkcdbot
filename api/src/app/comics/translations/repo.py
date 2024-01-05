@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.app.comics.images.models import TranslationImageModel
 
 from .dtos import TranslationCreateDTO
+from .exceptions import TranslationImagesNotCreatedError
 from .models import TranslationModel
 
 
@@ -22,7 +23,8 @@ class TranslationRepo:
         )
         image_models = (await self._session.scalars(stmt)).all()
 
-        assert len(image_models) == len(translation_dto.image_ids), "Invalid image ids!"
+        if len(image_models) != len(translation_dto.image_ids):
+            raise TranslationImagesNotCreatedError
 
         translation_model = TranslationModel(
             comic_id=comic_id,

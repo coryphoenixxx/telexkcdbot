@@ -9,8 +9,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from src.app.comics.images.models import TranslationImageModel
 from src.app.comics.models import ComicModel, ComicTagAssociation, TagModel
 from src.app.comics.translations.models import TranslationModel
-from src.core.database import db
+from src.core.database import create_engine
 from src.core.database.base import Base
+from src.core.settings import get_settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -32,7 +33,6 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-
 def do_run_migrations(connection):
     context.configure(connection=connection, target_metadata=target_metadata)
 
@@ -45,22 +45,12 @@ async def run_async_migrations():
     and associate a connection with the context.
 
     """
+    engine = create_engine(config=get_settings().db)
 
-    url = config.get_main_option("sqlalchemy.url")
-
-    if not url:
-        connectable = db.engine
-    else:
-        connectable = async_engine_from_config(
-            config.get_section(config.config_ini_section),
-            prefix="sqlalchemy.",
-            poolclass=pool.NullPool,
-        )
-
-    async with connectable.connect() as connection:
+    async with engine.connect() as connection:
         await connection.run_sync(do_run_migrations)
 
-    await connectable.dispose()
+    await engine.dispose()
 
 
 def run_migrations_online():
