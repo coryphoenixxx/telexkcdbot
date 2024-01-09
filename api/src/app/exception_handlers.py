@@ -23,4 +23,6 @@ def register_exceptions(app: FastAPI):
     app.add_exception_handler(UnsupportedImageFormatError, unsupported_image_format_exc_handler)
     app.add_exception_handler(UploadExceedLimitError, upload_exceed_limit_exc_handler)
     app.add_exception_handler(UploadFileIsEmpty, upload_file_is_empty_exc_handler)
-    app.add_exception_handler(TranslationImagesNotCreatedError, translation_images_not_found_exc_handler)
+    app.add_exception_handler(
+        TranslationImagesNotCreatedError, translation_images_not_found_exc_handler,
+    )

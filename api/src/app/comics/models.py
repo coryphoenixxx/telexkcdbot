@@ -1,10 +1,10 @@
-import datetime as dt
+from datetime import date
 
-from sqlalchemy import DateTime, ForeignKey, Index, SmallInteger, func
+from sqlalchemy import ForeignKey, Index, SmallInteger
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database.base import Base
-from src.core.database.mixins import PkIdMixin
+from src.core.database.mixins import CreatedAtMixin, PkIdMixin
 
 from .translations.models import TranslationModel
 
@@ -39,32 +39,29 @@ class TagModel(PkIdMixin, Base):
         return str(self)
 
 
-class ComicModel(PkIdMixin, Base):
+class ComicModel(PkIdMixin, Base, CreatedAtMixin):
     __tablename__ = "comics"
 
     issue_number: Mapped[int | None] = mapped_column(SmallInteger)
-    publication_date: Mapped[dt.date]
+    publication_date: Mapped[date]
     xkcd_url: Mapped[str | None]
     reddit_url: Mapped[str | None]
     explain_url: Mapped[str | None]
     link_on_click: Mapped[str | None]
     is_interactive: Mapped[bool] = mapped_column(default=False)
 
-    created_at: Mapped[dt.date] = mapped_column(
-        DateTime(timezone=True),
-        default=dt.datetime.utcnow(),
-        server_default=func.now(),
-    )
-
     tags: Mapped[list["TagModel"]] = relationship(
         back_populates="comics",
         secondary="comic_tag_association",
         cascade="all, delete",
+        lazy="selectin",
     )
 
     translations: Mapped[list["TranslationModel"]] = relationship(
         back_populates="comic",
         cascade="all, delete",
+        lazy="joined",
+        primaryjoin="and_(ComicModel.id==TranslationModel.comic_id, TranslationModel.is_draft==false())",
     )
 
     def __str__(self):

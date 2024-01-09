@@ -1,18 +1,18 @@
-class DbEngineStub:
+class DbEngineDep:
     ...
 
 
-class DatabaseHolderStub:
+class DatabaseHolderDep:
     ...
 
 
-class CleanerStub:
+class CleanerDep:
     ...
 
 
-class UploadImageReaderStub:
+class UploadImageReaderDep:
     ...
 
 
-class ImageFileSaverStub:
+class ImageFileSaverDep:
     ...

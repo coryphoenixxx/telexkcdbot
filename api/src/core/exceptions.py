@@ -1,7 +1,7 @@
 from typing import Any
 
 
-class BaseAppException(Exception):
+class BaseAppError(Exception):
 
     @property
     def detail(self) -> str | dict[str, Any]:

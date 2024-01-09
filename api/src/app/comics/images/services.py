@@ -1,21 +1,21 @@
 from src.core.database import DatabaseHolder
 
-from .dtos import TranslationImageDTO
-from .types import TranslationImageId
+from .dtos import TranslationImageCreateDTO
+from .types import TranslationImageID
 from .utils import ImageFileSaver
 
 
 class TranslationImageService:
-    def __init__(self, db_holder: DatabaseHolder, file_saver: ImageFileSaver):
+    def __init__(self, db_holder: DatabaseHolder, image_saver: ImageFileSaver):
         self._db_holder = db_holder
-        self._file_saver = file_saver
+        self._image_saver = image_saver
 
-    async def create(self, image_dto: TranslationImageDTO) -> TranslationImageId:
+    async def create(self, image_dto: TranslationImageCreateDTO) -> TranslationImageID:
         async with self._db_holder:
-            image_rel_path = await self._file_saver.save(image_dto)
+            _, rel_saved_path = await self._image_saver.save(image_dto)
 
             image_id = await self._db_holder.translation_image_repo.create(
-                image_dto, image_rel_path,
+                image_dto, rel_saved_path,
             )
 
             await self._db_holder.commit()

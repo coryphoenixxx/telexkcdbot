@@ -5,11 +5,11 @@ from fastapi.responses import ORJSONResponse
 from starlette import status
 from starlette.requests import Request
 
-from src.core.exceptions import BaseAppException
+from src.core.exceptions import BaseAppError
 
 
 @dataclass
-class TranslationImagesNotCreatedError(BaseAppException):
+class TranslationImagesNotCreatedError(BaseAppError):
     image_ids: list[int]
 
     @property
@@ -20,7 +20,10 @@ class TranslationImagesNotCreatedError(BaseAppException):
         }
 
 
-def translation_images_not_found_exc_handler(_: Request, exc: TranslationImagesNotCreatedError) -> ORJSONResponse:
+def translation_images_not_found_exc_handler(
+    _: Request,
+    exc: TranslationImagesNotCreatedError,
+) -> ORJSONResponse:
     return ORJSONResponse(
         status_code=status.HTTP_409_CONFLICT,
         content=exc.detail,

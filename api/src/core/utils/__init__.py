@@ -1,7 +1,7 @@
 import asyncio
 import functools
 import logging
-from collections.abc import Awaitable, Callable, Coroutine, Sequence
+from collections.abc import Callable, Coroutine, Sequence
 from typing import Any
 
 
@@ -20,7 +20,6 @@ def filter_keys(obj: dict, keys: Sequence[str], parent: dict | None = None):
             if k not in keys and not isinstance(v, dict):
                 del obj[k]
             else:
-
                 filter_keys(v, keys, obj)
         if obj == {} and parent is not None:
             for pk, pv in parent.copy().items():
@@ -35,7 +34,7 @@ def background_task_exception_handler(task: asyncio.Task) -> None:
     except asyncio.CancelledError:
         pass
     except Exception:
-        logging.exception('Exception raised by task = %r', task.get_name())
+        logging.exception("Exception raised by task = %r", task.get_name())
 
 
 def handle_task_exception(func: Callable) -> Callable:
@@ -48,7 +47,12 @@ def handle_task_exception(func: Callable) -> Callable:
 
 
 @handle_task_exception
-async def run_every(seconds: float, func: Callable[..., Coroutine[Any, Any, Any]], *args, **kwargs):
+async def run_every(
+    seconds: float,
+    func: Callable[..., Coroutine[Any, Any, Any]],
+    *args,
+    **kwargs,
+):
     while True:
         await func(*args, **kwargs)
         await asyncio.sleep(seconds)

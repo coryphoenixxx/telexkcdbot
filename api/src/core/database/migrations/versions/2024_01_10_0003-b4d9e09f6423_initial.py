@@ -1,16 +1,15 @@
 """Initial
 
-Revision ID: 773a9ad7cbcd
+Revision ID: b4d9e09f6423
 Revises:
-Create Date: 2024-01-05 07:20:48.644720
+Create Date: 2024-01-10 00:03:55.110117
 
 """
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = '773a9ad7cbcd'
+revision = 'b4d9e09f6423'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -26,23 +25,23 @@ def upgrade() -> None:
     sa.Column('explain_url', sa.String(), nullable=True),
     sa.Column('link_on_click', sa.String(), nullable=True),
     sa.Column('is_interactive', sa.Boolean(), nullable=False),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_comics'))
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_comics')),
     )
     op.create_index('ix_unique_issue_number_if_not_none', 'comics', ['issue_number'], unique=True, postgresql_where=sa.text('issue_number IS NOT NULL'))
     op.create_table('tags',
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_tags')),
-    sa.UniqueConstraint('name', name=op.f('uq_tags_name'))
+    sa.UniqueConstraint('name', name=op.f('uq_tags_name')),
     )
     op.create_table('comic_tag_association',
     sa.Column('comic_id', sa.Integer(), nullable=False),
     sa.Column('tag_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['comic_id'], ['comics.id'], name=op.f('fk_comic_tag_association_comic_id_comics'), ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], name=op.f('fk_comic_tag_association_tag_id_tags'), ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('comic_id', 'tag_id', name=op.f('pk_comic_tag_association'))
+    sa.PrimaryKeyConstraint('comic_id', 'tag_id', name=op.f('pk_comic_tag_association')),
     )
     op.create_table('translations',
     sa.Column('comic_id', sa.Integer(), nullable=False),
@@ -54,19 +53,18 @@ def upgrade() -> None:
     sa.Column('is_draft', sa.Boolean(), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.ForeignKeyConstraint(['comic_id'], ['comics.id'], name=op.f('fk_translations_comic_id_comics'), ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_translations'))
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_translations')),
     )
-    op.create_index('ix_unique_non_draft', 'translations', ['comic_id'], unique=True, postgresql_where=sa.text('NOT is_draft'))
+    op.create_index('ix_unique_non_draft', 'translations', ['comic_id', 'language'], unique=True, postgresql_where=sa.text('NOT is_draft'))
     op.create_table('translation_images',
     sa.Column('translation_id', sa.Integer(), nullable=True),
-    sa.Column('version', sa.String(length=20), nullable=False),
+    sa.Column('version', sa.String(length=10), nullable=False),
     sa.Column('path', sa.String(), nullable=False),
     sa.Column('converted_path', sa.String(), nullable=True),
-    sa.Column('width', sa.Integer(), nullable=False),
-    sa.Column('height', sa.Integer(), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['translation_id'], ['translations.id'], name=op.f('fk_translation_images_translation_id_translations'), ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_translation_images'))
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_translation_images')),
     )
     # ### end Alembic commands ###
 

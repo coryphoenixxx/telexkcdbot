@@ -5,18 +5,18 @@ from fastapi.responses import ORJSONResponse
 from starlette import status
 from starlette.requests import Request
 
-from src.core.exceptions import BaseAppException
+from src.core.exceptions import BaseAppError
 
 
 @dataclass
-class ImageBadMetadataError(BaseAppException):
+class ImageBadMetadataError(BaseAppError):
     @property
     def detail(self) -> str | dict[str, Any]:
         return "Either the issue number of the comic or its English title should be specified."
 
 
 @dataclass
-class UnsupportedImageFormatError(BaseAppException):
+class UnsupportedImageFormatError(BaseAppError):
     supported_formats: tuple[str]
 
     @property
@@ -28,7 +28,7 @@ class UnsupportedImageFormatError(BaseAppException):
 
 
 @dataclass
-class UploadExceedLimitError(BaseAppException):
+class UploadExceedLimitError(BaseAppError):
     upload_max_size: int
 
     @property
@@ -40,7 +40,7 @@ class UploadExceedLimitError(BaseAppException):
 
 
 @dataclass
-class UploadFileIsEmpty(BaseAppException):
+class UploadFileIsEmpty(BaseAppError):
     @property
     def detail(self) -> str | dict[str, Any]:
         return "File is empty."
@@ -53,7 +53,10 @@ def image_bad_metadata_exc_handler(_: Request, exc: ImageBadMetadataError) -> OR
     )
 
 
-def unsupported_image_format_exc_handler(_: Request, exc: UnsupportedImageFormatError) -> ORJSONResponse:
+def unsupported_image_format_exc_handler(
+    _: Request,
+    exc: UnsupportedImageFormatError,
+) -> ORJSONResponse:
     return ORJSONResponse(
         status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
         content=exc.detail,

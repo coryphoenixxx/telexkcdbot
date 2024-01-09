@@ -5,11 +5,11 @@ from fastapi.responses import ORJSONResponse
 from starlette import status
 from starlette.requests import Request
 
-from src.core.exceptions import BaseAppException
+from src.core.exceptions import BaseAppError
 
 
 @dataclass
-class ComicNotFoundError(BaseAppException):
+class ComicNotFoundError(BaseAppError):
     comic_id: int
 
     @property

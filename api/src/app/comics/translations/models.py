@@ -28,7 +28,10 @@ class TranslationModel(PkIdMixin, Base):
     is_draft: Mapped[bool] = mapped_column(default=False)
 
     comic: Mapped["ComicModel"] = relationship(back_populates="translations")
-    images: Mapped[list["TranslationImageModel"]] = relationship(back_populates="translation")
+    images: Mapped[list["TranslationImageModel"]] = relationship(
+        back_populates="translation",
+        lazy="joined",
+    )
 
     def __str__(self):
         return (
@@ -42,7 +45,7 @@ class TranslationModel(PkIdMixin, Base):
     __table_args__ = (
         Index(
             "ix_unique_non_draft",
-            "comic_id",
+            "comic_id", "language",
             unique=True,
             postgresql_where=(~is_draft),
         ),

@@ -1,7 +1,6 @@
-import os
 from pathlib import Path
-from typing import Unpack
 
+import aiofiles.os as aos
 import filetype
 import imagesize
 from aiofiles.tempfile import NamedTemporaryFile
@@ -25,20 +24,15 @@ class UploadImageReader:
         self._upload_max_size = upload_max_size
         self._supported_formats = tuple(ImageFormat)
 
-    async def read_many(
-            self,
-            *images: Unpack[UploadFile | None],
-    ) -> list[ImageObj | None]:
-        return [await self.read_one(img) for img in images]
-
-    async def read_one(self, upload: UploadFile | None):
+    async def read(self, upload: UploadFile | None) -> ImageObj | None:
         if not upload or not upload.filename:
             return None
 
         tmp_path = await self._read_to_temp(upload)
+
         return ImageObj(
             path=tmp_path,
-            format_=self._get_real_image_format(tmp_path),
+            fmt=self._get_real_image_format(tmp_path),
             dimensions=Dimensions(*imagesize.get(tmp_path)),
         )
 
@@ -50,10 +44,12 @@ class UploadImageReader:
             fmt = ImageFormat(kind.extension)
         except ValueError:
             raise UnsupportedImageFormatError(supported_formats=self._supported_formats)
+
         return fmt
 
     async def _read_to_temp(self, file: UploadFile) -> Path:
-        os.makedirs(self._tmp_dir, exist_ok=True)
+        await aos.makedirs(self._tmp_dir, exist_ok=True)
+
         async with NamedTemporaryFile(delete=False, dir=self._tmp_dir) as temp:
             file_size = 0
             while chunk := await file.read(self._CHUNK_SIZE):
@@ -63,4 +59,5 @@ class UploadImageReader:
                 await temp.write(chunk)
             if file_size == 0:
                 raise UploadFileIsEmpty
+
         return Path(temp.name)

@@ -1,15 +1,7 @@
-from dataclasses import dataclass
 from enum import StrEnum
 from typing import NewType
 
-TranslationImageId = NewType("TranslationImageId", int)
-
-
-@dataclass(slots=True)
-class ImageInfo:
-    size: tuple[int, int] = None
-    original: str = None
-    converted: str = None
+TranslationImageID = NewType("TranslationImageID", int)
 
 
 class TranslationImageVersion(StrEnum):
