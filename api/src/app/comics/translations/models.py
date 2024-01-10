@@ -44,8 +44,8 @@ class TranslationModel(PkIdMixin, Base):
 
     __table_args__ = (
         Index(
-            "ix_unique_non_draft",
-            "comic_id", "language",
+            "ix_unique_translation_title_not_draft",
+            "language", "title",
             unique=True,
             postgresql_where=(~is_draft),
         ),

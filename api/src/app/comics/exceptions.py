@@ -21,3 +21,20 @@ class ComicNotFoundError(BaseAppError):
             "message": self.message,
             "comic_id": self.comic_id,
         }
+
+
+@dataclass
+class ComicIssueNumberUniqueError(BaseAppError):
+    issue_number: int
+    message: str = "Comic with this issue number already exists."
+
+    @property
+    def status_code(self) -> int:
+        return status.HTTP_409_CONFLICT
+
+    @property
+    def detail(self) -> str | dict[str, Any]:
+        return {
+            "message": self.message,
+            "issue_number": self.issue_number,
+        }
