@@ -9,6 +9,11 @@ from src.core.database import DatabaseHolder
 from src.core.types import Language
 
 from .dtos import TranslationImageCreateDTO
+from .exceptions import (
+    RequestFileIsEmptyError,
+    UnsupportedImageFormatError,
+    UploadExceedLimitError,
+)
 from .services import TranslationImageService
 from .types import TranslationImageID, TranslationImageVersion
 
@@ -22,13 +27,13 @@ router = APIRouter(
     status_code=status.HTTP_201_CREATED,
     responses={
         status.HTTP_400_BAD_REQUEST: {
-            "description": "File is empty.",
+            "description": RequestFileIsEmptyError.message,
         },
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {
-            "description": "Unsupported image format.",
+            "description": UnsupportedImageFormatError.message,
         },
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: {
-            "description": "The uploaded image exceeds the size limit.",
+            "description": UploadExceedLimitError.message,
         },
     },
 )

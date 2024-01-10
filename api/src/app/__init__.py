@@ -3,18 +3,16 @@ from fastapi.responses import ORJSONResponse
 
 from src.core.database import DatabaseHolder, create_engine, create_session_factory
 from src.core.settings import get_settings
-from .cleaner import Cleaner
-from .comics.images.utils import UploadImageReader
-from .comics.images.utils.image_saver import ImageFileSaver
+
+from .comics.images.utils import ImageFileSaver, UploadImageReader
 from .dependency_stubs import (
-    CleanerDep,
     DatabaseHolderDep,
     DbEngineDep,
     ImageFileSaverDep,
     UploadImageReaderDep,
 )
 from .events import lifespan
-from .exception_handlers import register_exceptions
+from .middlewares import ExceptionHandlerMiddleware
 from .router import register_routers
 
 
@@ -31,7 +29,7 @@ def create_app() -> FastAPI:
     )
 
     register_routers(app)
-    register_exceptions(app)
+    app.add_middleware(ExceptionHandlerMiddleware)
 
     engine = create_engine(settings.db)
     session_factory = create_session_factory(engine)

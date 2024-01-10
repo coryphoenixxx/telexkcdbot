@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from fastapi.responses import ORJSONResponse
 from starlette import status
-from starlette.requests import Request
 
 from src.core.exceptions import BaseAppError
 
@@ -11,20 +9,15 @@ from src.core.exceptions import BaseAppError
 @dataclass
 class TranslationImagesNotCreatedError(BaseAppError):
     image_ids: list[int]
+    message: str = "Translation images for these ids were not created."
+
+    @property
+    def status_code(self) -> int:
+        return status.HTTP_409_CONFLICT
 
     @property
     def detail(self) -> str | dict[str, Any]:
         return {
-            "message": "Translation images for these ids were not created.",
+            "message": self.message,
             "image_ids": self.image_ids,
         }
-
-
-def translation_images_not_found_exc_handler(
-    _: Request,
-    exc: TranslationImagesNotCreatedError,
-) -> ORJSONResponse:
-    return ORJSONResponse(
-        status_code=status.HTTP_409_CONFLICT,
-        content=exc.detail,
-    )

@@ -8,9 +8,9 @@ from starlette.datastructures import UploadFile
 
 from src.app.comics.images.dtos import ImageObj
 from src.app.comics.images.exceptions import (
+    RequestFileIsEmptyError,
     UnsupportedImageFormatError,
     UploadExceedLimitError,
-    UploadFileIsEmpty,
 )
 from src.app.comics.images.types import ImageFormat
 from src.core.types import Dimensions
@@ -26,7 +26,7 @@ class UploadImageReader:
 
     async def read(self, upload: UploadFile | None) -> ImageObj | None:
         if not upload or not upload.filename:
-            return None
+            raise RequestFileIsEmptyError
 
         tmp_path = await self._read_to_temp(upload)
 
@@ -58,6 +58,6 @@ class UploadImageReader:
                     raise UploadExceedLimitError(upload_max_size=self._upload_max_size)
                 await temp.write(chunk)
             if file_size == 0:
-                raise UploadFileIsEmpty
+                raise RequestFileIsEmptyError
 
         return Path(temp.name)
