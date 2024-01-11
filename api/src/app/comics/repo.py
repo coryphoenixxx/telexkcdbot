@@ -33,6 +33,7 @@ class ComicRepo:
                 link_on_click=dto.link_on_click,
                 is_interactive=dto.is_interactive,
                 tags=tags,
+                translations=[],
             )
 
             self._session.add(comic)
