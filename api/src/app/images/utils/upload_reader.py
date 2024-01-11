@@ -6,13 +6,13 @@ import imagesize
 from aiofiles.tempfile import NamedTemporaryFile
 from starlette.datastructures import UploadFile
 
-from src.app.comics.images.dtos import ImageObj
-from src.app.comics.images.exceptions import (
+from src.app.images.dtos import ImageObj
+from src.app.images.exceptions import (
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
     UploadExceedLimitError,
 )
-from src.app.comics.images.types import ImageFormat
+from src.app.images.types import ImageFormat
 from src.core.types import Dimensions
 
 

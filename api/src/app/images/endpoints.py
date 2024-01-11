@@ -3,12 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from starlette import status
 
-from src.app.comics.images.utils import ImageFileSaver, UploadImageReader
 from src.app.dependency_stubs import DatabaseHolderDep, ImageFileSaverDep, UploadImageReaderDep
+from src.app.images.utils import ImageFileSaver, UploadImageReader
 from src.core.database import DatabaseHolder
 from src.core.types import Language
 
-from .dtos import TranslationImageCreateDTO
+from .dtos import TranslationImageRequestDTO
 from .exceptions import (
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
@@ -50,7 +50,7 @@ async def upload_images(
 ) -> TranslationImageID:
     tmp_image_obj = await upload_reader.read(image)
 
-    image_dto = TranslationImageCreateDTO(
+    image_dto = TranslationImageRequestDTO(
         issue_number=issue_number,
         en_title=en_title,
         version=version,

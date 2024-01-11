@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
+from src.app.images.utils import ImageFileSaver, UploadImageReader
 from src.core.database import DatabaseHolder, create_engine, create_session_factory
 from src.core.settings import get_settings
 
-from .comics.images.utils import ImageFileSaver, UploadImageReader
 from .dependency_stubs import (
     DatabaseHolderDep,
     DbEngineDep,

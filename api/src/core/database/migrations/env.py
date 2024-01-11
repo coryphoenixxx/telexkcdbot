@@ -3,12 +3,15 @@
 import asyncio
 
 from alembic import context
-from sqlalchemy import pool
-from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from src.app.comics.images.models import TranslationImageModel
+# noinspection PyUnresolvedReferences
 from src.app.comics.models import ComicModel, ComicTagAssociation, TagModel
-from src.app.comics.translations.models import TranslationModel
+
+# noinspection PyUnresolvedReferences
+from src.app.images.models import TranslationImageModel
+
+# noinspection PyUnresolvedReferences
+from src.app.translations.models import TranslationModel
 from src.core.database import create_engine
 from src.core.database.base import Base
 from src.core.settings import get_settings
@@ -32,6 +35,7 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
 
 def do_run_migrations(connection):
     context.configure(connection=connection, target_metadata=target_metadata)

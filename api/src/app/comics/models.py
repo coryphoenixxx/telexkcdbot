@@ -3,10 +3,11 @@ from datetime import date
 from sqlalchemy import ForeignKey, Index, SmallInteger
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from src.app.translations.models import TranslationModel
 from src.core.database.base import Base
 from src.core.database.mixins import CreatedAtMixin, PkIdMixin
 
-from .translations.models import TranslationModel
+from .dtos.responses import ComicResponseDTO, ComicResponseWithTranslationsDTO
 
 
 class ComicTagAssociation(Base):
@@ -60,7 +61,6 @@ class ComicModel(PkIdMixin, Base, CreatedAtMixin):
     translations: Mapped[list["TranslationModel"]] = relationship(
         back_populates="comic",
         cascade="all, delete",
-        lazy="joined",
         primaryjoin="and_(ComicModel.id==TranslationModel.comic_id, TranslationModel.is_draft==false())",
     )
 
@@ -72,9 +72,38 @@ class ComicModel(PkIdMixin, Base, CreatedAtMixin):
 
     __table_args__ = (
         Index(
-            "ix_unique_issue_number_if_not_none",
+            "uq_issue_number_if_not_none",
             "issue_number",
             unique=True,
             postgresql_where=(issue_number.isnot(None)),
         ),
     )
+
+    def to_dto(
+        self, with_translations: bool = False,
+    ) -> ComicResponseDTO | ComicResponseWithTranslationsDTO:
+        if with_translations:
+            return ComicResponseWithTranslationsDTO(
+                id=self.id,
+                issue_number=self.issue_number,
+                publication_date=self.publication_date,
+                xkcd_url=self.xkcd_url,
+                explain_url=self.explain_url,
+                reddit_url=self.reddit_url,
+                link_on_click=self.link_on_click,
+                is_interactive=self.is_interactive,
+                tags=[tag.name for tag in self.tags],
+                translations=[t.to_dto() for t in self.translations],
+            )
+        else:
+            return ComicResponseDTO(
+                id=self.id,
+                issue_number=self.issue_number,
+                publication_date=self.publication_date,
+                xkcd_url=self.xkcd_url,
+                explain_url=self.explain_url,
+                reddit_url=self.reddit_url,
+                link_on_click=self.link_on_click,
+                is_interactive=self.is_interactive,
+                tags=[tag.name for tag in self.tags],
+            )

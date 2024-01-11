@@ -10,9 +10,9 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from src.app.comics.images.repo import TranslationImageRepo
 from src.app.comics.repo import ComicRepo
-from src.app.comics.translations.repo import TranslationRepo
+from src.app.images.repo import TranslationImageRepo
+from src.app.translations.repo import TranslationRepo
 from src.core.settings import DbConfig
 
 

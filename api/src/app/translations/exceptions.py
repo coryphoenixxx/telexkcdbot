@@ -39,5 +39,5 @@ class TranslationTitleUniqueError(BaseAppError):
         return {
             "message": self.message,
             "title": self.title,
-            "language": self.language
+            "language": self.language,
         }

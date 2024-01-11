@@ -3,7 +3,7 @@ from pathlib import Path
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.app.comics.images.dtos import TranslationImageCreateDTO
+from src.app.images.dtos import TranslationImageRequestDTO
 
 from .models import TranslationImageModel
 from .types import TranslationImageID
@@ -15,7 +15,7 @@ class TranslationImageRepo:
 
     async def create(
         self,
-        image_dto: TranslationImageCreateDTO,
+        image_dto: TranslationImageRequestDTO,
         image_save_path: Path,
     ) -> TranslationImageID:
         stmt = (

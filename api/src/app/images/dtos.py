@@ -1,0 +1,32 @@
+from dataclasses import dataclass
+from pathlib import Path
+
+from src.app.images.types import TranslationImageID, TranslationImageVersion
+from src.core.types import Dimensions, Language
+
+from .types import ImageFormat
+
+
+@dataclass(slots=True)
+class ImageObj:
+    path: Path
+    fmt: ImageFormat
+    dimensions: Dimensions
+
+
+@dataclass(slots=True)
+class TranslationImageRequestDTO:
+    issue_number: int | None
+    en_title: str
+    version: TranslationImageVersion
+    image: ImageObj
+    language: Language
+    is_draft: bool
+
+
+@dataclass(slots=True)
+class TranslationImageResponseDTO:
+    id: TranslationImageID
+    version: TranslationImageVersion
+    path: str
+    converted_path: str

@@ -6,10 +6,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.core.database.base import Base
 from src.core.database.mixins import CreatedAtMixin, PkIdMixin
 
+from .dtos import TranslationImageResponseDTO
 from .types import TranslationImageVersion
 
 if TYPE_CHECKING:
-    from src.app.comics.translations.models import TranslationModel
+    from src.app.translations.models import TranslationModel
 
 
 class TranslationImageModel(Base, PkIdMixin, CreatedAtMixin):
@@ -30,3 +31,11 @@ class TranslationImageModel(Base, PkIdMixin, CreatedAtMixin):
 
     def __repr__(self):
         return str(self)
+
+    def to_dto(self) -> TranslationImageResponseDTO:
+        return TranslationImageResponseDTO(
+            id=self.id,
+            version=self.version,
+            path=self.path,
+            converted_path=self.converted_path,
+        )
