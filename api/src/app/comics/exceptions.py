@@ -40,9 +40,10 @@ class ComicByIssueNumberNotFoundError(BaseAppError):
             "issue_number": self.issue_number,
         }
 
+
 @dataclass
-class ExtraComicBySlugNotFoundError(BaseAppError):
-    slug: str
+class ExtraComicByTitleNotFoundError(BaseAppError):
+    title: str
     message: str = "Extra comic with this title not found."
 
     @property
@@ -53,7 +54,7 @@ class ExtraComicBySlugNotFoundError(BaseAppError):
     def detail(self) -> str | dict[str, Any]:
         return {
             "message": self.message,
-            "slug": self.slug,
+            "slug": self.title,
         }
 
 
@@ -71,4 +72,21 @@ class ComicIssueNumberUniqueError(BaseAppError):
         return {
             "message": self.message,
             "issue_number": self.issue_number,
+        }
+
+
+@dataclass
+class ComicSlugUniqueError(BaseAppError):
+    title: str
+    message: str = "Comic with this title already exists."
+
+    @property
+    def status_code(self) -> int:
+        return status.HTTP_409_CONFLICT
+
+    @property
+    def detail(self) -> str | dict[str, Any]:
+        return {
+            "message": self.message,
+            "title": self.title,
         }

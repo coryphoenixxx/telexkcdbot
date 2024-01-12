@@ -1,11 +1,12 @@
 from collections.abc import Iterable
 
-from slugify import slugify
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
+
+from src.core.utils import slugify
 
 from .dtos.requests import ComicRequestDTO
 from .dtos.responses import ComicResponseDTO, ComicResponseWithTranslationsDTO
@@ -13,7 +14,8 @@ from .exceptions import (
     ComicByIssueNumberNotFoundError,
     ComicIssueNumberUniqueError,
     ComicNotFoundError,
-    ExtraComicBySlugNotFoundError,
+    ComicSlugUniqueError,
+    ExtraComicByTitleNotFoundError,
 )
 from .models import ComicModel, TagModel
 from .types import ComicID
@@ -33,7 +35,7 @@ class ComicRepo:
 
             comic = ComicModel(
                 issue_number=dto.issue_number,
-                slug=slugify(en_title, separator="_"),
+                slug=slugify(en_title),
                 publication_date=dto.publication_date,
                 xkcd_url=dto.xkcd_url,
                 reddit_url=dto.reddit_url,
@@ -47,7 +49,7 @@ class ComicRepo:
             self._session.add(comic)
             await self._session.flush()
         except IntegrityError as err:
-            self._handle_integrity_error(err=err, dto=dto)
+            self._handle_integrity_error(err=err, dto=dto, en_title=en_title)
         else:
             return comic.to_dto(with_translations=True)
 
@@ -100,22 +102,22 @@ class ComicRepo:
 
         return comic.to_dto(with_translations=True)
 
-    async def get_by_slug(self, slug: str) -> ComicResponseWithTranslationsDTO:
+    async def get_by_title(self, title: str) -> ComicResponseWithTranslationsDTO:
         stmt = (
             select(ComicModel)
             .options(joinedload(ComicModel.translations))
-            .where(ComicModel.slug == slug)
+            .where(ComicModel.slug == slugify(title))
             .where(ComicModel.issue_number.is_(None))
         )
 
         comic = (await self._session.scalars(stmt)).unique().one_or_none()
 
         if not comic:
-            raise ExtraComicBySlugNotFoundError(slug=slug)
+            raise ExtraComicByTitleNotFoundError(title=title)
 
         return comic.to_dto(with_translations=True)
 
-    async def get_all(self) -> list[ComicResponseWithTranslationsDTO]:
+    async def get_list(self) -> list[ComicResponseWithTranslationsDTO]:
         stmt = select(ComicModel).options(joinedload(ComicModel.translations))
 
         comics = (await self._session.scalars(stmt)).unique().all()
@@ -152,8 +154,18 @@ class ComicRepo:
 
         return comic
 
-    def _handle_integrity_error(self, err: IntegrityError, dto: ComicRequestDTO):
+    async def delete(self, comic_id: ComicID):
+        stmt = delete(ComicModel).where(ComicModel.id == comic_id).returning(ComicModel.id)
+
+        comic_id = await self._session.scalar(stmt)
+
+        if not comic_id:
+            raise ComicNotFoundError(comic_id=comic_id)
+
+    def _handle_integrity_error(self, err: IntegrityError, dto: ComicRequestDTO, en_title: str):
         constraint = err.__cause__.__cause__.constraint_name
         if constraint == "uq_issue_number_if_not_none":
             raise ComicIssueNumberUniqueError(issue_number=dto.issue_number)
+        if constraint == "uq_comics_slug":
+            raise ComicSlugUniqueError(title=en_title)
         raise err

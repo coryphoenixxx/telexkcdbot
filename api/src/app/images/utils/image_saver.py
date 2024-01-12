@@ -3,9 +3,9 @@ from pathlib import Path
 from uuid import uuid4
 
 import aiofiles.os as aos
-from slugify import slugify
 
 from src.app.images.dtos import TranslationImageRequestDTO
+from src.core.utils import slugify
 
 
 class ImageFileSaver:
@@ -26,7 +26,7 @@ class ImageFileSaver:
 
     @staticmethod
     def _build_rel_path(dto: TranslationImageRequestDTO) -> Path:
-        slug = slugify(dto.en_title, separator="_")
+        slug = slugify(dto.title)
         uuid_parts = str(uuid4()).split('-')
         random_part = uuid_parts[0] + uuid_parts[1]
         dimensions = f"{dto.image.dimensions.width}x{dto.image.dimensions.height}"
@@ -38,9 +38,9 @@ class ImageFileSaver:
                 return Path(f"{dto.issue_number:04d}/{dto.language}/{filename}")
             case TranslationImageRequestDTO(issue_number=n, is_draft=True) if n > 0:
                 return Path(f"{dto.issue_number:04d}/{dto.language}/drafts/{filename}")
-            case TranslationImageRequestDTO(issue_number=None, en_title=t, is_draft=False) if t:
+            case TranslationImageRequestDTO(issue_number=None, title=t, is_draft=False) if t:
                 return Path(f"extras/{slug}/{dto.language}/{filename}")
-            case TranslationImageRequestDTO(issue_number=None, en_title=t, is_draft=True) if t:
+            case TranslationImageRequestDTO(issue_number=None, title=t, is_draft=True) if t:
                 return Path(f"extras/{slug}/{dto.language}/drafts/{filename}")
             case _:
                 logging.error(f"Invalid TranslationImageCreateDTO: {dto}")

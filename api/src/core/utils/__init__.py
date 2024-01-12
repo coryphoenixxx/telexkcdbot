@@ -4,6 +4,10 @@ import logging
 from collections.abc import Callable, Coroutine, Sequence
 from typing import Any
 
+from slugify import slugify as base_slugify
+
+from src.core.exceptions import EmptyCreatedSlugError
+
 
 def cast_or_none(type_: type[Any], value: Any) -> type[Any] | None:
     if value:
@@ -37,7 +41,7 @@ def background_task_exception_handler(task: asyncio.Task) -> None:
         logging.exception("Exception raised by task = %r", task.get_name())
 
 
-def handle_task_exception(func: Callable) -> Callable:
+def raise_task_exception(func: Callable) -> Callable:
     @functools.wraps(func)
     async def wrapper(*args, **kwargs) -> Any:
         asyncio.current_task().add_done_callback(background_task_exception_handler)
@@ -46,7 +50,7 @@ def handle_task_exception(func: Callable) -> Callable:
     return wrapper
 
 
-@handle_task_exception
+@raise_task_exception
 async def run_every(
     seconds: float,
     func: Callable[..., Coroutine[Any, Any, Any]],
@@ -56,3 +60,23 @@ async def run_every(
     while True:
         await func(*args, **kwargs)
         await asyncio.sleep(seconds)
+
+
+def slugify(word: str) -> str:
+    slug = base_slugify(
+        word,
+        separator="_",
+        replacements=(
+            ("+", " plus "),
+            ("%", " percent "),
+            ("(", " lr_br "),
+            (")", " rr_br "),
+            ("[", " ls_br "),
+            ("]", " rs_br "),
+            ("{", " lc_br "),
+            ("}", " rc_br "),
+        ),
+    )
+    if not slug:
+        raise EmptyCreatedSlugError(word=word)
+    return slug

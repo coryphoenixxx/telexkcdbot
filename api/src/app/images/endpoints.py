@@ -39,7 +39,7 @@ router = APIRouter(
 )
 async def upload_images(
     image: Annotated[UploadFile, File()],
-    en_title: Annotated[str | None, Query(max_length=50)],
+    title: Annotated[str | None, Query(max_length=50)],
     issue_number: Annotated[int | None, Query(gt=0)] = None,
     language: Language = Language.EN,
     version: TranslationImageVersion = TranslationImageVersion.DEFAULT,
@@ -52,7 +52,7 @@ async def upload_images(
 
     image_dto = TranslationImageRequestDTO(
         issue_number=issue_number,
-        en_title=en_title,
+        title=title,
         version=version,
         language=language,
         is_draft=is_draft,

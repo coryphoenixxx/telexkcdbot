@@ -17,7 +17,7 @@ class ImageObj:
 @dataclass(slots=True)
 class TranslationImageRequestDTO:
     issue_number: int | None
-    en_title: str
+    title: str
     version: TranslationImageVersion
     image: ImageObj
     language: Language
