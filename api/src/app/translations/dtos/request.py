@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 
-from src.app.images.dtos import TranslationImageResponseDTO
 from src.app.images.types import TranslationImageID
-from src.app.translations.types import TranslationID
 from src.core.types import Language
 
 
@@ -15,9 +13,3 @@ class TranslationRequestDTO:
     news_block: str | None
     images: list[TranslationImageID]
     is_draft: bool
-
-
-@dataclass(slots=True)
-class TranslationResponseDTO(TranslationRequestDTO):
-    id: TranslationID
-    images: list[TranslationImageResponseDTO]

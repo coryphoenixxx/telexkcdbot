@@ -4,7 +4,7 @@ from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.app.images.models import TranslationImageModel
-from src.app.translations.dtos import TranslationResponseDTO
+from src.app.translations.dtos.response import TranslationResponseDTO
 from src.core.database.base import Base
 from src.core.database.mixins import PkIdMixin
 from src.core.types import Language
@@ -44,9 +44,9 @@ class TranslationModel(PkIdMixin, Base):
 
     __table_args__ = (
         Index(
-            "uq_translation_title_if_not_draft",
+            "uq_translation_if_not_draft",
             "language",
-            "title",
+            "comic_id",
             unique=True,
             postgresql_where=(~is_draft),
         ),

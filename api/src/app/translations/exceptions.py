@@ -25,10 +25,10 @@ class TranslationImagesNotCreatedError(BaseAppError):
 
 
 @dataclass
-class TranslationTitleUniqueError(BaseAppError):
-    title: str
+class TranslationUniqueError(BaseAppError):
+    comic_id: int
     language: Language
-    message: str = "Translation with this title already exists."
+    message: str = "Translation with this language for this comic already exists."
 
     @property
     def status_code(self) -> int:
@@ -38,6 +38,6 @@ class TranslationTitleUniqueError(BaseAppError):
     def detail(self) -> str | dict[str, Any]:
         return {
             "message": self.message,
-            "title": self.title,
+            "comic_id": self.comic_id,
             "language": self.language,
         }

@@ -1,8 +1,8 @@
-from src.app.translations.dtos import TranslationRequestDTO
+from src.app.translations.dtos.request import TranslationRequestDTO
 from src.core.database import DatabaseHolder
 
-from .dtos.requests import ComicRequestDTO
-from .dtos.responses import ComicResponseDTO, ComicResponseWithTranslationsDTO
+from .dtos.request import ComicRequestDTO
+from .dtos.response import ComicResponseDTO, ComicResponseWithTranslationsDTO
 from .types import ComicID
 
 

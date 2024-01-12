@@ -1,13 +1,13 @@
 from dataclasses import dataclass
 
-from src.app.comics.dtos.requests import ComicRequestDTO
-from src.app.comics.schemas.responses import (
+from src.app.comics.dtos.request import ComicRequestDTO
+from src.app.comics.schemas.response import (
     ComicResponseSchema,
     ComicWithTranslationsResponseSchema,
 )
 from src.app.comics.types import ComicID
-from src.app.translations.dtos import TranslationResponseDTO
-from src.app.translations.schemas import TranslationResponseSchema
+from src.app.translations.dtos.response import TranslationResponseDTO
+from src.app.translations.schemas.response import TranslationResponseSchema
 
 
 @dataclass(slots=True)

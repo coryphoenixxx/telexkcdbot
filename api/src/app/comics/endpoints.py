@@ -4,10 +4,10 @@ from starlette import status
 from src.app.dependency_stubs import DatabaseHolderDep
 from src.core.database import DatabaseHolder
 
-from .dtos.responses import ComicResponseDTO, ComicResponseWithTranslationsDTO
-from .schemas.requests import ComicRequestSchema, ComicWithEnTranslationRequestSchema
-from .schemas.responses import ComicResponseSchema, ComicWithTranslationsResponseSchema
-from .services import ComicService
+from .dtos.response import ComicResponseDTO, ComicResponseWithTranslationsDTO
+from .schemas.request import ComicRequestSchema, ComicWithEnTranslationRequestSchema
+from .schemas.response import ComicResponseSchema, ComicWithTranslationsResponseSchema
+from .service import ComicService
 from .types import ComicID
 
 router = APIRouter(

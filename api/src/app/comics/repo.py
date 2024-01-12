@@ -8,8 +8,8 @@ from sqlalchemy.orm import joinedload
 
 from src.core.utils import slugify
 
-from .dtos.requests import ComicRequestDTO
-from .dtos.responses import ComicResponseDTO, ComicResponseWithTranslationsDTO
+from .dtos.request import ComicRequestDTO
+from .dtos.response import ComicResponseDTO, ComicResponseWithTranslationsDTO
 from .exceptions import (
     ComicByIssueNumberNotFoundError,
     ComicIssueNumberUniqueError,

@@ -2,9 +2,9 @@ import datetime as dt
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 
-from src.app.comics.dtos.requests import ComicRequestDTO
+from src.app.comics.dtos.request import ComicRequestDTO
 from src.app.images.types import TranslationImageID
-from src.app.translations.dtos import TranslationRequestDTO
+from src.app.translations.dtos.request import TranslationRequestDTO
 from src.core.types import Language
 from src.core.utils import cast_or_none
 

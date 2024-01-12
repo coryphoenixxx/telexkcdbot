@@ -14,7 +14,7 @@ from .exceptions import (
     UnsupportedImageFormatError,
     UploadExceedLimitError,
 )
-from .services import TranslationImageService
+from .service import TranslationImageService
 from .types import TranslationImageID, TranslationImageVersion
 
 router = APIRouter(

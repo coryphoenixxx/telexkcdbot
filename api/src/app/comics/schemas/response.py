@@ -3,7 +3,7 @@ import datetime as dt
 from pydantic import BaseModel, Field, HttpUrl
 
 from src.app.comics.types import ComicID
-from src.app.translations.schemas import TranslationResponseSchema
+from src.app.translations.schemas.response import TranslationResponseSchema
 
 
 class ComicResponseSchema(BaseModel):

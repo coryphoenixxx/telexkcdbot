@@ -7,7 +7,7 @@ from src.app.translations.models import TranslationModel
 from src.core.database.base import Base
 from src.core.database.mixins import CreatedAtMixin, PkIdMixin
 
-from .dtos.responses import ComicResponseDTO, ComicResponseWithTranslationsDTO
+from .dtos.response import ComicResponseDTO, ComicResponseWithTranslationsDTO
 
 
 class ComicTagAssociation(Base):

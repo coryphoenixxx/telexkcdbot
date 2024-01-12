@@ -4,13 +4,15 @@ from sqlalchemy import false, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.app.comics.exceptions import ComicNotFoundError
 from src.app.comics.types import ComicID
 from src.app.images.models import TranslationImageModel
 from src.app.images.types import TranslationImageID
 from src.core.types import Language
 
-from .dtos import TranslationRequestDTO, TranslationResponseDTO
-from .exceptions import TranslationImagesNotCreatedError, TranslationTitleUniqueError
+from .dtos.request import TranslationRequestDTO
+from .dtos.response import TranslationResponseDTO
+from .exceptions import TranslationImagesNotCreatedError, TranslationUniqueError
 from .models import TranslationModel
 from .types import TranslationID
 
@@ -44,6 +46,7 @@ class TranslationRepo:
             self._handle_integrity_error(
                 err=err,
                 dto=dto,
+                comic_id=comic_id,
             )
         else:
             return translation.to_dto()
@@ -68,7 +71,9 @@ class TranslationRepo:
         return model
 
     async def get_id_by_comic_id_and_lang(
-        self, comic_id: ComicID, language: Language,
+        self,
+        comic_id: ComicID,
+        language: Language,
     ) -> TranslationID:
         stmt = select(TranslationModel.id).where(
             TranslationModel.comic_id == comic_id,
@@ -86,7 +91,8 @@ class TranslationRepo:
         return (await self._session.scalars(stmt)).unique().one_or_none()
 
     async def _get_images(
-        self, images: list[TranslationImageID],
+        self,
+        images: list[TranslationImageID],
     ) -> Iterable[TranslationImageModel]:
         if not images:
             return []
@@ -103,11 +109,15 @@ class TranslationRepo:
 
         return image_models
 
-    def _handle_integrity_error(self, err: IntegrityError, dto: TranslationRequestDTO):
+    def _handle_integrity_error(
+        self, err: IntegrityError, dto: TranslationRequestDTO, comic_id: ComicID,
+    ):
         constraint = err.__cause__.__cause__.constraint_name
-        if constraint == "uq_translation_title_if_not_draft":
-            raise TranslationTitleUniqueError(
-                title=dto.title,
+        if constraint == "uq_translation_if_not_draft":
+            raise TranslationUniqueError(
+                comic_id=comic_id,
                 language=dto.language,
             )
+        elif constraint == "fk_translations_comic_id_comics":
+            raise ComicNotFoundError(comic_id)
         raise err
