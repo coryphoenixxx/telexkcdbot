@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import ForeignKey, Index, SmallInteger
+from sqlalchemy import ForeignKey, Index, SmallInteger, and_, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.app.translations.models import TranslationModel
@@ -44,6 +44,7 @@ class ComicModel(PkIdMixin, Base, CreatedAtMixin):
     __tablename__ = "comics"
 
     issue_number: Mapped[int | None] = mapped_column(SmallInteger)
+    slug: Mapped[str] = mapped_column(unique=True)
     publication_date: Mapped[date]
     xkcd_url: Mapped[str | None]
     reddit_url: Mapped[str | None]
@@ -61,7 +62,10 @@ class ComicModel(PkIdMixin, Base, CreatedAtMixin):
     translations: Mapped[list["TranslationModel"]] = relationship(
         back_populates="comic",
         cascade="all, delete",
-        primaryjoin="and_(ComicModel.id==TranslationModel.comic_id, TranslationModel.is_draft==false())",
+        primaryjoin=lambda: and_(
+            ComicModel.id == TranslationModel.comic_id,
+            TranslationModel.is_draft == false(),
+        ),
     )
 
     def __str__(self):
@@ -80,7 +84,8 @@ class ComicModel(PkIdMixin, Base, CreatedAtMixin):
     )
 
     def to_dto(
-        self, with_translations: bool = False,
+        self,
+        with_translations: bool = False,
     ) -> ComicResponseDTO | ComicResponseWithTranslationsDTO:
         if with_translations:
             return ComicResponseWithTranslationsDTO(
