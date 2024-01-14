@@ -5,9 +5,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.app.comics.exceptions import ComicNotFoundError
+from src.app.comics.models import ComicModel
 from src.app.comics.types import ComicID
 from src.app.images.models import TranslationImageModel
 from src.app.images.types import TranslationImageID
+from src.core.types import Language
+from src.core.utils import slugify
 
 from .dtos.request import TranslationRequestDTO
 from .dtos.response import TranslationResponseDTO
@@ -46,6 +49,7 @@ class TranslationRepo:
 
             self._session.add(translation)
             await self._session.flush()
+
         except IntegrityError as err:
             self._handle_integrity_error(
                 err=err,
@@ -57,24 +61,41 @@ class TranslationRepo:
 
     async def update(
         self,
+        comic_id: ComicID,
         translation_id: TranslationID,
         dto: TranslationRequestDTO,
-    ) -> TranslationModel:
-        images = await self._get_images(dto.images)
+    ) -> TranslationResponseDTO:
+        try:
+            images = await self._get_images(dto.images, translation_id)
 
-        model: TranslationModel = await self.get_by_id(translation_id)
+            translation: TranslationModel = await self._get_by_id(translation_id)
 
-        model.title = dto.title
-        model.tooltip = dto.tooltip
-        model.transcript = dto.transcript
-        model.news_block = dto.news_block
-        model.language = dto.language
-        model.is_draft = dto.is_draft
-        model.images = images
+            if dto.language == Language.EN and (
+                translation.title != dto.title or not dto.is_draft
+            ):
+                await self.update_parent_comic_slug(comic_id, dto)
 
-        return model
+            translation.title = dto.title
+            translation.tooltip = dto.tooltip
+            translation.transcript = dto.transcript
+            translation.news_block = dto.news_block
+            translation.language = dto.language
+            translation.is_draft = dto.is_draft
+            translation.images = images
 
-    async def get_by_id(self, translation_id: TranslationID) -> TranslationModel:
+            self._session.add(translation)
+            await self._session.flush()
+
+        except IntegrityError as err:
+            self._handle_integrity_error(
+                err=err,
+                dto=dto,
+                comic_id=comic_id,
+            )
+        else:
+            return translation.to_dto()
+
+    async def _get_by_id(self, translation_id: TranslationID) -> TranslationModel:
         stmt = select(TranslationModel).where(
             TranslationModel.id == translation_id,
         )
@@ -84,6 +105,7 @@ class TranslationRepo:
     async def _get_images(
         self,
         image_ids: list[TranslationImageID],
+        translation_id: TranslationID | None = None,
     ) -> Iterable[TranslationImageModel]:
         if not image_ids:
             return []
@@ -91,21 +113,37 @@ class TranslationRepo:
         image_ids = set(image_ids)
 
         stmt = select(TranslationImageModel).where(TranslationImageModel.id.in_(image_ids))
-
         image_models = (await self._session.scalars(stmt)).all()
 
         diff = image_ids - {model.id for model in image_models}
         if diff:
             raise TranslationImagesNotCreatedError(image_ids=sorted(diff))
 
-        owner_ids = {model.translation_id for model in image_models if model.translation_id}
-        if owner_ids:
+        another_owner_ids = {
+            model.translation_id
+            for model in image_models
+            if model.translation_id and model.translation_id != translation_id
+        }
+
+        if another_owner_ids:
             raise TranslationImagesAlreadyAttachedError(
-                translation_ids=sorted(owner_ids),
+                translation_ids=sorted(another_owner_ids),
                 image_ids=sorted(image_ids),
             )
 
         return image_models
+
+    async def update_parent_comic_slug(
+        self,
+        comic_id: ComicID,
+        dto: TranslationRequestDTO,
+    ):
+        stmt = select(ComicModel).where(ComicModel.id == comic_id)
+        comic = (await self._session.scalars(stmt)).one_or_none()
+
+        comic.slug = slugify(dto.title)
+
+        self._session.add(comic)
 
     @staticmethod
     def _handle_integrity_error(
@@ -115,12 +153,9 @@ class TranslationRepo:
     ):
         constraint = err.__cause__.__cause__.constraint_name
         if constraint == "uq_translation_if_not_draft":
-            raise TranslationUniqueError(
-                comic_id=comic_id,
-                language=dto.language,
-            )
+            raise TranslationUniqueError(comic_id, dto.language)
         elif constraint == "fk_translations_comic_id_comics":
             raise ComicNotFoundError(comic_id)
         elif constraint == "uq_version_per_translation":
-            raise TranslationImageVersionUniqueError(image_ids=dto.images)
+            raise TranslationImageVersionUniqueError(dto.images)
         raise err

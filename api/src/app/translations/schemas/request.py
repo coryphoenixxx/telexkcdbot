@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from src.app.images.types import TranslationImageID
 from src.app.translations.dtos.request import TranslationRequestDTO
@@ -6,7 +6,7 @@ from src.core.types import Language
 
 
 class TranslationRequestSchema(BaseModel):
-    title: str
+    title: str = Field(min_length=1)
     language: Language
     tooltip: str | None
     transcript: str | None
