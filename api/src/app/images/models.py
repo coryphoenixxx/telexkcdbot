@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database.base import Base
-from src.core.database.mixins import CreatedAtMixin, PkIdMixin
+from src.core.database.mixins import PkIdMixin, TimestampMixin
 
 from .dtos import TranslationImageResponseDTO
 from .types import TranslationImageVersion
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from src.app.translations.models import TranslationModel
 
 
-class TranslationImageModel(Base, PkIdMixin, CreatedAtMixin):
+class TranslationImageModel(Base, PkIdMixin, TimestampMixin):
     __tablename__ = "translation_images"
 
     translation_id: Mapped[int | None] = mapped_column(
@@ -31,6 +31,15 @@ class TranslationImageModel(Base, PkIdMixin, CreatedAtMixin):
 
     def __repr__(self):
         return str(self)
+
+    __table_args__ = (
+        Index(
+            "uq_version_per_translation",
+            "version", "translation_id",
+            unique=True,
+            postgresql_where=(translation_id.isnot(None)),
+        ),
+    )
 
     def to_dto(self) -> TranslationImageResponseDTO:
         return TranslationImageResponseDTO(

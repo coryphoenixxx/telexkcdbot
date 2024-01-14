@@ -12,13 +12,9 @@ class TranslationResponseDTO(TranslationRequestDTO):
     images: list[TranslationImageResponseDTO]
 
     def to_schema(self) -> TranslationResponseSchema:
-        image_dict = {}
+        images_dict = {}
         for image in self.images:
-            image_dict[image.version] = {
-                "id": image.id,
-                "path": image.path,
-                "converted": image.converted_path,
-            }
+            images_dict = images_dict | image.as_dict()
 
         return TranslationResponseSchema(
             id=self.id,
@@ -27,6 +23,6 @@ class TranslationResponseDTO(TranslationRequestDTO):
             tooltip=self.tooltip,
             transcript=self.transcript,
             news_block=self.news_block,
-            images=image_dict,
+            images=images_dict,
             is_draft=self.is_draft,
         )

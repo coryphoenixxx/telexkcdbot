@@ -14,6 +14,7 @@ from .dtos.response import TranslationResponseDTO
 from .exceptions import (
     TranslationImagesAlreadyAttachedError,
     TranslationImagesNotCreatedError,
+    TranslationImageVersionUniqueError,
     TranslationUniqueError,
 )
 from .models import TranslationModel
@@ -120,4 +121,6 @@ class TranslationRepo:
             )
         elif constraint == "fk_translations_comic_id_comics":
             raise ComicNotFoundError(comic_id)
+        elif constraint == "uq_version_per_translation":
+            raise TranslationImageVersionUniqueError(image_ids=dto.images)
         raise err

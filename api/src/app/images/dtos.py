@@ -30,3 +30,12 @@ class TranslationImageResponseDTO:
     version: TranslationImageVersion
     path: str
     converted_path: str
+
+    def as_dict(self):
+        return {
+            self.version: {
+                "id": self.id,
+                "path": self.path,
+                "converted": self.converted_path,
+            },
+        }

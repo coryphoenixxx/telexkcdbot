@@ -35,13 +35,9 @@ class ComicResponseWithTranslationsDTO(ComicResponseDTO):
     def to_schema(self) -> ComicWithTranslationsResponseSchema:
         translations = []
         for t in self.translations:
-            image_dict = {}
+            images_dict = {}
             for image in t.images:
-                image_dict[image.version] = {
-                    "id": image.id,
-                    "path": image.path,
-                    "converted": image.converted_path,
-                }
+                images_dict = images_dict | image.as_dict()
 
             translations.append(
                 TranslationResponseSchema(
@@ -51,7 +47,7 @@ class ComicResponseWithTranslationsDTO(ComicResponseDTO):
                     tooltip=t.tooltip,
                     transcript=t.transcript,
                     news_block=t.news_block,
-                    images=image_dict,
+                    images=images_dict,
                     is_draft=t.is_draft,
                 ),
             )

@@ -6,14 +6,14 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.app.images.models import TranslationImageModel
 from src.app.translations.dtos.response import TranslationResponseDTO
 from src.core.database.base import Base
-from src.core.database.mixins import PkIdMixin
+from src.core.database.mixins import PkIdMixin, TimestampMixin
 from src.core.types import Language
 
 if TYPE_CHECKING:
     from src.app.comics.models import ComicModel
 
 
-class TranslationModel(PkIdMixin, Base):
+class TranslationModel(PkIdMixin, Base, TimestampMixin):
     __tablename__ = "translations"
 
     comic_id: Mapped[int | None] = mapped_column(
@@ -36,7 +36,8 @@ class TranslationModel(PkIdMixin, Base):
     def __str__(self):
         return (
             f"{self.__class__.__name__}"
-            f"({self.id=}, {self.comic_id=}, {self.language}, {self.title=})"
+            f"(id={self.id}, comic_id={self.comic_id}, "
+            f"language={self.language}, title={self.title})"
         )
 
     def __repr__(self):

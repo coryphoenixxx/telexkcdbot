@@ -1,11 +1,11 @@
 from datetime import date
 
-from sqlalchemy import ForeignKey, Index, SmallInteger, and_, false
+from sqlalchemy import ForeignKey, Index, SmallInteger, and_, false, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.app.translations.models import TranslationModel
 from src.core.database.base import Base
-from src.core.database.mixins import CreatedAtMixin, PkIdMixin
+from src.core.database.mixins import PkIdMixin, TimestampMixin
 
 from .dtos.response import ComicResponseDTO, ComicResponseWithTranslationsDTO
 
@@ -40,7 +40,7 @@ class TagModel(PkIdMixin, Base):
         return str(self)
 
 
-class ComicModel(PkIdMixin, Base, CreatedAtMixin):
+class ComicModel(PkIdMixin, Base, TimestampMixin):
     __tablename__ = "comics"
 
     issue_number: Mapped[int | None] = mapped_column(SmallInteger)
@@ -68,8 +68,21 @@ class ComicModel(PkIdMixin, Base, CreatedAtMixin):
         ),
     )
 
+    drafts: Mapped[list["TranslationModel"]] = relationship(
+        back_populates="comic",
+        cascade="all, delete",
+        primaryjoin=lambda: and_(
+            ComicModel.id == TranslationModel.comic_id,
+            TranslationModel.is_draft == true(),
+        ),
+        overlaps="translations",
+    )
+
     def __str__(self):
-        return f"{self.__class__.__name__}(id={self.id}, issue_number={self.issue_number})"
+        return (
+            f"{self.__class__.__name__}"
+            f"(id={self.id}, issue_number={self.issue_number}, slug={self.slug})"
+        )
 
     def __repr__(self):
         return str(self)

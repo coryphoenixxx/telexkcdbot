@@ -8,9 +8,16 @@ class PkIdMixin:
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
 
-class CreatedAtMixin:
+class TimestampMixin:
     created_at: Mapped[date] = mapped_column(
         DateTime(timezone=True),
         default=datetime.now(UTC),
+        server_default=func.now(),
+    )
+
+    updated_at: Mapped[date] = mapped_column(
+        DateTime(timezone=True),
+        default=datetime.now(UTC),
+        onupdate=datetime.now(UTC),
         server_default=func.now(),
     )
