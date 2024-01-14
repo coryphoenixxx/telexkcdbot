@@ -20,7 +20,11 @@ class ImageFileSaver:
         abs_saved_path = self._static_dir / rel_saved_path
 
         await aos.makedirs(abs_saved_path.parent, exist_ok=True)
-        await aos.replace(dto.image.path, abs_saved_path)
+        try:
+            await aos.replace(dto.image.path, abs_saved_path)
+        except FileNotFoundError as err:
+            logging.error(f"{err.strerror}: {dto.image.path}")
+            raise err
 
         return abs_saved_path, rel_saved_path
 

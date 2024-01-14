@@ -6,10 +6,10 @@ from src.core.database import DatabaseHolder, create_engine, create_session_fact
 from src.core.settings import get_settings
 
 from .dependency_stubs import (
-    DatabaseHolderDep,
-    DbEngineDep,
-    ImageFileSaverDep,
-    UploadImageReaderDep,
+    DatabaseHolderDepStub,
+    DbEngineDepStub,
+    ImageFileSaverDepStub,
+    UploadImageReaderDepStub,
 )
 from .events import lifespan
 from .middlewares import ExceptionHandlerMiddleware
@@ -36,13 +36,13 @@ def create_app() -> FastAPI:
 
     app.dependency_overrides.update(
         {
-            DbEngineDep: lambda: engine,
-            DatabaseHolderDep: lambda: DatabaseHolder(session_factory=session_factory),
-            UploadImageReaderDep: lambda: UploadImageReader(
+            DbEngineDepStub: lambda: engine,
+            DatabaseHolderDepStub: lambda: DatabaseHolder(session_factory=session_factory),
+            UploadImageReaderDepStub: lambda: UploadImageReader(
                 tmp_dir=settings.app.tmp_dir,
                 upload_max_size=eval(settings.app.upload_max_size),
             ),
-            ImageFileSaverDep: lambda: ImageFileSaver(static_dir=settings.app.static_dir),
+            ImageFileSaverDepStub: lambda: ImageFileSaver(static_dir=settings.app.static_dir),
         },
     )
 

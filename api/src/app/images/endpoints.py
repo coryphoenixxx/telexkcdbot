@@ -3,7 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from starlette import status
 
-from src.app.dependency_stubs import DatabaseHolderDep, ImageFileSaverDep, UploadImageReaderDep
+from src.app.dependency_stubs import (
+    DatabaseHolderDepStub,
+    ImageFileSaverDepStub,
+    UploadImageReaderDepStub,
+)
 from src.app.images.utils import ImageFileSaver, UploadImageReader
 from src.core.database import DatabaseHolder
 from src.core.types import Language
@@ -44,9 +48,9 @@ async def upload_images(
     language: Language = Language.EN,
     version: TranslationImageVersion = TranslationImageVersion.DEFAULT,
     is_draft: bool = False,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDep),
-    upload_reader: UploadImageReader = Depends(UploadImageReaderDep),
-    image_saver: ImageFileSaver = Depends(ImageFileSaverDep),
+    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    upload_reader: UploadImageReader = Depends(UploadImageReaderDepStub),
+    image_saver: ImageFileSaver = Depends(ImageFileSaverDepStub),
 ) -> TranslationImageID:
     tmp_image_obj = await upload_reader.read(image)
 

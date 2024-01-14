@@ -1,3 +1,4 @@
+import logging
 from pathlib import Path
 
 import aiofiles.os as aos
@@ -44,6 +45,9 @@ class UploadImageReader:
             fmt = ImageFormat(kind.extension)
         except ValueError:
             raise UnsupportedImageFormatError(supported_formats=self._supported_formats)
+        except FileNotFoundError as err:
+            logging.error(f"{err.strerror}: {path}")
+            raise err
 
         return fmt
 

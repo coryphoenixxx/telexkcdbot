@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from starlette import status
 
-from src.app import DatabaseHolderDep
+from src.app import DatabaseHolderDepStub
 from src.app.comics.types import ComicID
 from src.app.translations.service import TranslationService
 from src.core.database import DatabaseHolder
@@ -20,7 +20,7 @@ router = APIRouter(tags=["Translations"])
 async def add_translation(
     comic_id: ComicID,
     schema: TranslationRequestSchema,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDep),
+    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
 ) -> TranslationResponseSchema:
     translation_req_dto = schema.to_dto()
 

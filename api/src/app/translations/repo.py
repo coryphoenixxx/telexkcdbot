@@ -1,6 +1,6 @@
 from collections.abc import Iterable
 
-from sqlalchemy import false, select
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,11 +8,14 @@ from src.app.comics.exceptions import ComicNotFoundError
 from src.app.comics.types import ComicID
 from src.app.images.models import TranslationImageModel
 from src.app.images.types import TranslationImageID
-from src.core.types import Language
 
 from .dtos.request import TranslationRequestDTO
 from .dtos.response import TranslationResponseDTO
-from .exceptions import TranslationImagesNotCreatedError, TranslationUniqueError
+from .exceptions import (
+    TranslationImagesAlreadyAttachedError,
+    TranslationImagesNotCreatedError,
+    TranslationUniqueError,
+)
 from .models import TranslationModel
 from .types import TranslationID
 
@@ -70,20 +73,7 @@ class TranslationRepo:
 
         return model
 
-    async def get_id_by_comic_id_and_lang(
-        self,
-        comic_id: ComicID,
-        language: Language,
-    ) -> TranslationID:
-        stmt = select(TranslationModel.id).where(
-            TranslationModel.comic_id == comic_id,
-            TranslationModel.language == language,
-            TranslationModel.is_draft == false(),
-        )
-
-        return await self._session.scalar(stmt)
-
-    async def get_by_id(self, translation_id: TranslationID):
+    async def get_by_id(self, translation_id: TranslationID) -> TranslationModel:
         stmt = select(TranslationModel).where(
             TranslationModel.id == translation_id,
         )
@@ -92,25 +82,35 @@ class TranslationRepo:
 
     async def _get_images(
         self,
-        images: list[TranslationImageID],
+        image_ids: list[TranslationImageID],
     ) -> Iterable[TranslationImageModel]:
-        if not images:
+        if not image_ids:
             return []
 
-        stmt = select(TranslationImageModel).where(
-            TranslationImageModel.id.in_(images),
-        )
+        image_ids = set(image_ids)
+
+        stmt = select(TranslationImageModel).where(TranslationImageModel.id.in_(image_ids))
 
         image_models = (await self._session.scalars(stmt)).all()
 
-        diff = set(images) - {model.id for model in image_models}
+        diff = image_ids - {model.id for model in image_models}
         if diff:
             raise TranslationImagesNotCreatedError(image_ids=sorted(diff))
 
+        owner_ids = {model.translation_id for model in image_models if model.translation_id}
+        if owner_ids:
+            raise TranslationImagesAlreadyAttachedError(
+                translation_ids=sorted(owner_ids),
+                image_ids=sorted(image_ids),
+            )
+
         return image_models
 
+    @staticmethod
     def _handle_integrity_error(
-        self, err: IntegrityError, dto: TranslationRequestDTO, comic_id: ComicID,
+        err: IntegrityError,
+        dto: TranslationRequestDTO,
+        comic_id: ComicID,
     ):
         constraint = err.__cause__.__cause__.constraint_name
         if constraint == "uq_translation_if_not_draft":
