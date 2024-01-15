@@ -1,4 +1,3 @@
-from src.app.comics.types import ComicID
 from src.core.database import DatabaseHolder
 
 from .dtos.request import TranslationRequestDTO
@@ -12,23 +11,27 @@ class TranslationService:
 
     async def create(
         self,
-        comic_id: ComicID,
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
         async with self._db_holder:
-            translation_resp_dto = await self._db_holder.translation_repo.create(comic_id, dto)
+            translation_resp_dto = await self._db_holder.translation_repo.create(dto)
             await self._db_holder.commit()
         return translation_resp_dto
 
     async def update(
         self,
-        comic_id: ComicID,
         translation_id: TranslationID,
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
         async with self._db_holder:
             translation_resp_dto = await self._db_holder.translation_repo.update(
-                comic_id, translation_id, dto,
+                translation_id=translation_id,
+                dto=dto,
             )
             await self._db_holder.commit()
         return translation_resp_dto
+
+    async def delete(self, translation_id: TranslationID):
+        async with self._db_holder:
+            await self._db_holder.translation_repo.delete(translation_id)
+            await self._db_holder.commit()

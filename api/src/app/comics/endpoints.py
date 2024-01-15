@@ -76,7 +76,7 @@ async def get_extra_comic_by_title(
 ) -> ComicWithTranslationsResponseSchema:
     comic_resp_dto: ComicResponseWithTranslationsDTO = await ComicService(
         db_holder=db_holder,
-    ).get_by_title(title)
+    ).get_extra_by_title(title)
 
     return comic_resp_dto.to_schema()
 

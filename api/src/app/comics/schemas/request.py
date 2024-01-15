@@ -61,6 +61,7 @@ class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
                 tags=self.tags,
             ),
             TranslationRequestDTO(
+                comic_id=None,
                 title=self.title,
                 language=Language.EN,
                 tooltip=self.tooltip,

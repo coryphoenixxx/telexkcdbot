@@ -20,11 +20,14 @@ class ComicService:
                 dto=comic_req_dto,
                 en_title=en_translation_req_dto.title,
             )
+
+            en_translation_req_dto.comic_id = comic_resp_dto.id
             translation_resp_dto = await self._db_holder.translation_repo.create(
-                comic_id=comic_resp_dto.id,
                 dto=en_translation_req_dto,
             )
+
             comic_resp_dto.translations.append(translation_resp_dto)
+
             await self._db_holder.commit()
 
             return comic_resp_dto
@@ -42,7 +45,7 @@ class ComicService:
 
     async def get_by_id(self, comic_id: ComicID) -> ComicResponseWithTranslationsDTO:
         async with self._db_holder:
-            comic_resp_dto = await self._db_holder.comic_repo.get_by_id_with_translations(comic_id)
+            comic_resp_dto = await self._db_holder.comic_repo.get_by_id(comic_id)
 
             return comic_resp_dto
 
@@ -52,9 +55,9 @@ class ComicService:
 
             return comic_resp_dto
 
-    async def get_by_title(self, title: str) -> ComicResponseWithTranslationsDTO:
+    async def get_extra_by_title(self, title: str) -> ComicResponseWithTranslationsDTO:
         async with self._db_holder:
-            comic_resp_dto = await self._db_holder.comic_repo.get_by_title(title)
+            comic_resp_dto = await self._db_holder.comic_repo.get_extra_by_title(title)
 
             return comic_resp_dto
 

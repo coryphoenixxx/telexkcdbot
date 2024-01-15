@@ -60,6 +60,7 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
     )
 
     translations: Mapped[list["TranslationModel"]] = relationship(
+        lazy="joined",
         back_populates="comic",
         cascade="all, delete",
         primaryjoin=lambda: and_(
@@ -98,7 +99,7 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
 
     def to_dto(
         self,
-        with_translations: bool = False,
+        with_translations: bool = True,
     ) -> ComicResponseDTO | ComicResponseWithTranslationsDTO:
         if with_translations:
             return ComicResponseWithTranslationsDTO(
@@ -110,7 +111,7 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
                 reddit_url=self.reddit_url,
                 link_on_click=self.link_on_click,
                 is_interactive=self.is_interactive,
-                tags=[tag.name for tag in self.tags],
+                tags=sorted([tag.name for tag in self.tags]),
                 translations=[t.to_dto() for t in self.translations],
             )
         else:

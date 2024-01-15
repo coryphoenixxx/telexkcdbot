@@ -42,6 +42,7 @@ class ComicResponseWithTranslationsDTO(ComicResponseDTO):
             translations.append(
                 TranslationResponseSchema(
                     id=t.id,
+                    comic_id=t.comic_id,
                     title=t.title,
                     language=t.language,
                     tooltip=t.tooltip,

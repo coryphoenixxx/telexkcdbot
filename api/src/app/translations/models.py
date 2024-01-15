@@ -56,6 +56,7 @@ class TranslationModel(PkIdMixin, Base, TimestampMixin):
     def to_dto(self) -> TranslationResponseDTO:
         return TranslationResponseDTO(
             id=self.id,
+            comic_id=self.comic_id,
             language=self.language,
             title=self.title,
             tooltip=self.tooltip,

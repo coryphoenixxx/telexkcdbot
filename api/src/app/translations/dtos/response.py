@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from src.app.comics.types import ComicID
 from src.app.images.dtos import TranslationImageResponseDTO
 from src.app.translations.dtos.request import TranslationRequestDTO
 from src.app.translations.schemas.response import TranslationResponseSchema
@@ -9,6 +10,7 @@ from src.app.translations.types import TranslationID
 @dataclass(slots=True)
 class TranslationResponseDTO(TranslationRequestDTO):
     id: TranslationID
+    comic_id: ComicID
     images: list[TranslationImageResponseDTO]
 
     def to_schema(self) -> TranslationResponseSchema:
@@ -18,6 +20,7 @@ class TranslationResponseDTO(TranslationRequestDTO):
 
         return TranslationResponseSchema(
             id=self.id,
+            comic_id=self.comic_id,
             title=self.title,
             language=self.language,
             tooltip=self.tooltip,
