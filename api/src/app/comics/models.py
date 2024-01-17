@@ -26,7 +26,7 @@ class ComicTagAssociation(Base):
 class TagModel(PkIdMixin, Base):
     __tablename__ = "tags"
 
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str] = mapped_column(unique=False)
 
     comics: Mapped[list["ComicModel"]] = relationship(
         back_populates="tags",

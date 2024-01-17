@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "telexkcdbot-xkcd-watcher"
+name = "telexkcdbot-scrapers"
 version = "0.1.0"
 description = "..."
 authors = ["coryphoenixxx <coryphoenixxx@gmail.com>"]
@@ -7,12 +7,14 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-httpx = "^0.25.0"
+httpx = "^0.26.0"
 h2 = "^4.1.0"
 aiohttp = "^3.9"
 uvloop = "^0.19.0"
 faust-cchardet = "^2.1.19"
 aiodns = "^3.0.0"
+lxml = "^5.1.0"
+beautifulsoup4 = "^4.12.2"
 
 
 [build-system]

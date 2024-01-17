@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from starlette import status
 
-from src.app import DatabaseHolderDepStub
+from src.app.dependency_stubs import DatabaseHolderDepStub
 from src.app.translations.service import TranslationService
 from src.core.database import DatabaseHolder
 

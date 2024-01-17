@@ -45,7 +45,7 @@ class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
         if tags:
             for tag in tags:
                 if not tag.strip() or len(tag) < 3:
-                    raise ValueError(f"Tag №{tags.index(tag) + 1} is invalid.")
+                    raise ValueError(f"{tag} is invalid.")
         return list({tag.strip() for tag in tags})
 
     def to_dtos(self) -> tuple[ComicRequestDTO, TranslationRequestDTO]:

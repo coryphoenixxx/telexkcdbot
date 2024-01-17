@@ -1,17 +1,7 @@
-# ruff: noqa: F401
-
 import asyncio
 
 from alembic import context
 
-# noinspection PyUnresolvedReferences
-from src.app.comics.models import ComicModel, ComicTagAssociation, TagModel
-
-# noinspection PyUnresolvedReferences
-from src.app.images.models import TranslationImageModel
-
-# noinspection PyUnresolvedReferences
-from src.app.translations.models import TranslationModel
 from src.core.database import create_engine
 from src.core.database.base import Base
 from src.core.settings import get_settings
