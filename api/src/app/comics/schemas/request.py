@@ -36,7 +36,7 @@ class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
     title: str
     tooltip: str | None
     transcript: str | None
-    news_block: str | None
+    news: str | None
     images: list[TranslationImageID]
 
     @field_validator("tags")
@@ -44,7 +44,7 @@ class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
     def validate_tags(cls, tags: list[str]) -> list[str] | None:
         if tags:
             for tag in tags:
-                if not tag.strip() or len(tag) < 3:
+                if not tag.strip() or len(tag) < 2:
                     raise ValueError(f"{tag} is invalid.")
         return list({tag.strip() for tag in tags})
 
@@ -66,7 +66,7 @@ class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
                 language=Language.EN,
                 tooltip=self.tooltip,
                 transcript=self.transcript,
-                news_block=self.news_block,
+                news=self.news,
                 images=self.images,
                 is_draft=False,
             ),

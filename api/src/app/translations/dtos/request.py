@@ -12,6 +12,6 @@ class TranslationRequestDTO:
     language: Language
     tooltip: str | None
     transcript: str | None
-    news_block: str | None
+    news: str | None
     images: list[TranslationImageID]
     is_draft: bool

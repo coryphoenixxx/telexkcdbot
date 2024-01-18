@@ -76,9 +76,9 @@ class ComicIssueNumberUniqueError(BaseAppError):
 
 
 @dataclass
-class ComicSlugUniqueError(BaseAppError):
+class ExtraComicSlugUniqueError(BaseAppError):
     title: str
-    message: str = "Comic with this title already exists."
+    message: str = "Extra comic with this title already exists."
 
     @property
     def status_code(self) -> int:

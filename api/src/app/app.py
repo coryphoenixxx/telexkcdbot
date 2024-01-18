@@ -1,11 +1,15 @@
+import functools
+import time
+
+from aiohttp import AsyncResolver, ClientSession, ClientTimeout, TCPConnector
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
 from src.app.images.utils import ImageFileSaver, UploadImageReader
 from src.core.database import DatabaseHolder, create_engine, create_session_factory
 from src.core.settings import get_settings
-
 from .dependency_stubs import (
+    ClientSessionDepStub,
     DatabaseHolderDepStub,
     DbEngineDepStub,
     ImageFileSaverDepStub,
@@ -14,6 +18,35 @@ from .dependency_stubs import (
 from .events import lifespan
 from .middlewares import ExceptionHandlerMiddleware
 from .router import register_routers
+
+
+def cache(ttl: int):
+    def wrapper(func):
+        cached_time, session = None, None
+
+        @functools.wraps(func)
+        async def wrapped(*args, **kw):
+            nonlocal cached_time
+            nonlocal session
+            now = time.time()
+            if not cached_time or now - cached_time > ttl:
+                session = await func(*args, **kw)
+                cached_time = now
+            return session
+
+        return wrapped
+
+    return wrapper
+
+
+@cache(60)
+async def get_client_session(timeout: int = 10):
+    connector = TCPConnector(
+        resolver=AsyncResolver(nameservers=["8.8.8.8", "8.8.4.4"]),
+        ttl_dns_cache=600,
+        ssl=False,
+    )
+    return ClientSession(connector=connector, timeout=ClientTimeout(timeout))
 
 
 def create_app() -> FastAPI:
@@ -44,6 +77,7 @@ def create_app() -> FastAPI:
                 upload_max_size=eval(settings.app.upload_max_size),
             ),
             ImageFileSaverDepStub: lambda: ImageFileSaver(static_dir=settings.app.static_dir),
+            ClientSessionDepStub: get_client_session,
         },
     )
 

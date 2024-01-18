@@ -1,5 +1,7 @@
 import asyncio
+import logging
 import re
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 from src.dtos import Images, XkcdOriginDTO
@@ -14,7 +16,7 @@ class XkcdOriginScraper:
 
     def __init__(self, q: asyncio.Queue):
         self._session = get_session(timeout=10)
-        self._throttler = get_throttler(connections=20)
+        self._throttler = get_throttler(connections=10)
         self._result_queue = q
 
     async def get_latest_issue_number(
@@ -23,6 +25,7 @@ class XkcdOriginScraper:
     ) -> int:
         async with retry_get(
             session=self._session,
+            throttler=self._throttler,
             url=self.BASE_URL + self.JSON_URL_PART,
         ) as response:
             json_data = await response.json()
@@ -39,40 +42,42 @@ class XkcdOriginScraper:
         xkcd_url = self.COMIC_URL.format(issue_number=issue_number)
 
         if issue_number == 404:
-            return XkcdOriginDTO(
+            comic = XkcdOriginDTO(
                 issue_number=404,
                 xkcd_url=xkcd_url,
                 title="404: Not Found",
                 publication_date="2008-04-01",
                 images=Images(),
             )
-        async with self._throttler, retry_get(
+        else:
+            async with retry_get(
                 session=self._session,
+                throttler=self._throttler,
                 url=self.JSON_URL.format(issue_number=issue_number),
             ) as response:
                 json_data = await response.json()
 
-        link_on_click, large_img_url = self._process_link(json_data["link"])
+            link_on_click, large_img_url = self._process_link(json_data["link"])
 
-        comic = XkcdOriginDTO(
-            issue_number=json_data["num"],
-            xkcd_url=xkcd_url,
-            title=self._process_title(json_data["title"]),
-            publication_date=self._process_date(
-                y=json_data["year"],
-                m=json_data["month"],
-                d=json_data["day"],
-            ),
-            link_on_click=link_on_click,
-            tooltip=json_data["alt"],
-            news=value_or_none(json_data["news"]),
-            images=Images(
-                default=json_data["img"],
-                x2=await self._get_2x_image_url(xkcd_url),
-                large=large_img_url,
-            ),
-            is_interactive=bool(json_data.get("extra_parts")),
-        )
+            comic = XkcdOriginDTO(
+                issue_number=json_data["num"],
+                xkcd_url=xkcd_url,
+                title=self._process_title(json_data["title"]),
+                publication_date=self._process_date(
+                    y=json_data["year"],
+                    m=json_data["month"],
+                    d=json_data["day"],
+                ),
+                link_on_click=link_on_click,
+                tooltip=json_data["alt"],
+                news=value_or_none(json_data["news"]),
+                images=Images(
+                    default=self._process_image_url(json_data["img"]),
+                    x2=await self._get_2x_image_url(xkcd_url),
+                    large=await self._get_image_by_large_image_url(large_img_url),
+                ),
+                is_interactive=bool(json_data.get("extra_parts")),
+            )
 
         if close_session:
             await self._session.close()
@@ -87,17 +92,18 @@ class XkcdOriginScraper:
 
         async with asyncio.TaskGroup() as tg:
             tasks = [
-                tg.create_task(self.fetch(i, close_session=False))
-                for i in range(start, end + 1)
+                tg.create_task(self.fetch(i, close_session=False)) for i in range(start, end + 1)
             ]
 
         await self._session.close()
-        return [task.result() for task in tasks]
+        results = [task.result() for task in tasks]
+        logging.info(f"SUCCESSFUL SCRAPED: {len(results)}")
+        return results
 
     @staticmethod
     def _process_title(title: str):
-        if '>' in title:
-            return re.sub(re.compile('<.*?>'), '', title)
+        if ">" in title:
+            return re.sub(re.compile("<.*?>"), "", title)
         return title
 
     @staticmethod
@@ -107,18 +113,49 @@ class XkcdOriginScraper:
             if "large" in link:
                 large_image_url = link
             else:
-                link_on_click = link
+                parsed_url = urlparse(link_on_click)
+                if parsed_url.scheme:
+                    link_on_click = link
 
         return link_on_click, large_image_url
+
+    async def _get_image_by_large_image_url(self, url: str | None) -> str | None:
+        if not url:
+            return
+
+        async with retry_get(
+            session=self._session,
+            throttler=self._throttler,
+            url=url,
+        ) as response:
+            page = await response.text()
+
+        soup = BeautifulSoup(page, "lxml")
+        new_url = soup.find("img").get("src")
+        if new_url:
+            return new_url
 
     @staticmethod
     def _process_date(y: str, m: str, d: str) -> str:
         return f"{int(y)}-{int(m):02d}-{int(d):02d}"
 
+    @staticmethod
+    def _process_image_url(url: str) -> str | None:
+        match = re.match(
+            pattern="https://imgs.xkcd.com/comics/(.*?).(jpg|jpeg|png|webp|gif)",
+            string=url,
+        )
+        if match:
+            return url
+
     async def _get_2x_image_url(self, xkcd_url: str) -> str | None:
         x2_image_url = None
 
-        async with retry_get(session=self._session, url=xkcd_url) as response:
+        async with retry_get(
+            session=self._session,
+            throttler=self._throttler,
+            url=xkcd_url,
+        ) as response:
             page = await response.text()
 
         soup = BeautifulSoup(page, "lxml")

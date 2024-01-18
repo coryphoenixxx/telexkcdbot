@@ -16,3 +16,7 @@ class UploadImageReaderDepStub:
 
 class ImageFileSaverDepStub:
     ...
+
+
+class ClientSessionDepStub:
+    ...

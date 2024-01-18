@@ -14,8 +14,8 @@ from .exceptions import (
     ComicByIssueNumberNotFoundError,
     ComicIssueNumberUniqueError,
     ComicNotFoundError,
-    ComicSlugUniqueError,
     ExtraComicByTitleNotFoundError,
+    ExtraComicSlugUniqueError,
 )
 from .models import ComicModel, TagModel
 from .types import ComicID
@@ -161,8 +161,8 @@ class ComicRepo:
         err: IntegrityError, dto: ComicRequestDTO, en_title: str | None = None,
     ):
         constraint = err.__cause__.__cause__.constraint_name
-        if constraint == "uq_issue_number_if_not_none":
+        if constraint == "uq_issue_number_if_not_extra":
             raise ComicIssueNumberUniqueError(issue_number=dto.issue_number)
-        if en_title and constraint == "uq_comics_slug":
-            raise ComicSlugUniqueError(title=en_title)
+        if en_title and constraint == "uq_title_if_extra":
+            raise ExtraComicSlugUniqueError(title=en_title)
         raise err

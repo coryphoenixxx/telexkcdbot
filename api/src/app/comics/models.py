@@ -26,7 +26,7 @@ class ComicTagAssociation(Base):
 class TagModel(PkIdMixin, Base):
     __tablename__ = "tags"
 
-    name: Mapped[str] = mapped_column(unique=False)
+    name: Mapped[str] = mapped_column(unique=True)
 
     comics: Mapped[list["ComicModel"]] = relationship(
         back_populates="tags",
@@ -44,7 +44,7 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
     __tablename__ = "comics"
 
     issue_number: Mapped[int | None] = mapped_column(SmallInteger)
-    slug: Mapped[str] = mapped_column(unique=True)
+    slug: Mapped[str]
     publication_date: Mapped[date]
     xkcd_url: Mapped[str | None]
     reddit_url: Mapped[str | None]
@@ -90,10 +90,16 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
 
     __table_args__ = (
         Index(
-            "uq_issue_number_if_not_none",
+            "uq_issue_number_if_not_extra",
             "issue_number",
             unique=True,
             postgresql_where=(issue_number.isnot(None)),
+        ),
+        Index(
+            "uq_title_if_extra",
+            "slug",
+            unique=True,
+            postgresql_where=(issue_number.is_(None)),
         ),
     )
 

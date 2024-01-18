@@ -31,20 +31,20 @@ class ImageFileSaver:
     @staticmethod
     def _build_rel_path(dto: TranslationImageRequestDTO) -> Path:
         slug = slugify(dto.title)
-        uuid_parts = str(uuid4()).split('-')
+        uuid_parts = str(uuid4()).split("-")
         random_part = uuid_parts[0] + uuid_parts[1]
         dimensions = f"{dto.image.dimensions.width}x{dto.image.dimensions.height}"
 
         filename = f"{slug}_{random_part}_{dimensions}_{dto.version}.{dto.image.fmt}"
 
         match dto:
-            case TranslationImageRequestDTO(issue_number=n, is_draft=False) if n > 0:
-                return Path(f"{dto.issue_number:04d}/{dto.language}/{filename}")
-            case TranslationImageRequestDTO(issue_number=n, is_draft=True) if n > 0:
-                return Path(f"{dto.issue_number:04d}/{dto.language}/drafts/{filename}")
             case TranslationImageRequestDTO(issue_number=None, title=t, is_draft=False) if t:
                 return Path(f"extras/{slug}/{dto.language}/{filename}")
             case TranslationImageRequestDTO(issue_number=None, title=t, is_draft=True) if t:
                 return Path(f"extras/{slug}/{dto.language}/drafts/{filename}")
+            case TranslationImageRequestDTO(issue_number=n, is_draft=False) if n > 0:
+                return Path(f"{dto.issue_number:04d}/{dto.language}/{filename}")
+            case TranslationImageRequestDTO(issue_number=n, is_draft=True) if n > 0:
+                return Path(f"{dto.issue_number:04d}/{dto.language}/drafts/{filename}")
             case _:
                 logging.error(f"Invalid TranslationImageCreateDTO: {dto}")

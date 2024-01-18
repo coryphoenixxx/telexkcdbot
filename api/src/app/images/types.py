@@ -6,13 +6,13 @@ TranslationImageID = NewType("TranslationImageID", int)
 
 class TranslationImageVersion(StrEnum):
     DEFAULT = "default"
-    DOUBLE_SIZE = "2x"
+    DOUBLE_SIZE = "x2"
     LARGE = "large"
     THUMBNAIL = "thumb"
 
 
 class ImageFormat(StrEnum):
     PNG = "png"
-    JPG = "jpeg"
+    JPG = "jpg"
     WEBP = "webp"
     GIF = "gif"

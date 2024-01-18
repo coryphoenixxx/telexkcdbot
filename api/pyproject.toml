@@ -13,12 +13,12 @@ repository = "https://github.com/coryphoenixxx/telexkcdbot/api"
 
 [tool.poetry.dependencies]
 python = "^3.11"
-fastapi = "^0.108"
+fastapi = "^0.109"
 python-multipart = "^0.0.6"
 orjson = "^3.9.10"
 sqlalchemy = "^2.0.23"
 asyncpg = "^0.29.0"
-uvicorn = { extras = ["standart"], version = "^0.25" }
+uvicorn = { extras = ["standart"], version = "^0.26" }
 pydantic-settings = "^2.1.0"
 aiofiles = "^23.2.1"
 alembic = "^1.13.0"
@@ -28,6 +28,8 @@ filetype = "^1.2.0"
 imagesize = "^1.4.1"
 python-slugify = "^8.0.1"
 httptools = "^0.6.1"
+aiohttp = "^3.9.1"
+aiodns = "^3.1.1"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

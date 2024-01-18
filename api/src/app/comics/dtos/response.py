@@ -47,7 +47,7 @@ class ComicResponseWithTranslationsDTO(ComicResponseDTO):
                     language=t.language,
                     tooltip=t.tooltip,
                     transcript=t.transcript,
-                    news_block=t.news_block,
+                    news=t.news,
                     images=images_dict,
                     is_draft=t.is_draft,
                 ),
