@@ -12,7 +12,6 @@ class TranslationRequestSchema(BaseModel):
     language: Language
     tooltip: str | None
     transcript: str | None
-    news: str | None
     images: list[TranslationImageID]
     is_draft: bool
 
@@ -23,7 +22,6 @@ class TranslationRequestSchema(BaseModel):
             language=self.language,
             tooltip=self.tooltip,
             transcript=self.transcript,
-            news=self.news,
             images=self.images,
             is_draft=self.is_draft,
         )

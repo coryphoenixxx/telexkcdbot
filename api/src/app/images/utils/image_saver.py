@@ -38,13 +38,13 @@ class ImageFileSaver:
         filename = f"{slug}_{random_part}_{dimensions}_{dto.version}.{dto.image.fmt}"
 
         match dto:
-            case TranslationImageRequestDTO(issue_number=None, title=t, is_draft=False) if t:
+            case TranslationImageRequestDTO(number=None, title=t, is_draft=False) if t:
                 return Path(f"extras/{slug}/{dto.language}/{filename}")
-            case TranslationImageRequestDTO(issue_number=None, title=t, is_draft=True) if t:
+            case TranslationImageRequestDTO(number=None, title=t, is_draft=True) if t:
                 return Path(f"extras/{slug}/{dto.language}/drafts/{filename}")
-            case TranslationImageRequestDTO(issue_number=n, is_draft=False) if n > 0:
-                return Path(f"{dto.issue_number:04d}/{dto.language}/{filename}")
-            case TranslationImageRequestDTO(issue_number=n, is_draft=True) if n > 0:
-                return Path(f"{dto.issue_number:04d}/{dto.language}/drafts/{filename}")
+            case TranslationImageRequestDTO(number=n, is_draft=False) if n > 0:
+                return Path(f"{dto.number:04d}/{dto.language}/{filename}")
+            case TranslationImageRequestDTO(number=n, is_draft=True) if n > 0:
+                return Path(f"{dto.number:04d}/{dto.language}/drafts/{filename}")
             case _:
                 logging.error(f"Invalid TranslationImageCreateDTO: {dto}")

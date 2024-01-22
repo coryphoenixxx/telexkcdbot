@@ -15,6 +15,7 @@ faust-cchardet = "^2.1.19"
 aiodns = "^3.0.0"
 lxml = "^5.1.0"
 beautifulsoup4 = "^4.12.2"
+aiohttp-retry = "^2.8.3"
 
 
 [build-system]

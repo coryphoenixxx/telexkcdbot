@@ -1,58 +1,48 @@
-import asyncio
-import logging
-from contextlib import asynccontextmanager
+import functools
+import json
+import time
+from collections.abc import Callable
+from dataclasses import asdict, is_dataclass
+from functools import partial
 from typing import Any
 
-from aiohttp import (
-    AsyncResolver,
-    ClientConnectorError,
-    ClientResponse,
-    ClientSession,
-    ClientTimeout,
-    TCPConnector,
-)
-from src.exceptions import UnexpectedStatusCodeError
+from yarl import URL
 
 
-def get_session(timeout: int = 10):
-    connector = TCPConnector(
-        resolver=AsyncResolver(nameservers=["8.8.8.8", "8.8.4.4"]),
-        ttl_dns_cache=600,
-        ssl=False,
-    )
-    return ClientSession(connector=connector, timeout=ClientTimeout(timeout))
+def ranges(start, end, size):
+    for i in range(start, end, size):
+        if i + size > end:
+            yield i, end
+            break
+        yield i, i + size - 1
 
 
-def get_throttler(connections: int):
-    return asyncio.Semaphore(connections)
+class CustomJsonEncoder(json.JSONEncoder):
+    def default(self, value):
+        if is_dataclass(value):
+            return asdict(value)
+        elif isinstance(value, URL):
+            return str(value)
+        else:
+            return super().default(value)
 
 
-def value_or_none(value: Any) -> Any | None:
-    return value if value else None
+custom_json_dumps = partial(json.dumps, cls=CustomJsonEncoder)
 
 
-@asynccontextmanager
-async def retry_get(
-    session: ClientSession,
-    throttler: asyncio.Semaphore,
-    url: str,
-    max_tries: int = 3,
-    interval: float = 5,
-) -> ClientResponse:
-    for _ in range(max_tries):
-        try:
-            async with throttler, session.get(url=url) as response:
-                status = response.status
-                if status == 200:
-                    yield response
-                    break
-                else:
-                    logging.warning(f"{url} return invalid status code: {status}.")
-                    raise UnexpectedStatusCodeError
-        except (TimeoutError, UnexpectedStatusCodeError, ClientConnectorError):
-            await asyncio.sleep(interval)
-        except Exception:
-            await session.close()
-            raise
-    else:
-        logging.error(f"{url} is unavailable after {max_tries} attempts.")
+def async_timed():
+    def wrapper(func: Callable) -> Callable:
+        @functools.wraps(func)
+        async def wrapped(*args, **kwargs) -> Any:
+            print(f"выполняется {func} с аргументами {args} {kwargs}")
+            start = time.time()
+            try:
+                return await func(*args, **kwargs)
+            finally:
+                end = time.time()
+                total = end - start
+                print(f"{func} завершилась за {total:.4f} с")
+
+        return wrapped
+
+    return wrapper

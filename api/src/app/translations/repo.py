@@ -41,7 +41,6 @@ class TranslationRepo:
                 title=dto.title,
                 tooltip=dto.tooltip,
                 transcript=dto.transcript,
-                news=dto.news,
                 language=dto.language,
                 is_draft=dto.is_draft,
                 images=images,
@@ -80,7 +79,6 @@ class TranslationRepo:
             translation.title = dto.title
             translation.tooltip = dto.tooltip
             translation.transcript = dto.transcript
-            translation.news = dto.news
             translation.language = dto.language
             translation.is_draft = dto.is_draft
             translation.images = images

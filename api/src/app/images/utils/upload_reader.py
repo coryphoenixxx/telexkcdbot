@@ -1,21 +1,12 @@
-import asyncio
 import logging
-from contextlib import asynccontextmanager
 from pathlib import Path
 
 import aiofiles.os as aos
 import filetype
 import imagesize
 from aiofiles.tempfile import NamedTemporaryFile
-from aiohttp import (
-    AsyncResolver,
-    ClientConnectorError,
-    ClientResponse,
-    ClientSession,
-    ClientTimeout,
-    TCPConnector,
-)
 from starlette.datastructures import UploadFile
+from yarl import URL
 
 from src.app.images.dtos import ImageObj
 from src.app.images.exceptions import (
@@ -24,46 +15,12 @@ from src.app.images.exceptions import (
     UploadExceedLimitError,
 )
 from src.app.images.types import ImageFormat
+from src.app.temp_utils import HttpClient
 from src.core.types import Dimensions
 
 
 class UnexpectedStatusCodeError(Exception):
     ...
-
-
-def get_session(timeout: int = 10):
-    connector = TCPConnector(
-        resolver=AsyncResolver(nameservers=["8.8.8.8", "8.8.4.4"]),
-        ttl_dns_cache=600,
-        ssl=False,
-    )
-    return ClientSession(connector=connector, timeout=ClientTimeout(timeout))
-
-
-@asynccontextmanager
-async def retry_get(
-    session: ClientSession,
-    url: str,
-    max_tries: int = 3,
-    interval: float = 5,
-) -> ClientResponse:
-    for _ in range(max_tries):
-        try:
-            async with session.get(url=url) as response:
-                status = response.status
-                if status == 200:
-                    yield response
-                    break
-                else:
-                    logging.warning(f"{url} return invalid status code: {status}.")
-                    raise UnexpectedStatusCodeError
-        except (TimeoutError, UnexpectedStatusCodeError, ClientConnectorError):
-            await asyncio.sleep(interval)
-        except Exception:
-            await session.close()
-            raise
-    else:
-        logging.error(f"{url} is unavailable after {max_tries} attempts.")
 
 
 class UploadImageReader:
@@ -86,8 +43,8 @@ class UploadImageReader:
             dimensions=Dimensions(*imagesize.get(tmp_path)),
         )
 
-    async def download(self, session: ClientSession, url: str) -> ImageObj:
-        tmp_path = await self._download_to_temp(session, url)
+    async def download(self, client: HttpClient, url: str) -> ImageObj:
+        tmp_path = await self._download_to_temp(client, url)
 
         return ImageObj(
             path=tmp_path,
@@ -115,15 +72,12 @@ class UploadImageReader:
 
     async def _download_to_temp(
         self,
-        session: ClientSession,
+        client: HttpClient,
         url: str,
     ) -> Path:
         await aos.makedirs(self._tmp_dir, exist_ok=True)
 
-        async with retry_get(
-            session=session,
-            url=url,
-        ) as response:
+        async with client.safe_get(url=URL(url)) as response:
             file_size = 0
             async with NamedTemporaryFile(delete=False, dir=self._tmp_dir) as temp:
                 while chunk := await response.content.read(self._CHUNK_SIZE):

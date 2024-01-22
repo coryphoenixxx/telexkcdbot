@@ -3,7 +3,7 @@ from src.core.database import DatabaseHolder
 
 from .dtos.request import ComicRequestDTO
 from .dtos.response import ComicResponseDTO, ComicResponseWithTranslationsDTO
-from .types import ComicID
+from .types import ComicID, IssueNumber
 
 
 class ComicService:
@@ -49,9 +49,9 @@ class ComicService:
 
             return comic_resp_dto
 
-    async def get_by_issue_number(self, issue_number: int) -> ComicResponseWithTranslationsDTO:
+    async def get_by_number(self, number: IssueNumber) -> ComicResponseWithTranslationsDTO:
         async with self._db_holder:
-            comic_resp_dto = await self._db_holder.comic_repo.get_by_issue_number(issue_number)
+            comic_resp_dto = await self._db_holder.comic_repo.get_by_number(number)
 
             return comic_resp_dto
 

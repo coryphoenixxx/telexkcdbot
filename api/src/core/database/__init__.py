@@ -16,7 +16,7 @@ from src.app.translations.repo import TranslationRepo
 from src.core.settings import DbConfig
 
 
-def create_engine(config: DbConfig) -> AsyncEngine:
+def create_db_engine(config: DbConfig) -> AsyncEngine:
     return create_async_engine(
         url=config.pg.dsn,
         echo=config.sqla.echo,
@@ -25,7 +25,7 @@ def create_engine(config: DbConfig) -> AsyncEngine:
     )
 
 
-def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+def create_db_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
     return async_sessionmaker(
         bind=engine,
         expire_on_commit=True,

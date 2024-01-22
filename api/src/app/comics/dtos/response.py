@@ -17,11 +17,10 @@ class ComicResponseDTO(ComicRequestDTO):
     def to_schema(self) -> ComicResponseSchema:
         return ComicResponseSchema(
             id=self.id,
-            issue_number=self.issue_number,
+            number=self.number,
             publication_date=self.publication_date,
             xkcd_url=self.xkcd_url,
             explain_url=self.explain_url,
-            reddit_url=self.reddit_url,
             link_on_click=self.link_on_click,
             is_interactive=self.is_interactive,
             tags=self.tags,
@@ -47,7 +46,6 @@ class ComicResponseWithTranslationsDTO(ComicResponseDTO):
                     language=t.language,
                     tooltip=t.tooltip,
                     transcript=t.transcript,
-                    news=t.news,
                     images=images_dict,
                     is_draft=t.is_draft,
                 ),
@@ -55,11 +53,10 @@ class ComicResponseWithTranslationsDTO(ComicResponseDTO):
 
         return ComicWithTranslationsResponseSchema(
             id=self.id,
-            issue_number=self.issue_number,
+            number=self.number,
             publication_date=self.publication_date,
             xkcd_url=self.xkcd_url,
             explain_url=self.explain_url,
-            reddit_url=self.reddit_url,
             link_on_click=self.link_on_click,
             is_interactive=self.is_interactive,
             tags=self.tags,

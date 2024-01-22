@@ -24,7 +24,6 @@ class TranslationModel(PkIdMixin, Base, TimestampMixin):
     language: Mapped[Language] = mapped_column(String(2))
     tooltip: Mapped[str | None]
     transcript: Mapped[str | None]
-    news: Mapped[str | None]
     is_draft: Mapped[bool] = mapped_column(default=False)
 
     images: Mapped[list["TranslationImageModel"]] = relationship(
@@ -61,7 +60,6 @@ class TranslationModel(PkIdMixin, Base, TimestampMixin):
             title=self.title,
             tooltip=self.tooltip,
             transcript=self.transcript,
-            news=self.news,
             images=[image.to_dto() for image in self.images],
             is_draft=self.is_draft,
         )

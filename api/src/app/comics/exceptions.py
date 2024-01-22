@@ -26,7 +26,7 @@ class ComicNotFoundError(BaseAppError):
 
 @dataclass
 class ComicByIssueNumberNotFoundError(BaseAppError):
-    issue_number: int
+    number: int
     message: str = "Comic with this issue number not found."
 
     @property
@@ -37,7 +37,7 @@ class ComicByIssueNumberNotFoundError(BaseAppError):
     def detail(self) -> str | dict[str, Any]:
         return {
             "message": self.message,
-            "issue_number": self.issue_number,
+            "number": self.number,
         }
 
 
@@ -60,7 +60,7 @@ class ExtraComicByTitleNotFoundError(BaseAppError):
 
 @dataclass
 class ComicIssueNumberUniqueError(BaseAppError):
-    issue_number: int
+    number: int
     message: str = "Comic with this issue number already exists."
 
     @property
@@ -71,7 +71,7 @@ class ComicIssueNumberUniqueError(BaseAppError):
     def detail(self) -> str | dict[str, Any]:
         return {
             "message": self.message,
-            "issue_number": self.issue_number,
+            "number": self.number,
         }
 
 

@@ -18,5 +18,5 @@ class ImageFileSaverDepStub:
     ...
 
 
-class ClientSessionDepStub:
+class HttpClientDepStub:
     ...

@@ -25,7 +25,6 @@ class TranslationResponseDTO(TranslationRequestDTO):
             language=self.language,
             tooltip=self.tooltip,
             transcript=self.transcript,
-            news=self.news,
             images=images_dict,
             is_draft=self.is_draft,
         )

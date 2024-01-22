@@ -43,11 +43,10 @@ class TagModel(PkIdMixin, Base):
 class ComicModel(PkIdMixin, Base, TimestampMixin):
     __tablename__ = "comics"
 
-    issue_number: Mapped[int | None] = mapped_column(SmallInteger)
+    number: Mapped[int | None] = mapped_column(SmallInteger)
     slug: Mapped[str]
     publication_date: Mapped[date]
     xkcd_url: Mapped[str | None]
-    reddit_url: Mapped[str | None]
     explain_url: Mapped[str | None]
     link_on_click: Mapped[str | None]
     is_interactive: Mapped[bool] = mapped_column(default=False)
@@ -82,7 +81,7 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
     def __str__(self):
         return (
             f"{self.__class__.__name__}"
-            f"(id={self.id}, issue_number={self.issue_number}, slug={self.slug})"
+            f"(id={self.id}, number={self.number}, slug={self.slug})"
         )
 
     def __repr__(self):
@@ -90,16 +89,16 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
 
     __table_args__ = (
         Index(
-            "uq_issue_number_if_not_extra",
-            "issue_number",
+            "uq_number_if_not_extra",
+            "number",
             unique=True,
-            postgresql_where=(issue_number.isnot(None)),
+            postgresql_where=(number.isnot(None)),
         ),
         Index(
             "uq_title_if_extra",
             "slug",
             unique=True,
-            postgresql_where=(issue_number.is_(None)),
+            postgresql_where=(number.is_(None)),
         ),
     )
 
@@ -110,11 +109,10 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
         if with_translations:
             return ComicResponseWithTranslationsDTO(
                 id=self.id,
-                issue_number=self.issue_number,
+                number=self.number,
                 publication_date=self.publication_date,
                 xkcd_url=self.xkcd_url,
                 explain_url=self.explain_url,
-                reddit_url=self.reddit_url,
                 link_on_click=self.link_on_click,
                 is_interactive=self.is_interactive,
                 tags=sorted([tag.name for tag in self.tags]),
@@ -123,11 +121,10 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
         else:
             return ComicResponseDTO(
                 id=self.id,
-                issue_number=self.issue_number,
+                number=self.number,
                 publication_date=self.publication_date,
                 xkcd_url=self.xkcd_url,
                 explain_url=self.explain_url,
-                reddit_url=self.reddit_url,
                 link_on_click=self.link_on_click,
                 is_interactive=self.is_interactive,
                 tags=[tag.name for tag in self.tags],

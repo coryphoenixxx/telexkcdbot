@@ -2,7 +2,7 @@ import asyncio
 
 from alembic import context
 
-from src.core.database import create_engine
+from src.core.database import create_db_engine
 from src.core.database.base import Base
 from src.core.settings import get_settings
 
@@ -39,7 +39,7 @@ async def run_async_migrations():
     and associate a connection with the context.
 
     """
-    engine = create_engine(config=get_settings().db)
+    engine = create_db_engine(config=get_settings().db)
 
     async with engine.connect() as connection:
         await connection.run_sync(do_run_migrations)

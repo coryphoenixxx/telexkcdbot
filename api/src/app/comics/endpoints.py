@@ -8,7 +8,7 @@ from .dtos.response import ComicResponseDTO, ComicResponseWithTranslationsDTO
 from .schemas.request import ComicRequestSchema, ComicWithEnTranslationRequestSchema
 from .schemas.response import ComicResponseSchema, ComicWithTranslationsResponseSchema
 from .service import ComicService
-from .types import ComicID
+from .types import ComicID, IssueNumber
 
 router = APIRouter(
     tags=["Comics"],
@@ -57,14 +57,14 @@ async def get_comic_by_id(
     return comic_resp_dto.to_schema()
 
 
-@router.get("/comics/{issue_number}", status_code=status.HTTP_200_OK)
-async def get_comic_by_issue_number(
-    issue_number: int,
+@router.get("/comics/{number}", status_code=status.HTTP_200_OK)
+async def get_comic_by_number(
+    number: IssueNumber,
     db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
 ) -> ComicWithTranslationsResponseSchema:
     comic_resp_dto: ComicResponseWithTranslationsDTO = await ComicService(
         db_holder=db_holder,
-    ).get_by_issue_number(issue_number)
+    ).get_by_number(number)
 
     return comic_resp_dto.to_schema()
 

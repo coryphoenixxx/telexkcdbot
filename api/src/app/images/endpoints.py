@@ -1,19 +1,21 @@
+import asyncio
 from typing import Annotated
 
-from aiohttp import ClientSession
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from pydantic import HttpUrl
 from starlette import status
 
 from src.app.dependency_stubs import (
-    ClientSessionDepStub,
     DatabaseHolderDepStub,
+    HttpClientDepStub,
     ImageFileSaverDepStub,
     UploadImageReaderDepStub,
 )
 from src.app.images.utils import ImageFileSaver, UploadImageReader
 from src.core.database import DatabaseHolder
 from src.core.types import Language
+
+from ..temp_utils import HttpClient
 from .dtos import TranslationImageRequestDTO
 from .exceptions import (
     NoImageError,
@@ -49,14 +51,14 @@ async def upload_images(
     title: Annotated[str, Query(max_length=50)],
     image_file: Annotated[UploadFile, File(...)] = None,
     image_url: HttpUrl | None = None,
-    issue_number: Annotated[int | None, Query(gt=0)] = None,
+    number: Annotated[int | None, Query(gt=0)] = None,
     language: Language = Language.EN,
     version: TranslationImageVersion = TranslationImageVersion.DEFAULT,
     is_draft: bool = False,
     db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
     upload_reader: UploadImageReader = Depends(UploadImageReaderDepStub),
     image_saver: ImageFileSaver = Depends(ImageFileSaverDepStub),
-    client_session: ClientSession = Depends(ClientSessionDepStub),
+    client: HttpClient = Depends(HttpClientDepStub),
 ) -> TranslationImageID:
     match (image_url, image_file):
         case (None, None):
@@ -64,23 +66,25 @@ async def upload_images(
         case (None, file):
             tmp_image_obj = await upload_reader.read(file)
         case (url, None):
-            tmp_image_obj = await upload_reader.download(client_session, str(url))
+            await asyncio.sleep(1)
+            tmp_image_obj = await upload_reader.download(client, str(url))
         case (url, file):
             raise OneTypeImageError
         case _:
             tmp_image_obj = None
-    image_dto = TranslationImageRequestDTO(
-        issue_number=issue_number,
-        title=title,
-        version=version,
-        language=language,
-        is_draft=is_draft,
-        image=tmp_image_obj,
-    )
 
     image_id = await TranslationImageService(
         db_holder=db_holder,
         image_saver=image_saver,
-    ).create(image_dto)
+    ).create(
+        image_dto=TranslationImageRequestDTO(
+            number=number,
+            title=title,
+            version=version,
+            language=language,
+            is_draft=is_draft,
+            image=tmp_image_obj,
+        ),
+    )
 
     return image_id
