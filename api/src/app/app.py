@@ -3,6 +3,7 @@ import asyncio
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
+from shared.http_client import HttpClient
 from src.app.images.utils import ImageFileSaver, UploadImageReader
 from src.core.database import DatabaseHolder, create_db_engine, create_db_session_factory
 from src.core.settings import get_settings
@@ -17,7 +18,6 @@ from .dependency_stubs import (
 from .events import lifespan
 from .middlewares import ExceptionHandlerMiddleware
 from .router import register_routers
-from .temp_utils import HttpClient
 
 
 def create_app() -> FastAPI:
@@ -48,7 +48,7 @@ def create_app() -> FastAPI:
                 upload_max_size=eval(settings.app.upload_max_size),
             ),
             ImageFileSaverDepStub: lambda: ImageFileSaver(static_dir=settings.app.static_dir),
-            HttpClientDepStub: lambda: HttpClient(throttler=asyncio.Semaphore(10)),
+            HttpClientDepStub: lambda: HttpClient(throttler=asyncio.Semaphore(5)),
         },
     )
 

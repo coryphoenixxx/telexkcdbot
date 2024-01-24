@@ -3,8 +3,9 @@ from dataclasses import asdict
 
 from src.dtos import AggregatedComicDataDTO, Images, XkcdPostApiDTO
 from src.exceptions import UnexpectedStatusCodeError
-from src.http_client import HttpClient
 from yarl import URL
+
+from shared.http_client import HttpClient
 
 
 class APIUploader:
@@ -15,7 +16,7 @@ class APIUploader:
         self,
         client: HttpClient,
         queue: asyncio.Queue,
-        threshold: int = 50,
+        threshold: int = 40,
     ):
         self._queue = queue
         self._client = client

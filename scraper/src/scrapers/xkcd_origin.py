@@ -2,8 +2,9 @@ import re
 
 from bs4 import BeautifulSoup
 from src.dtos import Images, XkcdOriginDTO
-from src.http_client import HttpClient
 from yarl import URL
+
+from shared.http_client import HttpClient
 
 
 class XkcdOriginScraper:

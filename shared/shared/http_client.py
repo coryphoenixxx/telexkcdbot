@@ -2,13 +2,14 @@ import asyncio
 import json
 import time
 from contextlib import asynccontextmanager
-from dataclasses import asdict, dataclass, is_dataclass
+from dataclasses import asdict, is_dataclass
 from functools import partial
 from typing import Any
 
 from aiohttp import (
     AsyncResolver,
     ClientConnectorError,
+    ClientOSError,
     ClientSession,
     ClientTimeout,
     ServerDisconnectedError,
@@ -16,19 +17,6 @@ from aiohttp import (
 )
 from aiohttp_retry import ExponentialRetry, RetryClient
 from yarl import URL
-
-
-@dataclass
-class UnexpectedStatusCodeError(Exception):
-    status: int
-
-
-@dataclass
-class ResourceIsUnavailableError(Exception):
-    message: str
-    retry_num: int
-    interval: int
-    last_response_status: int
 
 
 class CustomJsonEncoder(json.JSONEncoder):
@@ -71,6 +59,7 @@ class HttpClient:
                     TimeoutError,
                     ClientConnectorError,
                     ServerDisconnectedError,
+                    ClientOSError,
                 },
             ),
             client_session=session,
@@ -118,7 +107,7 @@ class HttpClient:
         return client
 
     @staticmethod
-    def _create_session(host: str, timeout: int = 5):
+    def _create_session(host: str, timeout: int = 20):
         connector = None
         if host != "localhost":
             connector = TCPConnector(

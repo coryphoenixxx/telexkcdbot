@@ -3,11 +3,12 @@ import logging
 
 import uvloop
 from src.dtos import AggregatedComicDataDTO
-from src.http_client import HttpClient
 from src.scrapers.explain_xkcd import ExplainXkcdScraper
 from src.scrapers.xkcd_origin import XkcdOriginScraper
 from src.uploader import APIUploader
-from src.utils import async_timed, ranges
+
+from shared.http_client import HttpClient
+from shared.utils import ranges, timeit
 
 
 async def get_all(
@@ -24,7 +25,7 @@ async def get_all(
     )
 
 
-@async_timed()
+@timeit
 async def main(from_: int = 1, to_: int | None = None, chunk_size: int = 100):
     queue = asyncio.Queue()
 
@@ -58,4 +59,4 @@ async def main(from_: int = 1, to_: int | None = None, chunk_size: int = 100):
 
 if __name__ == "__main__":
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    asyncio.run(main())
+    asyncio.run(main(1, 10))

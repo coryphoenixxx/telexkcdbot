@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile
 from pydantic import HttpUrl
 from starlette import status
 
+from shared.http_client import HttpClient
 from src.app.dependency_stubs import (
     DatabaseHolderDepStub,
     HttpClientDepStub,
@@ -15,7 +16,6 @@ from src.app.images.utils import ImageFileSaver, UploadImageReader
 from src.core.database import DatabaseHolder
 from src.core.types import Language
 
-from ..temp_utils import HttpClient
 from .dtos import TranslationImageRequestDTO
 from .exceptions import (
     NoImageError,

@@ -8,8 +8,11 @@ version = "1.0.0"
 description = "telexkcdbot API microservice"
 authors = ["coryphoenixxx <coryphoenixxx@gmail.com>"]
 license = "MIT"
-readme = "README.md"
 repository = "https://github.com/coryphoenixxx/telexkcdbot/api"
+packages = [
+    { include = "shared", from = "../shared" }
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -18,7 +21,7 @@ python-multipart = "^0.0.6"
 orjson = "^3.9.10"
 sqlalchemy = "^2.0.23"
 asyncpg = "^0.29.0"
-uvicorn = { extras = ["standart"], version = "^0.26" }
+uvicorn = "^0.27.0"
 pydantic-settings = "^2.1.0"
 aiofiles = "^23.2.1"
 alembic = "^1.13.0"

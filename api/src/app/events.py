@@ -3,8 +3,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from shared.http_client import HttpClient
 from src.app.dependency_stubs import DbEngineDepStub, HttpClientDepStub
-from src.app.temp_utils import HttpClient
 from src.core.database import check_db_connection
 
 

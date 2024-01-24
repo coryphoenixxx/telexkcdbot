@@ -15,7 +15,7 @@ class BaseAppError(Exception):
 
 
 @dataclass
-class EmptyCreatedSlugError(BaseAppError):
+class CreatedEmptySlugError(BaseAppError):
     word: str
     message: str = "Can't slugify this word."
 

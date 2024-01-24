@@ -8,6 +8,7 @@ from aiofiles.tempfile import NamedTemporaryFile
 from starlette.datastructures import UploadFile
 from yarl import URL
 
+from shared.http_client import HttpClient
 from src.app.images.dtos import ImageObj
 from src.app.images.exceptions import (
     RequestFileIsEmptyError,
@@ -15,12 +16,7 @@ from src.app.images.exceptions import (
     UploadExceedLimitError,
 )
 from src.app.images.types import ImageFormat
-from src.app.temp_utils import HttpClient
 from src.core.types import Dimensions
-
-
-class UnexpectedStatusCodeError(Exception):
-    ...
 
 
 class UploadImageReader:
