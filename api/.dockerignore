@@ -1,7 +1,0 @@
-.venv
-.tmp
-static
-.idea
-.env.example
-.dockerignore
-Dockerfile

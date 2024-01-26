@@ -10,7 +10,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -140,9 +139,9 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-.idea/
-/api/static
-/api/.tmp/
-/docker-compose.prod.yml
-/pgdata
-/postgresql.conf
+.idea
+docker-compose.prod.yml
+pgdata
+postgresql.conf
+static
+.tmp
