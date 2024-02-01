@@ -1,4 +1,5 @@
 import asyncio
+from typing import Final
 
 from bs4 import BeautifulSoup
 from scraper.dtos import ExplainXkcdDTO
@@ -7,7 +8,7 @@ from yarl import URL
 
 
 class ExplainXkcdScraper:
-    _BASE_URL = URL("https://explainxkcd.com/")
+    _BASE_URL: Final = URL("https://explainxkcd.com/")
 
     def __init__(
         self,

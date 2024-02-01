@@ -5,6 +5,7 @@ from fastapi.responses import ORJSONResponse
 from shared.http_client import HttpClient
 
 from api.application.dependency_stubs import (
+    BrokerDepStub,
     DatabaseHolderDepStub,
     DbEngineDepStub,
     HttpClientDepStub,
@@ -12,7 +13,7 @@ from api.application.dependency_stubs import (
     UploadImageReaderDepStub,
 )
 from api.application.events import lifespan
-from api.application.images.utils import ImageFileSaver, UploadImageReader
+from api.application.images.utils import ImageSaveHelper, UploadImageHandler
 from api.application.middlewares import ExceptionHandlerMiddleware
 from api.application.router import register_routers
 from api.core.database import (
@@ -35,12 +36,13 @@ def create_app() -> FastAPI:
         default_response_class=ORJSONResponse,
     )
 
-    register_routers(app)
+    root_router = register_routers(app)
 
     app.add_middleware(ExceptionHandlerMiddleware)
 
     engine = create_db_engine(settings.db)
     db_session_factory = create_db_session_factory(engine)
+    http_client = HttpClient(throttler=asyncio.Semaphore(5))
 
     app.dependency_overrides.update(
         {
@@ -48,14 +50,16 @@ def create_app() -> FastAPI:
             DatabaseHolderDepStub: lambda: DatabaseHolder(
                 session_factory=db_session_factory,
             ),
-            UploadImageReaderDepStub: lambda: UploadImageReader(
+            UploadImageReaderDepStub: lambda: UploadImageHandler(
                 tmp_dir=settings.app.tmp_dir,
                 upload_max_size=eval(settings.app.upload_max_size),
+                http_client=http_client,
             ),
-            ImageFileSaverDepStub: lambda: ImageFileSaver(
+            ImageFileSaverDepStub: lambda: ImageSaveHelper(
                 static_dir=settings.app.static_dir,
             ),
-            HttpClientDepStub: lambda: HttpClient(throttler=asyncio.Semaphore(5)),
+            HttpClientDepStub: lambda: http_client,
+            BrokerDepStub: lambda: root_router.broker,
         },
     )
 

@@ -22,7 +22,7 @@ def timeit(func: Callable):
         start_ts = time.monotonic()
         yield
         duration = time.monotonic() - start_ts
-        print(f"Function {func.__name__} took {duration} seconds")
+        print(f"Function {func.__name__} took {duration} seconds")  # noqa
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):

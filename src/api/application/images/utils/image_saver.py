@@ -1,50 +1,58 @@
 import logging
 from pathlib import Path
+from typing import Final
 from uuid import uuid4
 
 import aiofiles.os as aos
 
-from api.application.images.dtos import TranslationImageRequestDTO
+from api.application.images.dtos import ImageObj, TranslationImageMeta
 from api.core.utils import slugify
 
 
-class ImageFileSaver:
-    _IMAGES_URL_PREFIX = "images/comics/"
+class ImageSaveHelper:
+    _IMAGES_URL_PREFIX: Final = "images/comics/"
 
     def __init__(self, static_dir: Path):
-        self._static_dir = static_dir.absolute()
+        self._static_dir = static_dir.absolute().resolve()
 
-    async def save(self, dto: TranslationImageRequestDTO) -> tuple[Path, Path]:
-        rel_saved_path = self._IMAGES_URL_PREFIX / self._build_rel_path(dto)
+    async def save(self, meta: TranslationImageMeta, image: ImageObj) -> tuple[Path, Path]:
+        rel_path = self._build_rel_path(meta, image)
+        abs_path = self._static_dir / rel_path
 
-        abs_saved_path = self._static_dir / rel_saved_path
+        await aos.makedirs(abs_path.parent, exist_ok=True)
 
-        await aos.makedirs(abs_saved_path.parent, exist_ok=True)
         try:
-            await aos.replace(dto.image.path, abs_saved_path)
+            await aos.replace(image.path, abs_path)
         except FileNotFoundError as err:
-            logging.error(f"{err.strerror}: {dto.image.path}")
+            logging.error(f"{err.strerror}: {image.path}")
             raise err
 
-        return abs_saved_path, rel_saved_path
+        return abs_path, rel_path
 
-    @staticmethod
-    def _build_rel_path(dto: TranslationImageRequestDTO) -> Path:
-        slug = slugify(dto.title)
+    def cut_rel_path(self, path: Path | None):
+        if path:
+            return path.relative_to(self._static_dir)
+
+    def _build_rel_path(self, meta: TranslationImageMeta, image: ImageObj) -> Path:
+        slug = slugify(meta.title)
         uuid_parts = str(uuid4()).split("-")
         random_part = uuid_parts[0] + uuid_parts[1]
-        dimensions = f"{dto.image.dimensions.width}x{dto.image.dimensions.height}"
+        dimensions = f"{image.dimensions.width}x{image.dimensions.height}"
 
-        filename = f"{slug}_{random_part}_{dimensions}_{dto.version}.{dto.image.fmt}"
+        filename = f"{slug}_{random_part}_{dimensions}_original.{image.fmt}"
 
-        match dto:
-            case TranslationImageRequestDTO(number=None, title=t, is_draft=False) if t:
-                return Path(f"extras/{slug}/{dto.language}/{filename}")
-            case TranslationImageRequestDTO(number=None, title=t, is_draft=True) if t:
-                return Path(f"extras/{slug}/{dto.language}/drafts/{filename}")
-            case TranslationImageRequestDTO(number=n, is_draft=False) if n > 0:
-                return Path(f"{dto.number:04d}/{dto.language}/{filename}")
-            case TranslationImageRequestDTO(number=n, is_draft=True) if n > 0:
-                return Path(f"{dto.number:04d}/{dto.language}/drafts/{filename}")
-            case _:
-                logging.error(f"Invalid TranslationImageCreateDTO: {dto}")
+        path = None
+        match meta:
+            case TranslationImageMeta(number=None, title=t, is_draft=False) if t:
+                path = Path(f"extras/{slug}/{meta.language}/{filename}")
+            case TranslationImageMeta(number=None, title=t, is_draft=True) if t:
+                path = Path(f"extras/{slug}/{meta.language}/drafts/{filename}")
+            case TranslationImageMeta(number=n, is_draft=False) if n:
+                path = Path(f"{meta.number:04d}/{meta.language}/{filename}")
+            case TranslationImageMeta(number=n, is_draft=True) if n:
+                path = Path(f"{meta.number:04d}/{meta.language}/drafts/{filename}")
+
+        if not path:
+            logging.error(f"Invalid meta: {meta}")
+
+        return self._IMAGES_URL_PREFIX / path

@@ -1,3 +1,5 @@
+# noqa: N999
+
 import os
 
 wsgi_app = os.getenv("GUNICORN__WSGI_APP")

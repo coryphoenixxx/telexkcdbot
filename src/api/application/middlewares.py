@@ -14,13 +14,13 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         try:
             return await call_next(request)
-        except BaseAppError as app_error:
+        except BaseAppError as err:
             return ORJSONResponse(
-                status_code=app_error.status_code,
-                content=app_error.detail,
+                status_code=err.status_code,
+                content=err.detail,
             )
-        except Exception as e:
-            logger.error(e, exc_info=True)
+        except Exception as err:
+            logger.error(err, exc_info=True)
             return ORJSONResponse(
                 status_code=500,
                 content={

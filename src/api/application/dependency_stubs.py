@@ -20,3 +20,7 @@ class ImageFileSaverDepStub:
 
 class HttpClientDepStub:
     ...
+
+
+class BrokerDepStub:
+    ...

@@ -33,7 +33,7 @@ custom_json_dumps = partial(json.dumps, cls=CustomJsonEncoder)
 
 
 class HttpClient:
-    _CLIENTS_WITH_TS_CACHE: dict[str, tuple[ClientSession, float]] = {}
+    _CLIENTS_WITH_TS_CACHE: dict[str, tuple[ClientSession, float]] = {} # noqa
 
     def __init__(
         self,

@@ -7,7 +7,6 @@ from api.application.comics.schemas.response import (
 )
 from api.application.comics.types import ComicID
 from api.application.translations.dtos.response import TranslationResponseDTO
-from api.application.translations.schemas.response import TranslationResponseSchema
 
 
 @dataclass(slots=True)
@@ -32,25 +31,6 @@ class ComicResponseWithTranslationsDTO(ComicResponseDTO):
     translations: list[TranslationResponseDTO]
 
     def to_schema(self) -> ComicWithTranslationsResponseSchema:
-        translations = []
-        for t in self.translations:
-            images_dict = {}
-            for image in t.images:
-                images_dict = images_dict | image.as_dict()
-
-            translations.append(
-                TranslationResponseSchema(
-                    id=t.id,
-                    comic_id=t.comic_id,
-                    title=t.title,
-                    language=t.language,
-                    tooltip=t.tooltip,
-                    transcript=t.transcript,
-                    images=images_dict,
-                    is_draft=t.is_draft,
-                ),
-            )
-
         return ComicWithTranslationsResponseSchema(
             id=self.id,
             number=self.number,
@@ -60,5 +40,5 @@ class ComicResponseWithTranslationsDTO(ComicResponseDTO):
             link_on_click=self.link_on_click,
             is_interactive=self.is_interactive,
             tags=self.tags,
-            translations=translations,
+            translations=[t.to_schema() for t in self.translations],
         )

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import Depends
+from faststream.nats.fastapi import NatsRouter
 from starlette import status
 
 from api.application.dependency_stubs import DatabaseHolderDepStub
@@ -10,7 +11,7 @@ from .schemas.response import ComicResponseSchema, ComicWithTranslationsResponse
 from .service import ComicService
 from .types import ComicID, IssueNumber
 
-router = APIRouter(
+router = NatsRouter(
     tags=["Comics"],
 )
 

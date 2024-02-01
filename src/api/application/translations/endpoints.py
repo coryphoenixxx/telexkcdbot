@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import Depends
+from faststream.nats.fastapi import NatsRouter
 from starlette import status
 
 from api.application.dependency_stubs import DatabaseHolderDepStub
@@ -9,7 +10,7 @@ from .schemas.request import TranslationRequestSchema
 from .schemas.response import TranslationResponseSchema
 from .types import TranslationID
 
-router = APIRouter(tags=["Translations"])
+router = NatsRouter(tags=["Translations"])
 
 
 @router.post(

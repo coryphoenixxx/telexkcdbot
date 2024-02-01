@@ -2,7 +2,7 @@ from uvicorn.workers import UvicornWorker
 
 
 class CustomUvicornWorker(UvicornWorker):
-    CONFIG_KWARGS = {
+    CONFIG_KWARGS = {  # noqa
         "loop": "uvloop",
         "http": "httptools",
         "lifespan": "on",

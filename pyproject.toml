@@ -15,16 +15,15 @@ python = "^3.11"
 
 
 [tool.poetry.group.api.dependencies]
-fastapi = "^0.109"
-python-multipart = "^0.0.6"
-orjson = "^3.9.10"
+fastapi = "^0.109.0"
+uvicorn = { extras = ["standard"], version = "^0.27.0" }
 sqlalchemy = "^2.0.23"
 asyncpg = "^0.29.0"
-uvicorn = "^0.27.0"
+python-multipart = "^0.0.6"
+orjson = "^3.9.10"
 pydantic-settings = "^2.1.0"
 aiofiles = "^23.2.1"
 alembic = "^1.13.0"
-pillow = "^10.1.0"
 uvloop = "^0.19.0"
 filetype = "^1.2.0"
 imagesize = "^1.4.1"
@@ -34,6 +33,7 @@ aiohttp = "^3.9.1"
 aiodns = "^3.1.1"
 aiohttp-retry = "^2.8.3"
 gunicorn = "^21.2.0"
+faststream = { extras = ["nats"], version = "^0.4.0" }
 
 
 [tool.poetry.group.scraper.dependencies]
@@ -46,14 +46,16 @@ beautifulsoup4 = "^4.12.2"
 aiohttp-retry = "^2.8.3"
 
 
+[tool.poetry.group.image_processor.dependencies]
+pillow = "^10.1.0"
+pydantic = "^2.6.0"
+
+
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3"
 ruff = "^0.1.9"
 black = "^23.12.1"
-
-
-[tool.poetry.group.test.dependencies]
-pytest = "^7.4.0"
+pytest = "^8.0.0"
 
 
 [tool.pytest.ini_options]
@@ -64,9 +66,82 @@ pythonopath = [".venv/bin"]
 
 [tool.ruff]
 ignore-init-module-imports = true
-select = ["B", "E", "W", "F", "N", "COM", "I", "ASYNC", "PL", "RUF", "SIM", "C90", "ARG", "T20", "C4", "UP"]
-ignore = ["N805", "PLR0913", "PLR2004", "B904", "PLR0911", "PLR0912", "C901", "B008", "ARG001", "RUF013"]
-fixable = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "DTZ", "EM", "ERA", "EXE", "FBT", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "TRY", "UP", "YTT"]
+select = [
+    "B",
+    "E",
+    "W",
+    "F",
+    "N",
+    "COM",
+    "I",
+    "ASYNC",
+    "PL",
+    "RUF",
+    "SIM",
+    "C90",
+    "ARG",
+    "T20",
+    "C4",
+    "UP",
+]
+ignore = [
+    "N805",
+    "PLR0913",
+    "PLR2004",
+    "B904",
+    "PLR0911",
+    "PLR0912",
+    "C901",
+    "B008",
+    "ARG001",
+    "RUF013"
+]
+fixable = [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "I",
+    "N",
+    "Q",
+    "S",
+    "T",
+    "W",
+    "ANN",
+    "ARG",
+    "BLE",
+    "COM",
+    "DJ",
+    "DTZ",
+    "EM",
+    "ERA",
+    "EXE",
+    "FBT",
+    "ICN",
+    "INP",
+    "ISC",
+    "NPY",
+    "PD",
+    "PGH",
+    "PIE",
+    "PL",
+    "PT",
+    "PTH",
+    "PYI",
+    "RET",
+    "RSE",
+    "RUF",
+    "SIM",
+    "SLF",
+    "TCH",
+    "TID",
+    "TRY",
+    "UP",
+    "YTT"
+]
 unfixable = []
 
 show-fixes = true
