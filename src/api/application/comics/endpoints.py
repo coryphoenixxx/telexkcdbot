@@ -4,7 +4,6 @@ from starlette import status
 
 from api.application.dependency_stubs import DatabaseHolderDepStub
 from api.core.database import DatabaseHolder
-
 from .dtos.response import ComicResponseDTO, ComicResponseWithTranslationsDTO
 from .schemas.request import ComicRequestSchema, ComicWithEnTranslationRequestSchema
 from .schemas.response import ComicResponseSchema, ComicWithTranslationsResponseSchema
@@ -27,7 +26,7 @@ async def create_comic(
         db_holder=db_holder,
     ).create(comic_req_dto, en_translation_req_dto)
 
-    return comic_resp_dto.to_schema()
+    return ComicWithTranslationsResponseSchema.from_dto(comic_resp_dto)
 
 
 @router.put("/comics/{comic_id}", status_code=status.HTTP_200_OK)
@@ -43,7 +42,7 @@ async def update_comic(
         comic_req_dto=schema.to_dto(),
     )
 
-    return comic_resp_dto.to_schema()
+    return ComicResponseSchema.from_dto(dto=comic_resp_dto)
 
 
 @router.get("/comics/by_id/{comic_id}", status_code=status.HTTP_200_OK)
@@ -55,7 +54,7 @@ async def get_comic_by_id(
         db_holder=db_holder,
     ).get_by_id(comic_id)
 
-    return comic_resp_dto.to_schema()
+    return ComicWithTranslationsResponseSchema.from_dto(dto=comic_resp_dto)
 
 
 @router.get("/comics/{number}", status_code=status.HTTP_200_OK)
@@ -67,7 +66,7 @@ async def get_comic_by_number(
         db_holder=db_holder,
     ).get_by_number(number)
 
-    return comic_resp_dto.to_schema()
+    return ComicWithTranslationsResponseSchema.from_dto(dto=comic_resp_dto)
 
 
 @router.get("/comics/extras/{title}", status_code=status.HTTP_200_OK)
@@ -79,7 +78,7 @@ async def get_extra_comic_by_title(
         db_holder=db_holder,
     ).get_extra_by_title(title)
 
-    return comic_resp_dto.to_schema()
+    return ComicWithTranslationsResponseSchema.from_dto(dto=comic_resp_dto)
 
 
 @router.get("/comics", status_code=status.HTTP_200_OK)
@@ -90,7 +89,7 @@ async def get_comics(
         db_holder=db_holder,
     ).get_list()
 
-    return [dto.to_schema() for dto in comic_resp_dtos]
+    return [ComicWithTranslationsResponseSchema.from_dto(dto=dto) for dto in comic_resp_dtos]
 
 
 @router.delete("/comics/{comic_id}", status_code=status.HTTP_204_NO_CONTENT)

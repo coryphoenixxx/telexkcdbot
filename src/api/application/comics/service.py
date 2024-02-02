@@ -12,18 +12,18 @@ class ComicService:
 
     async def create(
         self,
-        comic_req_dto: ComicRequestDTO,
-        en_translation_req_dto: TranslationRequestDTO,
+        comic_base: ComicRequestDTO,
+        en_translation: TranslationRequestDTO,
     ) -> ComicResponseWithTranslationsDTO:
         async with self._db_holder:
             comic_resp_dto = await self._db_holder.comic_repo.create(
-                dto=comic_req_dto,
-                en_title=en_translation_req_dto.title,
+                dto=comic_base,
+                en_title=en_translation.title,
             )
 
-            en_translation_req_dto.comic_id = comic_resp_dto.id
+            en_translation.comic_id = comic_resp_dto.id
             translation_resp_dto = await self._db_holder.translation_repo.create(
-                dto=en_translation_req_dto,
+                dto=en_translation,
             )
 
             comic_resp_dto.translations.append(translation_resp_dto)
@@ -38,7 +38,10 @@ class ComicService:
         comic_req_dto: ComicRequestDTO,
     ) -> ComicResponseDTO:
         async with self._db_holder:
-            comic_resp_dto = await self._db_holder.comic_repo.update(comic_id, comic_req_dto)
+            comic_resp_dto: ComicResponseDTO = await self._db_holder.comic_repo.update(
+                comic_id=comic_id,
+                dto=comic_req_dto,
+            )
             await self._db_holder.commit()
 
             return comic_resp_dto

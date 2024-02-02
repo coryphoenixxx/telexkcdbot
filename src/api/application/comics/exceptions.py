@@ -54,7 +54,7 @@ class ExtraComicByTitleNotFoundError(BaseAppError):
     def detail(self) -> str | dict[str, Any]:
         return {
             "message": self.message,
-            "slug": self.title,
+            "title": self.title,
         }
 
 

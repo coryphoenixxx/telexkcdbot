@@ -4,7 +4,6 @@ from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.application.images.models import TranslationImageModel
-from api.application.translations.dtos.response import TranslationResponseDTO
 from api.core.database.base import Base
 from api.core.database.mixins import PkIdMixin, TimestampMixin
 from api.core.types import Language
@@ -51,15 +50,3 @@ class TranslationModel(PkIdMixin, Base, TimestampMixin):
             postgresql_where=(~is_draft),
         ),
     )
-
-    def to_dto(self) -> TranslationResponseDTO:
-        return TranslationResponseDTO(
-            id=self.id,
-            comic_id=self.comic_id,
-            language=self.language,
-            title=self.title,
-            tooltip=self.tooltip,
-            transcript=self.transcript,
-            images=[image.to_dto() for image in self.images],
-            is_draft=self.is_draft,
-        )

@@ -25,7 +25,7 @@ async def add_translation(
         db_holder=db_holder,
     ).create(schema.to_dto())
 
-    return translation_resp_dto.to_schema()
+    return TranslationResponseSchema.from_dto(dto=translation_resp_dto)
 
 
 @router.put(
@@ -37,11 +37,12 @@ async def update_translation(
     schema: TranslationRequestSchema,
     db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
 ) -> TranslationResponseSchema:
+    # need comic_id in schema?
     translation_resp_dto = await TranslationService(
         db_holder=db_holder,
     ).update(translation_id, schema.to_dto())
 
-    return translation_resp_dto.to_schema()
+    return TranslationResponseSchema.from_dto(dto=translation_resp_dto)
 
 
 @router.delete(

@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from typing import Sequence
 
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
@@ -7,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import noload
 
 from api.core.utils import slugify
-
 from .dtos.request import ComicRequestDTO
 from .dtos.response import ComicResponseDTO, ComicResponseWithTranslationsDTO
 from .exceptions import (
@@ -50,7 +50,7 @@ class ComicRepo:
         except IntegrityError as err:
             self._handle_integrity_error(err=err, dto=dto, en_title=en_title)
         else:
-            return comic.to_dto()
+            return ComicResponseWithTranslationsDTO.from_model(model=comic)
 
     async def update(
         self,
@@ -72,21 +72,21 @@ class ComicRepo:
         except IntegrityError as err:
             self._handle_integrity_error(err=err, dto=dto)
         else:
-            return comic.to_dto(with_translations=False)
+            return ComicResponseDTO.from_model(model=comic)
 
     async def get_by_id(self, comic_id: ComicID) -> ComicResponseWithTranslationsDTO:
-        comic = await self._get_by_id(comic_id)
-        return comic.to_dto()
+        comic: ComicModel = await self._get_by_id(comic_id)
+        return ComicResponseWithTranslationsDTO.from_model(model=comic)
 
     async def get_by_number(self, number: IssueNumber) -> ComicResponseWithTranslationsDTO:
         stmt = select(ComicModel).where(ComicModel.number == number)
 
-        comic = (await self._session.scalars(stmt)).unique().one_or_none()
+        comic: ComicModel | None = (await self._session.scalars(stmt)).unique().one_or_none()
 
         if not comic:
             raise ComicByIssueNumberNotFoundError(number=number)
 
-        return comic.to_dto()
+        return ComicResponseWithTranslationsDTO.from_model(model=comic)
 
     async def get_extra_by_title(self, title: str) -> ComicResponseWithTranslationsDTO:
         stmt = (
@@ -95,19 +95,19 @@ class ComicRepo:
             .where(ComicModel.number.is_(None))
         )
 
-        comic = (await self._session.scalars(stmt)).unique().one_or_none()
+        comic: ComicModel | None = (await self._session.scalars(stmt)).unique().one_or_none()
 
         if not comic:
             raise ExtraComicByTitleNotFoundError(title=title)
 
-        return comic.to_dto()
+        return ComicResponseWithTranslationsDTO.from_model(model=comic)
 
     async def get_list(self) -> list[ComicResponseWithTranslationsDTO]:
-        stmt = select(ComicModel)
+        comics: Sequence[ComicModel] = (
+            (await self._session.scalars(select(ComicModel))).unique().all()
+        )
 
-        comics = (await self._session.scalars(stmt)).unique().all()
-
-        return [comic.to_dto() for comic in comics]
+        return [ComicResponseWithTranslationsDTO.from_model(model=comic) for comic in comics]
 
     async def delete(self, comic_id: ComicID):
         stmt = (

@@ -20,9 +20,9 @@ class TranslationImageRepo:
             .returning(TranslationImageModel.id)
         )
 
-        image_id = (await self._session.execute(stmt)).scalar_one()
+        image_id: int = (await self._session.execute(stmt)).scalar_one()
 
-        return image_id
+        return TranslationImageID(image_id)
 
     async def update(
         self,
@@ -40,6 +40,8 @@ class TranslationImageRepo:
             .returning(TranslationImageModel.id)
         )
 
-        image_id = (await self._session.execute(stmt)).scalar_one()
+        # handle case when image not exists
 
-        return image_id
+        image_id: int = (await self._session.execute(stmt)).scalar_one()
+
+        return TranslationImageID(image_id)

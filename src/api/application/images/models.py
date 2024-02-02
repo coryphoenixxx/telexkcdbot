@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from api.application.images.dtos import TranslationImageResponseDTO
 from api.core.database.base import Base
 from api.core.database.mixins import PkIdMixin, TimestampMixin
 
@@ -32,11 +31,3 @@ class TranslationImageModel(Base, PkIdMixin, TimestampMixin):
 
     def __repr__(self):
         return str(self)
-
-    def to_dto(self) -> TranslationImageResponseDTO:
-        return TranslationImageResponseDTO(
-            id=self.id,
-            original_rel_path=self.original_rel_path,
-            converted_rel_path=self.converted_rel_path,
-            thumbnail_rel_path=self.thumbnail_rel_path,
-        )

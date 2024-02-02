@@ -1,10 +1,7 @@
 from dataclasses import dataclass
 
 from api.application.comics.dtos.request import ComicRequestDTO
-from api.application.comics.schemas.response import (
-    ComicResponseSchema,
-    ComicWithTranslationsResponseSchema,
-)
+from api.application.comics.models import ComicModel
 from api.application.comics.types import ComicID
 from api.application.translations.dtos.response import TranslationResponseDTO
 
@@ -13,16 +10,17 @@ from api.application.translations.dtos.response import TranslationResponseDTO
 class ComicResponseDTO(ComicRequestDTO):
     id: ComicID
 
-    def to_schema(self) -> ComicResponseSchema:
-        return ComicResponseSchema(
-            id=self.id,
-            number=self.number,
-            publication_date=self.publication_date,
-            xkcd_url=self.xkcd_url,
-            explain_url=self.explain_url,
-            link_on_click=self.link_on_click,
-            is_interactive=self.is_interactive,
-            tags=self.tags,
+    @classmethod
+    def from_model(cls, model: ComicModel) -> "ComicResponseDTO":
+        return ComicResponseDTO(
+            id=model.id,
+            number=model.number,
+            publication_date=model.publication_date,
+            xkcd_url=model.xkcd_url,
+            explain_url=model.explain_url,
+            link_on_click=model.link_on_click,
+            is_interactive=model.is_interactive,
+            tags=sorted([tag.name for tag in model.tags]),
         )
 
 
@@ -30,15 +28,16 @@ class ComicResponseDTO(ComicRequestDTO):
 class ComicResponseWithTranslationsDTO(ComicResponseDTO):
     translations: list[TranslationResponseDTO]
 
-    def to_schema(self) -> ComicWithTranslationsResponseSchema:
-        return ComicWithTranslationsResponseSchema(
-            id=self.id,
-            number=self.number,
-            publication_date=self.publication_date,
-            xkcd_url=self.xkcd_url,
-            explain_url=self.explain_url,
-            link_on_click=self.link_on_click,
-            is_interactive=self.is_interactive,
-            tags=self.tags,
-            translations=[t.to_schema() for t in self.translations],
+    @classmethod
+    def from_model(cls, model: ComicModel) -> "ComicResponseWithTranslationsDTO":
+        return ComicResponseWithTranslationsDTO(
+            id=model.id,
+            number=model.number,
+            publication_date=model.publication_date,
+            xkcd_url=model.xkcd_url,
+            explain_url=model.explain_url,
+            link_on_click=model.link_on_click,
+            is_interactive=model.is_interactive,
+            tags=sorted([tag.name for tag in model.tags]),
+            translations=[TranslationResponseDTO.from_model(t) for t in model.translations],
         )

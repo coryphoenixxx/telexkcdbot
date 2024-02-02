@@ -53,8 +53,8 @@ pydantic = "^2.6.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3"
-ruff = "^0.1.9"
-black = "^23.12.1"
+ruff = "^0.2"
+black = "^24"
 pytest = "^8.0.0"
 
 

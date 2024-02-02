@@ -7,8 +7,6 @@ from api.application.translations.models import TranslationModel
 from api.core.database.base import Base
 from api.core.database.mixins import PkIdMixin, TimestampMixin
 
-from .dtos.response import ComicResponseDTO, ComicResponseWithTranslationsDTO
-
 
 class ComicTagAssociation(Base):
     __tablename__ = "comic_tag_association"
@@ -80,8 +78,7 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
 
     def __str__(self):
         return (
-            f"{self.__class__.__name__}"
-            f"(id={self.id}, number={self.number}, slug={self.slug})"
+            f"{self.__class__.__name__}" f"(id={self.id}, number={self.number}, slug={self.slug})"
         )
 
     def __repr__(self):
@@ -101,31 +98,3 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
             postgresql_where=(number.is_(None)),
         ),
     )
-
-    def to_dto(
-        self,
-        with_translations: bool = True,
-    ) -> ComicResponseDTO | ComicResponseWithTranslationsDTO:
-        if with_translations:
-            return ComicResponseWithTranslationsDTO(
-                id=self.id,
-                number=self.number,
-                publication_date=self.publication_date,
-                xkcd_url=self.xkcd_url,
-                explain_url=self.explain_url,
-                link_on_click=self.link_on_click,
-                is_interactive=self.is_interactive,
-                tags=sorted([tag.name for tag in self.tags]),
-                translations=[t.to_dto() for t in self.translations],
-            )
-        else:
-            return ComicResponseDTO(
-                id=self.id,
-                number=self.number,
-                publication_date=self.publication_date,
-                xkcd_url=self.xkcd_url,
-                explain_url=self.explain_url,
-                link_on_click=self.link_on_click,
-                is_interactive=self.is_interactive,
-                tags=[tag.name for tag in self.tags],
-            )

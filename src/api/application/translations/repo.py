@@ -55,7 +55,7 @@ class TranslationRepo:
                 dto=dto,
             )
         else:
-            return translation.to_dto()
+            return TranslationResponseDTO.from_model(model=translation)
 
     async def update(
         self,
@@ -90,7 +90,7 @@ class TranslationRepo:
                 dto=dto,
             )
         else:
-            return translation.to_dto()
+            return TranslationResponseDTO.from_model(model=translation)
 
     async def delete(self, translation_id: TranslationID):
         stmt = (
@@ -100,7 +100,9 @@ class TranslationRepo:
             .returning(TranslationModel)
         )
 
-        translation = (await self._session.scalars(stmt)).one_or_none()
+        translation: TranslationModel = (await self._session.scalars(stmt)).one_or_none()
+
+        # couldn't delete eng translation
 
         if not translation:
             raise TranslationNotFoundError(translation_id=translation_id)
@@ -110,7 +112,7 @@ class TranslationRepo:
             TranslationModel.id == translation_id,
         )
 
-        translation = (await self._session.scalars(stmt)).unique().one_or_none()
+        translation: TranslationModel = (await self._session.scalars(stmt)).unique().one_or_none()
         if not translation:
             raise TranslationNotFoundError(translation_id=translation_id)
 
@@ -156,7 +158,7 @@ class TranslationRepo:
             .where(ComicModel.id == dto.comic_id)
             .options(noload(ComicModel.tags), noload(ComicModel.translations))
         )
-        comic = (await self._session.scalars(stmt)).unique().one_or_none()
+        comic: ComicModel = (await self._session.scalars(stmt)).unique().one_or_none()
 
         if not comic:
             raise ComicNotFoundError(comic_id=dto.comic_id)
