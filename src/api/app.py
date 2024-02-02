@@ -4,7 +4,14 @@ from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from shared.http_client import HttpClient
 
-from api.application.dependency_stubs import (
+from api.application.image_saver import ImageSaveHelper
+from api.core.settings import load_settings
+from api.infrastructure.database import (
+    DatabaseHolder,
+    create_db_engine,
+    create_db_session_factory,
+)
+from api.presentation.dependency_stubs import (
     BrokerDepStub,
     DatabaseHolderDepStub,
     DbEngineDepStub,
@@ -12,16 +19,10 @@ from api.application.dependency_stubs import (
     ImageFileSaverDepStub,
     UploadImageReaderDepStub,
 )
-from api.application.events import lifespan
-from api.application.images.utils import ImageSaveHelper, UploadImageHandler
-from api.application.middlewares import ExceptionHandlerMiddleware
-from api.application.router import register_routers
-from api.core.database import (
-    DatabaseHolder,
-    create_db_engine,
-    create_db_session_factory,
-)
-from api.core.settings import load_settings
+from api.presentation.events import lifespan
+from api.presentation.router import register_routers
+from api.presentation.upload_reader import UploadImageHandler
+from api.presentation.web.middlewares import ExceptionHandlerMiddleware
 
 
 def create_app() -> FastAPI:
