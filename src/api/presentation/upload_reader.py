@@ -6,9 +6,7 @@ import aiofiles.os as aos
 import filetype
 import imagesize
 from aiofiles.tempfile import NamedTemporaryFile
-from aiohttp import StreamReader
-from shared.http_client import HttpClient
-from shared.types import ImageFormat
+from aiohttp import StreamReader, ClientResponse
 from starlette.datastructures import UploadFile
 from yarl import URL
 
@@ -16,9 +14,12 @@ from api.application.exceptions.image import (
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
     UploadExceedLimitError,
+    DownloadImageError,
 )
 from api.core.types import Dimensions
 from api.presentation.types import ImageObj
+from shared.http_client import HttpClient
+from shared.types import ImageFormat
 
 
 class UploadImageHandler:
@@ -36,9 +37,14 @@ class UploadImageHandler:
 
         return await self._read_to_temp(upload)
 
-    async def download(self, url: URL) -> ImageObj:
-        async with self._http_client.safe_get(url=url) as response:
-            return await self._read_to_temp(response.content)
+    async def download(self, url: URL | str) -> ImageObj:
+        if isinstance(url, str):
+            url = URL(url)
+        async with self._http_client.safe_get(url=url) as response:  # type: ClientResponse
+            if response.status == 200:
+                return await self._read_to_temp(response.content)
+            else:
+                raise DownloadImageError
 
     async def _read_to_temp(self, obj: StreamReader | UploadFile) -> ImageObj:
         await aos.makedirs(self._tmp_dir, exist_ok=True)

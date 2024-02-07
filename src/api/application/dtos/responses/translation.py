@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from api.application.dtos.requests.translation import TranslationRequestDTO
-from api.application.dtos.responses.image import TranslationImageResponseDTO
+from api.application.dtos.responses.image import TranslationImageFullResponseDTO
 from api.application.types import ComicID, TranslationID
 from api.infrastructure.database.models import TranslationModel
 
@@ -10,7 +10,7 @@ from api.infrastructure.database.models import TranslationModel
 class TranslationResponseDTO(TranslationRequestDTO):
     id: TranslationID
     comic_id: ComicID
-    images: list[TranslationImageResponseDTO]
+    images: list[TranslationImageFullResponseDTO]
 
     @classmethod
     def from_model(cls, model: TranslationModel) -> "TranslationResponseDTO":
@@ -21,6 +21,6 @@ class TranslationResponseDTO(TranslationRequestDTO):
             title=model.title,
             tooltip=model.tooltip,
             transcript=model.transcript,
-            images=[TranslationImageResponseDTO.from_model(img) for img in model.images],
+            images=[TranslationImageFullResponseDTO.from_model(img) for img in model.images],
             is_draft=model.is_draft,
         )

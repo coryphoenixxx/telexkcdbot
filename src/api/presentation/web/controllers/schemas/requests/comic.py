@@ -1,22 +1,24 @@
 import datetime as dt
 
-from pydantic import BaseModel, Field, HttpUrl, PositiveInt, field_validator
-from shared.utils import cast_or_none
+from pydantic import PositiveInt, HttpUrl, field_validator, BaseModel
 
 from api.application.dtos.requests.comic import ComicRequestDTO
 from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.types import TranslationImageID
-from api.core.types import Language
+from shared.types import (
+    LanguageCode,
+)
+from shared.utils import cast_or_none
 
 
 class ComicRequestSchema(BaseModel):
-    number: PositiveInt | None = Field(examples=["1"])
+    number: PositiveInt | None
     publication_date: dt.date
-    xkcd_url: HttpUrl | None = None
-    explain_url: HttpUrl | None = None
-    link_on_click: HttpUrl | None = None
-    is_interactive: bool = False
-    tags: list[str] = Field(examples=[("Tag1", "Tag2")])
+    xkcd_url: HttpUrl | None
+    explain_url: HttpUrl
+    link_on_click: HttpUrl | None
+    is_interactive: bool
+    tags: list[str]
 
     def to_dto(self) -> ComicRequestDTO:
         return ComicRequestDTO(
@@ -31,10 +33,10 @@ class ComicRequestSchema(BaseModel):
 
 
 class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
-    title: str
-    tooltip: str | None
-    transcript: str | None
-    images: list[TranslationImageID] = Field(examples=[(1, 2)])
+    en_title: str
+    en_tooltip: str
+    en_transcript: str
+    images: list[int]
 
     @field_validator("tags")
     @classmethod
@@ -58,11 +60,11 @@ class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
             ),
             TranslationRequestDTO(
                 comic_id=None,
-                title=self.title,
-                language=Language.EN,
-                tooltip=self.tooltip,
-                transcript=self.transcript,
-                images=self.images,
+                title=self.en_title,
+                language=LanguageCode.EN,
+                tooltip=self.en_tooltip,
+                transcript=self.en_transcript,
+                images=[TranslationImageID(image_id) for image_id in self.images],
                 is_draft=False,
             ),
         )

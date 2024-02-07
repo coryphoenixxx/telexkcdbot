@@ -1,26 +1,26 @@
-from pydantic import BaseModel, Field
+from pydantic import Field, BaseModel
 
 from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.types import ComicID, TranslationImageID
-from api.core.types import Language
+from shared.types import LanguageCode
 
 
 class TranslationRequestSchema(BaseModel):
-    comic_id: ComicID
+    comic_id: int
     title: str = Field(min_length=1)
-    language: Language
+    language: LanguageCode
     tooltip: str | None
     transcript: str | None
-    images: list[TranslationImageID]
+    images: list[int]
     is_draft: bool
 
     def to_dto(self) -> TranslationRequestDTO:
         return TranslationRequestDTO(
-            comic_id=self.comic_id,
+            comic_id=ComicID(self.comic_id),
             title=self.title,
             language=self.language,
             tooltip=self.tooltip,
             transcript=self.transcript,
-            images=self.images,
+            images=[TranslationImageID(img) for img in self.images],
             is_draft=self.is_draft,
         )

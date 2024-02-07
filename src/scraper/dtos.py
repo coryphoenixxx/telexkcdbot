@@ -1,41 +1,52 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from yarl import URL
 
 
 @dataclass(slots=True)
-class Images:
-    default: URL | None = None
-    x2: URL | None = None
-    large: URL | None = None
-
-
-@dataclass(slots=True)
-class XkcdOriginDTO:
+class XKCDOriginData:
     number: int
     publication_date: str
-    xkcd_url: URL | str
+    xkcd_url: URL
     title: str
-    images: Images = field(default_factory=lambda: Images())
-    is_interactive: bool = False
-    link_on_click: URL | None = None
-    tooltip: str | None = None
+    tooltip: str
+    link_on_click: URL | None
+    is_interactive: bool
+    image_url: URL | None
 
 
 @dataclass(slots=True)
-class XkcdPostApiDTO(XkcdOriginDTO):
-    transcript: str | None = None
-    images: list[int] = field(default_factory=list)
-    tags: list[str] = field(default_factory=list)
-
-
-@dataclass(slots=True)
-class ExplainXkcdDTO:
+class XKCDExplainData:
+    explain_url: URL
     tags: list[str]
-    transcript: str | None = None
+    transcript: str
 
 
 @dataclass(slots=True)
-class AggregatedComicDataDTO:
-    origin: XkcdOriginDTO
-    explain: ExplainXkcdDTO
+class XKCDFullScrapedData:
+    number: int
+    publication_date: str
+    xkcd_url: URL
+    title: str
+    tooltip: str
+    link_on_click: URL | None
+    is_interactive: bool
+    image_url: URL | None
+    explain_url: URL
+    tags: list[str]
+    transcript: str
+
+
+@dataclass(slots=True)
+class XKCDPOSTData:
+    number: int
+    publication_date: str
+    xkcd_url: URL
+    en_title: str
+    en_tooltip: str
+    link_on_click: URL | None
+    is_interactive: bool
+    explain_url: URL
+    tags: list[str]
+    en_transcript: str
+    images: list[int]

@@ -1,8 +1,5 @@
-import asyncio
-
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
-from shared.http_client import HttpClient
 
 from api.application.image_saver import ImageSaveHelper
 from api.core.settings import load_settings
@@ -23,6 +20,7 @@ from api.presentation.events import lifespan
 from api.presentation.router import register_routers
 from api.presentation.upload_reader import UploadImageHandler
 from api.presentation.web.middlewares import ExceptionHandlerMiddleware
+from shared.http_client import HttpClient
 
 
 def create_app() -> FastAPI:
@@ -43,7 +41,7 @@ def create_app() -> FastAPI:
 
     engine = create_db_engine(settings.db)
     db_session_factory = create_db_session_factory(engine)
-    http_client = HttpClient(throttler=asyncio.Semaphore(5))
+    http_client = HttpClient(max_conns=10)
 
     app.dependency_overrides.update(
         {

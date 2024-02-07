@@ -1,18 +1,4 @@
 from enum import StrEnum
-from pathlib import Path
-
-from pydantic import BaseModel
-
-
-class ImageProcessInMessage(BaseModel):
-    image_id: int
-    original_abs_path: Path
-
-
-class ImageProcessOutMessage(BaseModel):
-    image_id: int
-    converted_abs_path: Path | None
-    thumbnail_abs_path: Path
 
 
 class ImageFormat(StrEnum):
@@ -20,3 +6,11 @@ class ImageFormat(StrEnum):
     JPG = "jpg"
     WEBP = "webp"
     GIF = "gif"
+
+
+class LanguageCode(StrEnum):
+    EN = "EN"
+    RU = "RU"
+    CN = "CN"
+    ES = "ES"
+    DE = "DE"

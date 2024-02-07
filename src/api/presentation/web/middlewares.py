@@ -23,7 +23,5 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
             logger.error(err, exc_info=True)
             return ORJSONResponse(
                 status_code=500,
-                content={
-                    "message": "An unexpected error occurred.",
-                },
+                content={"message": "An unexpected error occurred."},
             )

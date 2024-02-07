@@ -1,14 +1,10 @@
 import asyncio
-import json
 import time
 from contextlib import asynccontextmanager
-from dataclasses import asdict, is_dataclass
-from functools import partial
 from typing import Any
 
 from aiohttp import (
     AsyncResolver,
-    ClientConnectorError,
     ClientOSError,
     ClientSession,
     ClientTimeout,
@@ -18,28 +14,17 @@ from aiohttp import (
 from aiohttp_retry import ExponentialRetry, RetryClient
 from yarl import URL
 
-
-class CustomJsonEncoder(json.JSONEncoder):
-    def default(self, value):
-        if is_dataclass(value):
-            return asdict(value)
-        elif isinstance(value, URL):
-            return str(value)
-        else:
-            return super().default(value)
-
-
-custom_json_dumps = partial(json.dumps, cls=CustomJsonEncoder)
+from shared.utils import custom_json_dumps
 
 
 class HttpClient:
-    _CLIENTS_WITH_TS_CACHE: dict[str, tuple[ClientSession, float]] = {} # noqa
+    _CLIENTS_WITH_TS_CACHE: dict[str, tuple[ClientSession, float]] = {}  # noqa
 
     def __init__(
         self,
-        throttler: asyncio.Semaphore | None = asyncio.Semaphore(20),
+        max_conns: int = 20,
     ):
-        self._throttler = throttler
+        self._throttler = asyncio.Semaphore(max_conns)
         self._close_sessions_task = None
 
     async def __aenter__(self):
@@ -48,19 +33,21 @@ class HttpClient:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close_all_sessions()
 
-    def _create_retry_client(self, session: ClientSession):
+    @staticmethod
+    def _create_retry_client(session: ClientSession, statuses: tuple[int]):
         return RetryClient(
-            raise_for_status=True,
+            raise_for_status=False,
             retry_options=ExponentialRetry(
                 attempts=5,
                 start_timeout=3,
                 factor=1.5,
                 exceptions={
                     TimeoutError,
-                    ClientConnectorError,
                     ServerDisconnectedError,
                     ClientOSError,
                 },
+                retry_all_server_errors=False,
+                statuses=set(statuses),
             ),
             client_session=session,
         )
@@ -68,9 +55,10 @@ class HttpClient:
     @asynccontextmanager
     async def safe_get(
         self,
-        url: URL,
+        url: URL | str,
+        statuses: tuple[int] = (429, 500, 503),
     ):
-        client = self.get_or_create_client(url)
+        client = self.get_or_create_client(url, statuses)
 
         async with self._throttler, client.get(url) as response:
             yield response
@@ -82,8 +70,9 @@ class HttpClient:
         params: dict[str, str] | None = None,
         data: Any = None,
         json: Any = None,
+        statuses: tuple[int] = (429, 503),
     ):
-        client = self.get_or_create_client(url)
+        client = self.get_or_create_client(url, statuses)
 
         async with client.post(
             url=url,
@@ -93,14 +82,16 @@ class HttpClient:
         ) as response:
             yield response
 
-    def get_or_create_client(self, url: URL) -> RetryClient:
+    def get_or_create_client(self, url: URL, statuses: tuple[int]) -> RetryClient:
         host = url.host
         client_with_timestamp = self._CLIENTS_WITH_TS_CACHE.get(host)
 
         if client_with_timestamp:
             client, _ = client_with_timestamp
         else:
-            client = self._create_retry_client(session=self._create_session(host))
+            client = self._create_retry_client(
+                session=self._create_session(host), statuses=statuses
+            )
 
         self._CLIENTS_WITH_TS_CACHE[host] = client, time.time()
 

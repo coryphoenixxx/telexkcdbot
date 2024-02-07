@@ -56,7 +56,7 @@ class RequestFileIsEmptyError(BaseAppError):
 
 
 @dataclass
-class OneTypeImageError(BaseAppError):
+class ImageOneTypeError(BaseAppError):
     message: str = "Either a image url or a image file, not both."
 
     @property
@@ -69,8 +69,21 @@ class OneTypeImageError(BaseAppError):
 
 
 @dataclass
-class NoImageError(BaseAppError):
+class UploadedImageError(BaseAppError):
     message: str = "Either a image url or a image file must be."
+
+    @property
+    def status_code(self) -> int:
+        return status.HTTP_400_BAD_REQUEST
+
+    @property
+    def detail(self) -> str | dict[str, Any]:
+        return {"message": self.message}
+
+
+@dataclass
+class DownloadImageError(BaseAppError):
+    message: str = "Couldn't download the image from this URL."
 
     @property
     def status_code(self) -> int:

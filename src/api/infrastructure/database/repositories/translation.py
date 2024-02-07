@@ -16,7 +16,7 @@ from api.application.exceptions.translation import (
     TranslationUniqueError,
 )
 from api.application.types import TranslationID, TranslationImageID
-from api.core.types import Language
+from shared.types import LanguageCode
 from api.core.utils import slugify
 from api.infrastructure.database.models import ComicModel, TranslationImageModel, TranslationModel
 
@@ -66,7 +66,7 @@ class TranslationRepo:
 
             translation: TranslationModel = await self._get_by_id(translation_id)
 
-            if dto.language == Language.EN and (
+            if dto.language == LanguageCode.EN and (
                 translation.title != dto.title or not dto.is_draft
             ):
                 await self._update_parent_comic_slug(dto)

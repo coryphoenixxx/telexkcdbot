@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from api.application.dtos.responses.image import TranslationImageResponseDTO
 from shared.utils import cast_or_none
 from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
@@ -13,16 +14,22 @@ class TranslationImageRepo:
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def create(self, original_rel_path: Path) -> TranslationImageID:
+    async def create(self, original_rel_path: Path) -> TranslationImageResponseDTO:
         stmt = (
             insert(TranslationImageModel)
             .values(original_rel_path=str(original_rel_path))
-            .returning(TranslationImageModel.id)
+            .returning(
+                TranslationImageModel.id,
+                TranslationImageModel.original_rel_path,
+            )
         )
 
-        image_id: int = (await self._session.execute(stmt)).scalar_one()
+        image_id, original_rel_path = (await self._session.execute(stmt)).one()
 
-        return TranslationImageID(image_id)
+        return TranslationImageResponseDTO(
+            id=image_id,
+            original_rel_path=original_rel_path,
+        )
 
     async def update(
         self,

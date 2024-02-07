@@ -1,16 +1,14 @@
 from typing import Annotated
 
 from fastapi import Depends, File, Query, UploadFile
-from faststream.nats import JStream, NatsBroker
+from faststream.nats import NatsBroker
 from faststream.nats.fastapi import NatsRouter
 from pydantic import HttpUrl
-from shared.types import ImageProcessOutMessage
 from starlette import status
-from yarl import URL
 
 from api.application.exceptions.image import (
-    NoImageError,
-    OneTypeImageError,
+    UploadedImageError,
+    ImageOneTypeError,
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
     UploadExceedLimitError,
@@ -18,7 +16,6 @@ from api.application.exceptions.image import (
 from api.application.image_saver import ImageSaveHelper
 from api.application.services import TranslationImageService
 from api.application.types import TranslationImageID
-from api.core.types import Language
 from api.infrastructure.database import DatabaseHolder
 from api.presentation.dependency_stubs import (
     BrokerDepStub,
@@ -28,6 +25,9 @@ from api.presentation.dependency_stubs import (
 )
 from api.presentation.types import TranslationImageMeta
 from api.presentation.upload_reader import UploadImageHandler
+from api.presentation.web.controllers.schemas.responses.image import TranslationImageResponseSchema
+from shared.messages import ImageProcessOutMessage
+from shared.types import LanguageCode
 
 router = NatsRouter(
     tags=["Images"],
@@ -52,7 +52,7 @@ router = NatsRouter(
 async def upload_image(
     title: Annotated[str, Query(max_length=50)],
     number: Annotated[int | None, Query(gt=0)] = None,
-    language: Language = Language.EN,
+    language: LanguageCode = LanguageCode.EN,
     is_draft: bool = False,
     image_file: Annotated[UploadFile, File(...)] = None,
     image_url: HttpUrl | None = None,
@@ -60,18 +60,18 @@ async def upload_image(
     upload_reader: UploadImageHandler = Depends(UploadImageReaderDepStub),
     image_saver: ImageSaveHelper = Depends(ImageFileSaverDepStub),
     broker: NatsBroker = Depends(BrokerDepStub),
-) -> TranslationImageID:
+) -> TranslationImageResponseSchema:
     match (image_url, image_file):
         case (None, None):
-            raise NoImageError
+            raise UploadedImageError
         case (None, file):
             image_obj = await upload_reader.read(file)
         case (url, None):
-            image_obj = await upload_reader.download(URL(str(url)))
+            image_obj = await upload_reader.download(str(url))
         case _:
-            raise OneTypeImageError
+            raise ImageOneTypeError
 
-    image_id = await TranslationImageService(
+    image_resp_dto = await TranslationImageService(
         db_holder=db_holder,
         image_saver=image_saver,
         broker=broker,
@@ -85,14 +85,18 @@ async def upload_image(
         image=image_obj,
     )
 
-    return image_id
+    return TranslationImageResponseSchema(
+        id=image_resp_dto.id,
+        original=image_resp_dto.original_rel_path,
+    )
 
 
-stream = JStream(name="stream", declare=False)
-
-
-@router.subscriber("processed_images", queue="processed_images_queue", stream=stream)
-async def base_handler(
+@router.subscriber(
+    "internal.api.images.process.out",
+    queue="process_images_out_queue",
+    stream="process_images_out_stream",
+)
+async def processed_images_handler(
     msg: ImageProcessOutMessage,
     db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
     image_saver: ImageSaveHelper = Depends(ImageFileSaverDepStub),

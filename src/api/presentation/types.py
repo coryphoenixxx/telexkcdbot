@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from shared.types import ImageFormat
+from shared.types import ImageFormat, LanguageCode
 
-from api.core.types import Dimensions, Language
+from api.core.types import Dimensions
 
 
 @dataclass(slots=True)
@@ -17,5 +17,5 @@ class ImageObj:
 class TranslationImageMeta:
     number: int | None
     title: str
-    language: Language
+    language: LanguageCode
     is_draft: bool

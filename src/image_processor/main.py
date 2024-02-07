@@ -1,22 +1,20 @@
 import logging
 
-from faststream import FastStream
-from faststream.nats import JStream, NatsBroker
 from PIL import Image
-from shared.types import ImageProcessInMessage, ImageProcessOutMessage
+from faststream import FastStream
+from faststream.nats import NatsBroker
 
 from image_processor.utils import convert_to_webp, create_thumbnail
+from shared.messages import ImageProcessInMessage, ImageProcessOutMessage
 
 broker = NatsBroker()
 app = FastStream(broker)
 
-stream = JStream(name="stream", declare=False)
-
 
 @broker.subscriber(
-    subject="image_processing",
-    queue="image_processing_queue",
-    stream=stream,
+    subject="internal.api.images.process.in",
+    queue="process_images_in_queue",
+    stream="process_images_in_stream",
 )
 async def process_image_handler(msg: ImageProcessInMessage):
     original_abs_path = msg.original_abs_path
@@ -24,7 +22,7 @@ async def process_image_handler(msg: ImageProcessInMessage):
     try:
         img_obj = Image.open(original_abs_path)
     except FileNotFoundError:
-        logging.error("image file not found!")
+        logging.error("Image file not found!")
     else:
         converted_abs_path = convert_to_webp(img_obj, original_abs_path)
         thumbnail_abs_path = create_thumbnail(img_obj, converted_abs_path or original_abs_path)
@@ -35,6 +33,6 @@ async def process_image_handler(msg: ImageProcessInMessage):
                 converted_abs_path=converted_abs_path,
                 thumbnail_abs_path=thumbnail_abs_path,
             ),
-            subject="processed_images",
-            stream="stream",
+            subject="internal.api.images.process.out",
+            stream="process_images_out_stream",
         )

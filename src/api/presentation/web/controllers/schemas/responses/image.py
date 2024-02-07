@@ -1,18 +1,21 @@
 from pydantic import BaseModel
 
-from api.application.dtos.responses.image import TranslationImageResponseDTO
+from api.application.dtos.responses.image import TranslationImageFullResponseDTO
 
 
 class TranslationImageResponseSchema(BaseModel):
     id: int
-    translation_id: int
     original: str
-    converted: str
-    thumbnail: str
+
+
+class TranslationImageFullResponseSchema(TranslationImageResponseSchema):
+    translation_id: int
+    converted: str | None
+    thumbnail: str | None
 
     @classmethod
-    def from_dto(cls, dto: TranslationImageResponseDTO):
-        return TranslationImageResponseSchema(
+    def from_dto(cls, dto: TranslationImageFullResponseDTO):
+        return TranslationImageFullResponseSchema(
             id=dto.id,
             translation_id=dto.translation_id,
             original=dto.original_rel_path,

@@ -5,7 +5,7 @@ from starlette import status
 
 from api.application.types import TranslationID
 from api.core.exceptions import BaseAppError
-from api.core.types import Language
+from shared.types import LanguageCode
 
 
 @dataclass
@@ -47,7 +47,7 @@ class TranslationImagesAlreadyAttachedError(BaseAppError):
 @dataclass
 class TranslationUniqueError(BaseAppError):
     comic_id: int
-    language: Language
+    language: LanguageCode
     message: str = "Comic already has a translation into this language."
 
     @property

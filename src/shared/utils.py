@@ -1,4 +1,5 @@
 import asyncio
+import datetime as dt
 import functools
 import json
 import time
@@ -8,6 +9,7 @@ from dataclasses import asdict, is_dataclass
 from functools import partial
 from typing import Any
 
+from pydantic import BaseModel
 from yarl import URL
 
 
@@ -22,7 +24,7 @@ def timeit(func: Callable):
         start_ts = time.monotonic()
         yield
         duration = time.monotonic() - start_ts
-        print(f"Function {func.__name__} took {duration} seconds")  # noqa
+        print(f"\n\nFunction {func.__name__} took {duration} seconds")  # noqa
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -52,8 +54,10 @@ class CustomJsonEncoder(json.JSONEncoder):
     def default(self, value):
         if is_dataclass(value):
             return asdict(value)
-        elif isinstance(value, URL):
+        elif isinstance(value, (URL, dt.date)):
             return str(value)
+        elif isinstance(value, BaseModel):
+            return value.model_dump()
         else:
             return super().default(value)
 
