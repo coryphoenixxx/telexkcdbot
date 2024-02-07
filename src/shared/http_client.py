@@ -20,18 +20,51 @@ from shared.utils import custom_json_dumps
 class HttpClient:
     _CLIENTS_WITH_TS_CACHE: dict[str, tuple[ClientSession, float]] = {}  # noqa
 
-    def __init__(
-        self,
-        max_conns: int = 20,
-    ):
+    def __init__(self, max_conns: int = 20, timeout: int = 20):
         self._throttler = asyncio.Semaphore(max_conns)
         self._close_sessions_task = None
+        self._timeout = timeout
 
     async def __aenter__(self):
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close_all_sessions()
+
+    @asynccontextmanager
+    async def get(self, url):
+        async with self._create_session() as session, session.get(url) as response:
+            yield response
+
+    @asynccontextmanager
+    async def safe_get(
+        self,
+        url: URL | str,
+        statuses: tuple[int] = (429, 500, 503),
+    ):
+        client = self._get_or_create_client(url, statuses)
+
+        async with self._throttler, client.get(url) as response:
+            yield response
+
+    @asynccontextmanager
+    async def safe_post(
+        self,
+        url: URL,
+        params: dict[str, str] | None = None,
+        data: Any = None,
+        json: Any = None,
+        statuses: tuple[int] = (429, 503),
+    ):
+        client = self._get_or_create_client(url, statuses)
+
+        async with client.post(
+            url=url,
+            params=params,
+            data=data,
+            json=json,
+        ) as response:
+            yield response
 
     @staticmethod
     def _create_retry_client(session: ClientSession, statuses: tuple[int]):
@@ -52,37 +85,7 @@ class HttpClient:
             client_session=session,
         )
 
-    @asynccontextmanager
-    async def safe_get(
-        self,
-        url: URL | str,
-        statuses: tuple[int] = (429, 500, 503),
-    ):
-        client = self.get_or_create_client(url, statuses)
-
-        async with self._throttler, client.get(url) as response:
-            yield response
-
-    @asynccontextmanager
-    async def safe_post(
-        self,
-        url: URL,
-        params: dict[str, str] | None = None,
-        data: Any = None,
-        json: Any = None,
-        statuses: tuple[int] = (429, 503),
-    ):
-        client = self.get_or_create_client(url, statuses)
-
-        async with client.post(
-            url=url,
-            params=params,
-            data=data,
-            json=json,
-        ) as response:
-            yield response
-
-    def get_or_create_client(self, url: URL, statuses: tuple[int]) -> RetryClient:
+    def _get_or_create_client(self, url: URL, statuses: tuple[int]) -> RetryClient:
         host = url.host
         client_with_timestamp = self._CLIENTS_WITH_TS_CACHE.get(host)
 
@@ -97,8 +100,7 @@ class HttpClient:
 
         return client
 
-    @staticmethod
-    def _create_session(host: str, timeout: int = 20):
+    def _create_session(self, host: str = "localhost"):
         connector = None
         if host != "localhost":
             connector = TCPConnector(
@@ -109,7 +111,7 @@ class HttpClient:
 
         return ClientSession(
             connector=connector,
-            timeout=ClientTimeout(timeout),
+            timeout=ClientTimeout(self._timeout),
             json_serialize=custom_json_dumps,
         )
 

@@ -11,9 +11,6 @@ class BaseScraper:
     ):
         self._client = client
 
-    async def fetch_one(self, number: int):
-        raise NotImplementedError
-
     async def _get_soup(self, url: URL):
         async with self._client.safe_get(url=url) as response:
             html = await response.text()

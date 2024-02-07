@@ -1,7 +1,8 @@
 import logging
 from typing import BinaryIO
 
-from aiohttp import ClientResponse
+from aiohttp import ClientResponse, ClientConnectorError
+from alive_progress.core.progress import __AliveBarHandle
 from yarl import URL
 
 from scraper.dtos import XKCDPOSTData, XKCDFullScrapedData
@@ -17,7 +18,19 @@ class APIRESTClient:
     def __init__(self, client: HttpClient):
         self._client = client
 
-    async def create_comic_with_image(self, data: XKCDFullScrapedData):
+    async def healthcheck(self) -> int | None:
+        url = self._API_URL.joinpath("healthcheck")
+
+        try:
+            async with self._client.get(url) as response:
+                ...
+        except ClientConnectorError:
+            logging.error("API is offline or wrong API url.")
+        else:
+            if response.status == 200:
+                return response.status
+
+    async def create_comic_with_image(self, data: XKCDFullScrapedData, bar):
         images = []
 
         if data.image_url:
@@ -45,6 +58,8 @@ class APIRESTClient:
                 images=images,
             )
         )
+        if bar:
+            bar()
 
     async def upload_image(
         self,

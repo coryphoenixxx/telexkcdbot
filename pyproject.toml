@@ -44,6 +44,7 @@ aiodns = "^3.0.0"
 lxml = "^5.1.0"
 beautifulsoup4 = "^4.12.2"
 aiohttp-retry = "^2.8.3"
+alive-progress = "^3.1.5"
 
 
 [tool.poetry.group.image_processor.dependencies]
@@ -56,6 +57,8 @@ pre-commit = "^3.3"
 ruff = "^0.2"
 black = "^24"
 pytest = "^8.0.0"
+pympler = "^1.0.1"
+
 
 
 [tool.pytest.ini_options]

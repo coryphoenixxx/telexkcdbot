@@ -26,7 +26,7 @@ class XKCDScraper(BaseScraper):
 
         return json_data["num"]
 
-    async def fetch_one(self, number: int) -> XKCDFullScrapedData:
+    async def fetch_one(self, number: int, bar) -> XKCDFullScrapedData:
         fetch_origin_task = asyncio.create_task(self.fetch_origin_data(number))
         fetch_explain_task = asyncio.create_task(self.fetch_explain_data(number))
 
@@ -36,20 +36,22 @@ class XKCDScraper(BaseScraper):
         except Exception as err:
             logging.error(err)
             raise err
-
-        return XKCDFullScrapedData(
-            number=origin_data.number,
-            publication_date=origin_data.publication_date,
-            xkcd_url=origin_data.xkcd_url,
-            title=origin_data.title,
-            tooltip=origin_data.tooltip,
-            link_on_click=origin_data.link_on_click,
-            is_interactive=origin_data.is_interactive,
-            image_url=origin_data.image_url,
-            explain_url=explain_data.explain_url,
-            tags=explain_data.tags,
-            transcript=explain_data.transcript,
-        )
+        else:
+            if bar:
+                bar()
+            return XKCDFullScrapedData(
+                number=origin_data.number,
+                publication_date=origin_data.publication_date,
+                xkcd_url=origin_data.xkcd_url,
+                title=origin_data.title,
+                tooltip=origin_data.tooltip,
+                link_on_click=origin_data.link_on_click,
+                is_interactive=origin_data.is_interactive,
+                image_url=origin_data.image_url,
+                explain_url=explain_data.explain_url,
+                tags=explain_data.tags,
+                transcript=explain_data.transcript,
+            )
 
     async def fetch_origin_data(self, number: int) -> XKCDOriginData:
         xkcd_url = self._XKCD_URL.joinpath(str(number))
@@ -104,7 +106,10 @@ class XKCDScraper(BaseScraper):
             transcript=self._extract_transcript_html(soup),
         )
 
-    async def _fetch_large_image_url(self, url: URL | None,) -> URL | None:
+    async def _fetch_large_image_url(
+        self,
+        url: URL | None,
+    ) -> URL | None:
         # №657, №681, №802, №832, №850 ...
         if not url:
             return None
