@@ -11,7 +11,8 @@ class TranslationRequestDTO:
     title: str
     language: LanguageCode
     tooltip: str
-    transcript_html: str
+    transcript_raw: str
     translator_comment: str
     images: list[TranslationImageID]
+    source_link: str | None
     is_draft: bool

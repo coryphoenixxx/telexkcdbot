@@ -35,12 +35,12 @@ class ComicRequestSchema(BaseModel):
 class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
     en_title: str
     en_tooltip: str
-    en_transcript_html: str
+    en_transcript_raw: str
     images: list[int]
 
-    @field_validator("en_tooltip", "en_transcript_html", mode="before")
+    @field_validator("en_tooltip", "en_transcript_raw", mode="before")
     @classmethod
-    def validate_tooltip_transcript(cls, value: str | None):
+    def preprocess_text_fields(cls, value: str | None):
         if value is None:
             value = ""
         return value
@@ -70,9 +70,10 @@ class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
                 title=self.en_title,
                 language=LanguageCode.EN,
                 tooltip=self.en_tooltip,
-                transcript_html=self.en_transcript_html,
+                transcript_raw=self.en_transcript_raw,
                 translator_comment="",
                 images=[TranslationImageID(image_id) for image_id in self.images],
+                source_link=cast_or_none(str, self.xkcd_url),
                 is_draft=False,
             ),
         )

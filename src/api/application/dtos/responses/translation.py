@@ -20,8 +20,9 @@ class TranslationResponseDTO(TranslationRequestDTO):
             language=model.language,
             title=model.title,
             tooltip=model.tooltip,
-            transcript_html=model.transcript_html,
+            transcript_raw=model.transcript_raw,
             translator_comment=model.translator_comment,
             images=[TranslationImageFullResponseDTO.from_model(img) for img in model.images],
+            source_link=model.source_link,
             is_draft=model.is_draft,
         )

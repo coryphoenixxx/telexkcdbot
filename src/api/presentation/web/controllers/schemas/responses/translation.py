@@ -19,9 +19,10 @@ class TranslationResponseSchema(TranslationRequestSchema):
             comic_id=dto.comic_id,
             title=dto.title,
             tooltip=dto.tooltip,
-            transcript_html=dto.transcript_html,
+            transcript_raw=dto.transcript_raw,
             translator_comment=dto.translator_comment,
             language=dto.language,
             images=[TranslationImageWithPathsResponseSchema.from_dto(img) for img in dto.images],
+            source_link=dto.source_link,
             is_draft=dto.is_draft,
         )

@@ -3,7 +3,7 @@ from typing import BinaryIO
 
 from aiohttp import ClientConnectorError
 from scraper.dtos import (
-    XKCDFullScrapedData,
+    XkcdORIGINFullScrapedData,
     XKCDPOSTData,
     XkcdTranslationData,
     XkcdTranslationPOSTData,
@@ -36,7 +36,7 @@ class APIRESTClient:
 
     async def create_comic_with_image(
         self,
-        data: XKCDFullScrapedData,
+        data: XkcdORIGINFullScrapedData,
         progress_bar,
     ) -> dict[int, int]:
         images = []
@@ -63,7 +63,7 @@ class APIRESTClient:
                 is_interactive=data.is_interactive,
                 explain_url=data.explain_url,
                 tags=data.tags,
-                en_transcript_html=data.transcript_html,
+                en_transcript_raw=data.transcript_raw,
                 images=images,
             ),
         )
@@ -149,8 +149,9 @@ class APIRESTClient:
             title=data.title,
             language=language,
             tooltip=data.tooltip,
-            transcript_html=data.transcript_html,
+            transcript_raw=data.transcript_raw,
             translator_comment=data.translator_comment,
+            source_link=data.source_link,
             images=images,
         )
 

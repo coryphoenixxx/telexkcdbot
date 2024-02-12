@@ -36,11 +36,12 @@ class TranslationRepo:
                 comic_id=dto.comic_id,
                 title=dto.title,
                 tooltip=dto.tooltip,
-                transcript_html=dto.transcript_html,
-                transcript_text=self._html_to_searchable_text(dto.transcript_html),
+                transcript_raw=dto.transcript_raw,
+                transcript_text=self._raw_to_searchable_text(dto.transcript_raw),
                 translator_comment=dto.translator_comment,
                 language=dto.language,
                 is_draft=dto.is_draft,
+                source_link=dto.source_link,
                 images=images,
             )
 
@@ -76,11 +77,12 @@ class TranslationRepo:
             translation.comic_id = dto.comic_id
             translation.title = dto.title
             translation.tooltip = dto.tooltip
-            translation.transcript_html = dto.transcript_html
-            translation.transcript_text = self._html_to_searchable_text(dto.transcript_html)
+            translation.transcript_raw = dto.transcript_raw
+            translation.transcript_text = self._raw_to_searchable_text(dto.transcript_raw)
             translation.translator_comment = dto.translator_comment
             translation.language = dto.language
             translation.is_draft = dto.is_draft
+            translation.source_link = dto.source_link
             translation.images = images
 
             await self._session.flush()
@@ -164,8 +166,8 @@ class TranslationRepo:
 
         self._session.add(comic)
 
-    def _html_to_searchable_text(self, html: str) -> str:
-        text = html
+    def _raw_to_searchable_text(self, raw: str) -> str:
+        text = raw
         return text
 
     def _handle_integrity_error(

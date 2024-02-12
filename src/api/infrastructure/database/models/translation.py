@@ -44,15 +44,17 @@ class TranslationModel(PkIdMixin, Base, TimestampMixin):
     title: Mapped[str]
     language: Mapped[LanguageCode] = mapped_column(String(2))
     tooltip: Mapped[str] = mapped_column(default="")
-    transcript_html: Mapped[str] = mapped_column(default="")
+    transcript_raw: Mapped[str] = mapped_column(default="")
     transcript_text: Mapped[str] = mapped_column(default="")
     translator_comment: Mapped[str] = mapped_column(default="")
+    source_link: Mapped[str | None]
     is_draft: Mapped[bool] = mapped_column(default=False)
 
     images: Mapped[list["TranslationImageModel"]] = relationship(
         back_populates="translation",
         lazy="joined",
     )
+
     comic: Mapped["ComicModel"] = relationship(back_populates="translations")
 
     def __str__(self):

@@ -1,3 +1,4 @@
+
 from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.dtos.responses.translation import TranslationResponseDTO
 from api.application.types import TranslationID

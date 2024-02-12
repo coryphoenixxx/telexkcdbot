@@ -1,3 +1,4 @@
+
 from fastapi import Depends
 from faststream.nats.fastapi import NatsRouter
 from starlette import status

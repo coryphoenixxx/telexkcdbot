@@ -41,10 +41,11 @@ class HttpClient:
         self,
         url: URL | str,
         statuses: tuple[int] = (429, 500, 503),
+        **kwargs,
     ):
         client = self._get_or_create_client(url, statuses)
 
-        async with self._throttler, client.get(url) as response:
+        async with self._throttler, client.get(url, **kwargs) as response:
             yield response
 
     @asynccontextmanager

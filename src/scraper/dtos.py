@@ -19,11 +19,11 @@ class XKCDOriginData:
 @dataclass(slots=True)
 class XkcdTranslationData:
     number: int
-    source_link: URL  # NEED?
+    source_link: URL | None
     title: str
     tooltip: str | None
     image_url: URL | None
-    transcript_html: str
+    transcript_raw: str
     translator_comment: str
 
 
@@ -33,8 +33,9 @@ class XkcdTranslationPOSTData:
     title: str
     language: LanguageCode
     tooltip: str | None
-    transcript_html: str
+    transcript_raw: str
     translator_comment: str
+    source_link: str | None
     images: list[int]
 
 
@@ -42,11 +43,11 @@ class XkcdTranslationPOSTData:
 class XKCDExplainData:
     explain_url: URL
     tags: list[str]
-    transcript_html: str
+    transcript_raw: str
 
 
 @dataclass(slots=True)
-class XKCDFullScrapedData:
+class XkcdORIGINFullScrapedData:
     number: int
     publication_date: str
     xkcd_url: URL
@@ -57,7 +58,7 @@ class XKCDFullScrapedData:
     image_url: URL | None
     explain_url: URL
     tags: list[str]
-    transcript_html: str
+    transcript_raw: str
 
 
 @dataclass(slots=True)
@@ -71,5 +72,5 @@ class XKCDPOSTData:
     is_interactive: bool
     explain_url: URL
     tags: list[str]
-    en_transcript_html: str
+    en_transcript_raw: str
     images: list[int]

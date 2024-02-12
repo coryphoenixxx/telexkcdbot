@@ -3,9 +3,8 @@ import logging
 
 import uvloop
 from alive_progress import alive_bar
-from scraper.dtos import XKCDFullScrapedData, XkcdTranslationData
-from scraper.scrapers.xkcd_origin import XKCDScraper
-from scraper.scrapers.xkcd_ru_scraper import XkcdRUScraper
+from scraper.dtos import XkcdORIGINFullScrapedData, XkcdTranslationData
+from scraper.scrapers import XkcdDEScraper, XkcdOriginScraper, XkcdRUScraper
 from shared.api_rest_client import APIRESTClient
 from shared.http_client import HttpClient
 from shared.types import LanguageCode
@@ -20,8 +19,8 @@ async def scrape_origin(
     to_: int,
     chunk_size: int,
     http_client: HttpClient,
-) -> list[XKCDFullScrapedData]:
-    scraper = XKCDScraper(client=http_client)
+) -> list[XkcdORIGINFullScrapedData]:
+    scraper = XkcdOriginScraper(client=http_client)
 
     comics_data = []
 
@@ -50,7 +49,7 @@ async def scrape_origin(
 
 async def upload_origin(
     api_client: APIRESTClient,
-    origin_data: list[XKCDFullScrapedData],
+    origin_data: list[XkcdORIGINFullScrapedData],
     chunk_size: int,
 ) -> dict[int, int]:
     number_comic_id_map = {}
@@ -86,8 +85,8 @@ async def scrape_russian(
     chunk_size: int,
     http_client: HttpClient,
 ) -> list[XkcdTranslationData]:
-    xkcd_ru_scraper = XkcdRUScraper(http_client)
-    all_nums = await xkcd_ru_scraper.get_all_nums()
+    scraper = XkcdRUScraper(http_client)
+    all_nums = await scraper.get_all_nums()
 
     nums = [num for num in all_nums if from_ <= num <= to_]
 
@@ -95,7 +94,7 @@ async def scrape_russian(
 
     with alive_bar(
         total=len(nums),
-        title="Xkcd ru scraping...:",
+        title="Xkcd RU scraping...:",
         title_length=25,
         force_tty=True,
     ) as progress_bar:
@@ -103,8 +102,7 @@ async def scrape_russian(
             try:
                 async with asyncio.TaskGroup() as tg:
                     tasks = [
-                        tg.create_task(xkcd_ru_scraper.fetch_one(number, progress_bar))
-                        for number in chunk
+                        tg.create_task(scraper.fetch_one(number, progress_bar)) for number in chunk
                     ]
             except* Exception as errors:
                 for e in errors.exceptions:
@@ -116,6 +114,43 @@ async def scrape_russian(
     return ru_translation_data
 
 
+async def scrape_deutsch(
+    from_: int,
+    to_: int,
+    chunk_size: int,
+    http_client: HttpClient,
+) -> list[XkcdTranslationData]:
+    scraper = XkcdDEScraper(http_client)
+
+    latest_num = await scraper.fetch_latest_number()
+
+    nums = [n for n in range(from_, to_ + 1) if n <= latest_num]
+
+    de_translation_data = []
+
+    with alive_bar(
+        title="Xkcd DE scraping...:",
+        title_length=25,
+        force_tty=True,
+    ) as progress_bar:
+        for chunk in chunks(nums, chunk_size):
+            try:
+                async with asyncio.TaskGroup() as tg:
+                    tasks = [
+                        tg.create_task(scraper.fetch_one(number, progress_bar)) for number in chunk
+                    ]
+            except* Exception as errors:
+                for e in errors.exceptions:
+                    raise e
+            else:
+                for task in tasks:
+                    result = task.result()
+                    if result:
+                        de_translation_data.append(result)
+
+    return de_translation_data
+
+
 async def upload_translations(
     number_comic_id_map: dict[int, int],
     translation_data: list[XkcdTranslationData],
@@ -125,7 +160,7 @@ async def upload_translations(
 ):
     with alive_bar(
         total=len(translation_data),
-        title="Uploading translations...:",
+        title=f"Uploading translations...{language}:",
         title_length=25,
     ) as progress_bar:
         for chunk in chunks(lst=translation_data, n=chunk_size):
@@ -160,8 +195,7 @@ async def main(from_: int = 1, to_: int | None = None, chunk_size: int = 100):
             return
 
         if not to_:
-            scraper = XKCDScraper(client=http_client)
-            to_ = await scraper.fetch_latest_number()
+            to_ = await XkcdOriginScraper(client=http_client).fetch_latest_number()
 
         origin_data = await scrape_origin(from_, to_, chunk_size, http_client)
 
@@ -169,12 +203,22 @@ async def main(from_: int = 1, to_: int | None = None, chunk_size: int = 100):
 
         ru_translation_data = await scrape_russian(from_, to_, chunk_size, http_client)
 
+        de_translation_data = await scrape_deutsch(from_, to_, chunk_size, http_client)
+
         await upload_translations(
             number_comic_id_map,
             ru_translation_data,
             api_client,
             chunk_size,
             language=LanguageCode.RU,
+        )
+
+        await upload_translations(
+            number_comic_id_map,
+            de_translation_data,
+            api_client,
+            chunk_size,
+            language=LanguageCode.DE,
         )
 
 

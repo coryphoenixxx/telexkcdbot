@@ -1,10 +1,11 @@
 import re
 
 from bs4 import BeautifulSoup, Tag
-from scraper.dtos import XkcdTranslationData
-from scraper.scrapers.base import BaseScraper
 from shared.http_client import HttpClient
 from yarl import URL
+
+from scraper.dtos import XkcdTranslationData
+from scraper.scrapers.base import BaseScraper
 
 
 class XkcdRUScraper(BaseScraper):
@@ -20,7 +21,7 @@ class XkcdRUScraper(BaseScraper):
         return self._extract_nums(soup)
 
     async def fetch_one(self, number: int, progress_bar=None) -> XkcdTranslationData:
-        url = self._BASE_URL.joinpath(str(number))
+        url = self._BASE_URL.joinpath(str(number) + '/')
         soup = await self._get_soup(url)
 
         data = XkcdTranslationData(
@@ -29,8 +30,8 @@ class XkcdRUScraper(BaseScraper):
             title=self._extract_title(soup),
             tooltip=self._extract_tooltip(soup),
             image_url=self._extract_image_url(soup),
+            transcript_raw=self._extract_transcript(soup),
             translator_comment=self._extract_comment(soup),
-            transcript_html=self._extract_transcript(soup),
         )
 
         if progress_bar:

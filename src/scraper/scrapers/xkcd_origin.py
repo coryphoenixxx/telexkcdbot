@@ -4,13 +4,14 @@ import logging
 import re
 
 from bs4 import BeautifulSoup, Tag
-from scraper.dtos import XKCDExplainData, XKCDFullScrapedData, XKCDOriginData
-from scraper.scrapers.base import BaseScraper
 from shared.http_client import HttpClient
 from yarl import URL
 
+from scraper.dtos import XKCDExplainData, XKCDOriginData, XkcdORIGINFullScrapedData
+from scraper.scrapers.base import BaseScraper
 
-class XKCDScraper(BaseScraper):
+
+class XkcdOriginScraper(BaseScraper):
     _XKCD_URL = URL("https://xkcd.com/")
     _EXPLAIN_XKCD_URL = URL("https://explainxkcd.com/wiki/index.php/")
 
@@ -24,7 +25,7 @@ class XKCDScraper(BaseScraper):
 
         return json_data["num"]
 
-    async def fetch_one(self, number: int, progress_bar=None) -> XKCDFullScrapedData:
+    async def fetch_one(self, number: int, progress_bar=None) -> XkcdORIGINFullScrapedData:
         fetch_origin_task = asyncio.create_task(self.fetch_origin_data(number))
         fetch_explain_task = asyncio.create_task(self.fetch_explain_data(number))
 
@@ -38,7 +39,7 @@ class XKCDScraper(BaseScraper):
             if progress_bar:
                 progress_bar()
 
-            return XKCDFullScrapedData(
+            return XkcdORIGINFullScrapedData(
                 number=origin_data.number,
                 publication_date=origin_data.publication_date,
                 xkcd_url=origin_data.xkcd_url,
@@ -49,11 +50,11 @@ class XKCDScraper(BaseScraper):
                 image_url=origin_data.image_url,
                 explain_url=explain_data.explain_url,
                 tags=explain_data.tags,
-                transcript_html=explain_data.transcript_html,
+                transcript_raw=explain_data.transcript_raw,
             )
 
     async def fetch_origin_data(self, number: int) -> XKCDOriginData:
-        xkcd_url = self._XKCD_URL.joinpath(str(number))
+        xkcd_url = self._XKCD_URL.joinpath(str(number) + '/')
 
         if number == 404:
             return XKCDOriginData(
@@ -100,7 +101,7 @@ class XKCDScraper(BaseScraper):
         return XKCDExplainData(
             explain_url=url,
             tags=self._extract_tags(soup),
-            transcript_html=self._extract_transcript_html(soup),
+            transcript_raw=self._extract_transcript_html(soup),
         )
 
     async def _fetch_large_image_url(
@@ -202,6 +203,6 @@ class XKCDScraper(BaseScraper):
             with open("../data/bad_tags.txt") as f:
                 bad_tags = {line for line in f.read().splitlines() if line}
         except FileNotFoundError:
-            logging.error("Loading bad tag error. File not found.")
+            logging.error("Loading bad tags error: File not found.")
 
         return bad_tags
