@@ -1,14 +1,14 @@
 import datetime as dt
 
-from pydantic import PositiveInt, HttpUrl, field_validator, BaseModel
-
-from api.application.dtos.requests.comic import ComicRequestDTO
-from api.application.dtos.requests.translation import TranslationRequestDTO
-from api.application.types import TranslationImageID
+from pydantic import BaseModel, HttpUrl, PositiveInt, field_validator
 from shared.types import (
     LanguageCode,
 )
 from shared.utils import cast_or_none
+
+from api.application.dtos.requests.comic import ComicRequestDTO
+from api.application.dtos.requests.translation import TranslationRequestDTO
+from api.application.types import TranslationImageID
 
 
 class ComicRequestSchema(BaseModel):
@@ -35,8 +35,15 @@ class ComicRequestSchema(BaseModel):
 class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
     en_title: str
     en_tooltip: str
-    en_transcript: str
+    en_transcript_html: str
     images: list[int]
+
+    @field_validator("en_tooltip", "en_transcript_html", mode="before")
+    @classmethod
+    def validate_tooltip_transcript(cls, value: str | None):
+        if value is None:
+            value = ""
+        return value
 
     @field_validator("tags")
     @classmethod
@@ -63,7 +70,8 @@ class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
                 title=self.en_title,
                 language=LanguageCode.EN,
                 tooltip=self.en_tooltip,
-                transcript=self.en_transcript,
+                transcript_html=self.en_transcript_html,
+                translator_comment="",
                 images=[TranslationImageID(image_id) for image_id in self.images],
                 is_draft=False,
             ),

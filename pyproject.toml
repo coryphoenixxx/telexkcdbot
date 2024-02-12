@@ -33,7 +33,7 @@ aiohttp = "^3.9.1"
 aiodns = "^3.1.1"
 aiohttp-retry = "^2.8.3"
 gunicorn = "^21.2.0"
-faststream = { extras = ["nats"], version = "^0.4.0" }
+faststream = { extras = ["nats"], version = "0.4.1" }
 
 
 [tool.poetry.group.scraper.dependencies]
@@ -57,8 +57,6 @@ pre-commit = "^3.3"
 ruff = "^0.2"
 black = "^24"
 pytest = "^8.0.0"
-pympler = "^1.0.1"
-
 
 
 [tool.pytest.ini_options]
@@ -68,8 +66,8 @@ pythonopath = [".venv/bin"]
 
 
 [tool.ruff]
-ignore-init-module-imports = true
-select = [
+lint.ignore-init-module-imports = true
+lint.select = [
     "B",
     "E",
     "W",
@@ -87,7 +85,7 @@ select = [
     "C4",
     "UP",
 ]
-ignore = [
+lint.ignore = [
     "N805",
     "PLR0913",
     "PLR2004",
@@ -99,7 +97,7 @@ ignore = [
     "ARG001",
     "RUF013"
 ]
-fixable = [
+lint.fixable = [
     "A",
     "B",
     "C",
@@ -145,7 +143,7 @@ fixable = [
     "UP",
     "YTT"
 ]
-unfixable = []
+lint.unfixable = []
 
 show-fixes = true
 
@@ -172,16 +170,16 @@ exclude = [
     "node_modules",
     "venv",
 ]
-per-file-ignores = { }
+lint.per-file-ignores = { }
 
 line-length = 99
 
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 target-version = "py311"
 
 
-[tool.ruff.mccabe]
+[tool.ruff.lint.mccabe]
 max-complexity = 10
 
 

@@ -1,7 +1,6 @@
 from bs4 import BeautifulSoup
-from yarl import URL
-
 from shared.http_client import HttpClient
+from yarl import URL
 
 
 class BaseScraper:

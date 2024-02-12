@@ -8,14 +8,14 @@ class TranslationImageResponseSchema(BaseModel):
     original: str
 
 
-class TranslationImageFullResponseSchema(TranslationImageResponseSchema):
+class TranslationImageWithPathsResponseSchema(TranslationImageResponseSchema):
     translation_id: int
     converted: str | None
     thumbnail: str | None
 
     @classmethod
     def from_dto(cls, dto: TranslationImageFullResponseDTO):
-        return TranslationImageFullResponseSchema(
+        return TranslationImageWithPathsResponseSchema(
             id=dto.id,
             translation_id=dto.translation_id,
             original=dto.original_rel_path,

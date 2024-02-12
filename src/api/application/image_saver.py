@@ -1,4 +1,5 @@
 import logging
+import shutil
 from pathlib import Path
 from typing import Final
 from uuid import uuid4
@@ -22,7 +23,7 @@ class ImageSaveHelper:
         await aos.makedirs(abs_path.parent, exist_ok=True)
 
         try:
-            await aos.replace(image.path, abs_path)
+            shutil.move(image.path, abs_path)
         except FileNotFoundError as err:
             logging.error(f"{err.strerror}: {image.path}")
             raise err

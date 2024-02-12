@@ -1,13 +1,13 @@
 from pathlib import Path
 
 from faststream.nats import NatsBroker
+from shared.messages import ImageProcessInMessage
 
 from api.application.dtos.responses.image import TranslationImageResponseDTO
 from api.application.image_saver import ImageSaveHelper
 from api.application.types import TranslationImageID
 from api.infrastructure.database import DatabaseHolder
 from api.presentation.types import ImageObj, TranslationImageMeta
-from shared.messages import ImageProcessInMessage
 
 
 class TranslationImageService:

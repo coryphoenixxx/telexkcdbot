@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from api.application.dtos.responses.image import TranslationImageResponseDTO
 from shared.utils import cast_or_none
 from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.application.dtos.responses.image import TranslationImageResponseDTO
 from api.application.types import TranslationImageID
 from api.infrastructure.database.models.translation import TranslationImageModel
 

@@ -1,11 +1,11 @@
 from dataclasses import dataclass
 from typing import Any
 
+from shared.types import LanguageCode
 from starlette import status
 
 from api.application.types import TranslationID
 from api.core.exceptions import BaseAppError
-from shared.types import LanguageCode
 
 
 @dataclass

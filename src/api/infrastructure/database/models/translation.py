@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
+from shared.types import LanguageCode
 from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from shared.types import LanguageCode
 from api.infrastructure.database.models import Base
 from api.infrastructure.database.models.mixins import PkIdMixin, TimestampMixin
 
@@ -43,8 +43,10 @@ class TranslationModel(PkIdMixin, Base, TimestampMixin):
 
     title: Mapped[str]
     language: Mapped[LanguageCode] = mapped_column(String(2))
-    tooltip: Mapped[str | None]
-    transcript: Mapped[str | None]
+    tooltip: Mapped[str] = mapped_column(default="")
+    transcript_html: Mapped[str] = mapped_column(default="")
+    transcript_text: Mapped[str] = mapped_column(default="")
+    translator_comment: Mapped[str] = mapped_column(default="")
     is_draft: Mapped[bool] = mapped_column(default=False)
 
     images: Mapped[list["TranslationImageModel"]] = relationship(

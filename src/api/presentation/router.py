@@ -8,6 +8,7 @@ root_router = NatsRouter(prefix="/api")
 
 @root_router.get("/healthcheck", status_code=200)
 async def healthcheck():
+
     return {"message": "API is available."}
 
 

@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
-from api.application.types import ComicID, TranslationImageID
 from shared.types import LanguageCode
+
+from api.application.types import ComicID, TranslationImageID
 
 
 @dataclass(slots=True)
@@ -9,7 +10,8 @@ class TranslationRequestDTO:
     comic_id: ComicID | None
     title: str
     language: LanguageCode
-    tooltip: str | None
-    transcript: str | None
+    tooltip: str
+    transcript_html: str
+    translator_comment: str
     images: list[TranslationImageID]
     is_draft: bool

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from shared.types import LanguageCode
 from yarl import URL
 
 
@@ -16,10 +17,32 @@ class XKCDOriginData:
 
 
 @dataclass(slots=True)
+class XkcdTranslationData:
+    number: int
+    source_link: URL  # NEED?
+    title: str
+    tooltip: str | None
+    image_url: URL | None
+    transcript_html: str
+    translator_comment: str
+
+
+@dataclass(slots=True)
+class XkcdTranslationPOSTData:
+    comic_id: int
+    title: str
+    language: LanguageCode
+    tooltip: str | None
+    transcript_html: str
+    translator_comment: str
+    images: list[int]
+
+
+@dataclass(slots=True)
 class XKCDExplainData:
     explain_url: URL
     tags: list[str]
-    transcript: str
+    transcript_html: str
 
 
 @dataclass(slots=True)
@@ -34,7 +57,7 @@ class XKCDFullScrapedData:
     image_url: URL | None
     explain_url: URL
     tags: list[str]
-    transcript: str
+    transcript_html: str
 
 
 @dataclass(slots=True)
@@ -48,5 +71,5 @@ class XKCDPOSTData:
     is_interactive: bool
     explain_url: URL
     tags: list[str]
-    en_transcript: str
+    en_transcript_html: str
     images: list[int]

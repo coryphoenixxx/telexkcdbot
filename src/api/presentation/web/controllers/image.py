@@ -4,13 +4,15 @@ from fastapi import Depends, File, Query, UploadFile
 from faststream.nats import NatsBroker
 from faststream.nats.fastapi import NatsRouter
 from pydantic import HttpUrl
+from shared.messages import ImageProcessOutMessage
+from shared.types import LanguageCode
 from starlette import status
 
 from api.application.exceptions.image import (
-    UploadedImageError,
     ImageOneTypeError,
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
+    UploadedImageError,
     UploadExceedLimitError,
 )
 from api.application.image_saver import ImageSaveHelper
@@ -26,8 +28,6 @@ from api.presentation.dependency_stubs import (
 from api.presentation.types import TranslationImageMeta
 from api.presentation.upload_reader import UploadImageHandler
 from api.presentation.web.controllers.schemas.responses.image import TranslationImageResponseSchema
-from shared.messages import ImageProcessOutMessage
-from shared.types import LanguageCode
 
 router = NatsRouter(
     tags=["Images"],
@@ -50,7 +50,7 @@ router = NatsRouter(
     },
 )
 async def upload_image(
-    title: Annotated[str, Query(max_length=50)],
+    title: Annotated[str, Query(max_length=100)],
     number: Annotated[int | None, Query(gt=0)] = None,
     language: LanguageCode = LanguageCode.EN,
     is_draft: bool = False,

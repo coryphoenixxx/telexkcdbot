@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 
+from shared.types import LanguageCode
 from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +17,6 @@ from api.application.exceptions.translation import (
     TranslationUniqueError,
 )
 from api.application.types import TranslationID, TranslationImageID
-from shared.types import LanguageCode
 from api.core.utils import slugify
 from api.infrastructure.database.models import ComicModel, TranslationImageModel, TranslationModel
 
@@ -36,7 +36,9 @@ class TranslationRepo:
                 comic_id=dto.comic_id,
                 title=dto.title,
                 tooltip=dto.tooltip,
-                transcript=dto.transcript,
+                transcript_html=dto.transcript_html,
+                transcript_text=self._html_to_searchable_text(dto.transcript_html),
+                translator_comment=dto.translator_comment,
                 language=dto.language,
                 is_draft=dto.is_draft,
                 images=images,
@@ -74,17 +76,16 @@ class TranslationRepo:
             translation.comic_id = dto.comic_id
             translation.title = dto.title
             translation.tooltip = dto.tooltip
-            translation.transcript = dto.transcript
+            translation.transcript_html = dto.transcript_html
+            translation.transcript_text = self._html_to_searchable_text(dto.transcript_html)
+            translation.translator_comment = dto.translator_comment
             translation.language = dto.language
             translation.is_draft = dto.is_draft
             translation.images = images
 
             await self._session.flush()
         except IntegrityError as err:
-            self._handle_integrity_error(
-                err=err,
-                dto=dto,
-            )
+            self._handle_integrity_error(err=err, dto=dto)
         else:
             return TranslationResponseDTO.from_model(model=translation)
 
@@ -163,8 +164,12 @@ class TranslationRepo:
 
         self._session.add(comic)
 
-    @staticmethod
+    def _html_to_searchable_text(self, html: str) -> str:
+        text = html
+        return text
+
     def _handle_integrity_error(
+        self,
         err: IntegrityError,
         dto: TranslationRequestDTO,
     ):

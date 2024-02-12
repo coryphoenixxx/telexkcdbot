@@ -50,11 +50,17 @@ def ranges(start, end, size):
         yield i, i + size - 1
 
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]
+
+
 class CustomJsonEncoder(json.JSONEncoder):
     def default(self, value):
         if is_dataclass(value):
             return asdict(value)
-        elif isinstance(value, (URL, dt.date)):
+        elif isinstance(value, URL | dt.date):
             return str(value)
         elif isinstance(value, BaseModel):
             return value.model_dump()

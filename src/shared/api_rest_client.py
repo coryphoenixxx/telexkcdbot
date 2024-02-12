@@ -1,11 +1,15 @@
 import logging
 from typing import BinaryIO
 
-from aiohttp import ClientResponse, ClientConnectorError
-from alive_progress.core.progress import __AliveBarHandle
+from aiohttp import ClientConnectorError
+from scraper.dtos import (
+    XKCDFullScrapedData,
+    XKCDPOSTData,
+    XkcdTranslationData,
+    XkcdTranslationPOSTData,
+)
 from yarl import URL
 
-from scraper.dtos import XKCDPOSTData, XKCDFullScrapedData
 from shared.http_client import HttpClient
 from shared.types import (
     LanguageCode,
@@ -30,7 +34,11 @@ class APIRESTClient:
             if response.status == 200:
                 return response.status
 
-    async def create_comic_with_image(self, data: XKCDFullScrapedData, bar):
+    async def create_comic_with_image(
+        self,
+        data: XKCDFullScrapedData,
+        progress_bar,
+    ) -> dict[int, int]:
         images = []
 
         if data.image_url:
@@ -38,12 +46,13 @@ class APIRESTClient:
                 await self.upload_image(
                     title=data.title,
                     number=data.number,
+                    language=LanguageCode.EN,
                     image_url=data.image_url,
                 )
             )["id"]
             images.append(image_id)
 
-        await self.create_comic(
+        comic_id = await self.create_comic(
             comic=XKCDPOSTData(
                 number=data.number,
                 publication_date=data.publication_date,
@@ -54,18 +63,21 @@ class APIRESTClient:
                 is_interactive=data.is_interactive,
                 explain_url=data.explain_url,
                 tags=data.tags,
-                en_transcript=data.transcript,
+                en_transcript_html=data.transcript_html,
                 images=images,
-            )
+            ),
         )
-        if bar:
-            bar()
+
+        if progress_bar:
+            progress_bar()
+
+        return {data.number: comic_id}
 
     async def upload_image(
         self,
         title: str,
         number: int | None,
-        language: LanguageCode = LanguageCode.EN,
+        language: LanguageCode,
         is_draft: bool = False,
         image_url: str | URL | None = None,
         image_file: BinaryIO | None = None,
@@ -90,22 +102,71 @@ class APIRESTClient:
             else:
                 error_json = await response.json()
                 logging.error(
-                    f"Uploading image №{number} is failed. Reason: {error_json['message']}"
+                    f"Uploading image №{number} is failed. Reason: {error_json['message']}",  # FIX
                 )
 
-    async def create_comic(self, comic: XKCDPOSTData):
+    async def create_comic(self, comic: XKCDPOSTData) -> int:
         url = self._API_URL.joinpath("comics")
 
-        async with self._client.safe_post(url=url, json=comic) as response:  # type:ClientResponse
+        async with self._client.safe_post(
+            url=url,
+            json=comic,
+        ) as response:  # type:ClientResponse
             if response.status == 201:
-                return await response.json()
+                return (await response.json())["id"]
             else:
                 error_json = await response.json()
                 logging.error(
-                    f"Creating comic №{comic.number} is failed. Reason: {error_json['message']}"
+                    f"Creating comic №{comic.number} is failed. Reason: {error_json['detail']}",  # FIX
                 )
 
-    async def add_translation(self, translation): ...
+    async def add_translation_with_image(
+        self,
+        number_comic_id_map: dict[int, int],
+        language: LanguageCode,
+        data: XkcdTranslationData,
+        progress_bar,
+    ):
+        url = self._API_URL.joinpath("translations")
+
+        images = []
+
+        comic_id = number_comic_id_map[data.number]
+
+        if data.image_url:
+            image_id = (
+                await self.upload_image(
+                    title=data.title,
+                    number=data.number,
+                    language=language,
+                    image_url=data.image_url,
+                )
+            )["id"]
+            images.append(image_id)
+
+        translation = XkcdTranslationPOSTData(
+            comic_id=comic_id,
+            title=data.title,
+            language=language,
+            tooltip=data.tooltip,
+            transcript_html=data.transcript_html,
+            translator_comment=data.translator_comment,
+            images=images,
+        )
+
+        async with self._client.safe_post(
+            url=url,
+            json=translation,
+        ) as response:  # type:ClientResponse
+            if response.status == 201:
+                if progress_bar:
+                    progress_bar()
+                return (await response.json())["id"]
+            else:
+                error_json = await response.json()
+                logging.error(
+                    f"Creating translation for comic №{data.number} is failed. Reason: {error_json['detail']}",  # FIX
+                )
 
     @staticmethod
     def _build_params(**kwargs) -> dict[str, int | float | str]:

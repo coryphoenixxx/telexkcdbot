@@ -3,14 +3,14 @@ from api.presentation.web.controllers.schemas.requests.translation import (
     TranslationRequestSchema,
 )
 from api.presentation.web.controllers.schemas.responses.image import (
-    TranslationImageFullResponseSchema,
+    TranslationImageWithPathsResponseSchema,
 )
 
 
 class TranslationResponseSchema(TranslationRequestSchema):
     id: int
     comic_id: int
-    images: list[TranslationImageFullResponseSchema]
+    images: list[TranslationImageWithPathsResponseSchema]
 
     @classmethod
     def from_dto(cls, dto: TranslationResponseDTO) -> "TranslationResponseSchema":
@@ -19,8 +19,9 @@ class TranslationResponseSchema(TranslationRequestSchema):
             comic_id=dto.comic_id,
             title=dto.title,
             tooltip=dto.tooltip,
-            transcript=dto.transcript,
+            transcript_html=dto.transcript_html,
+            translator_comment=dto.translator_comment,
             language=dto.language,
-            images=[TranslationImageFullResponseSchema.from_dto(img) for img in dto.images],
+            images=[TranslationImageWithPathsResponseSchema.from_dto(img) for img in dto.images],
             is_draft=dto.is_draft,
         )

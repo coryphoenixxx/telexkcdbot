@@ -3,13 +3,11 @@ import html
 import logging
 import re
 
-from aiohttp import ClientResponse
 from bs4 import BeautifulSoup, Tag
-from yarl import URL
-
-from scraper.dtos import XKCDExplainData, XKCDOriginData, XKCDFullScrapedData
+from scraper.dtos import XKCDExplainData, XKCDFullScrapedData, XKCDOriginData
 from scraper.scrapers.base import BaseScraper
 from shared.http_client import HttpClient
+from yarl import URL
 
 
 class XKCDScraper(BaseScraper):
@@ -26,7 +24,7 @@ class XKCDScraper(BaseScraper):
 
         return json_data["num"]
 
-    async def fetch_one(self, number: int, bar) -> XKCDFullScrapedData:
+    async def fetch_one(self, number: int, progress_bar=None) -> XKCDFullScrapedData:
         fetch_origin_task = asyncio.create_task(self.fetch_origin_data(number))
         fetch_explain_task = asyncio.create_task(self.fetch_explain_data(number))
 
@@ -37,8 +35,9 @@ class XKCDScraper(BaseScraper):
             logging.error(err)
             raise err
         else:
-            if bar:
-                bar()
+            if progress_bar:
+                progress_bar()
+
             return XKCDFullScrapedData(
                 number=origin_data.number,
                 publication_date=origin_data.publication_date,
@@ -50,7 +49,7 @@ class XKCDScraper(BaseScraper):
                 image_url=origin_data.image_url,
                 explain_url=explain_data.explain_url,
                 tags=explain_data.tags,
-                transcript=explain_data.transcript,
+                transcript_html=explain_data.transcript_html,
             )
 
     async def fetch_origin_data(self, number: int) -> XKCDOriginData:
@@ -69,13 +68,13 @@ class XKCDScraper(BaseScraper):
             )
         else:
             async with self._client.safe_get(
-                xkcd_url.joinpath("info.0.json")
+                xkcd_url.joinpath("info.0.json"),
             ) as response:  # type: ClientResponse
                 json_data = await response.json()
 
             link_on_click, large_image_page_url = self._process_link(json_data["link"])
 
-            data = XKCDOriginData(
+            return XKCDOriginData(
                 number=json_data["num"],
                 xkcd_url=xkcd_url,
                 title=self._process_title(json_data["title"]),
@@ -94,8 +93,6 @@ class XKCDScraper(BaseScraper):
                 is_interactive=bool(json_data.get("extra_parts")),
             )
 
-            return data
-
     async def fetch_explain_data(self, number: int) -> XKCDExplainData:
         url = self._EXPLAIN_XKCD_URL.joinpath(str(number))
         soup = await self._get_soup(url)
@@ -103,7 +100,7 @@ class XKCDScraper(BaseScraper):
         return XKCDExplainData(
             explain_url=url,
             tags=self._extract_tags(soup),
-            transcript=self._extract_transcript_html(soup),
+            transcript_html=self._extract_transcript_html(soup),
         )
 
     async def _fetch_large_image_url(
@@ -138,14 +135,12 @@ class XKCDScraper(BaseScraper):
 
         return x2_image_url
 
-    @staticmethod
-    def _process_title(title: str):  # №259, №472
+    def _process_title(self, title: str):  # №259, №472
         if any(c in title for c in ("<", ">")):
             return re.sub(re.compile("<.*?>"), "", title)
         return html.unescape(title)
 
-    @staticmethod
-    def _process_link(link: str) -> tuple[URL | None, URL | None]:
+    def _process_link(self, link: str) -> tuple[URL | None, URL | None]:
         link_on_click, large_image_page_url = None, None
         if link:
             link = URL(link)
@@ -160,8 +155,7 @@ class XKCDScraper(BaseScraper):
     def _build_date(y: str, m: str, d: str) -> str:
         return f"{int(y)}-{int(m):02d}-{int(d):02d}"
 
-    @staticmethod
-    def _process_image_url(url: str) -> URL | None:
+    def _process_image_url(self, url: str) -> URL | None:
         match = re.match(
             pattern="https://imgs.xkcd.com/comics/(.*?).(jpg|jpeg|png|webp|gif)",
             string=url,
@@ -181,8 +175,7 @@ class XKCDScraper(BaseScraper):
 
         return sorted(tags)
 
-    @staticmethod
-    def _extract_transcript_html(soup: BeautifulSoup) -> str:
+    def _extract_transcript_html(self, soup: BeautifulSoup) -> str:
         transcript_html = ""
 
         transcript_tag: Tag = soup.find(id="Transcript")
@@ -202,8 +195,7 @@ class XKCDScraper(BaseScraper):
 
         return transcript_html
 
-    @staticmethod
-    def _load_bad_tags() -> set[str]:
+    def _load_bad_tags(self) -> set[str]:
         bad_tags = set()
 
         try:
