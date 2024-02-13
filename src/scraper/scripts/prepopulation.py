@@ -3,8 +3,9 @@ import logging
 
 import uvloop
 from alive_progress import alive_bar
+
 from scraper.dtos import XkcdORIGINFullScrapedData, XkcdTranslationData
-from scraper.scrapers import XkcdDEScraper, XkcdOriginScraper, XkcdRUScraper
+from scraper.scrapers import XkcdDEScraper, XkcdOriginScraper, XkcdRUScraper, XkcdESScraper
 from shared.api_rest_client import APIRESTClient
 from shared.http_client import HttpClient
 from shared.types import LanguageCode
@@ -25,7 +26,7 @@ async def scrape_origin(
     comics_data = []
 
     with alive_bar(
-        total=to_,
+        total=len(range(from_, to_ + 1)),
         title="Origin scraping...:",
         title_length=25,
         force_tty=True,
@@ -151,6 +152,42 @@ async def scrape_deutsch(
     return de_translation_data
 
 
+async def scrape_spanish(
+    from_: int,
+    to_: int,
+    chunk_size: int,
+    http_client: HttpClient,
+) -> list[XkcdTranslationData]:
+    scraper = XkcdESScraper(http_client)
+
+    links = await XkcdESScraper(http_client).fetch_all_links()
+
+    es_translation_data = []
+
+    with alive_bar(
+        title="Xkcd ES scraping...:",
+        title_length=25,
+        force_tty=True,
+    ) as progress_bar:
+        for chunk in chunks(links, chunk_size):
+            try:
+                async with asyncio.TaskGroup() as tg:
+                    tasks = [
+                        tg.create_task(scraper.fetch_one(link, from_, to_, progress_bar))
+                        for link in chunk
+                    ]
+            except* Exception as errors:
+                for e in errors.exceptions:
+                    raise e
+            else:
+                for task in tasks:
+                    result = task.result()
+                    if result:
+                        es_translation_data.append(result)
+
+    return es_translation_data
+
+
 async def upload_translations(
     number_comic_id_map: dict[int, int],
     translation_data: list[XkcdTranslationData],
@@ -205,6 +242,11 @@ async def main(from_: int = 1, to_: int | None = None, chunk_size: int = 100):
 
         de_translation_data = await scrape_deutsch(from_, to_, chunk_size, http_client)
 
+        es_translation_data = await scrape_spanish(from_, to_, chunk_size, http_client)
+
+        for tr in es_translation_data:
+            print(tr.number)
+
         await upload_translations(
             number_comic_id_map,
             ru_translation_data,
@@ -219,6 +261,14 @@ async def main(from_: int = 1, to_: int | None = None, chunk_size: int = 100):
             api_client,
             chunk_size,
             language=LanguageCode.DE,
+        )
+
+        await upload_translations(
+            number_comic_id_map,
+            es_translation_data,
+            api_client,
+            chunk_size,
+            language=LanguageCode.ES,
         )
 
 
