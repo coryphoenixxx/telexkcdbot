@@ -1,22 +1,27 @@
 import re
 
 from bs4 import BeautifulSoup
+from shared.http_client import HttpClient
 from yarl import URL
 
 from scraper.dtos import XkcdTranslationData
 from scraper.scrapers.base import BaseScraper
-from shared.http_client import HttpClient
 
 
 class XkcdESScraper(BaseScraper):
     _BASE_URL = URL("https://es.xkcd.com/")
-    _LIMIT: int
 
     def __init__(self, client: HttpClient, limit: int | None = None):
         super().__init__(client=client)
         self._limit = limit
 
-    async def fetch_one(self, url: URL, from_: int, to_: int, progress_bar=None):
+    async def fetch_one(
+        self,
+        url: URL,
+        from_: int,
+        to_: int,
+        progress_bar=None,
+    ) -> XkcdTranslationData | None:
         soup = await self._get_soup(url)
 
         number = self._extract_number(soup)
@@ -37,7 +42,7 @@ class XkcdESScraper(BaseScraper):
             translator_comment="",
         )
 
-        if data.title == "Geografía":  # https://es.xkcd.com/strips/geografia/
+        if data.title == "Geografía":  # fix: https://es.xkcd.com/strips/geografia/
             data.number = 1472
 
         if progress_bar:
@@ -45,7 +50,7 @@ class XkcdESScraper(BaseScraper):
 
         return data
 
-    async def fetch_all_links(self):
+    async def fetch_all_links(self) -> list[URL]:
         url = self._BASE_URL.joinpath("archive/")
         soup = await self._get_soup(url)
 
@@ -64,12 +69,12 @@ class XkcdESScraper(BaseScraper):
         if match:
             return int(match.group(1).replace("/", ""))
 
-    def _extract_title(self, soup):
+    def _extract_title(self, soup) -> str:
         return soup.find("div", {"id": "middleContent"}).find("h1").text
 
-    def _extract_tooltip(self, soup):
+    def _extract_tooltip(self, soup) -> str:
         return soup.find("img", {"class": "strip"}).get("title")
 
-    def _extract_image_url(self, soup):
+    def _extract_image_url(self, soup) -> URL:
         src = soup.find("img", {"class": "strip"}).get("src")
         return self._BASE_URL.joinpath(src[6:])

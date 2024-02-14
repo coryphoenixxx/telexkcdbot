@@ -94,7 +94,8 @@ class HttpClient:
             client, _ = client_with_timestamp
         else:
             client = self._create_retry_client(
-                session=self._create_session(host), statuses=statuses,
+                session=self._create_session(host),
+                statuses=statuses,
             )
 
         self._CLIENTS_WITH_TS_CACHE[host] = client, time.time()

@@ -5,9 +5,8 @@ Revises:
 Create Date: 2024-02-13 05:24:35.450038
 
 """
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision = 'a521957a3185'
@@ -29,7 +28,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_comics'))
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_comics')),
     )
     op.create_index('uq_number_if_not_extra', 'comics', ['number'], unique=True, postgresql_where=sa.text('number IS NOT NULL'))
     op.create_index('uq_title_if_extra', 'comics', ['slug'], unique=True, postgresql_where=sa.text('number IS NULL'))
@@ -37,14 +36,14 @@ def upgrade() -> None:
     sa.Column('name', sa.String(), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_tags')),
-    sa.UniqueConstraint('name', name=op.f('uq_tags_name'))
+    sa.UniqueConstraint('name', name=op.f('uq_tags_name')),
     )
     op.create_table('comic_tag_association',
     sa.Column('comic_id', sa.Integer(), nullable=False),
     sa.Column('tag_id', sa.Integer(), nullable=False),
     sa.ForeignKeyConstraint(['comic_id'], ['comics.id'], name=op.f('fk_comic_tag_association_comic_id_comics'), ondelete='CASCADE'),
     sa.ForeignKeyConstraint(['tag_id'], ['tags.id'], name=op.f('fk_comic_tag_association_tag_id_tags'), ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('comic_id', 'tag_id', name=op.f('pk_comic_tag_association'))
+    sa.PrimaryKeyConstraint('comic_id', 'tag_id', name=op.f('pk_comic_tag_association')),
     )
     op.create_table('translations',
     sa.Column('comic_id', sa.Integer(), nullable=True),
@@ -60,7 +59,7 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['comic_id'], ['comics.id'], name=op.f('fk_translations_comic_id_comics'), ondelete='CASCADE'),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_translations'))
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_translations')),
     )
     op.create_index('uq_translation_if_not_draft', 'translations', ['language', 'comic_id'], unique=True, postgresql_where=sa.text('NOT is_draft'))
     op.create_table('translation_images',
@@ -72,7 +71,7 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['translation_id'], ['translations.id'], name=op.f('fk_translation_images_translation_id_translations'), ondelete='SET NULL'),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_translation_images'))
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_translation_images')),
     )
     # ### end Alembic commands ###
 
