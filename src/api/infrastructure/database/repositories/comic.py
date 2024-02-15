@@ -1,6 +1,7 @@
 from collections.abc import Iterable, Sequence
 
-from sqlalchemy import delete, select
+from api.infrastructure.database.types import Order, QueryParams, CountMetadata
+from sqlalchemy import delete, false, func, select, true
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,6 +18,7 @@ from api.application.exceptions.comic import (
 )
 from api.application.types import ComicID, IssueNumber
 from api.core.utils import slugify
+from api.infrastructure.database.models import TranslationModel
 from api.infrastructure.database.models.comic import ComicModel, TagModel
 
 
@@ -101,10 +103,22 @@ class ComicRepo:
 
         return ComicResponseWithTranslationsDTO.from_model(model=comic)
 
-    async def get_list(self) -> list[ComicResponseWithTranslationsDTO]:
-        comics: Sequence[ComicModel] = (
-            (await self._session.scalars(select(ComicModel))).unique().all()
-        )
+    async def get_list(self, query_params: QueryParams) -> list[ComicResponseWithTranslationsDTO]:
+        stmt = select(ComicModel)
+
+        if not query_params.order or query_params.order == Order.ASC:
+            stmt = stmt.order_by(ComicModel.number.asc())
+        else:
+            stmt = stmt.order_by(ComicModel.number.desc())
+
+        if query_params.date_range.start:
+            stmt = stmt.where(ComicModel.publication_date >= query_params.date_range.start)
+        if query_params.date_range.end:
+            stmt = stmt.where(ComicModel.publication_date <= query_params.date_range.end)
+
+        stmt = stmt.limit(query_params.limit).offset(query_params.offset)
+
+        comics: Sequence[ComicModel] = (await self._session.scalars(stmt)).unique().all()
 
         return [ComicResponseWithTranslationsDTO.from_model(model=comic) for comic in comics]
 
@@ -152,6 +166,37 @@ class ComicRepo:
             raise ComicNotFoundError(comic_id=comic_id)
 
         return comic
+
+    async def get_counts(self) -> CountMetadata:
+        comic_count_subq = (
+            select(func.count("*").label("comic_count")).select_from(ComicModel).subquery()
+        )
+
+        translation_count_subq = (
+            select(func.count("*").label("translation_count"))
+            .select_from(TranslationModel)
+            .where(TranslationModel.is_draft == false())
+            .subquery()
+        )
+
+        draft_count_subq = (
+            select(func.count("*").label("draft_count"))
+            .select_from(TranslationModel)
+            .where(TranslationModel.is_draft == true())
+            .subquery()
+        )
+        tag_count_subq = select(func.count("*").label("tag_count")).select_from(TagModel).subquery()
+
+        stmt = select(
+            comic_count_subq,
+            translation_count_subq,
+            draft_count_subq,
+            tag_count_subq,
+        )
+
+        result = (await self._session.execute(stmt)).mappings().one()
+
+        return CountMetadata(**result)
 
     @staticmethod
     def _handle_integrity_error(

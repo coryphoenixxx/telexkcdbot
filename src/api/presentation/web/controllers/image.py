@@ -50,7 +50,7 @@ router = NatsRouter(
     },
 )
 async def upload_image(
-    title: Annotated[str, Query(max_length=100)],
+    title: str,
     number: Annotated[int | None, Query(gt=0)] = None,
     language: LanguageCode = LanguageCode.EN,
     is_draft: bool = False,

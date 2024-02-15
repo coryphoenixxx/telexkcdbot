@@ -20,7 +20,7 @@ from shared.utils import custom_json_dumps
 class HttpClient:
     _CLIENTS_WITH_TS_CACHE: dict[str, tuple[ClientSession, float]] = {}  # noqa
 
-    def __init__(self, max_conns: int = 20, timeout: int = 20):
+    def __init__(self, max_conns: int = 25, timeout: int = 20):
         self._throttler = asyncio.Semaphore(max_conns)
         self._close_sessions_task = None
         self._timeout = timeout
@@ -56,6 +56,7 @@ class HttpClient:
         data: Any = None,
         json: Any = None,
         statuses: tuple[int] = (429, 503),
+        **kwargs,
     ):
         client = self._get_or_create_client(url, statuses)
 
@@ -64,11 +65,11 @@ class HttpClient:
             params=params,
             data=data,
             json=json,
+            **kwargs,
         ) as response:
             yield response
 
-    @staticmethod
-    def _create_retry_client(session: ClientSession, statuses: tuple[int]):
+    def _create_retry_client(self, session: ClientSession, statuses: tuple[int]):
         return RetryClient(
             raise_for_status=False,
             retry_options=ExponentialRetry(

@@ -165,7 +165,6 @@ async def scrape_spanish(
     es_translation_data = []
 
     with alive_bar(
-        total=len(links),
         title="Xkcd ES scraping...:",
         title_length=25,
         force_tty=True,

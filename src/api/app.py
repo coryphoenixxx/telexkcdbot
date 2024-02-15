@@ -37,11 +37,13 @@ def create_app() -> FastAPI:
 
     root_router = register_routers(app)
 
+    broker = root_router.broker
+
     app.add_middleware(ExceptionHandlerMiddleware)
 
     engine = create_db_engine(settings.db)
     db_session_factory = create_db_session_factory(engine)
-    http_client = HttpClient(max_conns=10)
+    http_client = HttpClient()
 
     app.dependency_overrides.update(
         {
@@ -58,7 +60,7 @@ def create_app() -> FastAPI:
                 static_dir=settings.app.static_dir,
             ),
             HttpClientDepStub: lambda: http_client,
-            BrokerDepStub: lambda: root_router.broker,
+            BrokerDepStub: lambda: broker,
         },
     )
 

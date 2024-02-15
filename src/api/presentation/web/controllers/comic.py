@@ -1,5 +1,8 @@
-from fastapi import Depends
+import datetime
+
+from fastapi import Depends, Response
 from faststream.nats.fastapi import NatsRouter
+from api.infrastructure.database.types import Order, DateRange, Limit, Offset, QueryParams
 from starlette import status
 
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWithTranslationsDTO
@@ -89,11 +92,27 @@ async def get_extra_comic_by_title(
 
 @router.get("/comics", status_code=status.HTTP_200_OK)
 async def get_comics(
+    response: Response,
+    page_size: int | None = None,
+    page_num: int | None = None,
+    date_from: datetime.date | None = None,
+    date_to: datetime.date | None = None,
+    order: Order = Order.ASC,
     db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
 ) -> list[ComicWithTranslationsResponseSchema]:
-    comic_resp_dtos: list[ComicResponseWithTranslationsDTO] = await ComicService(
+    comic_resp_dtos, total_count = await ComicService(
         db_holder=db_holder,
-    ).get_list()
+    ).get_list(
+        QueryParams(
+            limit=Limit(page_size) if page_num else None,
+            offset=Offset(page_size * (page_num - 1)) if page_size and page_num else None,
+            order=order,
+            date_range=DateRange(start=date_from, end=date_to),
+        ),
+    )
+
+    response.headers["X-Response-Count"] = str(len(comic_resp_dtos))
+    response.headers["X-Total-Count"] = str(total_count)
 
     return [ComicWithTranslationsResponseSchema.from_dto(dto=dto) for dto in comic_resp_dtos]
 

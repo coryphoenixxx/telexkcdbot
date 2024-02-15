@@ -1,3 +1,5 @@
+from api.infrastructure.database.types import QueryParams
+
 from api.application.dtos.requests.comic import ComicRequestDTO
 from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWithTranslationsDTO
@@ -63,13 +65,17 @@ class ComicService:
 
             return comic_resp_dto
 
-    async def get_list(self) -> list[ComicResponseWithTranslationsDTO]:
+    async def get_list(
+        self,
+        query_params: QueryParams,
+    ) -> tuple[list[ComicResponseWithTranslationsDTO], int]:
         async with self._db_holder:
-            comic_resp_dtos = await self._db_holder.comic_repo.get_list()
+            comic_resp_dtos = await self._db_holder.comic_repo.get_list(query_params)
+            total_count = (await self._db_holder.comic_repo.get_counts()).comic_count
 
-            return comic_resp_dtos
+            return comic_resp_dtos, total_count
 
-    async def delete(self, comic_id: ComicID):
+    async def delete(self, comic_id: ComicID) -> None:
         async with self._db_holder:
             await self._db_holder.comic_repo.delete(comic_id)
             await self._db_holder.commit()
