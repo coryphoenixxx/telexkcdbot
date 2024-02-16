@@ -1,6 +1,5 @@
 from collections.abc import Iterable, Sequence
 
-from api.infrastructure.database.types import Order, QueryParams, CountMetadata
 from sqlalchemy import delete, false, func, select, true
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -20,6 +19,7 @@ from api.application.types import ComicID, IssueNumber
 from api.core.utils import slugify
 from api.infrastructure.database.models import TranslationModel
 from api.infrastructure.database.models.comic import ComicModel, TagModel
+from api.infrastructure.database.types import CountMetadata, Order, QueryParams
 
 
 class ComicRepo:

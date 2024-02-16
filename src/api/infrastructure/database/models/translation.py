@@ -1,11 +1,11 @@
 from typing import TYPE_CHECKING
 
-from shared.types import LanguageCode
 from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.infrastructure.database.models import Base
 from api.infrastructure.database.models.mixins import PkIdMixin, TimestampMixin
+from shared.types import LanguageCode
 
 if TYPE_CHECKING:
     from . import ComicModel
@@ -45,7 +45,6 @@ class TranslationModel(PkIdMixin, Base, TimestampMixin):
     language: Mapped[LanguageCode] = mapped_column(String(2))
     tooltip: Mapped[str] = mapped_column(default="")
     transcript_raw: Mapped[str] = mapped_column(default="")
-    transcript_text: Mapped[str] = mapped_column(default="")
     translator_comment: Mapped[str] = mapped_column(default="")
     source_link: Mapped[str | None]
     is_draft: Mapped[bool] = mapped_column(default=False)
@@ -54,6 +53,8 @@ class TranslationModel(PkIdMixin, Base, TimestampMixin):
         back_populates="translation",
         lazy="joined",
     )
+
+    searchable_text: Mapped[str]
 
     comic: Mapped["ComicModel"] = relationship(back_populates="translations")
 
@@ -73,6 +74,12 @@ class TranslationModel(PkIdMixin, Base, TimestampMixin):
             "language",
             "comic_id",
             unique=True,
+            postgresql_where=(~is_draft),
+        ),
+        Index(
+            "ix_translations_searchable_text",
+            "searchable_text",
+            postgresql_using="pgroonga",
             postgresql_where=(~is_draft),
         ),
     )

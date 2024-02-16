@@ -43,8 +43,6 @@ async def scrape_origin(
             else:
                 [comics_data.append(task.result()) for task in tasks]
 
-    logger.info("Successfully origin scraped.")
-
     return comics_data
 
 
@@ -74,8 +72,6 @@ async def upload_origin(
             else:
                 for task in tasks:
                     number_comic_id_map |= task.result()
-
-    logger.info("Successfully origin uploaded.")
 
     return number_comic_id_map
 
@@ -264,9 +260,7 @@ async def main(from_: int = 1, to_: int | None = None, chunk_size: int = 100):
     async with HttpClient() as http_client:
         api_client = APIRESTClient(http_client)
 
-        if await api_client.healthcheck():
-            logger.info("Starting scraping...")
-        else:
+        if not await api_client.healthcheck():
             return
 
         if not to_:

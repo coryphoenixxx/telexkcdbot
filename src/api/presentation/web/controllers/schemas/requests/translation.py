@@ -8,8 +8,8 @@ from api.application.types import ComicID, TranslationImageID
 
 class TranslationRequestSchema(BaseModel):
     comic_id: int
-    title: str = Field(min_length=1)
     language: LanguageCode
+    title: str = Field(min_length=1)
     tooltip: str = Field(default="")
     transcript_raw: str = Field(default="")
     translator_comment: str = Field(default="")

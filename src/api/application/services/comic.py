@@ -1,10 +1,9 @@
-from api.infrastructure.database.types import QueryParams
-
 from api.application.dtos.requests.comic import ComicRequestDTO
 from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWithTranslationsDTO
 from api.application.types import ComicID, IssueNumber
 from api.infrastructure.database import DatabaseHolder
+from api.infrastructure.database.types import QueryParams
 
 
 class ComicService:

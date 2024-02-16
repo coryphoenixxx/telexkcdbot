@@ -162,7 +162,9 @@ def downgrade() -> None:
     op.drop_table("comic_tag_association")
     op.drop_table("tags")
     op.drop_index(
-        "uq_title_if_extra", table_name="comics", postgresql_where=sa.text("number IS NULL"),
+        "uq_title_if_extra",
+        table_name="comics",
+        postgresql_where=sa.text("number IS NULL"),
     )
     op.drop_index(
         "uq_number_if_not_extra",

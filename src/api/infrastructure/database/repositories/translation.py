@@ -19,6 +19,7 @@ from api.application.exceptions.translation import (
 from api.application.types import TranslationID, TranslationImageID
 from api.core.utils import slugify
 from api.infrastructure.database.models import ComicModel, TranslationImageModel, TranslationModel
+from api.infrastructure.database.utils import build_searchable_text
 
 
 class TranslationRepo:
@@ -35,14 +36,14 @@ class TranslationRepo:
             translation = TranslationModel(
                 comic_id=dto.comic_id,
                 title=dto.title,
+                language=dto.language,
                 tooltip=dto.tooltip,
                 transcript_raw=dto.transcript_raw,
-                transcript_text=self._raw_to_searchable_text(dto.transcript_raw),
                 translator_comment=dto.translator_comment,
-                language=dto.language,
-                is_draft=dto.is_draft,
                 source_link=dto.source_link,
                 images=images,
+                is_draft=dto.is_draft,
+                searchable_text=build_searchable_text(dto.title, dto.transcript_raw),
             )
 
             self._session.add(translation)
@@ -76,14 +77,14 @@ class TranslationRepo:
 
             translation.comic_id = dto.comic_id
             translation.title = dto.title
+            translation.language = dto.language
             translation.tooltip = dto.tooltip
             translation.transcript_raw = dto.transcript_raw
-            translation.transcript_text = self._raw_to_searchable_text(dto.transcript_raw)
             translation.translator_comment = dto.translator_comment
-            translation.language = dto.language
-            translation.is_draft = dto.is_draft
             translation.source_link = dto.source_link
             translation.images = images
+            translation.is_draft = dto.is_draft
+            translation.searchable_text = build_searchable_text(dto.title, dto.transcript_raw)
 
             await self._session.flush()
         except IntegrityError as err:
@@ -165,10 +166,6 @@ class TranslationRepo:
         comic.slug = slugify(dto.title)
 
         self._session.add(comic)
-
-    def _raw_to_searchable_text(self, raw: str) -> str:
-        text = raw
-        return text
 
     def _handle_integrity_error(
         self,

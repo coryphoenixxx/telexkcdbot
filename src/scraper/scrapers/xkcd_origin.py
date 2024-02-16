@@ -3,6 +3,7 @@ import html
 import logging
 import re
 
+from aiohttp import ClientResponse  # noqa: F401
 from bs4 import BeautifulSoup, Tag
 from shared.http_client import HttpClient
 from yarl import URL
@@ -54,7 +55,7 @@ class XkcdOriginScraper(BaseScraper):
             )
 
     async def fetch_origin_data(self, number: int) -> XKCDOriginData:
-        xkcd_url = self._XKCD_URL.joinpath(str(number) + '/')
+        xkcd_url = self._XKCD_URL.joinpath(str(number) + "/")
 
         if number == 404:
             return XKCDOriginData(
@@ -184,7 +185,7 @@ class XkcdOriginScraper(BaseScraper):
         if transcript_tag:
             transcript_header = transcript_tag.parent
             if transcript_header:
-
+                temp, length = "", 0
                 for tag in transcript_header.find_next_siblings():  # type: Tag
                     tag_name = tag.name
                     if tag.get("id") == "Discussion" or tag_name in ("h1", "h2"):
@@ -192,7 +193,16 @@ class XkcdOriginScraper(BaseScraper):
                     elif tag_name == "table" and "This transcript is incomplete" in tag.get_text():
                         continue
                     else:
-                        transcript_html += str(tag)
+                        tag_as_text = str(tag)
+                        length += len(tag_as_text)
+
+                        if length > 25_000:
+                            temp = ""
+                            break
+                        else:
+                            temp += tag_as_text
+
+                transcript_html = temp
 
         return transcript_html
 
