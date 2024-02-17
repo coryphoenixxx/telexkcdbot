@@ -5,10 +5,10 @@ from shared.http_client import HttpClient
 from api.application.image_saver import ImageSaveHelper
 from api.core.settings import load_settings
 from api.infrastructure.database import (
-    DatabaseHolder,
     create_db_engine,
     create_db_session_factory,
 )
+from api.infrastructure.database.holder import DatabaseHolder
 from api.presentation.dependency_stubs import (
     BrokerDepStub,
     DatabaseHolderDepStub,

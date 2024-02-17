@@ -2,7 +2,7 @@
 from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.dtos.responses.translation import TranslationResponseDTO
 from api.application.types import TranslationID
-from api.infrastructure.database import DatabaseHolder
+from api.infrastructure.database.holder import DatabaseHolder
 
 
 class TranslationService:

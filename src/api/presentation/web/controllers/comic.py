@@ -7,7 +7,7 @@ from starlette import status
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWithTranslationsDTO
 from api.application.services.comic import ComicService
 from api.application.types import ComicID, IssueNumber
-from api.infrastructure.database import DatabaseHolder
+from api.infrastructure.database.holder import DatabaseHolder
 from api.infrastructure.database.types import DateRange, Limit, Offset, Order, QueryParams
 from api.presentation.dependency_stubs import DatabaseHolderDepStub
 from api.presentation.web.controllers.schemas.requests.comic import (

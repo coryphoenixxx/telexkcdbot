@@ -1,11 +1,11 @@
 from typing import TYPE_CHECKING
 
+from shared.types import LanguageCode
 from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.infrastructure.database.models import Base
 from api.infrastructure.database.models.mixins import PkIdMixin, TimestampMixin
-from shared.types import LanguageCode
 
 if TYPE_CHECKING:
     from . import ComicModel
@@ -80,6 +80,5 @@ class TranslationModel(PkIdMixin, Base, TimestampMixin):
             "ix_translations_searchable_text",
             "searchable_text",
             postgresql_using="pgroonga",
-            postgresql_where=(~is_draft),
         ),
     )
