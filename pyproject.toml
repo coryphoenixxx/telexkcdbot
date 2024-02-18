@@ -57,6 +57,7 @@ pre-commit = "^3.3"
 ruff = "^0.2"
 black = "^24"
 pytest = "^8.0.0"
+pympler = "^1.0.1"
 
 
 [tool.pytest.ini_options]

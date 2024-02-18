@@ -38,9 +38,7 @@ class UploadImageHandler:
         return await self._read_to_temp(upload)
 
     async def download(self, url: URL | str) -> ImageObj:
-        if isinstance(url, str):
-            url = URL(url)
-        async with self._http_client.safe_get(url=url) as response:  # type: ClientResponse
+        async with self._http_client.safe_get(url=url) as response:
             if response.status == 200:
                 return await self._read_to_temp(response.content)
             else:
@@ -51,11 +49,13 @@ class UploadImageHandler:
 
         async with NamedTemporaryFile(delete=False, dir=self._tmp_dir) as temp:
             file_size = 0
+
             while chunk := await obj.read(self._CHUNK_SIZE):
                 file_size += len(chunk)
                 if file_size > self._upload_max_size:
                     raise UploadExceedLimitError(upload_max_size=self._upload_max_size)
                 await temp.write(chunk)
+
             if file_size == 0:
                 raise RequestFileIsEmptyError
 

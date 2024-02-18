@@ -26,7 +26,7 @@ class APIRESTClient:
         url = self._API_URL.joinpath("healthcheck")
 
         try:
-            async with self._client.get(url) as response:
+            async with self._client.safe_get(url) as response:
                 ...
         except ClientConnectorError:
             logging.error("API is offline or wrong API url.")
@@ -101,9 +101,7 @@ class APIRESTClient:
                 return await response.json()
             else:
                 error_json = await response.json()
-                logging.error(
-                    f"Uploading image №{number} is failed. Reason: {error_json['message']}",  # FIX
-                )
+                print(error_json)
 
     async def create_comic(self, comic: XKCDPOSTData) -> int:
         url = self._API_URL.joinpath("comics")
@@ -116,9 +114,7 @@ class APIRESTClient:
                 return (await response.json())["id"]
             else:
                 error_json = await response.json()
-                logging.error(
-                    f"Creating comic №{comic.number} is failed. Reason: {error_json['detail']}",  # FIX
-                )
+                print(error_json)
 
     async def add_translation_with_image(
         self,
@@ -165,9 +161,7 @@ class APIRESTClient:
                 return (await response.json())["id"]
             else:
                 error_json = await response.json()
-                logging.error(
-                    f"Creating translation for comic №{data.number} is failed. Reason: {error_json['detail']}",  # FIX
-                )
+                print(error_json)
 
     @staticmethod
     def _build_params(**kwargs) -> dict[str, int | float | str]:

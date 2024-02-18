@@ -12,7 +12,7 @@ from shared.types import LanguageCode
 from shared.utils import chunks
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("main")
+logger = logging.getLogger()
 
 
 async def scrape_origin(
@@ -67,7 +67,6 @@ async def upload_origin(
                     ]
             except* Exception as errors:
                 for e in errors.exceptions:
-                    logger.error(e)
                     raise e
             else:
                 for task in tasks:
