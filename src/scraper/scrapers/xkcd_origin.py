@@ -5,11 +5,14 @@ import re
 
 from aiohttp import ClientResponse  # noqa: F401
 from bs4 import BeautifulSoup, Tag
+from rich.progress import Progress
 from shared.http_client import HttpClient
 from yarl import URL
 
-from scraper.dtos import XKCDExplainData, XKCDOriginData, XkcdORIGINFullScrapedData
+from scraper.dtos import XkcdBaseData, XKCDExplainData, XkcdOriginData
 from scraper.scrapers.base import BaseScraper
+from scraper.types import LimitParams
+from scraper.utils import ProgressBar, run_concurrently
 
 
 class XkcdOriginScraper(BaseScraper):
@@ -26,21 +29,24 @@ class XkcdOriginScraper(BaseScraper):
 
         return json_data["num"]
 
-    async def fetch_one(self, number: int, progress_bar=None) -> XkcdORIGINFullScrapedData:
-        fetch_origin_task = asyncio.create_task(self.fetch_origin_data(number))
+    async def fetch_one(
+        self,
+        number: int,
+        pbar: ProgressBar | None = None,
+    ) -> XkcdOriginData:
+        fetch_origin_task = asyncio.create_task(self.fetch_base_data(number))
         fetch_explain_task = asyncio.create_task(self.fetch_explain_data(number))
 
         try:
-            origin_data: XKCDOriginData = await fetch_origin_task
+            origin_data: XkcdBaseData = await fetch_origin_task
             explain_data: XKCDExplainData = await fetch_explain_task
         except Exception as err:
-            logging.error(err)
             raise err
         else:
-            if progress_bar:
-                progress_bar()
+            if pbar:
+                pbar.update()
 
-            return XkcdORIGINFullScrapedData(
+            return XkcdOriginData(
                 number=origin_data.number,
                 publication_date=origin_data.publication_date,
                 xkcd_url=origin_data.xkcd_url,
@@ -54,11 +60,25 @@ class XkcdOriginScraper(BaseScraper):
                 transcript_raw=explain_data.transcript_raw,
             )
 
-    async def fetch_origin_data(self, number: int) -> XKCDOriginData:
+    async def fetch_many(
+        self,
+        limits: LimitParams,
+        progress: Progress,
+    ) -> list[XkcdOriginData]:
+        numbers = list(range(limits.start, limits.end + 1))
+
+        return await run_concurrently(
+            data=numbers,
+            coro=self.fetch_one,
+            limits=limits,
+            pbar=ProgressBar(progress, "Origin scraping...", len(numbers)),
+        )
+
+    async def fetch_base_data(self, number: int) -> XkcdBaseData:
         xkcd_url = self._XKCD_URL.joinpath(str(number) + "/")
 
         if number == 404:
-            return XKCDOriginData(
+            return XkcdBaseData(
                 number=404,
                 xkcd_url=xkcd_url,
                 title="404: Not Found",
@@ -71,12 +91,12 @@ class XkcdOriginScraper(BaseScraper):
         else:
             async with self._client.safe_get(
                 xkcd_url.joinpath("info.0.json"),
-            ) as response:  # type: ClientResponse
+            ) as response:
                 json_data = await response.json()
 
             link_on_click, large_image_page_url = self._process_link(json_data["link"])
 
-            return XKCDOriginData(
+            return XkcdBaseData(
                 number=json_data["num"],
                 xkcd_url=xkcd_url,
                 title=self._process_title(json_data["title"]),

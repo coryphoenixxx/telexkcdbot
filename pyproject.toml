@@ -44,7 +44,7 @@ aiodns = "^3.0.0"
 lxml = "^5.1.0"
 beautifulsoup4 = "^4.12.2"
 aiohttp-retry = "^2.8.3"
-alive-progress = "^3.1.5"
+rich = "^13.7.0"
 
 
 [tool.poetry.group.image_processor.dependencies]
@@ -58,6 +58,7 @@ ruff = "^0.2"
 black = "^24"
 pytest = "^8.0.0"
 pympler = "^1.0.1"
+memray = "^1.11.0"
 
 
 [tool.pytest.ini_options]
@@ -173,7 +174,7 @@ exclude = [
 ]
 lint.per-file-ignores = { }
 
-line-length = 99
+line-length = 100
 
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 

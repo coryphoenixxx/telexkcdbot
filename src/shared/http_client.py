@@ -121,6 +121,7 @@ class HttpClient:
             raise_for_status=False,
             retry_options=ExponentialRetry(
                 attempts=5,
+                start_timeout=3.0,
                 exceptions={
                     TimeoutError,
                     ServerDisconnectedError,
@@ -140,6 +141,8 @@ class HttpClient:
                 resolver=AsyncResolver(nameservers={"8.8.8.8", "8.8.4.4"}),
                 ttl_dns_cache=600,
                 ssl=False,
+                limit=1000,
+                limit_per_host=100,
             )
 
         return ClientSession(

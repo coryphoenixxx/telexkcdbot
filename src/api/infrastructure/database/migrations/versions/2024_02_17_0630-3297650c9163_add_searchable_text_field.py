@@ -40,7 +40,7 @@ def downgrade() -> None:
         sa.Column("transcript_text", sa.VARCHAR(), autoincrement=False),
     )
     op.drop_index(
-        "ix_translations_searchable_text", table_name="translations", postgresql_using="pgroonga"
+        "ix_translations_searchable_text", table_name="translations", postgresql_using="pgroonga",
     )
     op.drop_column("translations", "searchable_text")
     # ### end Alembic commands ###

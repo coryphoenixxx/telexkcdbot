@@ -50,10 +50,16 @@ def ranges(start, end, size):
         yield i, i + size - 1
 
 
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
+def chunked(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i : i + n]
+
+
+def flatten(matrix: list[list]):
+    flat_list = []
+    for row in matrix:
+        flat_list += row
+    return flat_list
 
 
 class CustomJsonEncoder(json.JSONEncoder):

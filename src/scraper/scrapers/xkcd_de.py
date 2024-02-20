@@ -1,11 +1,15 @@
 import re
 
 from bs4 import BeautifulSoup
+from rich.progress import Progress
 from shared.http_client import HttpClient
+from shared.types import LanguageCode
 from yarl import URL
 
 from scraper.dtos import XkcdTranslationData
 from scraper.scrapers.base import BaseScraper
+from scraper.types import LimitParams
+from scraper.utils import ProgressBar, run_concurrently
 
 
 class XkcdDEScraper(BaseScraper):
@@ -26,7 +30,11 @@ class XkcdDEScraper(BaseScraper):
             ).group(1),
         )
 
-    async def fetch_one(self, number: int, progress_bar=None) -> XkcdTranslationData | None:
+    async def fetch_one(
+        self,
+        number: int,
+        pbar: ProgressBar | None = None,
+    ) -> XkcdTranslationData | None:
         if number == 404:
             return
 
@@ -44,12 +52,29 @@ class XkcdDEScraper(BaseScraper):
             image_url=await self._extract_image_url(soup),
             transcript_raw="",
             translator_comment=self._extract_comment(soup),
+            language=LanguageCode.DE,
         )
 
-        if progress_bar:
-            progress_bar()
+        if pbar:
+            pbar.update()
 
         return data
+
+    async def fetch_many(
+        self,
+        limits: LimitParams,
+        progress: Progress,
+    ) -> list[XkcdTranslationData]:
+        latest_num = await self.fetch_latest_number()
+
+        numbers = [n for n in range(limits.start, limits.end + 1) if n <= latest_num]
+
+        return await run_concurrently(
+            data=numbers,
+            coro=self.fetch_one,
+            limits=limits,
+            pbar=ProgressBar(progress, "Deutsch scraping..."),
+        )
 
     def _extract_title(self, soup: BeautifulSoup) -> str:
         title_block = soup.find("h2", {"class": "comictitle"})

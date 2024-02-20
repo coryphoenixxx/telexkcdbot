@@ -9,11 +9,6 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from api.core.settings import DbConfig
-from api.infrastructure.database.repositories import (
-    ComicRepo,
-    TranslationImageRepo,
-    TranslationRepo,
-)
 
 
 def create_db_engine(config: DbConfig) -> AsyncEngine:

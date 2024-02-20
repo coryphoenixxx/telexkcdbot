@@ -2,11 +2,15 @@ import asyncio
 from collections.abc import Iterable
 
 from bs4 import BeautifulSoup
+from rich.progress import Progress
 from shared.http_client import HttpClient
+from shared.types import LanguageCode
 from yarl import URL
 
 from scraper.dtos import XkcdTranslationData
 from scraper.scrapers.base import BaseScraper
+from scraper.types import LimitParams
+from scraper.utils import ProgressBar, run_concurrently
 
 
 class XkcdCNScraper(BaseScraper):
@@ -15,7 +19,11 @@ class XkcdCNScraper(BaseScraper):
     def __init__(self, client: HttpClient):
         super().__init__(client=client)
 
-    async def fetch_one(self, url: URL, progress_bar=None) -> XkcdTranslationData:
+    async def fetch_one(
+        self,
+        url: URL,
+        pbar: ProgressBar | None = None,
+    ) -> XkcdTranslationData:
         soup = await self._get_soup(url)
 
         tooltip, translator_comment = self._extract_tooltip_and_translator_comment(soup)
@@ -28,12 +36,31 @@ class XkcdCNScraper(BaseScraper):
             image_url=self._extract_image_url(soup),
             transcript_raw="",
             translator_comment=translator_comment,
+            language=LanguageCode.CN,
         )
 
-        if progress_bar:
-            progress_bar()
+        if pbar:
+            pbar.update()
 
         return data
+
+    async def fetch_many(
+        self,
+        limits: LimitParams,
+        progress: Progress,
+    ) -> list[XkcdTranslationData]:
+        links = [
+            link
+            for link in await self.fetch_all_links()
+            if limits.start <= int(str(link).split("=")[-1]) <= limits.end
+        ]
+
+        return await run_concurrently(
+            data=links,
+            coro=self.fetch_one,
+            limits=limits,
+            pbar=ProgressBar(progress, "Chinese scraping...", len(links)),
+        )
 
     async def fetch_all_links(self) -> list[URL]:
         soup = await self._get_soup(self._BASE_URL)

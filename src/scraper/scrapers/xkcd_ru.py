@@ -1,11 +1,15 @@
 import re
 
 from bs4 import BeautifulSoup, Tag
+from rich.progress import Progress
 from shared.http_client import HttpClient
+from shared.types import LanguageCode
 from yarl import URL
 
 from scraper.dtos import XkcdTranslationData
 from scraper.scrapers.base import BaseScraper
+from scraper.types import LimitParams
+from scraper.utils import ProgressBar, run_concurrently
 
 
 class XkcdRUScraper(BaseScraper):
@@ -20,8 +24,12 @@ class XkcdRUScraper(BaseScraper):
 
         return self._extract_nums(soup)
 
-    async def fetch_one(self, number: int, progress_bar=None) -> XkcdTranslationData:
-        url = self._BASE_URL.joinpath(str(number) + '/')
+    async def fetch_one(
+        self,
+        number: int,
+        pbar: ProgressBar | None = None,
+    ) -> XkcdTranslationData:
+        url = self._BASE_URL.joinpath(str(number) + "/")
         soup = await self._get_soup(url)
 
         data = XkcdTranslationData(
@@ -32,12 +40,29 @@ class XkcdRUScraper(BaseScraper):
             image_url=self._extract_image_url(soup),
             transcript_raw=self._extract_transcript(soup),
             translator_comment=self._extract_comment(soup),
+            language=LanguageCode.RU,
         )
 
-        if progress_bar:
-            progress_bar()
+        if pbar:
+            pbar.update()
 
         return data
+
+    async def fetch_many(
+        self,
+        limits: LimitParams,
+        progress: Progress,
+    ) -> list[XkcdTranslationData]:
+        all_nums = await self.get_all_nums()
+
+        numbers = [n for n in all_nums if limits.start <= n <= limits.end]
+
+        return await run_concurrently(
+            data=numbers,
+            coro=self.fetch_one,
+            limits=limits,
+            pbar=ProgressBar(progress, "Russian scraping...", len(numbers)),
+        )
 
     def _extract_nums(self, soup: BeautifulSoup) -> list[int]:
         return [int(num.text) for num in soup.find_all("li", {"class": "real"})]

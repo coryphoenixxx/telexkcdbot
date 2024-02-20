@@ -1,11 +1,15 @@
 import re
 
 from bs4 import BeautifulSoup
+from rich.progress import Progress
 from shared.http_client import HttpClient
+from shared.types import LanguageCode
 from yarl import URL
 
 from scraper.dtos import XkcdTranslationData
 from scraper.scrapers.base import BaseScraper
+from scraper.types import LimitParams
+from scraper.utils import ProgressBar, run_concurrently
 
 
 class XkcdESScraper(BaseScraper):
@@ -18,15 +22,15 @@ class XkcdESScraper(BaseScraper):
     async def fetch_one(
         self,
         url: URL,
-        from_: int,
-        to_: int,
-        progress_bar=None,
+        start: int,
+        end: int,
+        pbar: ProgressBar | None = None,
     ) -> XkcdTranslationData | None:
         soup = await self._get_soup(url)
 
         number = self._extract_number(soup)
 
-        if not number or number < from_ or number > to_:
+        if not number or number < start or number > end:
             return
 
         data = XkcdTranslationData(
@@ -37,15 +41,32 @@ class XkcdESScraper(BaseScraper):
             image_url=self._extract_image_url(soup),
             transcript_raw="",
             translator_comment="",
+            language=LanguageCode.ES,
         )
 
         if data.title == "Geografía":  # fix: https://es.xkcd.com/strips/geografia/
             data.number = 1472
 
-        if progress_bar:
-            progress_bar()
+        if pbar:
+            pbar.update()
 
         return data
+
+    async def fetch_many(
+        self,
+        limits: LimitParams,
+        progress: Progress,
+    ) -> list[XkcdTranslationData]:
+        links = await self.fetch_all_links()
+
+        return await run_concurrently(
+            data=links,
+            coro=self.fetch_one,
+            limits=limits,
+            start=limits.start,
+            end=limits.end,
+            pbar=ProgressBar(progress, "Spanish scraping..."),
+        )
 
     async def fetch_all_links(self) -> list[URL]:
         url = self._BASE_URL.joinpath("archive/")

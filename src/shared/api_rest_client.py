@@ -1,13 +1,14 @@
 import logging
 from typing import BinaryIO
 
-from aiohttp import ClientConnectorError
+from aiohttp import ClientConnectorError, ClientResponse  # noqa: F401
 from scraper.dtos import (
-    XkcdORIGINFullScrapedData,
-    XKCDPOSTData,
+    XkcdOriginData,
+    XkcdPostData,
     XkcdTranslationData,
-    XkcdTranslationPOSTData,
+    XkcdTranslationPostData,
 )
+from scraper.utils import ProgressBar
 from yarl import URL
 
 from shared.http_client import HttpClient
@@ -17,7 +18,7 @@ from shared.types import (
 
 
 class APIRESTClient:
-    _API_URL = URL("http://localhost:8000/api/")
+    _API_URL = URL("http://127.0.0.1:8000/api/")
 
     def __init__(self, client: HttpClient):
         self._client = client
@@ -36,8 +37,8 @@ class APIRESTClient:
 
     async def create_comic_with_image(
         self,
-        data: XkcdORIGINFullScrapedData,
-        progress_bar,
+        data: XkcdOriginData,
+        pbar: ProgressBar | None = None,
     ) -> dict[int, int]:
         images = []
 
@@ -53,7 +54,7 @@ class APIRESTClient:
             images.append(image_id)
 
         comic_id = await self.create_comic(
-            comic=XKCDPOSTData(
+            comic=XkcdPostData(
                 number=data.number,
                 publication_date=data.publication_date,
                 xkcd_url=data.xkcd_url,
@@ -68,8 +69,8 @@ class APIRESTClient:
             ),
         )
 
-        if progress_bar:
-            progress_bar()
+        if pbar:
+            pbar.update()
 
         return {data.number: comic_id}
 
@@ -103,7 +104,7 @@ class APIRESTClient:
                 error_json = await response.json()
                 print(error_json)
 
-    async def create_comic(self, comic: XKCDPOSTData) -> int:
+    async def create_comic(self, comic: XkcdPostData) -> int:
         url = self._API_URL.joinpath("comics")
 
         async with self._client.safe_post(
@@ -118,10 +119,9 @@ class APIRESTClient:
 
     async def add_translation_with_image(
         self,
-        number_comic_id_map: dict[int, int],
-        language: LanguageCode,
         data: XkcdTranslationData,
-        progress_bar,
+        number_comic_id_map: dict[int, int],
+        pbar: ProgressBar | None = None,
     ):
         url = self._API_URL.joinpath("translations")
 
@@ -134,16 +134,16 @@ class APIRESTClient:
                 await self.upload_image(
                     title=data.title,
                     number=data.number,
-                    language=language,
+                    language=data.language,
                     image_url=data.image_url,
                 )
             )["id"]
             images.append(image_id)
 
-        translation = XkcdTranslationPOSTData(
+        translation = XkcdTranslationPostData(
             comic_id=comic_id,
             title=data.title,
-            language=language,
+            language=data.language,
             tooltip=data.tooltip,
             transcript_raw=data.transcript_raw,
             translator_comment=data.translator_comment,
@@ -156,8 +156,8 @@ class APIRESTClient:
             json=translation,
         ) as response:  # type:ClientResponse
             if response.status == 201:
-                if progress_bar:
-                    progress_bar()
+                if pbar:
+                    pbar.update()
                 return (await response.json())["id"]
             else:
                 error_json = await response.json()
