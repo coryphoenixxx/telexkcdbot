@@ -12,6 +12,7 @@ from rich.progress import (
 from scraper.dtos import XkcdOriginData, XkcdTranslationData
 from scraper.scrapers import XkcdDEScraper, XkcdESScraper, XkcdOriginScraper, XkcdRUScraper
 from scraper.scrapers.xkcd_cn import XkcdCNScraper
+from scraper.scrapers.xkcd_fr import XkcdFRScraper
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
 from shared.api_rest_client import APIRESTClient
@@ -62,10 +63,12 @@ async def upload_translations(
 async def main(start: int = 1, end: int | None = None, chunk_size: int = 100):
     async with HttpClient() as http_client:
         xkcd_origin_scraper = XkcdOriginScraper(client=http_client)
+
         xkcd_ru_scraper = XkcdRUScraper(client=http_client)
         xkcd_de_scraper = XkcdDEScraper(client=http_client)
         xkcd_es_scraper = XkcdESScraper(client=http_client)
         xkcd_ch_scraper = XkcdCNScraper(client=http_client)
+        xkcd_fr_scraper = XkcdFRScraper(client=http_client)
 
         api_client = APIRESTClient(http_client)
 
@@ -83,9 +86,7 @@ async def main(start: int = 1, end: int | None = None, chunk_size: int = 100):
             MofNCompleteColumn(),
             TimeElapsedColumn(),
         ) as progress:
-
             origin_data = await xkcd_origin_scraper.fetch_many(limits, progress)
-            number_comic_id_map = await upload_origin(api_client, origin_data, limits, progress)
 
             async with asyncio.TaskGroup() as tg:
                 tasks = [
@@ -93,9 +94,12 @@ async def main(start: int = 1, end: int | None = None, chunk_size: int = 100):
                     tg.create_task(xkcd_de_scraper.fetch_many(limits, progress)),
                     tg.create_task(xkcd_es_scraper.fetch_many(limits, progress)),
                     tg.create_task(xkcd_ch_scraper.fetch_many(limits, progress)),
+                    tg.create_task(xkcd_fr_scraper.fetch_many(limits, progress)),
                 ]
 
             translations = flatten([task.result() for task in tasks])
+
+            number_comic_id_map = await upload_origin(api_client, origin_data, limits, progress)
 
             await upload_translations(
                 api_client,

@@ -33,14 +33,12 @@ class ProgressBar:
                     task.total = self._counter
                     col.render(task)
 
-        # self._progress.remove_task(self._task_id)
-
 
 async def run_concurrently(
     data: list,
     coro: Callable,
     limits: LimitParams,
-    pbar: ProgressBar,
+    pbar: ProgressBar | None,
     **kwargs,
 ) -> list:
     results = []
@@ -61,7 +59,7 @@ async def run_concurrently(
                 result = task.result()
                 if result:
                     results.append(result)
-
-    pbar.finish()
+    if pbar:
+        pbar.finish()
 
     return results

@@ -8,6 +8,18 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from api.infrastructure.database.repositories import (
+    ComicRepo,
+    TranslationImageRepo,
+    TranslationRepo,
+)
+
+__all__ = [
+    "ComicRepo",
+    "TranslationImageRepo",
+    "TranslationRepo",
+]
+
 from api.core.settings import DbConfig
 
 

@@ -14,3 +14,4 @@ class LanguageCode(StrEnum):
     CN = "CN"
     ES = "ES"
     DE = "DE"
+    FR = "FR"
