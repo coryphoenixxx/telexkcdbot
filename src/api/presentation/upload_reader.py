@@ -1,13 +1,12 @@
 import logging
 from pathlib import Path
-from typing import Final
 
 import aiofiles.os as aos
 import filetype
 import imagesize
 from aiofiles.tempfile import NamedTemporaryFile
-from aiohttp import StreamReader
-from shared.http_client import HttpClient
+from aiohttp import ClientPayloadError, StreamReader
+from shared.http_client import AsyncHttpClient
 from shared.types import ImageFormat
 from starlette.datastructures import UploadFile
 from yarl import URL
@@ -23,9 +22,9 @@ from api.presentation.types import ImageObj
 
 
 class UploadImageHandler:
-    _CHUNK_SIZE: Final = 1024 * 64
+    _CHUNK_SIZE: int = 1024 * 64
 
-    def __init__(self, tmp_dir: Path, upload_max_size: int, http_client: HttpClient):
+    def __init__(self, tmp_dir: Path, upload_max_size: int, http_client: AsyncHttpClient):
         self._tmp_dir = tmp_dir
         self._upload_max_size = upload_max_size
         self._supported_formats = tuple(ImageFormat)
@@ -38,11 +37,15 @@ class UploadImageHandler:
         return await self._read_to_temp(upload)
 
     async def download(self, url: URL | str) -> ImageObj:
-        async with self._http_client.safe_get(url=url) as response:
-            if response.status == 200:
-                return await self._read_to_temp(response.content)
-            else:
-                raise DownloadImageError
+        for _ in range(3):
+            try:
+                async with self._http_client.safe_get(url=url) as response:
+                    if response.status == 200:
+                        return await self._read_to_temp(response.content)
+            except (TimeoutError, ClientPayloadError):
+                continue
+
+        raise DownloadImageError
 
     async def _read_to_temp(self, obj: StreamReader | UploadFile) -> ImageObj:
         await aos.makedirs(self._tmp_dir, exist_ok=True)
@@ -69,6 +72,7 @@ class UploadImageHandler:
 
     def _get_real_image_format(self, path: Path) -> ImageFormat:
         fmt = None
+
         try:
             extension = filetype.guess_extension(path)
             if extension is None:

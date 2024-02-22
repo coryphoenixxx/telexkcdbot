@@ -1,15 +1,15 @@
 from aiohttp import ClientPayloadError, ClientResponse  # noqa: F401
 from bs4 import BeautifulSoup
-from shared.http_client import HttpClient
+from shared.http_client import AsyncHttpClient
 from yarl import URL
 
 
 class BaseScraper:
-    def __init__(self, client: HttpClient) -> None:
+    def __init__(self, client: AsyncHttpClient) -> None:
         self._client = client
 
     async def _get_soup(self, url: URL, **kwargs):
-        while True:
+        for _ in range(3):
             try:
                 async with self._client.safe_get(url=url, **kwargs) as response:
                     html = await response.content.read()

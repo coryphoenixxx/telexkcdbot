@@ -9,14 +9,17 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
-from scraper.dtos import XkcdOriginData, XkcdTranslationData
-from scraper.scrapers import XkcdDEScraper, XkcdESScraper, XkcdOriginScraper, XkcdRUScraper
-from scraper.scrapers.xkcd_cn import XkcdCNScraper
-from scraper.scrapers.xkcd_fr import XkcdFRScraper
+from scraper.dtos import XkcdOriginData, XkcdTranslation
+from scraper.scrapers import XkcdOriginScraper
+from scraper.scrapers.translation_scrapers.CN import XkcdCNScraper
+from scraper.scrapers.translation_scrapers.DE import XkcdDEScraper
+from scraper.scrapers.translation_scrapers.ES import XkcdESScraper
+from scraper.scrapers.translation_scrapers.FR import XkcdFRScraper
+from scraper.scrapers.translation_scrapers.RU import XkcdRUScraper
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
 from shared.api_rest_client import APIRESTClient
-from shared.http_client import HttpClient
+from shared.http_client import AsyncHttpClient
 from shared.utils import flatten
 
 logging.basicConfig(level=logging.INFO)
@@ -47,7 +50,7 @@ async def upload_origin(
 async def upload_translations(
     api_client: APIRESTClient,
     number_comic_id_map: dict[int, int],
-    translation_data: list[XkcdTranslationData],
+    translation_data: list[XkcdTranslation],
     limits: LimitParams,
     progress: Progress,
 ):
@@ -56,12 +59,12 @@ async def upload_translations(
         coro=api_client.add_translation_with_image,
         limits=limits,
         number_comic_id_map=number_comic_id_map,
-        pbar=ProgressBar(progress, "Translation uploading...", len(translation_data)),
+        pbar=ProgressBar(progress, "Translations uploading...", len(translation_data)),
     )
 
 
-async def main(start: int = 1, end: int | None = None, chunk_size: int = 100):
-    async with HttpClient() as http_client:
+async def main(start: int = 1, end: int | None = None, chunk_size: int = 100, delay: int = 0):
+    async with AsyncHttpClient() as http_client:
         xkcd_origin_scraper = XkcdOriginScraper(client=http_client)
 
         xkcd_ru_scraper = XkcdRUScraper(client=http_client)
@@ -78,13 +81,14 @@ async def main(start: int = 1, end: int | None = None, chunk_size: int = 100):
         if not end:
             end = await xkcd_origin_scraper.fetch_latest_number()
 
-        limits = LimitParams(start, end, chunk_size)
+        limits = LimitParams(start, end, chunk_size, delay)
 
         with Progress(
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             MofNCompleteColumn(),
             TimeElapsedColumn(),
+            refresh_per_second=5,
         ) as progress:
             origin_data = await xkcd_origin_scraper.fetch_many(limits, progress)
 

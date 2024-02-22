@@ -17,7 +17,7 @@ class XkcdBaseData:
 
 
 @dataclass(slots=True)
-class XkcdTranslationData:
+class XkcdTranslation:
     number: int
     source_link: URL | None
     title: str
@@ -41,7 +41,7 @@ class XkcdTranslationPostData:
 
 
 @dataclass(slots=True)
-class XKCDExplainData:
+class XkcdExplainData:
     explain_url: URL
     tags: list[str]
     transcript_raw: str

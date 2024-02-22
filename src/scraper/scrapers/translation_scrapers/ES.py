@@ -2,20 +2,19 @@ import re
 
 from bs4 import BeautifulSoup
 from rich.progress import Progress
-from shared.http_client import HttpClient
-from shared.types import LanguageCode
-from yarl import URL
-
-from scraper.dtos import XkcdTranslationData
+from scraper.dtos import XkcdTranslation
 from scraper.scrapers.base import BaseScraper
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
+from shared.http_client import AsyncHttpClient
+from shared.types import LanguageCode
+from yarl import URL
 
 
 class XkcdESScraper(BaseScraper):
     _BASE_URL = URL("https://es.xkcd.com/")
 
-    def __init__(self, client: HttpClient, limit: int | None = None):
+    def __init__(self, client: AsyncHttpClient, limit: int | None = None):
         super().__init__(client=client)
         self._limit = limit
 
@@ -25,7 +24,7 @@ class XkcdESScraper(BaseScraper):
         start: int,
         end: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationData | None:
+    ) -> XkcdTranslation | None:
         soup = await self._get_soup(url)
 
         number = self._extract_number(soup)
@@ -33,7 +32,7 @@ class XkcdESScraper(BaseScraper):
         if not number or number < start or number > end:
             return
 
-        data = XkcdTranslationData(
+        data = XkcdTranslation(
             number=number,
             source_link=url,
             title=self._extract_title(soup),
@@ -48,7 +47,7 @@ class XkcdESScraper(BaseScraper):
             data.number = 1472
 
         if pbar:
-            pbar.update()
+            pbar.advance()
 
         return data
 
@@ -56,7 +55,7 @@ class XkcdESScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdTranslationData]:
+    ) -> list[XkcdTranslation]:
         links = await self.fetch_all_links()
 
         return await run_concurrently(

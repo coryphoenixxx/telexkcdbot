@@ -29,6 +29,7 @@ def create_db_engine(config: DbConfig) -> AsyncEngine:
         echo=config.sqla.echo,
         echo_pool=config.sqla.echo,
         pool_size=config.sqla.pool_size,
+        pool_pre_ping=True,
     )
 
 

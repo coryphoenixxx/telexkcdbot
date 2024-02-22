@@ -2,21 +2,20 @@ import re
 
 from bs4 import BeautifulSoup, Tag
 from rich.progress import Progress
-from shared.http_client import HttpClient
-from shared.types import LanguageCode
-from yarl import URL
-
-from scraper.dtos import XkcdTranslationData
+from scraper.dtos import XkcdTranslation
 from scraper.scrapers.base import BaseScraper
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
+from shared.http_client import AsyncHttpClient
+from shared.types import LanguageCode
+from yarl import URL
 
 
 class XkcdRUScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.ru/")
     _NUM_LIST_URL = _BASE_URL.joinpath("num")
 
-    def __init__(self, client: HttpClient):
+    def __init__(self, client: AsyncHttpClient):
         super().__init__(client=client)
 
     async def get_all_nums(self) -> list[int]:
@@ -28,11 +27,11 @@ class XkcdRUScraper(BaseScraper):
         self,
         number: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationData:
+    ) -> XkcdTranslation:
         url = self._BASE_URL.joinpath(str(number) + "/")
         soup = await self._get_soup(url)
 
-        data = XkcdTranslationData(
+        data = XkcdTranslation(
             number=number,
             source_link=url,
             title=self._extract_title(soup),
@@ -44,7 +43,7 @@ class XkcdRUScraper(BaseScraper):
         )
 
         if pbar:
-            pbar.update()
+            pbar.advance()
 
         return data
 
@@ -52,7 +51,7 @@ class XkcdRUScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdTranslationData]:
+    ) -> list[XkcdTranslation]:
         all_nums = await self.get_all_nums()
 
         numbers = [n for n in all_nums if limits.start <= n <= limits.end]

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
-from shared.http_client import HttpClient
+from shared.http_client import AsyncHttpClient
 
 from api.application.image_saver import ImageSaveHelper
 from api.core.settings import load_settings
@@ -43,7 +43,7 @@ def create_app() -> FastAPI:
 
     engine = create_db_engine(settings.db)
     db_session_factory = create_db_session_factory(engine)
-    http_client = HttpClient()
+    http_client = AsyncHttpClient()
 
     app.dependency_overrides.update(
         {

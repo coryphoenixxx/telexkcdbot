@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import time
 from contextlib import asynccontextmanager
 
@@ -14,24 +15,28 @@ from aiohttp import (
 from aiohttp_retry import ExponentialRetry, RetryClient
 from yarl import URL
 
+from shared.http_client.exceptions import HttpRequestError
 from shared.utils import custom_json_dumps
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-class HttpClient:
+
+class AsyncHttpClient:
     def __init__(
         self,
         max_conns: int = 25,
-        timeout: int = 10,
+        timeout: int = 30,
         session_cache_ttl: int = 60,
     ):
         self._throttler = asyncio.Semaphore(max_conns)
         self._timeout = timeout
         self._sessions_cache = {}
-        self._session_cache_ttl = session_cache_ttl
+        self._sessions_cache_ttl = session_cache_ttl
         self._close_sessions_task = None
 
-    async def __aenter__(self) -> "HttpClient":
-        self._close_sessions_task = asyncio.create_task(self.close_session_regularly())
+    async def __aenter__(self) -> "AsyncHttpClient":
+        self._close_sessions_task = asyncio.create_task(self.close_sessions_regularly())
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -82,12 +87,16 @@ class HttpClient:
             host=url.host,
             retry_statuses=retry_statuses,
         )
-        async with self._throttler, client.request(
-            method=method,
-            url=url,
-            **kwargs,
-        ) as response:
-            yield response
+        async with self._throttler:
+            try:
+                async with client.request(
+                    method=method,
+                    url=url,
+                    **kwargs,
+                ) as response:
+                    yield response
+            except ClientOSError as err:
+                raise HttpRequestError(method, url, str(err.__cause__))
 
     async def _get_or_create_client(
         self,
@@ -125,7 +134,6 @@ class HttpClient:
                 exceptions={
                     TimeoutError,
                     ServerDisconnectedError,
-                    ClientOSError,
                 },
                 retry_all_server_errors=False,
                 statuses=set(retry_statuses),
@@ -138,10 +146,10 @@ class HttpClient:
             connector = None
         else:
             connector = TCPConnector(
-                resolver=AsyncResolver(nameservers={"8.8.8.8", "8.8.4.4"}),
+                resolver=AsyncResolver(nameservers={"8.8.8.8", "8.8.4.4", "9.9.9.9", "1.1.1.1"}),
                 ttl_dns_cache=600,
                 ssl=False,
-                limit=1000,
+                limit=500,
                 limit_per_host=100,
             )
 
@@ -155,15 +163,15 @@ class HttpClient:
         for client, _ in self._sessions_cache.values():
             await client.close()
 
-    async def close_session_regularly(self) -> None:
-        period = self._session_cache_ttl
+    async def close_sessions_regularly(self) -> None:
+        ttl = self._sessions_cache_ttl
 
         while True:
-            await asyncio.sleep(period)
+            await asyncio.sleep(ttl)
 
             candidates = []
             for key, (_, timestamp) in self._sessions_cache.items():
-                if (time.time() - timestamp) > period:
+                if (time.time() - timestamp) > ttl:
                     candidates.append(key)
 
             for key in candidates:

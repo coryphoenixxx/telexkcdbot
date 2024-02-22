@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from faststream.nats.fastapi import NatsRouter
 
@@ -5,6 +7,7 @@ from api.presentation.web.controllers import comic_router, image_router, transla
 
 root_router = NatsRouter(
     prefix="/api",
+    log_level=logging.DEBUG,
 )
 
 

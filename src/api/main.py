@@ -1,3 +1,5 @@
+import logging
+
 from uvicorn.workers import UvicornWorker
 
 
@@ -20,4 +22,5 @@ if __name__ == "__main__":
         **CustomUvicornWorker.CONFIG_KWARGS,
         app="api.app:app",
         reload=True,
+        log_level=logging.ERROR,
     )

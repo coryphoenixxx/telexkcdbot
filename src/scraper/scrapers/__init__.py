@@ -1,11 +1,15 @@
-from .xkcd_de import XkcdDEScraper
-from .xkcd_es import XkcdESScraper
-from .xkcd_origin import XkcdOriginScraper
-from .xkcd_ru import XkcdRUScraper
+from .origin import XkcdOriginScraper
+from .translation_scrapers.CN import XkcdCNScraper
+from .translation_scrapers.DE import XkcdDEScraper
+from .translation_scrapers.ES import XkcdESScraper
+from .translation_scrapers.FR import XkcdFRScraper
+from .translation_scrapers.RU import XkcdRUScraper
 
 __all__ = [
-    "XkcdRUScraper",
     "XkcdOriginScraper",
+    "XkcdCNScraper",
     "XkcdDEScraper",
     "XkcdESScraper",
+    "XkcdFRScraper",
+    "XkcdRUScraper",
 ]

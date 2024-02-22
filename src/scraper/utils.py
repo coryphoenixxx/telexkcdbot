@@ -18,7 +18,7 @@ class ProgressBar:
         self._task_id = self._progress.add_task(description=desc, total=total)
         self._counter = 0
 
-    def update(self, step: int = 1):
+    def advance(self, step: int = 1):
         self._progress.update(self._task_id, advance=step)
         self._counter += 1
 
@@ -59,6 +59,9 @@ async def run_concurrently(
                 result = task.result()
                 if result:
                     results.append(result)
+
+        await asyncio.sleep(limits.delay)
+
     if pbar:
         pbar.finish()
 

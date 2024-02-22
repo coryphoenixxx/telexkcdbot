@@ -1,13 +1,13 @@
 from pathlib import Path
 
 from faststream.nats import NatsBroker
+from shared.messages import ImageProcessInMessage
 
 from api.application.dtos.responses.image import TranslationImageResponseDTO
 from api.application.image_saver import ImageSaveHelper
 from api.application.types import TranslationImageID
 from api.infrastructure.database.holder import DatabaseHolder
 from api.presentation.types import ImageObj, TranslationImageMeta
-from shared.messages import ImageProcessInMessage
 
 
 class TranslationImageService:
@@ -33,18 +33,21 @@ class TranslationImageService:
                 original_rel_path=original_rel_path,
             )
 
-            await self._broker.publish(
-                message=ImageProcessInMessage(
-                    image_id=image_dto.id,
-                    original_abs_path=original_abs_path,
-                ),
-                subject="internal.api.images.process.in",
-                stream="process_images_in_stream",
-            )
+            await self._process_image(image_dto.id, original_abs_path)
 
             await self._db_holder.commit()
 
             return image_dto
+
+    async def _process_image(self, image_id: int, original_abs_path: Path):
+        await self._broker.publish(
+            message=ImageProcessInMessage(
+                image_id=image_id,
+                original_abs_path=original_abs_path,
+            ),
+            subject="internal.api.images.process.in",
+            stream="process_images_in_stream",
+        )
 
     async def update(
         self,

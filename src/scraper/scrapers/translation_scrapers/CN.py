@@ -3,32 +3,31 @@ from collections.abc import Iterable
 
 from bs4 import BeautifulSoup
 from rich.progress import Progress
-from shared.http_client import HttpClient
-from shared.types import LanguageCode
-from yarl import URL
-
-from scraper.dtos import XkcdTranslationData
+from scraper.dtos import XkcdTranslation
 from scraper.scrapers.base import BaseScraper
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
+from shared.http_client import AsyncHttpClient
+from shared.types import LanguageCode
+from yarl import URL
 
 
 class XkcdCNScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.in")
 
-    def __init__(self, client: HttpClient):
+    def __init__(self, client: AsyncHttpClient):
         super().__init__(client=client)
 
     async def fetch_one(
         self,
         url: URL,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationData:
+    ) -> XkcdTranslation:
         soup = await self._get_soup(url)
 
         tooltip, translator_comment = self._extract_tooltip_and_translator_comment(soup)
 
-        data = XkcdTranslationData(
+        data = XkcdTranslation(
             number=self._extract_number_from_url(url),
             source_link=url,
             title=self._extract_title(soup),
@@ -40,7 +39,7 @@ class XkcdCNScraper(BaseScraper):
         )
 
         if pbar:
-            pbar.update()
+            pbar.advance()
 
         return data
 
@@ -48,7 +47,7 @@ class XkcdCNScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdTranslationData]:
+    ) -> list[XkcdTranslation]:
         links = [
             link
             for link in await self.fetch_all_links()

@@ -2,20 +2,19 @@ import re
 
 from bs4 import BeautifulSoup
 from rich.progress import Progress
-from shared.http_client import HttpClient
-from shared.types import LanguageCode
-from yarl import URL
-
-from scraper.dtos import XkcdTranslationData
+from scraper.dtos import XkcdTranslation
 from scraper.scrapers.base import BaseScraper
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
+from shared.http_client import AsyncHttpClient
+from shared.types import LanguageCode
+from yarl import URL
 
 
 class XkcdDEScraper(BaseScraper):
     _BASE_URL = URL("https://xkcde.dapete.net/")
 
-    def __init__(self, client: HttpClient):
+    def __init__(self, client: AsyncHttpClient):
         super().__init__(client=client)
 
     async def fetch_latest_number(self) -> int:
@@ -34,7 +33,7 @@ class XkcdDEScraper(BaseScraper):
         self,
         number: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationData | None:
+    ) -> XkcdTranslation | None:
         if number == 404:
             return
 
@@ -44,7 +43,7 @@ class XkcdDEScraper(BaseScraper):
         if not len(soup):
             return
 
-        data = XkcdTranslationData(
+        translation = XkcdTranslation(
             number=number,
             source_link=url,
             title=self._extract_title(soup),
@@ -56,15 +55,15 @@ class XkcdDEScraper(BaseScraper):
         )
 
         if pbar:
-            pbar.update()
+            pbar.advance()
 
-        return data
+        return translation
 
     async def fetch_many(
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdTranslationData]:
+    ) -> list[XkcdTranslation]:
         latest_num = await self.fetch_latest_number()
 
         numbers = [n for n in range(limits.start, limits.end + 1) if n <= latest_num]

@@ -2,20 +2,19 @@ import ast
 import re
 
 from rich.progress import Progress
-from shared.http_client import HttpClient
-from shared.types import LanguageCode
-from yarl import URL
-
-from scraper.dtos import XkcdTranslationData
+from scraper.dtos import XkcdTranslation
 from scraper.scrapers.base import BaseScraper
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar
+from shared.http_client import AsyncHttpClient
+from shared.types import LanguageCode
+from yarl import URL
 
 
 class XkcdFRScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.arnaud.at/")
 
-    def __init__(self, client: HttpClient):
+    def __init__(self, client: AsyncHttpClient):
         super().__init__(client=client)
         self._cached_number_data_map = None
 
@@ -23,14 +22,14 @@ class XkcdFRScraper(BaseScraper):
         self,
         number: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationData | None:
+    ) -> XkcdTranslation | None:
         number_data_map = await self._get_number_data_map()
         data = number_data_map.get(number)
 
         if not data:
             return None
         else:
-            translation = XkcdTranslationData(
+            translation = XkcdTranslation(
                 number=number,
                 source_link=self._BASE_URL / str(number),
                 title=data[0],
@@ -42,7 +41,7 @@ class XkcdFRScraper(BaseScraper):
             )
 
             if pbar:
-                pbar.update()
+                pbar.advance()
 
             return translation
 
@@ -50,7 +49,7 @@ class XkcdFRScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress | None = None,
-    ) -> list[XkcdTranslationData]:
+    ) -> list[XkcdTranslation]:
         number_data_map = await self._get_number_data_map()
         latest_num = sorted(number_data_map.keys())[-1]
 

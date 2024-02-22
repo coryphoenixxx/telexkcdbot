@@ -5,13 +5,13 @@ from aiohttp import ClientConnectorError, ClientResponse  # noqa: F401
 from scraper.dtos import (
     XkcdOriginData,
     XkcdPostData,
-    XkcdTranslationData,
+    XkcdTranslation,
     XkcdTranslationPostData,
 )
 from scraper.utils import ProgressBar
 from yarl import URL
 
-from shared.http_client import HttpClient
+from shared.http_client import AsyncHttpClient
 from shared.types import (
     LanguageCode,
 )
@@ -20,7 +20,7 @@ from shared.types import (
 class APIRESTClient:
     _API_URL = URL("http://127.0.0.1:8000/api/")
 
-    def __init__(self, client: HttpClient):
+    def __init__(self, client: AsyncHttpClient):
         self._client = client
 
     async def healthcheck(self) -> int | None:
@@ -70,7 +70,7 @@ class APIRESTClient:
         )
 
         if pbar:
-            pbar.update()
+            pbar.advance()
 
         return {data.number: comic_id}
 
@@ -119,7 +119,7 @@ class APIRESTClient:
 
     async def add_translation_with_image(
         self,
-        data: XkcdTranslationData,
+        data: XkcdTranslation,
         number_comic_id_map: dict[int, int],
         pbar: ProgressBar | None = None,
     ):
@@ -157,7 +157,7 @@ class APIRESTClient:
         ) as response:  # type:ClientResponse
             if response.status == 201:
                 if pbar:
-                    pbar.update()
+                    pbar.advance()
                 return (await response.json())["id"]
             else:
                 error_json = await response.json()

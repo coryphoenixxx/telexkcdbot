@@ -6,10 +6,10 @@ import re
 from aiohttp import ClientResponse  # noqa: F401
 from bs4 import BeautifulSoup, Tag
 from rich.progress import Progress
-from shared.http_client import HttpClient
+from shared.http_client import AsyncHttpClient
 from yarl import URL
 
-from scraper.dtos import XkcdBaseData, XKCDExplainData, XkcdOriginData
+from scraper.dtos import XkcdBaseData, XkcdExplainData, XkcdOriginData
 from scraper.scrapers.base import BaseScraper
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
@@ -19,12 +19,12 @@ class XkcdOriginScraper(BaseScraper):
     _XKCD_URL = URL("https://xkcd.com/")
     _EXPLAIN_XKCD_URL = URL("https://explainxkcd.com/wiki/index.php/")
 
-    def __init__(self, client: HttpClient):
+    def __init__(self, client: AsyncHttpClient):
         super().__init__(client=client)
         self._bad_tags = self._load_bad_tags()
 
     async def fetch_latest_number(self) -> int:
-        async with self._client.safe_get(url=self._XKCD_URL.joinpath("info.0.json")) as response:
+        async with self._client.safe_get(url=self._XKCD_URL / "info.0.json") as response:
             json_data = await response.json()
 
         return json_data["num"]
@@ -37,28 +37,25 @@ class XkcdOriginScraper(BaseScraper):
         fetch_origin_task = asyncio.create_task(self.fetch_base_data(number))
         fetch_explain_task = asyncio.create_task(self.fetch_explain_data(number))
 
-        try:
-            origin_data: XkcdBaseData = await fetch_origin_task
-            explain_data: XKCDExplainData = await fetch_explain_task
-        except Exception as err:
-            raise err
-        else:
-            if pbar:
-                pbar.update()
+        origin_data: XkcdBaseData = await fetch_origin_task
+        explain_data: XkcdExplainData = await fetch_explain_task
 
-            return XkcdOriginData(
-                number=origin_data.number,
-                publication_date=origin_data.publication_date,
-                xkcd_url=origin_data.xkcd_url,
-                title=origin_data.title,
-                tooltip=origin_data.tooltip,
-                link_on_click=origin_data.link_on_click,
-                is_interactive=origin_data.is_interactive,
-                image_url=origin_data.image_url,
-                explain_url=explain_data.explain_url,
-                tags=explain_data.tags,
-                transcript_raw=explain_data.transcript_raw,
-            )
+        if pbar:
+            pbar.advance()
+
+        return XkcdOriginData(
+            number=origin_data.number,
+            publication_date=origin_data.publication_date,
+            xkcd_url=origin_data.xkcd_url,
+            title=origin_data.title,
+            tooltip=origin_data.tooltip,
+            link_on_click=origin_data.link_on_click,
+            is_interactive=origin_data.is_interactive,
+            image_url=origin_data.image_url,
+            explain_url=explain_data.explain_url,
+            tags=explain_data.tags,
+            transcript_raw=explain_data.transcript_raw,
+        )
 
     async def fetch_many(
         self,
@@ -115,11 +112,11 @@ class XkcdOriginScraper(BaseScraper):
                 is_interactive=bool(json_data.get("extra_parts")),
             )
 
-    async def fetch_explain_data(self, number: int) -> XKCDExplainData:
+    async def fetch_explain_data(self, number: int) -> XkcdExplainData:
         url = self._EXPLAIN_XKCD_URL.joinpath(str(number))
         soup = await self._get_soup(url)
 
-        return XKCDExplainData(
+        return XkcdExplainData(
             explain_url=url,
             tags=self._extract_tags(soup),
             transcript_raw=self._extract_transcript_html(soup),
