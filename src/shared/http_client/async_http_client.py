@@ -2,6 +2,7 @@ import asyncio
 import logging
 import time
 from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator
 
 from aiohttp import (
     AsyncResolver,
@@ -11,6 +12,7 @@ from aiohttp import (
     ClientTimeout,
     ServerDisconnectedError,
     TCPConnector,
+    InvalidURL,
 )
 from aiohttp_retry import ExponentialRetry, RetryClient
 from yarl import URL
@@ -48,7 +50,7 @@ class AsyncHttpClient:
         url: URL | str,
         retry_statuses: tuple[int] | None = (429, 500, 503),
         **kwargs,
-    ) -> ClientResponse:
+    ) -> AsyncGenerator[ClientResponse, None]:
         async with self._safe_request(
             method="GET",
             url=url,
@@ -63,7 +65,7 @@ class AsyncHttpClient:
         url: URL | str,
         retry_statuses: tuple[int] | None = (429, 503),
         **kwargs,
-    ) -> ClientResponse:
+    ) -> AsyncGenerator[ClientResponse, None]:
         async with self._safe_request(
             method="POST",
             url=url,
@@ -79,7 +81,7 @@ class AsyncHttpClient:
         url: URL | str,
         retry_statuses: tuple[int],
         **kwargs,
-    ) -> ClientResponse:
+    ) -> AsyncGenerator[ClientResponse, None]:
         if isinstance(url, str):
             url = URL(url)
 
@@ -96,7 +98,9 @@ class AsyncHttpClient:
                 ) as response:
                     yield response
             except ClientOSError as err:
-                raise HttpRequestError(method, url, str(err.__cause__))
+                raise HttpRequestError(method, url, str(err.__cause__)) from None
+            except (InvalidURL, AssertionError, ValueError):
+                raise HttpRequestError(method, url, "Invalid URL") from None
 
     async def _get_or_create_client(
         self,
