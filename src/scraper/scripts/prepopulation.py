@@ -1,5 +1,5 @@
 import asyncio
-import logging
+import logging.config
 
 import uvloop
 from rich.progress import (
@@ -9,7 +9,7 @@ from rich.progress import (
     TextColumn,
     TimeElapsedColumn,
 )
-from scraper.dtos import XkcdOriginData, XkcdTranslation
+from scraper.dtos import XkcdOriginScrapedData, XkcdScrapedTranslationData
 from scraper.scrapers import XkcdOriginScraper
 from scraper.scrapers.translation_scrapers.CN import XkcdCNScraper
 from scraper.scrapers.translation_scrapers.DE import XkcdDEScraper
@@ -22,13 +22,37 @@ from shared.api_rest_client import APIRESTClient
 from shared.http_client import AsyncHttpClient
 from shared.utils import flatten
 
-logging.basicConfig(level=logging.INFO)
+LOGGER_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "format": "{asctime}::{levelname}::{name}:{lineno} :: {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "default": {
+            "class": "logging.StreamHandler",
+            "level": "DEBUG",
+            "formatter": "default",
+        },
+    },
+    "loggers": {
+        "root": {
+            "handlers": ["default"],
+            "level": "INFO",
+        },
+    },
+}
+
+logging.config.dictConfig(LOGGER_CONFIG)
 logger = logging.getLogger(__name__)
 
 
 async def upload_origin(
     api_client: APIRESTClient,
-    origin_data: list[XkcdOriginData],
+    origin_data: list[XkcdOriginScrapedData],
     limits: LimitParams,
     progress: Progress,
 ) -> dict[int, int]:
@@ -50,7 +74,7 @@ async def upload_origin(
 async def upload_translations(
     api_client: APIRESTClient,
     number_comic_id_map: dict[int, int],
-    translation_data: list[XkcdTranslation],
+    translation_data: list[XkcdScrapedTranslationData],
     limits: LimitParams,
     progress: Progress,
 ):
@@ -88,7 +112,6 @@ async def main(start: int = 1, end: int | None = None, chunk_size: int = 100, de
             BarColumn(),
             MofNCompleteColumn(),
             TimeElapsedColumn(),
-            refresh_per_second=5,
         ) as progress:
             origin_data = await xkcd_origin_scraper.fetch_many(limits, progress)
 

@@ -1,8 +1,8 @@
 import asyncio
 import logging
 import time
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from aiohttp import (
     AsyncResolver,
@@ -10,9 +10,9 @@ from aiohttp import (
     ClientResponse,
     ClientSession,
     ClientTimeout,
+    InvalidURL,
     ServerDisconnectedError,
     TCPConnector,
-    InvalidURL,
 )
 from aiohttp_retry import ExponentialRetry, RetryClient
 from yarl import URL

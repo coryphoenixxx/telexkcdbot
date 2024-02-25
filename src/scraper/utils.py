@@ -52,7 +52,6 @@ async def run_concurrently(
                 tasks = [tg.create_task(coro(value, pbar=pbar, **kwargs)) for value in chunk]
         except* Exception as errors:
             for e in errors.exceptions:
-                logger.error(e)
                 raise e
         else:
             for task in tasks:

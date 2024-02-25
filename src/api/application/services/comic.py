@@ -22,9 +22,7 @@ class ComicService:
             )
 
             en_translation.comic_id = comic_resp_dto.id
-            translation_resp_dto = await self._db_holder.translation_repo.create(
-                dto=en_translation,
-            )
+            translation_resp_dto = await self._db_holder.translation_repo.create(dto=en_translation)
 
             comic_resp_dto.translations.append(translation_resp_dto)
 

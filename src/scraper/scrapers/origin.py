@@ -3,16 +3,25 @@ import html
 import logging
 import re
 
-from aiohttp import ClientResponse  # noqa: F401
 from bs4 import BeautifulSoup, Tag
 from rich.progress import Progress
 from shared.http_client import AsyncHttpClient
 from yarl import URL
 
-from scraper.dtos import XkcdBaseData, XkcdExplainData, XkcdOriginData
+from scraper.dtos import XkcdBaseScrapedData, XkcdExplainScrapedData, XkcdOriginScrapedData
 from scraper.scrapers.base import BaseScraper
+from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
+
+logger = logging.getLogger(__name__)
+
+
+HTML_TAG_PATTERN = re.compile(r"<.*?>")
+
+
+def build_date(y: str, m: str, d: str) -> str:
+    return f"{int(y)}-{int(m):02d}-{int(d):02d}"
 
 
 class XkcdOriginScraper(BaseScraper):
@@ -22,46 +31,56 @@ class XkcdOriginScraper(BaseScraper):
     def __init__(self, client: AsyncHttpClient):
         super().__init__(client=client)
         self._bad_tags = self._load_bad_tags()
+        self._latest_number = None
 
     async def fetch_latest_number(self) -> int:
-        async with self._client.safe_get(url=self._XKCD_URL / "info.0.json") as response:
-            json_data = await response.json()
+        if not self._latest_number:
+            async with self._client.safe_get(url=self._XKCD_URL / "info.0.json") as response:
+                json_data = await response.json()
+            self._latest_number = json_data["num"]
 
-        return json_data["num"]
+        return self._latest_number
 
     async def fetch_one(
         self,
         number: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdOriginData:
-        fetch_origin_task = asyncio.create_task(self.fetch_base_data(number))
-        fetch_explain_task = asyncio.create_task(self.fetch_explain_data(number))
+    ) -> XkcdOriginScrapedData | None:
+        try:
+            async with asyncio.TaskGroup() as tg:
+                fetch_origin_task = tg.create_task(self.fetch_base_data(number))
+                fetch_explain_task = tg.create_task(self.fetch_explain_data(number))
+        except* Exception as errors:
+            for exc in errors.exceptions:
+                raise exc
+        else:
+            origin_data, explain_data = fetch_origin_task.result(), fetch_explain_task.result()
 
-        origin_data: XkcdBaseData = await fetch_origin_task
-        explain_data: XkcdExplainData = await fetch_explain_task
+            if not origin_data:
+                return None
 
-        if pbar:
-            pbar.advance()
+            if pbar:
+                pbar.advance()
 
-        return XkcdOriginData(
-            number=origin_data.number,
-            publication_date=origin_data.publication_date,
-            xkcd_url=origin_data.xkcd_url,
-            title=origin_data.title,
-            tooltip=origin_data.tooltip,
-            link_on_click=origin_data.link_on_click,
-            is_interactive=origin_data.is_interactive,
-            image_url=origin_data.image_url,
-            explain_url=explain_data.explain_url,
-            tags=explain_data.tags,
-            transcript_raw=explain_data.transcript_raw,
-        )
+            return XkcdOriginScrapedData(
+                number=origin_data.number,
+                publication_date=origin_data.publication_date,
+                xkcd_url=origin_data.xkcd_url,
+                title=origin_data.title,
+                tooltip=origin_data.tooltip,
+                link_on_click=origin_data.link_on_click,
+                is_interactive=origin_data.is_interactive,
+                image_url=origin_data.image_url,
+                explain_url=explain_data.explain_url if explain_data else None,
+                tags=explain_data.tags if explain_data else [],
+                transcript_raw=explain_data.transcript_raw if explain_data else "",
+            )
 
     async def fetch_many(
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdOriginData]:
+    ) -> list[XkcdOriginScrapedData]:
         numbers = list(range(limits.start, limits.end + 1))
 
         return await run_concurrently(
@@ -71,61 +90,64 @@ class XkcdOriginScraper(BaseScraper):
             pbar=ProgressBar(progress, "Origin scraping...", len(numbers)),
         )
 
-    async def fetch_base_data(self, number: int) -> XkcdBaseData:
-        xkcd_url = self._XKCD_URL.joinpath(str(number) + "/")
+    async def fetch_base_data(self, number: int) -> XkcdBaseScrapedData | None:
+        if number > await self.fetch_latest_number() or number <= 0:
+            return None
+
+        xkcd_url = self._XKCD_URL / (str(number) + "/")
 
         if number == 404:
-            return XkcdBaseData(
+            return XkcdBaseScrapedData(
                 number=404,
                 xkcd_url=xkcd_url,
                 title="404: Not Found",
                 publication_date="2008-04-01",
-                link_on_click=None,
-                tooltip="",
-                image_url=None,
-                is_interactive=False,
             )
         else:
-            async with self._client.safe_get(
-                xkcd_url.joinpath("info.0.json"),
-            ) as response:
-                json_data = await response.json()
+            try:
+                async with self._client.safe_get(xkcd_url / "info.0.json") as response:
+                    json_data = await response.json()
 
-            link_on_click, large_image_page_url = self._process_link(json_data["link"])
+                link_on_click, large_image_page_url = self._process_link(json_data["link"])
 
-            return XkcdBaseData(
-                number=json_data["num"],
-                xkcd_url=xkcd_url,
-                title=self._process_title(json_data["title"]),
-                publication_date=self._build_date(
-                    y=json_data["year"],
-                    m=json_data["month"],
-                    d=json_data["day"],
-                ),
-                link_on_click=link_on_click,
-                tooltip=json_data["alt"],
-                image_url=(
-                    await self._fetch_large_image_url(large_image_page_url)
-                    or await self._fetch_2x_image_url(xkcd_url)
-                    or self._process_image_url(json_data["img"])
-                ),
-                is_interactive=bool(json_data.get("extra_parts")),
+                return XkcdBaseScrapedData(
+                    number=json_data["num"],
+                    xkcd_url=xkcd_url,
+                    title=self._process_title(json_data["title"]),
+                    publication_date=build_date(
+                        y=json_data["year"],
+                        m=json_data["month"],
+                        d=json_data["day"],
+                    ),
+                    link_on_click=link_on_click,
+                    tooltip=json_data["alt"],
+                    image_url=(
+                        await self._fetch_large_image_url(large_image_page_url)
+                        or await self._fetch_2x_image_url(xkcd_url)
+                        or self._process_image_url(json_data["img"])
+                    ),
+                    is_interactive=bool(json_data.get("extra_parts")),
+                )
+            except Exception as err:
+                raise ScraperError(url=xkcd_url) from err
+
+    async def fetch_explain_data(self, number: int) -> XkcdExplainScrapedData | None:
+        explain_url = self._EXPLAIN_XKCD_URL / str(number)
+        soup = await self._get_soup(explain_url)
+
+        if soup.find("div", {"class": "noarticletext"}):
+            return None
+
+        try:
+            return XkcdExplainScrapedData(
+                explain_url=explain_url,
+                tags=self._extract_tags(soup),
+                transcript_raw=self._extract_transcript_html(soup),
             )
+        except Exception as err:
+            raise ScraperError(url=explain_url) from err
 
-    async def fetch_explain_data(self, number: int) -> XkcdExplainData:
-        url = self._EXPLAIN_XKCD_URL.joinpath(str(number))
-        soup = await self._get_soup(url)
-
-        return XkcdExplainData(
-            explain_url=url,
-            tags=self._extract_tags(soup),
-            transcript_raw=self._extract_transcript_html(soup),
-        )
-
-    async def _fetch_large_image_url(
-        self,
-        url: URL | None,
-    ) -> URL | None:
+    async def _fetch_large_image_url(self, url: URL | None) -> URL | None:
         # №657, №681, №802, №832, №850 ...
         if not url:
             return None
@@ -154,13 +176,17 @@ class XkcdOriginScraper(BaseScraper):
 
         return x2_image_url
 
-    def _process_title(self, title: str):  # №259, №472
-        if any(c in title for c in ("<", ">")):
-            return re.sub(re.compile("<.*?>"), "", title)
+    def _process_title(self, title: str) -> str:
+        # №259, №472
+        match = re.match(HTML_TAG_PATTERN, title)
+        if match:
+            return re.sub(HTML_TAG_PATTERN, "", title)
+
         return html.unescape(title)
 
-    def _process_link(self, link: str) -> tuple[URL | None, URL | None]:
+    def _process_link(self, link: str | None) -> tuple[URL | None, URL | None]:
         link_on_click, large_image_page_url = None, None
+
         if link:
             link = URL(link)
             if "large" in link.path:
@@ -169,10 +195,6 @@ class XkcdOriginScraper(BaseScraper):
                 link_on_click = link
 
         return link_on_click, large_image_page_url
-
-    @staticmethod
-    def _build_date(y: str, m: str, d: str) -> str:
-        return f"{int(y)}-{int(m):02d}-{int(d):02d}"
 
     def _process_image_url(self, url: str) -> URL | None:
         match = re.match(
@@ -183,14 +205,17 @@ class XkcdOriginScraper(BaseScraper):
             return URL(url)
 
     def _extract_tags(self, soup: BeautifulSoup) -> list[str]:
-        li_tags = soup.find(id="mw-normal-catlinks").find_all("li")
-
         tags = set()
-        for tag in [li.text for li in li_tags]:
-            if not any(
-                bad_word in tag.lower() for bad_word in self._bad_tags
-            ) and tag.lower() not in {t.lower() for t in tags}:
-                tags.add(tag)
+
+        li_tags = soup.find(id="mw-normal-catlinks").find_all("li")
+        if li_tags:
+            tag_lower_set = set()
+            for tag in [li.text for li in li_tags]:
+                tag_lower = tag.lower()
+                if not any(bad_word in tag_lower for bad_word in self._bad_tags):
+                    if tag_lower not in tag_lower_set:
+                        tags.add(tag)
+                    tag_lower_set.add(tag_lower)
 
         return sorted(tags)
 
@@ -207,7 +232,7 @@ class XkcdOriginScraper(BaseScraper):
                     tag_name = tag.name
                     if tag.get("id") == "Discussion" or tag_name in ("h1", "h2"):
                         break
-                    elif tag_name == "table" and "This transcript is incomplete" in tag.get_text():
+                    elif tag_name == "table" and "transcript is incomplete" in tag.get_text():
                         continue
                     else:
                         tag_as_text = str(tag)
@@ -228,8 +253,8 @@ class XkcdOriginScraper(BaseScraper):
 
         try:
             with open("../data/bad_tags.txt") as f:
-                bad_tags = {line for line in f.read().splitlines() if line}
+                bad_tags = {line.lower() for line in f.read().splitlines() if line}
         except FileNotFoundError:
-            logging.error("Loading bad tags error: File not found.")
+            logger.warning("Loading bad tags failed: File not found.")
 
         return bad_tags

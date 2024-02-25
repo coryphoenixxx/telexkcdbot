@@ -22,7 +22,7 @@ class DatabaseHolder:
     def translation_image_repo(self) -> TranslationImageRepo:
         return TranslationImageRepo(self._session)
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> None:
         self._session: AsyncSession = self._session_factory()
 
     async def __aexit__(
@@ -30,7 +30,7 @@ class DatabaseHolder:
         exc_type: type[BaseException] | None,
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
-    ):
+    ) -> None:
         if exc_type:
             await self.rollback()
         await self._session.close()

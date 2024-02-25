@@ -9,5 +9,9 @@ class HttpRequestError(AsyncHttpClientError):
         super().__init__()
         self._message = f"{method} request to `{url}` failed, reason: `{reason}`"
 
-    def __str__(self):
+    @property
+    def message(self) -> str:
         return self._message
+
+    def __str__(self):
+        return self.message

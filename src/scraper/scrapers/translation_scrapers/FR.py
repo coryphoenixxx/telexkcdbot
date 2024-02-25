@@ -2,7 +2,7 @@ import ast
 import re
 
 from rich.progress import Progress
-from scraper.dtos import XkcdTranslation
+from scraper.dtos import XkcdScrapedTranslationData
 from scraper.scrapers.base import BaseScraper
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar
@@ -22,14 +22,14 @@ class XkcdFRScraper(BaseScraper):
         self,
         number: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslation | None:
+    ) -> XkcdScrapedTranslationData | None:
         number_data_map = await self._get_number_data_map()
         data = number_data_map.get(number)
 
         if not data:
             return None
         else:
-            translation = XkcdTranslation(
+            translation = XkcdScrapedTranslationData(
                 number=number,
                 source_link=self._BASE_URL / str(number),
                 title=data[0],
@@ -49,7 +49,7 @@ class XkcdFRScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress | None = None,
-    ) -> list[XkcdTranslation]:
+    ) -> list[XkcdScrapedTranslationData]:
         number_data_map = await self._get_number_data_map()
         latest_num = sorted(number_data_map.keys())[-1]
 

@@ -2,7 +2,7 @@ import re
 
 from bs4 import BeautifulSoup
 from rich.progress import Progress
-from scraper.dtos import XkcdTranslation
+from scraper.dtos import XkcdScrapedTranslationData
 from scraper.scrapers.base import BaseScraper
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
@@ -24,7 +24,7 @@ class XkcdESScraper(BaseScraper):
         start: int,
         end: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslation | None:
+    ) -> XkcdScrapedTranslationData | None:
         soup = await self._get_soup(url)
 
         number = self._extract_number(soup)
@@ -32,7 +32,7 @@ class XkcdESScraper(BaseScraper):
         if not number or number < start or number > end:
             return
 
-        data = XkcdTranslation(
+        data = XkcdScrapedTranslationData(
             number=number,
             source_link=url,
             title=self._extract_title(soup),
@@ -55,7 +55,7 @@ class XkcdESScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdTranslation]:
+    ) -> list[XkcdScrapedTranslationData]:
         links = await self.fetch_all_links()
 
         return await run_concurrently(
