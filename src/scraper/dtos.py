@@ -23,9 +23,9 @@ class XkcdScrapedTranslationData:
     title: str
     tooltip: str | None
     image_url: URL | None
-    transcript_raw: str
-    translator_comment: str
     language: LanguageCode
+    transcript_raw: str = ""
+    translator_comment: str = ""
 
 
 @dataclass(slots=True)

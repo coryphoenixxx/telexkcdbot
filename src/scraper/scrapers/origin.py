@@ -31,15 +31,15 @@ class XkcdOriginScraper(BaseScraper):
     def __init__(self, client: AsyncHttpClient):
         super().__init__(client=client)
         self._bad_tags = self._load_bad_tags()
-        self._latest_number = None
+        self._cached_latest_number = None
 
     async def fetch_latest_number(self) -> int:
-        if not self._latest_number:
+        if not self._cached_latest_number:
             async with self._client.safe_get(url=self._XKCD_URL / "info.0.json") as response:
                 json_data = await response.json()
-            self._latest_number = json_data["num"]
+            self._cached_latest_number = json_data["num"]
 
-        return self._latest_number
+        return self._cached_latest_number
 
     async def fetch_one(
         self,
@@ -87,7 +87,7 @@ class XkcdOriginScraper(BaseScraper):
             data=numbers,
             coro=self.fetch_one,
             limits=limits,
-            pbar=ProgressBar(progress, "Origin scraping...", len(numbers)),
+            pbar=ProgressBar(progress, "Origin data scraping...", len(numbers)),
         )
 
     async def fetch_base_data(self, number: int) -> XkcdBaseScrapedData | None:
@@ -104,10 +104,10 @@ class XkcdOriginScraper(BaseScraper):
                 publication_date="2008-04-01",
             )
         else:
-            try:
-                async with self._client.safe_get(xkcd_url / "info.0.json") as response:
-                    json_data = await response.json()
+            async with self._client.safe_get(xkcd_url / "info.0.json") as response:
+                json_data = await response.json()
 
+            try:
                 link_on_click, large_image_page_url = self._process_link(json_data["link"])
 
                 return XkcdBaseScrapedData(
@@ -129,7 +129,7 @@ class XkcdOriginScraper(BaseScraper):
                     is_interactive=bool(json_data.get("extra_parts")),
                 )
             except Exception as err:
-                raise ScraperError(url=xkcd_url) from err
+                raise ScraperError(xkcd_url) from err
 
     async def fetch_explain_data(self, number: int) -> XkcdExplainScrapedData | None:
         explain_url = self._EXPLAIN_XKCD_URL / str(number)
@@ -145,7 +145,7 @@ class XkcdOriginScraper(BaseScraper):
                 transcript_raw=self._extract_transcript_html(soup),
             )
         except Exception as err:
-            raise ScraperError(url=explain_url) from err
+            raise ScraperError(explain_url) from err
 
     async def _fetch_large_image_url(self, url: URL | None) -> URL | None:
         # №657, №681, №802, №832, №850 ...

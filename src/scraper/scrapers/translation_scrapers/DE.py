@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from rich.progress import Progress
 from scraper.dtos import XkcdScrapedTranslationData
 from scraper.scrapers.base import BaseScraper
+from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
 from shared.http_client import AsyncHttpClient
@@ -37,22 +38,24 @@ class XkcdDEScraper(BaseScraper):
         if number == 404:
             return
 
-        url = self._BASE_URL.joinpath(str(number) + "/")
+        url = self._BASE_URL / (str(number) + "/")
         soup = await self._get_soup(url, allow_redirects=False)
 
         if not len(soup):
             return
 
-        translation = XkcdScrapedTranslationData(
-            number=number,
-            source_link=url,
-            title=self._extract_title(soup),
-            tooltip=self._extract_tooltip(soup),
-            image_url=await self._extract_image_url(soup),
-            transcript_raw="",
-            translator_comment=self._extract_comment(soup),
-            language=LanguageCode.DE,
-        )
+        try:
+            translation = XkcdScrapedTranslationData(
+                number=number,
+                source_link=url,
+                title=self._extract_title(soup),
+                tooltip=self._extract_tooltip(soup),
+                image_url=await self._extract_image_url(soup),
+                translator_comment=self._extract_comment(soup),
+                language=LanguageCode.DE,
+            )
+        except Exception as err:
+            raise ScraperError(url) from err
 
         if pbar:
             pbar.advance()
@@ -72,7 +75,7 @@ class XkcdDEScraper(BaseScraper):
             data=numbers,
             coro=self.fetch_one,
             limits=limits,
-            pbar=ProgressBar(progress, "Deutsch scraping..."),
+            pbar=ProgressBar(progress, "Deutsch translations scraping..."),
         )
 
     def _extract_title(self, soup: BeautifulSoup) -> str:
@@ -81,21 +84,22 @@ class XkcdDEScraper(BaseScraper):
 
         return title_block.text.strip()
 
-    def _extract_tooltip(self, soup: BeautifulSoup):
+    def _extract_tooltip(self, soup: BeautifulSoup) -> str:
         return soup.find("figcaption").text
 
-    async def _extract_image_url(self, soup: BeautifulSoup):
+    async def _extract_image_url(self, soup: BeautifulSoup) -> URL:
         large_version_block = soup.find("div", {"id": "large_version"})
+
         if large_version_block:
             large_image_page_url = large_version_block.find("a").get("href")
-            soup = await self._get_soup(self._BASE_URL.joinpath(large_image_page_url[1:]))
+            soup = await self._get_soup(self._BASE_URL / large_image_page_url[1:])
             image_rel_path = soup.find("img").get("src")
         else:
             image_rel_path = soup.find("figure", {"id": "comic"}).find("img").get("src")
 
-        return self._BASE_URL.joinpath(image_rel_path[1:])
+        return self._BASE_URL / image_rel_path[1:]
 
-    def _extract_comment(self, soup: BeautifulSoup):
+    def _extract_comment(self, soup: BeautifulSoup) -> str:
         comment = ""
         comment_block = soup.find("div", {"id": "comments"})
 

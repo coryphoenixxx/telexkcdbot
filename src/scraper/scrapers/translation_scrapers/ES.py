@@ -4,44 +4,46 @@ from bs4 import BeautifulSoup
 from rich.progress import Progress
 from scraper.dtos import XkcdScrapedTranslationData
 from scraper.scrapers.base import BaseScraper
+from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
 from shared.http_client import AsyncHttpClient
 from shared.types import LanguageCode
 from yarl import URL
 
+XKCD_NUMBER_PATTERN = re.compile(r".*xkcd.com/(.*)")
+
 
 class XkcdESScraper(BaseScraper):
     _BASE_URL = URL("https://es.xkcd.com/")
 
-    def __init__(self, client: AsyncHttpClient, limit: int | None = None):
+    def __init__(self, client: AsyncHttpClient):
         super().__init__(client=client)
-        self._limit = limit
 
     async def fetch_one(
         self,
         url: URL,
-        start: int,
-        end: int,
+        range_: tuple[int, int],
         pbar: ProgressBar | None = None,
     ) -> XkcdScrapedTranslationData | None:
         soup = await self._get_soup(url)
 
         number = self._extract_number(soup)
 
-        if not number or number < start or number > end:
+        if not number or number < range_[0] or number > range_[1]:
             return
 
-        data = XkcdScrapedTranslationData(
-            number=number,
-            source_link=url,
-            title=self._extract_title(soup),
-            tooltip=self._extract_tooltip(soup),
-            image_url=self._extract_image_url(soup),
-            transcript_raw="",
-            translator_comment="",
-            language=LanguageCode.ES,
-        )
+        try:
+            data = XkcdScrapedTranslationData(
+                number=number,
+                source_link=url,
+                title=self._extract_title(soup),
+                tooltip=self._extract_tooltip(soup),
+                image_url=self._extract_image_url(soup),
+                language=LanguageCode.ES,
+            )
+        except Exception as err:
+            raise ScraperError(url) from err
 
         if data.title == "Geografía":  # fix: https://es.xkcd.com/strips/geografia/
             data.number = 1472
@@ -56,23 +58,22 @@ class XkcdESScraper(BaseScraper):
         limits: LimitParams,
         progress: Progress,
     ) -> list[XkcdScrapedTranslationData]:
-        links = await self.fetch_all_links()
+        urls = await self.fetch_all_links()
 
         return await run_concurrently(
-            data=links,
+            data=urls,
             coro=self.fetch_one,
             limits=limits,
-            start=limits.start,
-            end=limits.end,
-            pbar=ProgressBar(progress, "Spanish scraping..."),
+            range_=(limits.start, limits.end),
+            pbar=ProgressBar(progress, "Spanish translations scraping..."),
         )
 
     async def fetch_all_links(self) -> list[URL]:
-        url = self._BASE_URL.joinpath("archive/")
+        url = self._BASE_URL / "archive/"
         soup = await self._get_soup(url)
 
         link_tags = soup.find("div", {"id": "archive-ul"}).find_all("a")
-        links = [self._BASE_URL.joinpath(tag.get("href")[3:]) for tag in link_tags]
+        links = [self._BASE_URL / tag.get("href")[3:] for tag in link_tags]
 
         return links
 
@@ -80,7 +81,7 @@ class XkcdESScraper(BaseScraper):
         xkcd_link = soup.find("div", {"id": "middleContent"}).find_all("a")[-1].get("href")
 
         match = re.match(
-            pattern=re.compile(r".*xkcd.com/(.*)"),
+            pattern=XKCD_NUMBER_PATTERN,
             string=xkcd_link,
         )
         if match:
@@ -94,4 +95,4 @@ class XkcdESScraper(BaseScraper):
 
     def _extract_image_url(self, soup) -> URL:
         src = soup.find("img", {"class": "strip"}).get("src")
-        return self._BASE_URL.joinpath(src[6:])
+        return self._BASE_URL / src[6:]

@@ -4,6 +4,7 @@ import re
 from rich.progress import Progress
 from scraper.dtos import XkcdScrapedTranslationData
 from scraper.scrapers.base import BaseScraper
+from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar
 from shared.http_client import AsyncHttpClient
@@ -27,23 +28,26 @@ class XkcdFRScraper(BaseScraper):
         data = number_data_map.get(number)
 
         if not data:
-            return None
-        else:
+            return
+
+        url = self._BASE_URL / str(number)
+
+        try:
             translation = XkcdScrapedTranslationData(
                 number=number,
-                source_link=self._BASE_URL / str(number),
+                source_link=url,
                 title=data[0],
                 tooltip=data[1],
                 image_url=self._BASE_URL / f"comics/{number}.jpg",
-                transcript_raw="",
-                translator_comment="",
                 language=LanguageCode.FR,
             )
+        except Exception as err:
+            raise ScraperError(url) from err
 
-            if pbar:
-                pbar.advance()
+        if pbar:
+            pbar.advance()
 
-            return translation
+        return translation
 
     async def fetch_many(
         self,
@@ -55,7 +59,7 @@ class XkcdFRScraper(BaseScraper):
 
         numbers = [n for n in range(limits.start, limits.end + 1) if n <= latest_num]
 
-        pbar = ProgressBar(progress, "French scraping...") if progress else None
+        pbar = ProgressBar(progress, "French translations scraping...") if progress else None
 
         translations = []
         for num in numbers:
@@ -72,8 +76,9 @@ class XkcdFRScraper(BaseScraper):
         if not self._cached_number_data_map:
             url = self._BASE_URL / "assets/index-IqkHua2R.js"
             soup = await self._get_soup(url)
+
             text = re.search(
-                pattern=re.compile(r"const ic=(\{.*?})", re.DOTALL | re.MULTILINE),
+                pattern=re.compile(r"const ic=(\{.*?})", re.DOTALL),
                 string=soup.text,
             ).group(1)
 

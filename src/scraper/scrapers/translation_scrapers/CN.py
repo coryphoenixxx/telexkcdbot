@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from rich.progress import Progress
 from scraper.dtos import XkcdScrapedTranslationData
 from scraper.scrapers.base import BaseScraper
+from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
 from scraper.utils import ProgressBar, run_concurrently
 from shared.http_client import AsyncHttpClient
@@ -25,18 +26,20 @@ class XkcdCNScraper(BaseScraper):
     ) -> XkcdScrapedTranslationData:
         soup = await self._get_soup(url)
 
-        tooltip, translator_comment = self._extract_tooltip_and_translator_comment(soup)
+        try:
+            tooltip, translator_comment = self._extract_tooltip_and_translator_comment(soup)
 
-        data = XkcdScrapedTranslationData(
-            number=self._extract_number_from_url(url),
-            source_link=url,
-            title=self._extract_title(soup),
-            tooltip=tooltip,
-            image_url=self._extract_image_url(soup),
-            transcript_raw="",
-            translator_comment=translator_comment,
-            language=LanguageCode.CN,
-        )
+            data = XkcdScrapedTranslationData(
+                number=self._extract_number_from_url(url),
+                source_link=url,
+                title=self._extract_title(soup),
+                tooltip=tooltip,
+                image_url=self._extract_image_url(soup),
+                translator_comment=translator_comment,
+                language=LanguageCode.CN,
+            )
+        except Exception as err:
+            raise ScraperError(url=url) from err
 
         if pbar:
             pbar.advance()
@@ -58,7 +61,7 @@ class XkcdCNScraper(BaseScraper):
             data=links,
             coro=self.fetch_one,
             limits=limits,
-            pbar=ProgressBar(progress, "Chinese scraping...", len(links)),
+            pbar=ProgressBar(progress, "Chinese translations scraping...", len(links)),
         )
 
     async def fetch_all_links(self) -> list[URL]:
@@ -76,11 +79,11 @@ class XkcdCNScraper(BaseScraper):
     async def _collect_all_links(self, nums: Iterable[int]) -> list[URL]:
         all_links = []
 
-        urls = [self._BASE_URL % {"lg": "cn", "page": num} for num in nums]
+        page_urls = [self._BASE_URL % {"lg": "cn", "page": num} for num in nums]
 
         try:
             async with asyncio.TaskGroup() as tg:
-                tasks = [tg.create_task(self._fetch_one_page_links(url)) for url in urls]
+                tasks = [tg.create_task(self._fetch_one_page_links(url)) for url in page_urls]
         except* Exception as errors:
             for e in errors.exceptions:
                 raise e
