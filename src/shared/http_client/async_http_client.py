@@ -20,7 +20,6 @@ from yarl import URL
 from shared.http_client.exceptions import HttpRequestError
 from shared.utils import custom_json_dumps
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -28,7 +27,7 @@ class AsyncHttpClient:
     def __init__(
         self,
         max_conns: int = 25,
-        timeout: int = 30,
+        timeout: int = 60,
         session_cache_ttl: int = 60,
     ):
         self._throttler = asyncio.Semaphore(max_conns)
@@ -134,7 +133,7 @@ class AsyncHttpClient:
             raise_for_status=False,
             retry_options=ExponentialRetry(
                 attempts=5,
-                start_timeout=3.0,
+                start_timeout=2.0,
                 exceptions={
                     TimeoutError,
                     ServerDisconnectedError,

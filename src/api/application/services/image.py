@@ -37,7 +37,7 @@ class TranslationImageService:
 
             await self._db_holder.commit()
 
-            return image_dto
+        return image_dto
 
     async def _process_image(self, image_id: int, original_abs_path: Path):
         await self._broker.publish(

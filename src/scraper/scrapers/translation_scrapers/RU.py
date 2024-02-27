@@ -2,11 +2,12 @@ import re
 
 from bs4 import BeautifulSoup, Tag
 from rich.progress import Progress
-from scraper.dtos import XkcdScrapedTranslationData
+from scraper.dtos import XkcdTranslationScrapedData
+from scraper.pbar import ProgressBar
 from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
-from scraper.utils import ProgressBar, run_concurrently
+from scraper.utils import run_concurrently
 from shared.http_client import AsyncHttpClient
 from shared.types import LanguageCode
 from yarl import URL
@@ -32,12 +33,12 @@ class XkcdRUScraper(BaseScraper):
         self,
         number: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdScrapedTranslationData:
+    ) -> XkcdTranslationScrapedData:
         url = self._BASE_URL / (str(number) + "/")
         soup = await self._get_soup(url)
 
         try:
-            data = XkcdScrapedTranslationData(
+            data = XkcdTranslationScrapedData(
                 number=number,
                 source_link=url,
                 title=self._extract_title(soup),
@@ -59,7 +60,7 @@ class XkcdRUScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdScrapedTranslationData]:
+    ) -> list[XkcdTranslationScrapedData]:
         all_nums = await self.get_all_nums()
 
         filtered_numbers = [n for n in all_nums if limits.start <= n <= limits.end]

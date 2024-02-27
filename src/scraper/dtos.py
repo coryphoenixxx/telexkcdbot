@@ -5,7 +5,7 @@ from yarl import URL
 
 
 @dataclass(slots=True)
-class XkcdBaseScrapedData:
+class XkcdOriginScrapedData:
     number: int
     publication_date: str
     xkcd_url: URL
@@ -17,7 +17,7 @@ class XkcdBaseScrapedData:
 
 
 @dataclass(slots=True)
-class XkcdScrapedTranslationData:
+class XkcdTranslationScrapedData:
     number: int
     source_link: URL | None
     title: str
@@ -29,27 +29,16 @@ class XkcdScrapedTranslationData:
 
 
 @dataclass(slots=True)
-class XkcdTranslationUploadData:
-    comic_id: int
-    title: str
-    language: LanguageCode
-    tooltip: str | None
-    transcript_raw: str
-    translator_comment: str
-    source_link: str | None
-    images: list[int]
-
-
-@dataclass(slots=True)
-class XkcdExplainScrapedData:
+class XkcdExplanationScrapedBaseData:
+    number: int
     explain_url: URL
     tags: list[str]
     transcript_raw: str
 
 
 @dataclass(slots=True)
-class XkcdOriginScrapedData:
-    number: int
+class XkcdOriginWithExplainScrapedData:
+    number: int | None
     publication_date: str
     xkcd_url: URL
     title: str
@@ -74,4 +63,16 @@ class XkcdOriginUploadData:
     explain_url: URL | None
     tags: list[str]
     en_transcript_raw: str
+    images: list[int]
+
+
+@dataclass(slots=True)
+class XkcdTranslationUploadData:
+    comic_id: int
+    title: str
+    language: LanguageCode
+    tooltip: str | None
+    transcript_raw: str
+    translator_comment: str
+    source_link: str | None
     images: list[int]

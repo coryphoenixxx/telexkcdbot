@@ -2,11 +2,12 @@ import re
 
 from bs4 import BeautifulSoup
 from rich.progress import Progress
-from scraper.dtos import XkcdScrapedTranslationData
+from scraper.dtos import XkcdTranslationScrapedData
+from scraper.pbar import ProgressBar
 from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
-from scraper.utils import ProgressBar, run_concurrently
+from scraper.utils import run_concurrently
 from shared.http_client import AsyncHttpClient
 from shared.types import LanguageCode
 from yarl import URL
@@ -34,7 +35,7 @@ class XkcdDEScraper(BaseScraper):
         self,
         number: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdScrapedTranslationData | None:
+    ) -> XkcdTranslationScrapedData | None:
         if number == 404:
             return
 
@@ -45,7 +46,7 @@ class XkcdDEScraper(BaseScraper):
             return
 
         try:
-            translation = XkcdScrapedTranslationData(
+            translation = XkcdTranslationScrapedData(
                 number=number,
                 source_link=url,
                 title=self._extract_title(soup),
@@ -66,7 +67,7 @@ class XkcdDEScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdScrapedTranslationData]:
+    ) -> list[XkcdTranslationScrapedData]:
         latest_num = await self.fetch_latest_number()
 
         numbers = [n for n in range(limits.start, limits.end + 1) if n <= latest_num]

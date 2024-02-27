@@ -3,12 +3,12 @@ from typing import BinaryIO
 
 from aiohttp import ClientConnectorError, ClientResponse  # noqa: F401
 from scraper.dtos import (
-    XkcdOriginScrapedData,
     XkcdOriginUploadData,
-    XkcdScrapedTranslationData,
+    XkcdOriginWithExplainScrapedData,
+    XkcdTranslationScrapedData,
     XkcdTranslationUploadData,
 )
-from scraper.utils import ProgressBar
+from scraper.pbar import ProgressBar
 from yarl import URL
 
 from shared.http_client import AsyncHttpClient
@@ -36,7 +36,7 @@ class APIRESTClient:
 
     async def create_comic_with_image(
         self,
-        data: XkcdOriginScrapedData,
+        data: XkcdOriginWithExplainScrapedData,
         pbar: ProgressBar | None = None,
     ) -> dict[int, int]:
         images = []
@@ -118,7 +118,7 @@ class APIRESTClient:
 
     async def add_translation_with_image(
         self,
-        data: XkcdScrapedTranslationData,
+        data: XkcdTranslationScrapedData,
         number_comic_id_map: dict[int, int],
         pbar: ProgressBar | None = None,
     ):
