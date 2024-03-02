@@ -2,7 +2,7 @@ import ast
 import re
 
 from rich.progress import Progress
-from scraper.dtos import XkcdTranslationScrapedData
+from scraper.dtos import XkcdTranslationData
 from scraper.pbar import ProgressBar
 from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
@@ -23,7 +23,7 @@ class XkcdFRScraper(BaseScraper):
         self,
         number: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationScrapedData | None:
+    ) -> XkcdTranslationData | None:
         number_data_map = await self._get_number_data_map()
         data = number_data_map.get(number)
 
@@ -33,12 +33,12 @@ class XkcdFRScraper(BaseScraper):
         url = self._BASE_URL / str(number)
 
         try:
-            translation = XkcdTranslationScrapedData(
+            translation = XkcdTranslationData(
                 number=number,
                 source_link=url,
                 title=data[0],
                 tooltip=data[1],
-                image_url=self._BASE_URL / f"comics/{number}.jpg",
+                image=self._BASE_URL / f"comics/{number}.jpg",
                 language=LanguageCode.FR,
             )
         except Exception as err:
@@ -53,7 +53,7 @@ class XkcdFRScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress | None = None,
-    ) -> list[XkcdTranslationScrapedData]:
+    ) -> list[XkcdTranslationData]:
         number_data_map = await self._get_number_data_map()
         latest_num = sorted(number_data_map.keys())[-1]
 
@@ -62,7 +62,7 @@ class XkcdFRScraper(BaseScraper):
         pbar = (
             ProgressBar(
                 progress,
-                f"French translations scraping... ({self._BASE_URL}):",
+                f"French translations scraping...\n({self._BASE_URL}):",
             )
             if progress
             else None

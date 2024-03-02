@@ -1,11 +1,11 @@
 import logging
-from typing import BinaryIO
+from pathlib import Path
 
 from aiohttp import ClientConnectorError, ClientResponse  # noqa: F401
 from scraper.dtos import (
     XkcdOriginUploadData,
     XkcdOriginWithExplainScrapedData,
-    XkcdTranslationScrapedData,
+    XkcdTranslationData,
     XkcdTranslationUploadData,
 )
 from scraper.pbar import ProgressBar
@@ -80,7 +80,7 @@ class APIRESTClient:
         language: LanguageCode,
         is_draft: bool = False,
         image_url: str | URL | None = None,
-        image_file: BinaryIO | None = None,
+        image_path: Path | None = None,
     ) -> dict[str, int | str]:
         url = self._API_URL.joinpath("translations/upload_image")
 
@@ -95,13 +95,13 @@ class APIRESTClient:
         async with self._client.safe_post(
             url=url,
             params=params,
-            data={"image_file": image_file if image_file else ""},
+            data={"image_file": open(image_path, "rb") if image_path else ""},
         ) as response:  # type:ClientResponse
             if response.status == 201:
                 return await response.json()
             else:
                 error_json = await response.json()
-                # print(error_json)
+                print(error_json)
 
     async def create_comic(self, comic: XkcdOriginUploadData) -> int:
         url = self._API_URL.joinpath("comics")
@@ -114,11 +114,11 @@ class APIRESTClient:
                 return (await response.json())["id"]
             else:
                 error_json = await response.json()
-                # print(error_json)
+                print(error_json)
 
     async def add_translation_with_image(
         self,
-        data: XkcdTranslationScrapedData,
+        data: XkcdTranslationData,
         number_comic_id_map: dict[int, int],
         pbar: ProgressBar | None = None,
     ):
@@ -128,13 +128,14 @@ class APIRESTClient:
 
         comic_id = number_comic_id_map[data.number]
 
-        if data.image_url:
+        if data.image:
             image_id = (
                 await self.upload_image(
                     title=data.title,
                     number=data.number,
                     language=data.language,
-                    image_url=data.image_url,
+                    image_url=data.image if isinstance(data.image, URL) else None,
+                    image_path=data.image if isinstance(data.image, Path) else None,
                 )
             )["id"]
             images.append(image_id)
@@ -160,7 +161,7 @@ class APIRESTClient:
                 return (await response.json())["id"]
             else:
                 error_json = await response.json()
-                # print(error_json)
+                print(error_json)
 
     @staticmethod
     def _build_params(**kwargs) -> dict[str, int | float | str]:

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 from shared.types import LanguageCode
 from yarl import URL
@@ -17,12 +18,12 @@ class XkcdOriginScrapedData:
 
 
 @dataclass(slots=True)
-class XkcdTranslationScrapedData:
+class XkcdTranslationData:
     number: int
     source_link: URL | None
     title: str
     tooltip: str | None
-    image_url: URL | None
+    image: URL | Path | None
     language: LanguageCode
     transcript_raw: str = ""
     translator_comment: str = ""

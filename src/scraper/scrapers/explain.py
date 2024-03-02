@@ -65,7 +65,7 @@ class XkcdExplainScraper(BaseScraper):
             limits=limits,
             pbar=ProgressBar(
                 progress,
-                f"Explanation data scraping... ({self._BASE_URL}):",
+                f"Explanation data scraping...\n({self._BASE_URL}):",
                 len(numbers),
             ),
         )

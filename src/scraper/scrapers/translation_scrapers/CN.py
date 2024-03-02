@@ -3,7 +3,7 @@ from collections.abc import Iterable
 
 from bs4 import BeautifulSoup
 from rich.progress import Progress
-from scraper.dtos import XkcdTranslationScrapedData
+from scraper.dtos import XkcdTranslationData
 from scraper.pbar import ProgressBar
 from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
@@ -24,18 +24,18 @@ class XkcdCNScraper(BaseScraper):
         self,
         url: URL,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationScrapedData:
+    ) -> XkcdTranslationData:
         soup = await self._get_soup(url)
 
         try:
             tooltip, translator_comment = self._extract_tooltip_and_translator_comment(soup)
 
-            data = XkcdTranslationScrapedData(
+            data = XkcdTranslationData(
                 number=self._extract_number_from_url(url),
                 source_link=url,
                 title=self._extract_title(soup),
                 tooltip=tooltip,
-                image_url=self._extract_image_url(soup),
+                image=self._extract_image_url(soup),
                 translator_comment=translator_comment,
                 language=LanguageCode.CN,
             )
@@ -51,7 +51,7 @@ class XkcdCNScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdTranslationScrapedData]:
+    ) -> list[XkcdTranslationData]:
         links = [
             link
             for link in await self.fetch_all_links()
@@ -64,7 +64,7 @@ class XkcdCNScraper(BaseScraper):
             limits=limits,
             pbar=ProgressBar(
                 progress,
-                f"Chinese translations scraping... ({self._BASE_URL}):",
+                f"Chinese translations scraping...\n({self._BASE_URL}):",
                 len(links),
             ),
         )

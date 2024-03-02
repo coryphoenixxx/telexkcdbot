@@ -2,7 +2,7 @@ import re
 
 from bs4 import BeautifulSoup, Tag
 from rich.progress import Progress
-from scraper.dtos import XkcdTranslationScrapedData
+from scraper.dtos import XkcdTranslationData
 from scraper.pbar import ProgressBar
 from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
@@ -33,17 +33,17 @@ class XkcdRUScraper(BaseScraper):
         self,
         number: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationScrapedData:
+    ) -> XkcdTranslationData:
         url = self._BASE_URL / (str(number) + "/")
         soup = await self._get_soup(url)
 
         try:
-            data = XkcdTranslationScrapedData(
+            data = XkcdTranslationData(
                 number=number,
                 source_link=url,
                 title=self._extract_title(soup),
                 tooltip=self._extract_tooltip(soup),
-                image_url=self._extract_image_url(soup),
+                image=self._extract_image_url(soup),
                 transcript_raw=self._extract_transcript(soup),
                 translator_comment=self._extract_comment(soup),
                 language=LanguageCode.RU,
@@ -60,7 +60,7 @@ class XkcdRUScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdTranslationScrapedData]:
+    ) -> list[XkcdTranslationData]:
         all_nums = await self.get_all_nums()
 
         filtered_numbers = [n for n in all_nums if limits.start <= n <= limits.end]
@@ -71,7 +71,7 @@ class XkcdRUScraper(BaseScraper):
             limits=limits,
             pbar=ProgressBar(
                 progress,
-                f"Russian translations scraping... ({self._BASE_URL}):",
+                f"Russian translations scraping...\n({self._BASE_URL}):",
                 len(filtered_numbers),
             ),
         )

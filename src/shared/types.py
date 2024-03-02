@@ -15,3 +15,5 @@ class LanguageCode(StrEnum):
     ES = "ES"
     DE = "DE"
     FR = "FR"
+    UA = "UA"
+    NL = "NL"

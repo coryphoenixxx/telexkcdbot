@@ -2,7 +2,7 @@ import re
 
 from bs4 import BeautifulSoup
 from rich.progress import Progress
-from scraper.dtos import XkcdTranslationScrapedData
+from scraper.dtos import XkcdTranslationData
 from scraper.pbar import ProgressBar
 from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
@@ -35,7 +35,7 @@ class XkcdDEScraper(BaseScraper):
         self,
         number: int,
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationScrapedData | None:
+    ) -> XkcdTranslationData | None:
         if number == 404:
             return
 
@@ -46,12 +46,12 @@ class XkcdDEScraper(BaseScraper):
             return
 
         try:
-            translation = XkcdTranslationScrapedData(
+            translation = XkcdTranslationData(
                 number=number,
                 source_link=url,
                 title=self._extract_title(soup),
                 tooltip=self._extract_tooltip(soup),
-                image_url=await self._extract_image_url(soup),
+                image=await self._extract_image_url(soup),
                 translator_comment=self._extract_comment(soup),
                 language=LanguageCode.DE,
             )
@@ -67,7 +67,7 @@ class XkcdDEScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdTranslationScrapedData]:
+    ) -> list[XkcdTranslationData]:
         latest_num = await self.fetch_latest_number()
 
         numbers = [n for n in range(limits.start, limits.end + 1) if n <= latest_num]
@@ -78,7 +78,7 @@ class XkcdDEScraper(BaseScraper):
             limits=limits,
             pbar=ProgressBar(
                 progress,
-                f"Deutsch translations scraping... ({self._BASE_URL}):",
+                f"Deutsch translations scraping...\n({self._BASE_URL}):",
             ),
         )
 

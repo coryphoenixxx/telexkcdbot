@@ -106,7 +106,7 @@ class XkcdOriginScraper(BaseScraper):
             limits=limits,
             pbar=ProgressBar(
                 progress,
-                f"Origin data scraping... ({self._BASE_URL}):",
+                f"Origin data scraping...\n({self._BASE_URL}):",
                 len(numbers),
             ),
         )

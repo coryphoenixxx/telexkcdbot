@@ -2,7 +2,7 @@ import re
 
 from bs4 import BeautifulSoup
 from rich.progress import Progress
-from scraper.dtos import XkcdTranslationScrapedData
+from scraper.dtos import XkcdTranslationData
 from scraper.pbar import ProgressBar
 from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
@@ -26,7 +26,7 @@ class XkcdESScraper(BaseScraper):
         url: URL,
         range_: tuple[int, int],
         pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationScrapedData | None:
+    ) -> XkcdTranslationData | None:
         soup = await self._get_soup(url)
 
         number = self._extract_number(soup)
@@ -35,12 +35,12 @@ class XkcdESScraper(BaseScraper):
             return
 
         try:
-            data = XkcdTranslationScrapedData(
+            data = XkcdTranslationData(
                 number=number,
                 source_link=url,
                 title=self._extract_title(soup),
                 tooltip=self._extract_tooltip(soup),
-                image_url=self._extract_image_url(soup),
+                image=self._extract_image_url(soup),
                 language=LanguageCode.ES,
             )
         except Exception as err:
@@ -58,7 +58,7 @@ class XkcdESScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdTranslationScrapedData]:
+    ) -> list[XkcdTranslationData]:
         urls = await self.fetch_all_links()
 
         return await run_concurrently(
@@ -68,7 +68,7 @@ class XkcdESScraper(BaseScraper):
             range_=(limits.start, limits.end),
             pbar=ProgressBar(
                 progress,
-                f"Spanish translations scraping... ({self._BASE_URL}):",
+                f"Spanish translations scraping...\n({self._BASE_URL}):",
             ),
         )
 
