@@ -62,7 +62,11 @@ class XkcdCNScraper(BaseScraper):
             data=links,
             coro=self.fetch_one,
             limits=limits,
-            pbar=ProgressBar(progress, "Chinese translations scraping...", len(links)),
+            pbar=ProgressBar(
+                progress,
+                f"Chinese translations scraping... ({self._BASE_URL}):",
+                len(links),
+            ),
         )
 
     async def fetch_all_links(self) -> list[URL]:

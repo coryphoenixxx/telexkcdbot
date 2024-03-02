@@ -76,7 +76,10 @@ class XkcdDEScraper(BaseScraper):
             data=numbers,
             coro=self.fetch_one,
             limits=limits,
-            pbar=ProgressBar(progress, "Deutsch translations scraping..."),
+            pbar=ProgressBar(
+                progress,
+                f"Deutsch translations scraping... ({self._BASE_URL}):",
+            ),
         )
 
     def _extract_title(self, soup: BeautifulSoup) -> str:

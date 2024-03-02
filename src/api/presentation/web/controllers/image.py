@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends, File, Query, UploadFile
-from faststream.nats import NatsBroker
+from faststream.nats import JStream, NatsBroker, PullSub
 from faststream.nats.fastapi import NatsRouter
 from pydantic import HttpUrl
 from shared.messages import ImageProcessOutMessage
@@ -94,7 +94,12 @@ async def upload_image(
 @router.subscriber(
     "internal.api.images.process.out",
     queue="process_images_out_queue",
-    stream="process_images_out_stream",
+    stream=JStream(
+        name="process_images_out_stream",
+        max_age=600,
+    ),
+    pull_sub=PullSub(),
+    durable="api",
 )
 async def processed_images_handler(
     msg: ImageProcessOutMessage,

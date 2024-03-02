@@ -52,6 +52,24 @@ class XkcdExplainScraper(BaseScraper):
 
         return data
 
+    async def fetch_many(
+        self,
+        limits: LimitParams,
+        progress: Progress,
+    ) -> list[XkcdExplanationScrapedBaseData]:
+        numbers = list(range(limits.start, limits.end + 1))
+
+        return await run_concurrently(
+            data=numbers,
+            coro=self.fetch_one,
+            limits=limits,
+            pbar=ProgressBar(
+                progress,
+                f"Explanation data scraping... ({self._BASE_URL}):",
+                len(numbers),
+            ),
+        )
+
     async def fetch_extra_urls(self) -> list[URL]:
         url = self._BASE_URL / "wiki/index.php/Category:Extra_comics"
         soup = await self._get_soup(url)
@@ -65,20 +83,6 @@ class XkcdExplainScraper(BaseScraper):
                 urls.append(self._BASE_URL / rel_url[1:])
 
         return urls
-
-    async def fetch_many(
-        self,
-        limits: LimitParams,
-        progress: Progress,
-    ) -> list[XkcdExplanationScrapedBaseData]:
-        numbers = list(range(limits.start, limits.end + 1))
-
-        return await run_concurrently(
-            data=numbers,
-            coro=self.fetch_one,
-            limits=limits,
-            pbar=ProgressBar(progress, "Explanation data scraping...", len(numbers)),
-        )
 
     async def fetch_recently_updated_numbers(self, days: int = 1, limit: int = 500) -> list[int]:
         url = (

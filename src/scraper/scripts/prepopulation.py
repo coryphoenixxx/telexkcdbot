@@ -143,7 +143,10 @@ async def main(
             translations = flatten([task.result() for task in tasks])
 
             number_comic_id_map = await upload_origin_with_explanation(
-                api_client, origin_with_explanation, limits, progress,
+                api_client,
+                origin_with_explanation,
+                limits,
+                progress,
             )
 
             await upload_translations(

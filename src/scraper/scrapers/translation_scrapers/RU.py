@@ -69,7 +69,11 @@ class XkcdRUScraper(BaseScraper):
             data=filtered_numbers,
             coro=self.fetch_one,
             limits=limits,
-            pbar=ProgressBar(progress, "Russian translations scraping...", len(filtered_numbers)),
+            pbar=ProgressBar(
+                progress,
+                f"Russian translations scraping... ({self._BASE_URL}):",
+                len(filtered_numbers),
+            ),
         )
 
     def _extract_all_nums(self, soup: BeautifulSoup) -> list[int]:

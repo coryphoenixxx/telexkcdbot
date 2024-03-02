@@ -15,8 +15,8 @@ python = "^3.11"
 
 
 [tool.poetry.group.api.dependencies]
-fastapi = "^0.109.0"
-uvicorn = { extras = ["standard"], version = "^0.27.0" }
+fastapi = "^0.110.0"
+uvicorn = { extras = ["standard"], version = "^0.27" }
 sqlalchemy = "^2.0.23"
 asyncpg = "^0.29.0"
 python-multipart = "^0.0.6"
@@ -33,7 +33,7 @@ aiohttp = "^3.9.1"
 aiodns = "^3.1.1"
 aiohttp-retry = "^2.8.3"
 gunicorn = "^21.2.0"
-faststream = { extras = ["nats"], version = "0.4.1" }
+faststream = { extras = ["nats"], version = "0.4.5" }
 
 
 [tool.poetry.group.scraper.dependencies]

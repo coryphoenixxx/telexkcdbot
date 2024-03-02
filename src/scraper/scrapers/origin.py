@@ -54,39 +54,39 @@ class XkcdOriginScraper(BaseScraper):
         url = self._BASE_URL / (str(number) + "/")
 
         if number == 404:
-            return XkcdOriginScrapedData(
+            data = XkcdOriginScrapedData(
                 number=404,
                 xkcd_url=url,
                 title="404: Not Found",
                 publication_date="2008-04-01",
             )
+        else:
+            async with self._client.safe_get(url / "info.0.json") as response:
+                json_data = await response.json()
 
-        async with self._client.safe_get(url / "info.0.json") as response:
-            json_data = await response.json()
+            try:
+                link_on_click, large_image_page_url = self._process_link(json_data["link"])
 
-        try:
-            link_on_click, large_image_page_url = self._process_link(json_data["link"])
-
-            data = XkcdOriginScrapedData(
-                number=json_data["num"],
-                xkcd_url=url,
-                title=self._process_title(json_data["title"]),
-                publication_date=build_date(
-                    y=json_data["year"],
-                    m=json_data["month"],
-                    d=json_data["day"],
-                ),
-                link_on_click=link_on_click,
-                tooltip=json_data["alt"],
-                image_url=(
-                    await self._fetch_large_image_url(large_image_page_url)
-                    or await self._fetch_2x_image_url(url)
-                    or self._process_image_url(json_data["img"])
-                ),
-                is_interactive=bool(json_data.get("extra_parts")),
-            )
-        except Exception as err:
-            raise ScraperError(url) from err
+                data = XkcdOriginScrapedData(
+                    number=json_data["num"],
+                    xkcd_url=url,
+                    title=self._process_title(json_data["title"]),
+                    publication_date=build_date(
+                        y=json_data["year"],
+                        m=json_data["month"],
+                        d=json_data["day"],
+                    ),
+                    link_on_click=link_on_click,
+                    tooltip=json_data["alt"],
+                    image_url=(
+                        await self._fetch_large_image_url(large_image_page_url)
+                        or await self._fetch_2x_image_url(url)
+                        or self._process_image_url(json_data["img"])
+                    ),
+                    is_interactive=bool(json_data.get("extra_parts")),
+                )
+            except Exception as err:
+                raise ScraperError(url) from err
 
         if pbar:
             pbar.advance()
@@ -104,7 +104,11 @@ class XkcdOriginScraper(BaseScraper):
             data=numbers,
             coro=self.fetch_one,
             limits=limits,
-            pbar=ProgressBar(progress, "Origin data scraping...", len(numbers)),
+            pbar=ProgressBar(
+                progress,
+                f"Origin data scraping... ({self._BASE_URL}):",
+                len(numbers),
+            ),
         )
 
     async def _fetch_large_image_url(self, url: URL | None) -> URL | None:

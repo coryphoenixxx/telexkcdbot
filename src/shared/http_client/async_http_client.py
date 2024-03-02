@@ -11,7 +11,7 @@ from aiohttp import (
     ClientSession,
     ClientTimeout,
     InvalidURL,
-    ServerDisconnectedError,
+    ServerConnectionError,
     TCPConnector,
 )
 from aiohttp_retry import ExponentialRetry, RetryClient
@@ -136,7 +136,8 @@ class AsyncHttpClient:
                 start_timeout=2.0,
                 exceptions={
                     TimeoutError,
-                    ServerDisconnectedError,
+                    ServerConnectionError,
+                    ConnectionResetError,
                 },
                 retry_all_server_errors=False,
                 statuses=set(retry_statuses),

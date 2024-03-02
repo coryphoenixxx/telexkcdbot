@@ -1,6 +1,5 @@
-
 from faststream import FastStream, Logger
-from faststream.nats import NatsBroker
+from faststream.nats import JStream, NatsBroker, PullSub
 from PIL import Image
 from shared.messages import ImageProcessInMessage, ImageProcessOutMessage
 
@@ -13,7 +12,12 @@ app = FastStream(broker)
 @broker.subscriber(
     subject="internal.api.images.process.in",
     queue="process_images_in_queue",
-    stream="process_images_in_stream",
+    stream=JStream(
+        name="process_images_in_stream",
+        max_age=600,
+    ),
+    pull_sub=PullSub(),
+    durable="image_processor",
 )
 async def process_image_handler(msg: ImageProcessInMessage, logger: Logger):
     original_abs_path = msg.original_abs_path
@@ -25,7 +29,9 @@ async def process_image_handler(msg: ImageProcessInMessage, logger: Logger):
     else:
         converted_abs_path = convert_to_webp(img_obj, original_abs_path, logger)
         thumbnail_abs_path = create_thumbnail(
-            img_obj, converted_abs_path or original_abs_path, logger,
+            img_obj,
+            converted_abs_path or original_abs_path,
+            logger,
         )
 
         await broker.publish(

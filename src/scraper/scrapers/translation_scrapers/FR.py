@@ -59,7 +59,14 @@ class XkcdFRScraper(BaseScraper):
 
         numbers = [n for n in range(limits.start, limits.end + 1) if n <= latest_num]
 
-        pbar = ProgressBar(progress, "French translations scraping...") if progress else None
+        pbar = (
+            ProgressBar(
+                progress,
+                f"French translations scraping... ({self._BASE_URL}):",
+            )
+            if progress
+            else None
+        )
 
         translations = []
         for num in numbers:
