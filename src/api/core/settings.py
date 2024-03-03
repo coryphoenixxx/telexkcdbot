@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     )
 
 
-def load_settings():
+def load_settings() -> Settings:
     settings = Settings()
 
     if settings.env is Environment.PROD:

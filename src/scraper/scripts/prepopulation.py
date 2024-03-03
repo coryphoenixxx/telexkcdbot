@@ -231,7 +231,10 @@ async def main(
             MofNCompleteColumn(),
             TimeElapsedColumn(),
         ) as progress, TemporaryDirectory(dir=".") as temp_dir:
-            origin_with_explain_data = await origin_with_explain_scraper.fetch_many(limits, progress)
+            origin_with_explain_data = await origin_with_explain_scraper.fetch_many(
+                limits,
+                progress,
+            )
 
             translations = await fetch_all_translations(http_client, limits, progress, temp_dir)
 

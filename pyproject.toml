@@ -50,12 +50,16 @@ asyncclick = "^8.1.7.1"
 
 [tool.poetry.group.image_processor.dependencies]
 pillow = "^10.1.0"
-pydantic = "^2.6.0"
+pydantic = "^2.5"
+
+
+[tool.poetry.group.bot.dependencies]
+aiogram = "^3.4.1"
 
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3"
-ruff = "^0.2"
+ruff = "^0.3"
 black = "^24"
 pytest = "^8.0.0"
 pympler = "^1.0.1"
