@@ -68,7 +68,7 @@ class XkcdESScraper(BaseScraper):
             range_=(limits.start, limits.end),
             pbar=ProgressBar(
                 progress,
-                f"Spanish translations scraping...\n({self._BASE_URL}):",
+                f"Spanish translations scraping...\n\\[{self._BASE_URL}]",
             ),
         )
 

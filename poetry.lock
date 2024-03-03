@@ -210,6 +210,21 @@ files = [
 ]
 
 [[package]]
+name = "asyncclick"
+version = "8.1.7.1"
+description = "Composable command line interface toolkit, async version"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "asyncclick-8.1.7.1-py3-none-any.whl", hash = "sha256:e0fea5f0223ac45cfc26153cc80a58cc65fc077ac8de79be49248c918e8c3422"},
+    {file = "asyncclick-8.1.7.1.tar.gz", hash = "sha256:a47b61258a689212cf9463fbf3b4cc52d05bfd03185f6ead2315fc03fd17ef75"},
+]
+
+[package.dependencies]
+anyio = "*"
+colorama = {version = "*", markers = "platform_system == \"Windows\""}
+
+[[package]]
 name = "asyncpg"
 version = "0.29.0"
 description = "An asyncio PostgreSQL driver"
@@ -2593,4 +2608,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "dd8aa8fc742e7a14e32b13315a289b8ca0f59f6ab882f0c0eb97f3137b01fb5b"
+content-hash = "25f611d3983718dd7980fdba1d836e0b3d8906ec545eceb1c6d2da21afd9ad30"

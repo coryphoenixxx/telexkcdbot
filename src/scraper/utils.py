@@ -1,13 +1,10 @@
 import asyncio
-import logging
 from collections.abc import Callable
 
 from shared.utils import chunked
 
 from scraper.pbar import ProgressBar
 from scraper.types import LimitParams
-
-logger = logging.getLogger(__name__)
 
 
 async def run_concurrently(

@@ -64,7 +64,7 @@ class XkcdCNScraper(BaseScraper):
             limits=limits,
             pbar=ProgressBar(
                 progress,
-                f"Chinese translations scraping...\n({self._BASE_URL}):",
+                f"Chinese translations scraping...\n\\[{self._BASE_URL}]",
                 len(links),
             ),
         )

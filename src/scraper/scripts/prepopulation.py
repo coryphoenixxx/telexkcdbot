@@ -7,6 +7,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
+import asyncclick as click
 import uvloop
 from rich.progress import (
     BarColumn,
@@ -50,15 +51,10 @@ LOGGER_CONFIG = {
             "level": "DEBUG",
             "formatter": "default",
         },
-        "rich": {
-            "class": "rich.logging.RichHandler",
-            "level": "NOTSET",
-            "formatter": None,
-        },
     },
     "loggers": {
         "root": {
-            "handlers": ["default", "rich"],
+            "handlers": ["default"],
             "level": "INFO",
         },
     },
@@ -68,45 +64,9 @@ logging.config.dictConfig(LOGGER_CONFIG)
 logger = logging.getLogger(__name__)
 
 
-async def upload_origin_with_explanation(
-    api_client: APIRESTClient,
-    origin_data: list[XkcdOriginWithExplainScrapedData],
-    limits: LimitParams,
-    progress: Progress,
-) -> dict[int, int]:
-    number_comic_id_map = {}
-
-    results = await run_concurrently(
-        data=origin_data,
-        coro=api_client.create_comic_with_image,
-        limits=limits,
-        pbar=ProgressBar(progress, "Origin uploading...", len(origin_data)),
-    )
-
-    for r in results:
-        number_comic_id_map |= r
-
-    return number_comic_id_map
-
-
-async def upload_translations(
-    api_client: APIRESTClient,
-    number_comic_id_map: dict[int, int],
-    translation_data: list[XkcdTranslationData],
-    limits: LimitParams,
-    progress: Progress,
-):
-    await run_concurrently(
-        data=translation_data,
-        coro=api_client.add_translation_with_image,
-        limits=limits,
-        number_comic_id_map=number_comic_id_map,
-        pbar=ProgressBar(progress, "Translations uploading...", len(translation_data)),
-    )
-
-
 def extract_prescraped_translations(
     extract_to: Path,
+    limits: LimitParams,
     pbar: ProgressBar | None,
     zip_path: Path = Path.cwd() / "prescraped_translations.zip",
 ) -> list[XkcdTranslationData]:
@@ -133,6 +93,10 @@ def extract_prescraped_translations(
 
                 for row in csv_reader:
                     number = int(row["number"])
+
+                    if number < limits.start or number > limits.end:
+                        continue
+
                     source_link = row["source_link"]
                     tooltip = row["tooltip"]
 
@@ -156,22 +120,105 @@ def extract_prescraped_translations(
     return translations
 
 
+async def fetch_all_translations(
+    http_client: AsyncHttpClient,
+    limits: LimitParams,
+    progress: Progress,
+    temp_dir,
+) -> list[XkcdTranslationData]:
+    async with asyncio.TaskGroup() as tg:
+        tasks = [
+            tg.create_task(XkcdRUScraper(client=http_client).fetch_many(limits, progress)),
+            tg.create_task(XkcdDEScraper(client=http_client).fetch_many(limits, progress)),
+            tg.create_task(XkcdESScraper(client=http_client).fetch_many(limits, progress)),
+            tg.create_task(XkcdCNScraper(client=http_client).fetch_many(limits, progress)),
+            tg.create_task(XkcdFRScraper(client=http_client).fetch_many(limits, progress)),
+        ]
+
+    translations = flatten([task.result() for task in tasks])
+
+    try:
+        prescraped_translations = extract_prescraped_translations(
+            extract_to=Path(temp_dir),
+            pbar=ProgressBar(progress, "Extracting prescraped translations..."),
+            limits=limits,
+        )
+    except FileNotFoundError as err:
+        logger.warning(
+            f"File not found: {err.filename}. Skip prescraped translations extraction...",
+        )
+    else:
+        translations.extend(prescraped_translations)
+
+    return translations
+
+
+async def upload_origin_with_explanation(
+    api_client: APIRESTClient,
+    origin_data: list[XkcdOriginWithExplainScrapedData],
+    limits: LimitParams,
+    progress: Progress,
+) -> dict[int, int]:
+    number_comic_id_map = {}
+
+    results = await run_concurrently(
+        data=origin_data,
+        coro=api_client.create_comic_with_image,
+        limits=limits,
+        pbar=ProgressBar(progress, "Origin data uploading...", len(origin_data)),
+    )
+
+    for r in results:
+        number_comic_id_map |= r
+
+    return number_comic_id_map
+
+
+async def upload_translations(
+    api_client: APIRESTClient,
+    number_comic_id_map: dict[int, int],
+    translation_data: list[XkcdTranslationData],
+    limits: LimitParams,
+    progress: Progress,
+):
+    await run_concurrently(
+        data=translation_data,
+        coro=api_client.add_translation_with_image,
+        limits=limits,
+        number_comic_id_map=number_comic_id_map,
+        pbar=ProgressBar(progress, "Translations uploading...", len(translation_data)),
+    )
+
+
+def positive_number_callback(ctx, param, value):
+    if not value:
+        return
+    if isinstance(value, int | float) and value > 0:
+        return value
+    raise click.BadParameter("parameter must be positive")
+
+
+@click.command()
+@click.option("--start", type=int, default=1, callback=positive_number_callback)
+@click.option("--end", type=int, callback=positive_number_callback)
+@click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
+@click.option("--delay", type=float, default=0.01, callback=positive_number_callback)
 async def main(
-    start: int = 1,
-    end: int | None = None,
-    chunk_size: int = 100,
-    delay: int = 0,
+    start: int,
+    end: int | None,
+    chunk_size,
+    delay: int,
 ):
     async with AsyncHttpClient() as http_client:
-        origin_with_explain_scraper = XkcdOriginWithExplainDataScraper(
-            origin_scraper=XkcdOriginScraper(client=http_client),
-            explain_scraper=XkcdExplainScraper(client=http_client),
-        )
-
         api_client = APIRESTClient(http_client)
 
         if not await api_client.healthcheck():
             return
+
+        origin_with_explain_scraper = XkcdOriginWithExplainDataScraper(
+            origin_scraper=XkcdOriginScraper(client=http_client),
+            explain_scraper=XkcdExplainScraper(client=http_client),
+        )
 
         if not end:
             end = await origin_with_explain_scraper.origin_scraper.fetch_latest_number()
@@ -183,48 +230,25 @@ async def main(
             BarColumn(),
             MofNCompleteColumn(),
             TimeElapsedColumn(),
-        ) as progress:
-            origin_with_explanation = await origin_with_explain_scraper.fetch_many(
+        ) as progress, TemporaryDirectory(dir=".") as temp_dir:
+            origin_with_explain_data = await origin_with_explain_scraper.fetch_many(limits, progress)
+
+            translations = await fetch_all_translations(http_client, limits, progress, temp_dir)
+
+            number_comic_id_map = await upload_origin_with_explanation(
+                api_client,
+                origin_with_explain_data,
                 limits,
                 progress,
             )
 
-            async with asyncio.TaskGroup() as tg:
-                tasks = [
-                    tg.create_task(XkcdRUScraper(client=http_client).fetch_many(limits, progress)),
-                    tg.create_task(XkcdDEScraper(client=http_client).fetch_many(limits, progress)),
-                    tg.create_task(XkcdESScraper(client=http_client).fetch_many(limits, progress)),
-                    tg.create_task(XkcdCNScraper(client=http_client).fetch_many(limits, progress)),
-                    tg.create_task(XkcdFRScraper(client=http_client).fetch_many(limits, progress)),
-                ]
-
-            translations = flatten([task.result() for task in tasks])
-
-            with TemporaryDirectory(dir=".") as temp_dir:
-                try:
-                    prescraped_translations = extract_prescraped_translations(
-                        extract_to=Path(temp_dir),
-                        pbar=ProgressBar(progress, "Extracting prescraped translations..."),
-                    )
-                except FileNotFoundError as err:
-                    logger.error(f"File not found: {err.filename}")
-                else:
-                    translations.extend(prescraped_translations)
-
-                number_comic_id_map = await upload_origin_with_explanation(
-                    api_client,
-                    origin_with_explanation,
-                    limits,
-                    progress,
-                )
-
-                await upload_translations(
-                    api_client,
-                    number_comic_id_map,
-                    translations,
-                    limits,
-                    progress,
-                )
+            await upload_translations(
+                api_client,
+                number_comic_id_map,
+                translations,
+                limits,
+                progress,
+            )
 
 
 if __name__ == "__main__":

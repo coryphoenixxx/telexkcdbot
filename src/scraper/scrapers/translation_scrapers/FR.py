@@ -62,7 +62,7 @@ class XkcdFRScraper(BaseScraper):
         pbar = (
             ProgressBar(
                 progress,
-                f"French translations scraping...\n({self._BASE_URL}):",
+                f"French translations scraping...\n\\[{self._BASE_URL}]",
             )
             if progress
             else None

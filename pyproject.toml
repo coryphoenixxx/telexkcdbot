@@ -45,6 +45,7 @@ lxml = "^5.1.0"
 beautifulsoup4 = "^4.12.2"
 aiohttp-retry = "^2.8.3"
 rich = "^13.7.0"
+asyncclick = "^8.1.7.1"
 
 
 [tool.poetry.group.image_processor.dependencies]
