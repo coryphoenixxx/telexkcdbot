@@ -163,6 +163,14 @@ class APIRESTClient:
                 error_json = await response.json()
                 print(error_json)
 
+    async def get_comic_by_number(self, number: int):
+        url = self._API_URL / f"comics/{number}"
+
+        async with self._client.safe_get(url) as response:
+            comic = await response.json()
+
+        return comic
+
     @staticmethod
     def _build_params(**kwargs) -> dict[str, int | float | str]:
         params = {}

@@ -1,5 +1,4 @@
 import logging
-import logging
 import sys
 from functools import partial
 
@@ -10,23 +9,28 @@ from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_applicati
 from aiohttp import web
 
 from bot.config import load_settings, AppConfig
+from shared.api_rest_client import APIRESTClient
+from shared.http_client.async_http_client import AsyncHttpClient
 
 router = Router()
+
+api_client = APIRESTClient(client=AsyncHttpClient())
 
 
 @router.message()
 async def echo_handler(message: types.Message) -> None:
-    try:
-        await message.send_copy(chat_id=message.chat.id)
-    except TypeError:
-        await message.answer("Nice try!")
+    number = int(message.text)
+
+    comic = await api_client.get_comic_by_number(number)
+
+    print(comic)
 
 
 async def on_startup(bot: Bot, config: AppConfig):
     await bot.set_webhook(
         f"{config.base_webhook_url}{config.webhook_path}",
         secret_token=config.webhook_secret,
-        drop_pending_updates=True,
+        drop_pending_updates=False,
     )
 
 
@@ -36,9 +40,7 @@ def main():
     bot = Bot(token=settings.bot.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
     dp = Dispatcher()
-
     dp.include_router(router)
-
     dp.startup.register(partial(on_startup, config=settings.app))
 
     app = web.Application()

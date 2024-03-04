@@ -50,7 +50,7 @@ asyncclick = "^8.1.7.1"
 
 [tool.poetry.group.image_processor.dependencies]
 pillow = "^10.1.0"
-pydantic = "^2.5"
+pydantic = "<2.6"
 
 
 [tool.poetry.group.bot.dependencies]

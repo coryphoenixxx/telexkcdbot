@@ -91,26 +91,26 @@ async def upload_image(
     )
 
 
-@router.subscriber(
-    "internal.api.images.process.out",
-    queue="process_images_out_queue",
-    stream=JStream(
-        name="process_images_out_stream",
-        max_age=600,
-    ),
-    pull_sub=PullSub(),
-    durable="api",
-)
-async def processed_images_handler(
-    msg: ImageProcessOutMessage,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
-    image_saver: ImageSaveHelper = Depends(ImageFileSaverDepStub),
-):
-    await TranslationImageService(
-        db_holder=db_holder,
-        image_saver=image_saver,
-    ).update(
-        image_id=TranslationImageID(msg.image_id),
-        converted_abs_path=msg.converted_abs_path,
-        thumbnail_abs_path=msg.thumbnail_abs_path,
-    )
+# @router.subscriber(
+#     "internal.api.images.process.out",
+#     queue="process_images_out_queue",
+#     stream=JStream(
+#         name="process_images_out_stream",
+#         max_age=600,
+#     ),
+#     pull_sub=PullSub(),
+#     durable="api",
+# )
+# async def processed_images_handler(
+#     msg: ImageProcessOutMessage,
+#     db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+#     image_saver: ImageSaveHelper = Depends(ImageFileSaverDepStub),
+# ):
+#     await TranslationImageService(
+#         db_holder=db_holder,
+#         image_saver=image_saver,
+#     ).update(
+#         image_id=TranslationImageID(msg.image_id),
+#         converted_abs_path=msg.converted_abs_path,
+#         thumbnail_abs_path=msg.thumbnail_abs_path,
+#     )
