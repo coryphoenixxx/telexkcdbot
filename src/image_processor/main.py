@@ -25,7 +25,7 @@ async def process_image_handler(msg: ImageProcessInMessage, logger: Logger):
     try:
         img_obj = Image.open(original_abs_path)
     except FileNotFoundError:
-        logger.error("Image file not found!")
+        logger.error(f"Image file not found: {original_abs_path}")
     else:
         converted_abs_path = convert_to_webp(img_obj, original_abs_path, logger)
         thumbnail_abs_path = create_thumbnail(

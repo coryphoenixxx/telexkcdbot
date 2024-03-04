@@ -7,10 +7,10 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
-
-from bot.config import load_settings, AppConfig
 from shared.api_rest_client import APIRESTClient
 from shared.http_client.async_http_client import AsyncHttpClient
+
+from bot.config import AppConfig, load_settings
 
 router = Router()
 

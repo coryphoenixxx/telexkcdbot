@@ -51,7 +51,7 @@ class XkcdOriginScraper(BaseScraper):
         if number > await self.fetch_latest_number() or number <= 0:
             return None
 
-        url = self._BASE_URL / (str(number) + "/")
+        url = self._BASE_URL / f"{number!s}/"
 
         if number == 404:
             data = XkcdOriginScrapedData(
@@ -116,6 +116,9 @@ class XkcdOriginScraper(BaseScraper):
         if not url:
             return None
 
+        if IMAGE_URL_PATTERN.match(str(url)):
+            return url
+
         soup = await self._get_soup(url)
 
         img_tag = soup.find("img")
@@ -130,11 +133,10 @@ class XkcdOriginScraper(BaseScraper):
         soup = await self._get_soup(xkcd_url)
 
         img_tags = soup.css.select("div#comic img")
-
         if img_tags:
             srcset = img_tags[0].get("srcset")
             if srcset:
-                match = re.search(pattern=X2_IMAGE_URL_PATTERN, string=srcset)
+                match = X2_IMAGE_URL_PATTERN.search(srcset)
                 if match:
                     x2_image_url = URL("https://" + match.group(1).strip())
 
@@ -142,9 +144,8 @@ class XkcdOriginScraper(BaseScraper):
 
     def _process_title(self, title: str) -> str:
         # №259, №472
-        match = re.match(HTML_TAG_PATTERN, title)
-        if match:
-            return re.sub(HTML_TAG_PATTERN, "", title)
+        if HTML_TAG_PATTERN.match(title):
+            return HTML_TAG_PATTERN.sub("", title)
 
         return html.unescape(title)
 
@@ -155,15 +156,13 @@ class XkcdOriginScraper(BaseScraper):
             link = URL(link)
             if "large" in link.path:
                 large_image_page_url = link
+            elif "980/huge" in link.path:
+                large_image_page_url = "https://imgs.xkcd.com/comics/money_huge.png"
             elif link.scheme:
                 link_on_click = link
 
         return link_on_click, large_image_page_url
 
     def _process_image_url(self, url: str) -> URL | None:
-        match = re.match(
-            pattern=IMAGE_URL_PATTERN,
-            string=url,
-        )
-        if match:
+        if IMAGE_URL_PATTERN.match(url):
             return URL(url)

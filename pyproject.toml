@@ -33,7 +33,9 @@ aiohttp = "^3.9.1"
 aiodns = "^3.1.1"
 aiohttp-retry = "^2.8.3"
 gunicorn = "^21.2.0"
-faststream = { extras = ["nats"], version = "0.4.5" }
+faststream = { extras = ["nats"], version = "^0.4" }
+pydantic = "^2.5"
+nats-py = "2.7.0"
 
 
 [tool.poetry.group.scraper.dependencies]
@@ -49,8 +51,10 @@ asyncclick = "^8.1.7.1"
 
 
 [tool.poetry.group.image_processor.dependencies]
+faststream = { extras = ["nats"], version = "^0.4" }
 pillow = "^10.1.0"
-pydantic = "<2.6"
+pydantic = "^2.5"
+nats-py = "2.7.0"
 
 
 [tool.poetry.group.bot.dependencies]
