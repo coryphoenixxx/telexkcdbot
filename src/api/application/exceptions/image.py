@@ -26,7 +26,7 @@ class UnsupportedImageFormatError(BaseAppError):
 
 
 @dataclass
-class UploadExceedLimitError(BaseAppError):
+class UploadExceedSizeLimitError(BaseAppError):
     upload_max_size: int
     message: str = "The uploaded image exceeds the size limit."
 
@@ -83,6 +83,7 @@ class UploadedImageError(BaseAppError):
 
 @dataclass
 class DownloadImageError(BaseAppError):
+    url: str
     message: str = "Couldn't download the image from this URL."
 
     @property
@@ -91,4 +92,7 @@ class DownloadImageError(BaseAppError):
 
     @property
     def detail(self) -> str | dict[str, Any]:
-        return {"message": self.message}
+        return {
+            "url": self.url,
+            "message": self.message,
+        }

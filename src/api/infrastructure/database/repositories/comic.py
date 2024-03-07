@@ -139,14 +139,10 @@ class ComicRepo:
         if not tag_names:
             return []
 
-        tags = (TagModel(name=tag_name) for tag_name in tag_names)
-
         stmt = (
             insert(TagModel)
-            .values([{"name": tag.name} for tag in tags])
-            .on_conflict_do_nothing(
-                constraint="uq_tags_name",
-            )
+            .values([{"name": name} for name in tag_names])
+            .on_conflict_do_nothing(constraint="uq_tags_name")
         )
 
         await self._session.execute(stmt)

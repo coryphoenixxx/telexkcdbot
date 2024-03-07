@@ -18,6 +18,9 @@ __all__ = [
     "ComicRepo",
     "TranslationImageRepo",
     "TranslationRepo",
+    "create_db_engine",
+    "create_db_session_factory",
+    "check_db_connection",
 ]
 
 from api.core.settings import DbConfig

@@ -32,7 +32,7 @@ class APIRESTClient:
                 if response.status == 200:
                     return response.status
         except HttpRequestError:
-            logging.error("API is offline or wrong API url.")
+            logging.fatal("API is offline or wrong API url.")
 
     async def create_comic_with_image(
         self,

@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from api.application.exceptions.image import (
     DownloadImageError,
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
-    UploadExceedLimitError,
+    UploadExceedSizeLimitError,
 )
 from api.core.types import Dimensions
 from api.presentation.types import ImageObj
@@ -24,20 +25,34 @@ from api.presentation.types import ImageObj
 class UploadImageHandler:
     _CHUNK_SIZE: int = 1024 * 64
 
-    def __init__(self, tmp_dir: Path, upload_max_size: int, http_client: AsyncHttpClient):
+    def __init__(
+        self,
+        tmp_dir: Path,
+        upload_max_size: int,
+        http_client: AsyncHttpClient,
+        download_timeout: float = 10.0,
+    ):
         self._tmp_dir = tmp_dir
         self._upload_max_size = upload_max_size
         self._supported_formats = tuple(ImageFormat)
         self._http_client = http_client
+        self._download_timeout = download_timeout
 
-    async def read(self, upload: UploadFile | None) -> ImageObj | None:
+    async def read(self, upload: UploadFile | None) -> ImageObj:
         if not upload or not upload.filename:
             raise RequestFileIsEmptyError
 
         return await self._read_to_temp(upload)
 
     async def download(self, url: URL | str) -> ImageObj:
-        for _ in range(3):
+        try:
+            return await asyncio.wait_for(self._download_job(url), self._download_timeout)
+        except TimeoutError:
+            logging.error(f"Couldn't download {url} after {self._download_timeout} seconds.")
+        raise DownloadImageError(str(url))
+
+    async def _download_job(self, url: URL | str) -> ImageObj:
+        for _ in range(2):
             try:
                 async with self._http_client.safe_get(url=url) as response:
                     if response.status == 200:
@@ -45,24 +60,26 @@ class UploadImageHandler:
             except (TimeoutError, ClientPayloadError):
                 continue
 
-        raise DownloadImageError
-
     async def _read_to_temp(self, obj: StreamReader | UploadFile) -> ImageObj:
         await aos.makedirs(self._tmp_dir, exist_ok=True)
 
-        async with NamedTemporaryFile(delete=False, dir=self._tmp_dir) as temp:
-            file_size = 0
+        try:
+            async with NamedTemporaryFile(delete=False, dir=self._tmp_dir) as tmp:
+                file_size = 0
 
-            while chunk := await obj.read(self._CHUNK_SIZE):
-                file_size += len(chunk)
-                if file_size > self._upload_max_size:
-                    raise UploadExceedLimitError(upload_max_size=self._upload_max_size)
-                await temp.write(chunk)
+                while chunk := await obj.read(self._CHUNK_SIZE):
+                    file_size += len(chunk)
+                    if file_size > self._upload_max_size:
+                        raise UploadExceedSizeLimitError(upload_max_size=self._upload_max_size)
+                    await tmp.write(chunk)
 
-            if file_size == 0:
-                raise RequestFileIsEmptyError
+                if file_size == 0:
+                    raise RequestFileIsEmptyError
+        except Exception as err:
+            await aos.remove(tmp.name)
+            raise err
 
-        tmp_path = Path(temp.name)
+        tmp_path = Path(tmp.name)
 
         return ImageObj(
             path=tmp_path,
@@ -74,10 +91,7 @@ class UploadImageHandler:
         fmt = None
 
         try:
-            extension = filetype.guess_extension(path)
-            if extension is None:
-                raise ValueError
-            fmt = ImageFormat(extension)
+            fmt = ImageFormat(filetype.guess_extension(path))
         except ValueError:
             raise UnsupportedImageFormatError(
                 format=fmt,

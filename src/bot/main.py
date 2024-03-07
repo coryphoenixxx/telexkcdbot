@@ -4,7 +4,6 @@ from functools import partial
 
 from aiogram import Bot, Dispatcher, Router, types
 from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 from shared.api_rest_client import APIRESTClient
@@ -37,7 +36,10 @@ async def on_startup(bot: Bot, config: AppConfig):
 def main():
     settings = load_settings()
 
-    bot = Bot(token=settings.bot.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot = Bot(
+        token=settings.bot.token.get_secret_value(),
+        default=DefaultBotProperties(parse_mode="HTML"),
+    )
 
     dp = Dispatcher()
     dp.include_router(router)

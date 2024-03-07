@@ -9,7 +9,7 @@ from api.application.services.comic import ComicService
 from api.application.types import ComicID, IssueNumber
 from api.infrastructure.database.holder import DatabaseHolder
 from api.infrastructure.database.types import DateRange, Limit, Offset, Order, QueryParams
-from api.presentation.dependency_stubs import DatabaseHolderDepStub
+from api.presentation.stub import Stub
 from api.presentation.web.controllers.schemas.requests.comic import (
     ComicRequestSchema,
     ComicWithEnTranslationRequestSchema,
@@ -27,7 +27,7 @@ router = NatsRouter(
 @router.post("/comics", status_code=status.HTTP_201_CREATED)
 async def create_comic(
     schema: ComicWithEnTranslationRequestSchema,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicWithTranslationsResponseSchema:
     comic_req_dto, en_translation_req_dto = schema.to_dtos()
 
@@ -42,7 +42,7 @@ async def create_comic(
 async def update_comic(
     comic_id: ComicID,
     schema: ComicRequestSchema,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicResponseSchema:
     comic_resp_dto: ComicResponseDTO = await ComicService(
         db_holder=db_holder,
@@ -57,7 +57,7 @@ async def update_comic(
 @router.get("/comics/by_id/{comic_id}", status_code=status.HTTP_200_OK)
 async def get_comic_by_id(
     comic_id: ComicID,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicWithTranslationsResponseSchema:
     comic_resp_dto: ComicResponseWithTranslationsDTO = await ComicService(
         db_holder=db_holder,
@@ -69,7 +69,7 @@ async def get_comic_by_id(
 @router.get("/comics/{number}", status_code=status.HTTP_200_OK)
 async def get_comic_by_number(
     number: IssueNumber,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicWithTranslationsResponseSchema:
     comic_resp_dto: ComicResponseWithTranslationsDTO = await ComicService(
         db_holder=db_holder,
@@ -81,7 +81,7 @@ async def get_comic_by_number(
 @router.get("/comics/extras/{title}", status_code=status.HTTP_200_OK)
 async def get_extra_comic_by_title(
     title: str,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicWithTranslationsResponseSchema:
     comic_resp_dto: ComicResponseWithTranslationsDTO = await ComicService(
         db_holder=db_holder,
@@ -98,7 +98,7 @@ async def get_comics(
     date_from: datetime.date | None = None,
     date_to: datetime.date | None = None,
     order: Order = Order.ASC,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> list[ComicWithTranslationsResponseSchema]:
     comic_resp_dtos, total_count = await ComicService(
         db_holder=db_holder,
@@ -120,6 +120,6 @@ async def get_comics(
 @router.delete("/comics/{comic_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_comic(
     comic_id: ComicID,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ):
     await ComicService(db_holder=db_holder).delete(comic_id=comic_id)

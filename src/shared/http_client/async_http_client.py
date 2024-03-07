@@ -29,11 +29,22 @@ class AsyncHttpClient:
         max_conns: int = 25,
         timeout: int = 60,
         session_cache_ttl: int = 60,
+        attempts: int = 5,
+        start_timeout: float = 2.0,
+        exceptions: tuple[type[Exception]] | None = (
+            TimeoutError,
+            ServerConnectionError,
+            ConnectionError,
+        ),
     ):
         self._throttler = asyncio.Semaphore(max_conns)
         self._timeout = timeout
+        self._attempts = attempts
+        self._start_timeout = start_timeout
+        self._exceptions = set(exceptions)
         self._sessions_cache = {}
         self._sessions_cache_ttl = session_cache_ttl
+
         self._close_sessions_task = None
 
     async def __aenter__(self) -> "AsyncHttpClient":
@@ -97,6 +108,7 @@ class AsyncHttpClient:
                 ) as response:
                     yield response
             except ClientOSError as err:
+                logger.exception(err)
                 raise HttpRequestError(method, url, str(err.__cause__)) from None
             except (InvalidURL, AssertionError, ValueError):
                 raise HttpRequestError(method, url, "Invalid URL") from None
@@ -132,13 +144,9 @@ class AsyncHttpClient:
         return RetryClient(
             raise_for_status=False,
             retry_options=ExponentialRetry(
-                attempts=5,
-                start_timeout=2.0,
-                exceptions={
-                    TimeoutError,
-                    ServerConnectionError,
-                    ConnectionResetError,
-                },
+                attempts=self._attempts,
+                start_timeout=self._start_timeout,
+                exceptions=self._exceptions,
                 retry_all_server_errors=False,
                 statuses=set(retry_statuses),
             ),

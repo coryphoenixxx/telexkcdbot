@@ -32,10 +32,9 @@ class TranslationImageService:
             image_dto = await self._db_holder.translation_image_repo.create(
                 original_rel_path=original_rel_path,
             )
-
-            await self._process_image(image_dto.id, original_abs_path)
-
             await self._db_holder.commit()
+
+        await self._process_image(image_dto.id, original_abs_path)
 
         return image_dto
 

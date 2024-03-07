@@ -6,7 +6,7 @@ from starlette import status
 from api.application.services import TranslationService
 from api.application.types import TranslationID
 from api.infrastructure.database.holder import DatabaseHolder
-from api.presentation.dependency_stubs import DatabaseHolderDepStub
+from api.presentation.stub import Stub
 from api.presentation.web.controllers.schemas.requests import (
     TranslationRequestSchema,
 )
@@ -23,7 +23,7 @@ router = NatsRouter(tags=["Translations"])
 )
 async def add_translation(
     schema: TranslationRequestSchema,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> TranslationResponseSchema:
     translation_resp_dto = await TranslationService(
         db_holder=db_holder,
@@ -39,7 +39,7 @@ async def add_translation(
 async def update_translation(
     translation_id: TranslationID,
     schema: TranslationRequestSchema,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> TranslationResponseSchema:
     # need comic_id in schema?
     translation_resp_dto = await TranslationService(
@@ -55,6 +55,6 @@ async def update_translation(
 )
 async def delete_translation(
     translation_id: TranslationID,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ):
     await TranslationService(db_holder=db_holder).delete(translation_id)

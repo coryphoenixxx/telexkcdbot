@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class BotConfig(BaseModel):
-    token: str
+    token: SecretStr
     admin_id: int
 
 

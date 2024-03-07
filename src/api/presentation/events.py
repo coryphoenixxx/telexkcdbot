@@ -5,17 +5,13 @@ from shared.http_client import AsyncHttpClient
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from api.infrastructure.database import check_db_connection
-from api.presentation.dependency_stubs import (
-    DbEngineDepStub,
-    HttpClientDepStub,
-)
 from api.presentation.router import root_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    engine: AsyncEngine = app.dependency_overrides[DbEngineDepStub]()
-    http_client: AsyncHttpClient = app.dependency_overrides[HttpClientDepStub]()
+    engine: AsyncEngine = app.dependency_overrides[AsyncEngine]()
+    http_client: AsyncHttpClient = app.dependency_overrides[AsyncHttpClient]()
 
     await check_db_connection(engine)
 

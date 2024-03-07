@@ -16,11 +16,9 @@ async def healthcheck():
     return {"message": "API is available."}
 
 
-def register_routers(app: FastAPI) -> NatsRouter:
+def register_routers(app: FastAPI) -> None:
     root_router.include_router(comic_router)
     root_router.include_router(translation_router)
     root_router.include_router(image_router)
 
     app.include_router(root_router)
-
-    return root_router

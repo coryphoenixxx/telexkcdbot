@@ -3,6 +3,7 @@ import csv
 import errno
 import logging.config
 import os
+import random
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
@@ -237,6 +238,8 @@ async def main(
             )
 
             translations = await fetch_all_translations(http_client, limits, progress, temp_dir)
+
+            random.shuffle(translations)  # reduce DDOS when downloading images
 
             number_comic_id_map = await upload_origin_with_explanation(
                 api_client,

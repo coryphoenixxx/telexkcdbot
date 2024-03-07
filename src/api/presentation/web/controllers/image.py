@@ -1,8 +1,8 @@
 from typing import Annotated
 
 from fastapi import Depends, File, Query, UploadFile
-from faststream.nats import JStream, NatsBroker, PullSub
-from faststream.nats.fastapi import NatsRouter
+from faststream.nats import JStream, PullSub
+from faststream.nats.fastapi import NatsBroker, NatsRouter
 from pydantic import HttpUrl
 from shared.messages import ImageProcessOutMessage
 from shared.types import LanguageCode
@@ -13,18 +13,13 @@ from api.application.exceptions.image import (
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
     UploadedImageError,
-    UploadExceedLimitError,
+    UploadExceedSizeLimitError,
 )
 from api.application.image_saver import ImageSaveHelper
 from api.application.services import TranslationImageService
 from api.application.types import TranslationImageID
 from api.infrastructure.database.holder import DatabaseHolder
-from api.presentation.dependency_stubs import (
-    BrokerDepStub,
-    DatabaseHolderDepStub,
-    ImageFileSaverDepStub,
-    UploadImageReaderDepStub,
-)
+from api.presentation.stub import Stub
 from api.presentation.types import TranslationImageMeta
 from api.presentation.upload_reader import UploadImageHandler
 from api.presentation.web.controllers.schemas.responses.image import TranslationImageResponseSchema
@@ -45,31 +40,33 @@ router = NatsRouter(
             "description": UnsupportedImageFormatError.message,
         },
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: {
-            "description": UploadExceedLimitError.message,
+            "description": UploadExceedSizeLimitError.message,
         },
     },
 )
 async def upload_image(
+    broker: NatsBroker,
     title: str,
     number: Annotated[int | None, Query(gt=0)] = None,
     language: LanguageCode = LanguageCode.EN,
     is_draft: bool = False,
     image_file: Annotated[UploadFile, File(...)] = None,
     image_url: HttpUrl | None = None,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
-    upload_reader: UploadImageHandler = Depends(UploadImageReaderDepStub),
-    image_saver: ImageSaveHelper = Depends(ImageFileSaverDepStub),
-    broker: NatsBroker = Depends(BrokerDepStub),
+    *,
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    upload_reader: UploadImageHandler = Depends(Stub(UploadImageHandler)),
+    image_saver: ImageSaveHelper = Depends(Stub(ImageSaveHelper)),
 ) -> TranslationImageResponseSchema:
-    match (image_url, image_file):
-        case (None, None):
-            raise UploadedImageError
-        case (None, file):
-            image_obj = await upload_reader.read(file)
-        case (url, None):
-            image_obj = await upload_reader.download(str(url))
-        case _:
-            raise ImageOneTypeError
+    if image_file and image_url:
+        raise ImageOneTypeError
+    elif image_file is None and image_url is None:
+        raise UploadedImageError
+    else:
+        image_obj = (
+            await upload_reader.read(image_file)
+            if image_file
+            else await upload_reader.download(str(image_url))
+        )
 
     image_resp_dto = await TranslationImageService(
         db_holder=db_holder,
@@ -103,8 +100,8 @@ async def upload_image(
 )
 async def processed_images_handler(
     msg: ImageProcessOutMessage,
-    db_holder: DatabaseHolder = Depends(DatabaseHolderDepStub),
-    image_saver: ImageSaveHelper = Depends(ImageFileSaverDepStub),
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    image_saver: ImageSaveHelper = Depends(Stub(ImageSaveHelper)),
 ):
     await TranslationImageService(
         db_holder=db_holder,
