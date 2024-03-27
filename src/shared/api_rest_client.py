@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 from aiohttp import ClientConnectorError, ClientResponse  # noqa: F401
+from api.infrastructure.database.types import Order
 from scraper.dtos import (
     XkcdOriginUploadData,
     XkcdOriginWithExplainScrapedData,
@@ -13,26 +14,27 @@ from yarl import URL
 
 from shared.http_client import AsyncHttpClient
 from shared.http_client.exceptions import HttpRequestError
-from shared.types import (
-    LanguageCode,
-)
+from shared.types import LanguageCode
+
+logger = logging.getLogger(__name__)
 
 
 class APIRESTClient:
-    _API_URL = URL("http://127.0.0.1:8000/api/")
-
-    def __init__(self, client: AsyncHttpClient):
-        self._client = client
+    def __init__(self, base_url: str, http_client: AsyncHttpClient):
+        self._base_url = URL(base_url)
+        self._http_client = http_client
 
     async def healthcheck(self) -> int | None:
-        url = self._API_URL.joinpath("healthcheck")
+        url = self._base_url / "api/healthcheck"
 
         try:
-            async with self._client.safe_get(url) as response:
+            async with self._http_client.safe_get(url) as response:
                 if response.status == 200:
                     return response.status
-        except HttpRequestError:
-            logging.fatal("API is offline or wrong API url.")
+                else:
+                    raise HttpRequestError(url, "Wrong status")
+        except HttpRequestError as err:
+            logger.fatal(f"API is unavailable. ({err.reason})")
 
     async def create_comic_with_image(
         self,
@@ -82,7 +84,7 @@ class APIRESTClient:
         image_url: str | URL | None = None,
         image_path: Path | None = None,
     ) -> dict[str, int | str]:
-        url = self._API_URL.joinpath("translations/upload_image")
+        url = self._base_url / "api/translations/upload_image"
 
         params = self._build_params(
             title=title,
@@ -92,7 +94,7 @@ class APIRESTClient:
             image_url=image_url,
         )
 
-        async with self._client.safe_post(
+        async with self._http_client.safe_post(
             url=url,
             params=params,
             data={"image_file": open(image_path, "rb") if image_path else ""},
@@ -100,21 +102,19 @@ class APIRESTClient:
             if response.status == 201:
                 return await response.json()
             else:
-                error_json = await response.json()
-                print(error_json)
+                ...
 
     async def create_comic(self, comic: XkcdOriginUploadData) -> int:
-        url = self._API_URL.joinpath("comics")
+        url = self._base_url / "api/comics"
 
-        async with self._client.safe_post(
+        async with self._http_client.safe_post(
             url=url,
             json=comic,
         ) as response:  # type:ClientResponse
             if response.status == 201:
                 return (await response.json())["id"]
             else:
-                error_json = await response.json()
-                print(error_json)
+                ...
 
     async def add_translation_with_image(
         self,
@@ -122,7 +122,7 @@ class APIRESTClient:
         number_comic_id_map: dict[int, int],
         pbar: ProgressBar | None = None,
     ):
-        url = self._API_URL.joinpath("translations")
+        url = self._base_url / "api/translations"
 
         images = []
 
@@ -151,7 +151,7 @@ class APIRESTClient:
             images=images,
         )
 
-        async with self._client.safe_post(
+        async with self._http_client.safe_post(
             url=url,
             json=translation,
         ) as response:  # type:ClientResponse
@@ -160,19 +160,42 @@ class APIRESTClient:
                     pbar.advance()
                 return (await response.json())["id"]
             else:
-                error_json = await response.json()
-                print(error_json)
+                ...
 
     async def get_comic_by_number(self, number: int):
-        url = self._API_URL / f"comics/{number}"
+        url = self._base_url / f"api/comics/{number}"
 
-        async with self._client.safe_get(url) as response:
+        async with self._http_client.safe_get(url) as response:
             comic = await response.json()
 
         return comic
 
-    @staticmethod
-    def _build_params(**kwargs) -> dict[str, int | float | str]:
+    async def get_comics(
+        self,
+        page_size: int | None = None,
+        page_num: int | None = None,
+        order: Order | None = Order.ASC,
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ):
+        url = self._base_url / "api/comics"
+
+        params = self._build_params(
+            page_size=page_size,
+            page_num=page_num,
+            order=order,
+            date_from=date_from,
+            date_to=date_to,
+        )
+
+        async with self._http_client.safe_get(
+            url=url,
+            params=params,
+        ) as response:
+            comics = await response.json()
+        return comics
+
+    def _build_params(self, **kwargs) -> dict[str, int | float | str]:
         params = {}
         for name, value in kwargs.items():
             if value is not None:

@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -19,8 +18,6 @@ from yarl import URL
 
 from shared.http_client.exceptions import HttpRequestError
 from shared.utils import custom_json_dumps
-
-logger = logging.getLogger(__name__)
 
 
 class AsyncHttpClient:
@@ -61,7 +58,7 @@ class AsyncHttpClient:
         retry_statuses: tuple[int] | None = (429, 500, 503),
         **kwargs,
     ) -> AsyncGenerator[ClientResponse, None]:
-        async with self._safe_request(
+        async with self.safe_request(
             method="GET",
             url=url,
             retry_statuses=retry_statuses,
@@ -76,7 +73,7 @@ class AsyncHttpClient:
         retry_statuses: tuple[int] | None = (429, 503),
         **kwargs,
     ) -> AsyncGenerator[ClientResponse, None]:
-        async with self._safe_request(
+        async with self.safe_request(
             method="POST",
             url=url,
             retry_statuses=retry_statuses,
@@ -85,33 +82,37 @@ class AsyncHttpClient:
             yield response
 
     @asynccontextmanager
-    async def _safe_request(
+    async def safe_request(
         self,
         method: str,
         url: URL | str,
-        retry_statuses: tuple[int],
+        retry_statuses: tuple[int] | None,
         **kwargs,
     ) -> AsyncGenerator[ClientResponse, None]:
         if isinstance(url, str):
             url = URL(url)
+        if url.host is None:
+            raise InvalidURL(url)
 
         client: RetryClient | ClientSession = await self._get_or_create_client(
             host=url.host,
             retry_statuses=retry_statuses,
         )
+
+        fail_reason: str = "Unknown"
+
         async with self._throttler:
-            try:
-                async with client.request(
-                    method=method,
-                    url=url,
-                    **kwargs,
-                ) as response:
-                    yield response
-            except ClientOSError as err:
-                logger.exception(err)
-                raise HttpRequestError(method, url, str(err.__cause__)) from None
-            except (InvalidURL, AssertionError, ValueError):
-                raise HttpRequestError(method, url, "Invalid URL") from None
+            for _ in range(3):
+                try:
+                    async with client.request(method=method, url=url, **kwargs) as response:
+                        yield response
+                        break
+                except ClientOSError as err:
+                    fail_reason = str(err.__cause__)
+                    await asyncio.sleep(0.1)
+                    continue
+            else:
+                raise HttpRequestError(method, str(url), fail_reason)
 
     async def _get_or_create_client(
         self,
