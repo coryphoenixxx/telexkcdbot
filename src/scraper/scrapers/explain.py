@@ -1,7 +1,9 @@
 import logging
 import re
+from pathlib import Path
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
+from bs4.element import Tag
 from rich.progress import Progress
 from shared.http_client import AsyncHttpClient
 from yarl import URL
@@ -26,16 +28,12 @@ class XkcdExplainScraper(BaseScraper):
         self._bad_tags = self._load_bad_tags()
         self._cached_latest_number = None
 
-    async def fetch_one(
-        self,
-        number: int,
-        pbar: ProgressBar | None = None,
-    ) -> XkcdExplanationScrapedBaseData | None:
+    async def fetch_one(self, number: int) -> XkcdExplanationScrapedBaseData | None:
         url = self._BASE_URL / f"wiki/index.php/{number}"
         soup = await self._get_soup(url)
 
         if soup.find("div", {"class": "noarticletext"}):
-            return
+            return None
 
         try:
             data = XkcdExplanationScrapedBaseData(
@@ -46,9 +44,6 @@ class XkcdExplainScraper(BaseScraper):
             )
         except Exception as err:
             raise ScraperError(url) from err
-
-        if pbar:
-            pbar.advance()
 
         return data
 
@@ -62,7 +57,8 @@ class XkcdExplainScraper(BaseScraper):
         return await run_concurrently(
             data=numbers,
             coro=self.fetch_one,
-            limits=limits,
+            chunk_size=limits.chunk_size,
+            delay=limits.delay,
             pbar=ProgressBar(
                 progress,
                 f"Explanation data scraping...\n\\[{self._BASE_URL}]",
@@ -159,7 +155,7 @@ class XkcdExplainScraper(BaseScraper):
         bad_tags = set()
 
         try:
-            with open("../data/bad_tags.txt") as f:
+            with open((Path(__file__).parent / "data/bad_tags.txt").resolve()) as f:  # TODO: FIX
                 bad_tags = {line.lower() for line in f.read().splitlines() if line}
         except FileNotFoundError:
             logger.warning("Loading bad tags failed: File not found.")

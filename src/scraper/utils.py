@@ -1,16 +1,21 @@
 import asyncio
 from collections.abc import Callable
 
+from scraper.pbar import ProgressBar
 from shared.utils import chunked
 
-from scraper.pbar import ProgressBar
-from scraper.types import LimitParams
+
+async def progress_watcher(tasks: list[asyncio.Task], pbar: ProgressBar | None) -> None:
+    for t in asyncio.as_completed(tasks):
+        if await t:
+            pbar.advance()
 
 
 async def run_concurrently(
     data: list,
     coro: Callable,
-    limits: LimitParams,
+    chunk_size: int,
+    delay: int,
     pbar: ProgressBar | None,
     **kwargs,
 ) -> list:
@@ -18,21 +23,23 @@ async def run_concurrently(
 
     for chunk in chunked(
         lst=data,
-        n=limits.chunk_size,
+        n=chunk_size,
     ):
         try:
             async with asyncio.TaskGroup() as tg:
-                tasks = [tg.create_task(coro(value, pbar=pbar, **kwargs)) for value in chunk]
+                tasks = [tg.create_task(coro(value, **kwargs)) for value in chunk]
+
+                if pbar:
+                    tg.create_task(progress_watcher(tasks, pbar))
         except* Exception as errors:
             for e in errors.exceptions:
                 raise e
         else:
             for task in tasks:
-                result = task.result()
-                if result:
+                if result := task.result():
                     results.append(result)
 
-        await asyncio.sleep(limits.delay)
+        await asyncio.sleep(delay)
 
     if pbar:
         pbar.finish()

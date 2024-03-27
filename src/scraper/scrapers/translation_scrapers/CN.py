@@ -20,11 +20,7 @@ class XkcdCNScraper(BaseScraper):
     def __init__(self, client: AsyncHttpClient):
         super().__init__(client=client)
 
-    async def fetch_one(
-        self,
-        url: URL,
-        pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationData:
+    async def fetch_one(self, url: URL) -> XkcdTranslationData:
         soup = await self._get_soup(url)
 
         try:
@@ -42,9 +38,6 @@ class XkcdCNScraper(BaseScraper):
         except Exception as err:
             raise ScraperError(url=url) from err
 
-        if pbar:
-            pbar.advance()
-
         return data
 
     async def fetch_many(
@@ -61,7 +54,8 @@ class XkcdCNScraper(BaseScraper):
         return await run_concurrently(
             data=links,
             coro=self.fetch_one,
-            limits=limits,
+            chunk_size=limits.chunk_size,
+            delay=limits.delay,
             pbar=ProgressBar(
                 progress,
                 f"Chinese translations scraping...\n\\[{self._BASE_URL}]",

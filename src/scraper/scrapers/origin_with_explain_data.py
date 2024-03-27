@@ -7,7 +7,6 @@ from scraper.dtos import (
     XkcdOriginScrapedData,
     XkcdOriginWithExplainScrapedData,
 )
-from scraper.pbar import ProgressBar
 from scraper.scrapers import XkcdOriginScraper
 from scraper.scrapers.explain import XkcdExplainScraper
 from scraper.types import LimitParams
@@ -25,7 +24,6 @@ class XkcdOriginWithExplainDataScraper:
     async def fetch_one(
         self,
         number: int,
-        pbar: ProgressBar | None = None,
     ) -> XkcdOriginWithExplainScrapedData | None:
         try:
             async with asyncio.TaskGroup() as tg:
@@ -41,9 +39,6 @@ class XkcdOriginWithExplainDataScraper:
                 return None
 
             data = self._combine(origin_data, explain_data)
-
-            if pbar:
-                pbar.advance()
 
             return data
 

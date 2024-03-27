@@ -11,57 +11,31 @@ from zipfile import ZipFile
 import asyncclick as click
 import uvloop
 from rich.progress import (
-    BarColumn,
-    MofNCompleteColumn,
     Progress,
-    TextColumn,
-    TimeElapsedColumn,
 )
-from scraper.dtos import XkcdOriginWithExplainScrapedData, XkcdTranslationData
+from yarl import URL
+
+from scraper.dtos import XkcdTranslationData
 from scraper.pbar import ProgressBar
 from scraper.scrapers import (
-    XkcdCNScraper,
-    XkcdDEScraper,
-    XkcdESScraper,
     XkcdExplainScraper,
     XkcdFRScraper,
     XkcdOriginScraper,
     XkcdOriginWithExplainDataScraper,
-    XkcdRUScraper,
 )
+from scraper.scrapers.translation_scrapers.CN import XkcdCNScraper
+from scraper.scrapers.translation_scrapers.DE import XkcdDEScraper
+from scraper.scrapers.translation_scrapers.ES import XkcdESScraper
+from scraper.scrapers.translation_scrapers.RU import XkcdRUScraper
 from scraper.types import LimitParams
 from scraper.utils import run_concurrently
+from scripts.common import positive_number_callback
+from scripts.common import progress as base_progress
 from shared.api_rest_client import APIRESTClient
 from shared.http_client import AsyncHttpClient
 from shared.types import LanguageCode
 from shared.utils import flatten
-from yarl import URL
 
-LOGGER_CONFIG = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "formatters": {
-        "default": {
-            "format": "{asctime}::{levelname}::{name}:{lineno} :: {message}",
-            "style": "{",
-        },
-    },
-    "handlers": {
-        "default": {
-            "class": "logging.StreamHandler",
-            "level": "DEBUG",
-            "formatter": "default",
-        },
-    },
-    "loggers": {
-        "root": {
-            "handlers": ["default"],
-            "level": "INFO",
-        },
-    },
-}
-
-logging.config.dictConfig(LOGGER_CONFIG)
 logger = logging.getLogger(__name__)
 
 
@@ -69,7 +43,7 @@ def extract_prescraped_translations(
     extract_to: Path,
     limits: LimitParams,
     pbar: ProgressBar | None,
-    zip_path: Path = Path.cwd() / "prescraped_translations.zip",
+    zip_path: Path = Path(__file__).parent / "prescraped_translations.zip",
 ) -> list[XkcdTranslationData]:
     translations = []
 
@@ -109,7 +83,7 @@ def extract_prescraped_translations(
                             tooltip=tooltip if tooltip else None,
                             image=number_image_path_map[number],
                             language=LanguageCode(lang_code_dir),
-                        ),
+                        )
                     )
 
                     if pbar:
@@ -154,27 +128,6 @@ async def fetch_all_translations(
     return translations
 
 
-async def upload_origin_with_explanation(
-    api_client: APIRESTClient,
-    origin_data: list[XkcdOriginWithExplainScrapedData],
-    limits: LimitParams,
-    progress: Progress,
-) -> dict[int, int]:
-    number_comic_id_map = {}
-
-    results = await run_concurrently(
-        data=origin_data,
-        coro=api_client.create_comic_with_image,
-        limits=limits,
-        pbar=ProgressBar(progress, "Origin data uploading...", len(origin_data)),
-    )
-
-    for r in results:
-        number_comic_id_map |= r
-
-    return number_comic_id_map
-
-
 async def upload_translations(
     api_client: APIRESTClient,
     number_comic_id_map: dict[int, int],
@@ -185,18 +138,19 @@ async def upload_translations(
     await run_concurrently(
         data=translation_data,
         coro=api_client.add_translation_with_image,
-        limits=limits,
-        number_comic_id_map=number_comic_id_map,
+        chunk_size=limits.chunk_size,
+        delay=limits.delay,
         pbar=ProgressBar(progress, "Translations uploading...", len(translation_data)),
+        number_comic_id_map=number_comic_id_map,
     )
 
 
-def positive_number_callback(ctx, param, value):
-    if not value:
-        return
-    if isinstance(value, int | float) and value > 0:
-        return value
-    raise click.BadParameter("parameter must be positive")
+async def get_number_comic_id_map(api_client: APIRESTClient) -> dict[int, int]:
+    d = {}
+    for comic in await api_client.get_comics():
+        d[comic["number"]] = comic["id"]
+
+    return d
 
 
 @click.command()
@@ -204,16 +158,18 @@ def positive_number_callback(ctx, param, value):
 @click.option("--end", type=int, callback=positive_number_callback)
 @click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
 @click.option("--delay", type=float, default=0.01, callback=positive_number_callback)
-async def main(
-    start: int,
-    end: int | None,
-    chunk_size,
-    delay: int,
-):
+@click.option("--api-url", type=str, default="http://127.0.0.1:8000")
+async def main(start: int, end: int | None, chunk_size: int, delay: int, api_url: str):
     async with AsyncHttpClient() as http_client:
-        api_client = APIRESTClient(http_client)
+        api_client = APIRESTClient(api_url, http_client)
 
         if not await api_client.healthcheck():
+            return
+
+        number_comic_id_map = await get_number_comic_id_map(api_client)
+
+        if not number_comic_id_map:
+            print("Looks like database is empty.")
             return
 
         origin_with_explain_scraper = XkcdOriginWithExplainDataScraper(
@@ -226,34 +182,22 @@ async def main(
 
         limits = LimitParams(start, end, chunk_size, delay)
 
-        with Progress(
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            MofNCompleteColumn(),
-            TimeElapsedColumn(),
-        ) as progress, TemporaryDirectory(dir=".") as temp_dir:
-            origin_with_explain_data = await origin_with_explain_scraper.fetch_many(
+        with base_progress, TemporaryDirectory(dir="") as temp_dir:
+            translations = await fetch_all_translations(
+                http_client,
                 limits,
-                progress,
+                base_progress,
+                temp_dir,
             )
 
-            translations = await fetch_all_translations(http_client, limits, progress, temp_dir)
-
-            random.shuffle(translations)  # reduce DDOS when downloading images
-
-            number_comic_id_map = await upload_origin_with_explanation(
-                api_client,
-                origin_with_explain_data,
-                limits,
-                progress,
-            )
+            random.shuffle(translations)  # prevent DDOS when loading images via API
 
             await upload_translations(
                 api_client,
                 number_comic_id_map,
                 translations,
                 limits,
-                progress,
+                base_progress,
             )
 
 

@@ -21,12 +21,7 @@ class XkcdESScraper(BaseScraper):
     def __init__(self, client: AsyncHttpClient):
         super().__init__(client=client)
 
-    async def fetch_one(
-        self,
-        url: URL,
-        range_: tuple[int, int],
-        pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationData | None:
+    async def fetch_one(self, url: URL, range_: tuple[int, int]) -> XkcdTranslationData | None:
         soup = await self._get_soup(url)
 
         number = self._extract_number(soup)
@@ -49,9 +44,6 @@ class XkcdESScraper(BaseScraper):
         if data.title == "Geografía":  # fix: https://es.xkcd.com/strips/geografia/
             data.number = 1472
 
-        if pbar:
-            pbar.advance()
-
         return data
 
     async def fetch_many(
@@ -59,17 +51,16 @@ class XkcdESScraper(BaseScraper):
         limits: LimitParams,
         progress: Progress,
     ) -> list[XkcdTranslationData]:
-        urls = await self.fetch_all_links()
-
         return await run_concurrently(
-            data=urls,
+            data=await self.fetch_all_links(),
             coro=self.fetch_one,
-            limits=limits,
-            range_=(limits.start, limits.end),
+            chunk_size=limits.chunk_size,
+            delay=limits.delay,
             pbar=ProgressBar(
                 progress,
                 f"Spanish translations scraping...\n\\[{self._BASE_URL}]",
             ),
+            range_=(limits.start, limits.end),
         )
 
     async def fetch_all_links(self) -> list[URL]:
@@ -84,11 +75,7 @@ class XkcdESScraper(BaseScraper):
     def _extract_number(self, soup: BeautifulSoup) -> int | None:
         xkcd_link = soup.find("div", {"id": "middleContent"}).find_all("a")[-1].get("href")
 
-        match = re.match(
-            pattern=XKCD_NUMBER_PATTERN,
-            string=xkcd_link,
-        )
-        if match:
+        if match := XKCD_NUMBER_PATTERN.match(xkcd_link):
             return int(match.group(1).replace("/", ""))
 
     def _extract_title(self, soup) -> str:

@@ -29,11 +29,7 @@ class XkcdRUScraper(BaseScraper):
 
         return self._extract_all_nums(soup)
 
-    async def fetch_one(
-        self,
-        number: int,
-        pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationData:
+    async def fetch_one(self, number: int) -> XkcdTranslationData:
         url = self._BASE_URL / (str(number) + "/")
         soup = await self._get_soup(url)
 
@@ -51,9 +47,6 @@ class XkcdRUScraper(BaseScraper):
         except Exception as err:
             raise ScraperError(url) from err
 
-        if pbar:
-            pbar.advance()
-
         return data
 
     async def fetch_many(
@@ -68,7 +61,8 @@ class XkcdRUScraper(BaseScraper):
         return await run_concurrently(
             data=filtered_numbers,
             coro=self.fetch_one,
-            limits=limits,
+            chunk_size=limits.chunk_size,
+            delay=limits.delay,
             pbar=ProgressBar(
                 progress,
                 f"Russian translations scraping...\n\\[{self._BASE_URL}]",

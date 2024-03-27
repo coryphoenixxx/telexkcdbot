@@ -31,11 +31,7 @@ class XkcdDEScraper(BaseScraper):
             ).group(1),
         )
 
-    async def fetch_one(
-        self,
-        number: int,
-        pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationData | None:
+    async def fetch_one(self, number: int) -> XkcdTranslationData | None:
         if number == 404:
             return
 
@@ -58,9 +54,6 @@ class XkcdDEScraper(BaseScraper):
         except Exception as err:
             raise ScraperError(url) from err
 
-        if pbar:
-            pbar.advance()
-
         return translation
 
     async def fetch_many(
@@ -75,7 +68,8 @@ class XkcdDEScraper(BaseScraper):
         return await run_concurrently(
             data=numbers,
             coro=self.fetch_one,
-            limits=limits,
+            chunk_size=limits.chunk_size,
+            delay=limits.delay,
             pbar=ProgressBar(
                 progress,
                 f"Deutsch translations scraping...\n\\[{self._BASE_URL}]",

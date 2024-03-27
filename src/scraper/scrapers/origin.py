@@ -43,11 +43,7 @@ class XkcdOriginScraper(BaseScraper):
 
         return self._cached_latest_number
 
-    async def fetch_one(
-        self,
-        number: int,
-        pbar: ProgressBar | None = None,
-    ) -> XkcdOriginScrapedData | None:
+    async def fetch_one(self, number: int) -> XkcdOriginScrapedData | None:
         if number > await self.fetch_latest_number() or number <= 0:
             return None
 
@@ -88,9 +84,6 @@ class XkcdOriginScraper(BaseScraper):
             except Exception as err:
                 raise ScraperError(url) from err
 
-        if pbar:
-            pbar.advance()
-
         return data
 
     async def fetch_many(
@@ -103,7 +96,8 @@ class XkcdOriginScraper(BaseScraper):
         return await run_concurrently(
             data=numbers,
             coro=self.fetch_one,
-            limits=limits,
+            chunk_size=limits.chunk_size,
+            delay=limits.delay,
             pbar=ProgressBar(
                 progress,
                 f"Origin data scraping...\n\\[{self._BASE_URL}]",

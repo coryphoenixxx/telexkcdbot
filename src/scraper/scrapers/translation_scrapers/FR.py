@@ -7,6 +7,7 @@ from scraper.pbar import ProgressBar
 from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
+from scraper.utils import run_concurrently
 from shared.http_client import AsyncHttpClient
 from shared.types import LanguageCode
 from yarl import URL
@@ -19,16 +20,12 @@ class XkcdFRScraper(BaseScraper):
         super().__init__(client=client)
         self._cached_number_data_map = None
 
-    async def fetch_one(
-        self,
-        number: int,
-        pbar: ProgressBar | None = None,
-    ) -> XkcdTranslationData | None:
+    async def fetch_one(self, number: int) -> XkcdTranslationData | None:
         number_data_map = await self._get_number_data_map()
         data = number_data_map.get(number)
 
         if not data:
-            return
+            return None
 
         url = self._BASE_URL / str(number)
 
@@ -44,9 +41,6 @@ class XkcdFRScraper(BaseScraper):
         except Exception as err:
             raise ScraperError(url) from err
 
-        if pbar:
-            pbar.advance()
-
         return translation
 
     async def fetch_many(
@@ -57,27 +51,16 @@ class XkcdFRScraper(BaseScraper):
         number_data_map = await self._get_number_data_map()
         latest_num = sorted(number_data_map.keys())[-1]
 
-        numbers = [n for n in range(limits.start, limits.end + 1) if n <= latest_num]
-
-        pbar = (
-            ProgressBar(
+        return await run_concurrently(
+            data=[n for n in range(limits.start, limits.end + 1) if n <= latest_num],
+            coro=self.fetch_one,
+            chunk_size=limits.chunk_size,
+            delay=limits.delay,
+            pbar=ProgressBar(
                 progress,
                 f"French translations scraping...\n\\[{self._BASE_URL}]",
-            )
-            if progress
-            else None
+            ),
         )
-
-        translations = []
-        for num in numbers:
-            translation = await self.fetch_one(num, pbar)
-            if translation:
-                translations.append(translation)
-
-        if pbar:
-            pbar.finish()
-
-        return translations
 
     async def _get_number_data_map(self) -> dict[int, list[str, str]]:
         if not self._cached_number_data_map:
