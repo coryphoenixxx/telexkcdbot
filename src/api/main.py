@@ -14,7 +14,7 @@ class CustomUvicornWorker(UvicornWorker):
 if __name__ == "__main__":
     import uvicorn
 
-    from api.core.settings import load_settings
+    from api.infrastructure.settings import load_settings
 
     settings = load_settings()
 

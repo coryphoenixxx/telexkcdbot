@@ -5,6 +5,17 @@ from faststream.nats.fastapi import NatsRouter
 from starlette import status
 
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWithTranslationsDTO
+from api.application.exceptions.comic import (
+    ComicByIDNotFoundError,
+    ComicByIssueNumberNotFoundError,
+    ComicBySlugNotFoundError,
+    ComicNumberAlreadyExistsError,
+    ExtraComicTitleAlreadyExistsError,
+)
+from api.application.exceptions.translation import (
+    TranslationImagesAlreadyAttachedError,
+    TranslationImagesNotCreatedError,
+)
 from api.application.services.comic import ComicService
 from api.application.types import ComicID, IssueNumber
 from api.infrastructure.database.holder import DatabaseHolder
@@ -24,9 +35,21 @@ router = NatsRouter(
 )
 
 
-@router.post("/comics", status_code=status.HTTP_201_CREATED)
-async def create_comic(
+@router.post(
+    "/comics",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_409_CONFLICT: {
+            "model": ComicNumberAlreadyExistsError | ExtraComicTitleAlreadyExistsError,
+        },
+        status.HTTP_400_BAD_REQUEST: {
+            "model": TranslationImagesNotCreatedError | TranslationImagesAlreadyAttachedError,
+        },
+    },
+)
+async def create_comic_with_en_translation(
     schema: ComicWithEnTranslationRequestSchema,
+    *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicWithTranslationsResponseSchema:
     comic_req_dto, en_translation_req_dto = schema.to_dtos()
@@ -38,37 +61,60 @@ async def create_comic(
     return ComicWithTranslationsResponseSchema.from_dto(comic_resp_dto)
 
 
-@router.put("/comics/{comic_id}", status_code=status.HTTP_200_OK)
+@router.put(
+    "/comics/{comic_id}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": ComicByIDNotFoundError,
+        },
+        status.HTTP_409_CONFLICT: {
+            "model": ComicNumberAlreadyExistsError,
+        },
+    },
+)
 async def update_comic(
     comic_id: ComicID,
     schema: ComicRequestSchema,
+    *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicResponseSchema:
     comic_resp_dto: ComicResponseDTO = await ComicService(
         db_holder=db_holder,
-    ).update(
-        comic_id=comic_id,
-        comic_req_dto=schema.to_dto(),
-    )
+    ).update(comic_id, schema.to_dto())
 
     return ComicResponseSchema.from_dto(dto=comic_resp_dto)
 
 
-@router.get("/comics/by_id/{comic_id}", status_code=status.HTTP_200_OK)
-async def get_comic_by_id(
+@router.delete(
+    "/comics/{comic_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": ComicByIDNotFoundError,
+        },
+    },
+)
+async def delete_comic(
     comic_id: ComicID,
+    *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
-) -> ComicWithTranslationsResponseSchema:
-    comic_resp_dto: ComicResponseWithTranslationsDTO = await ComicService(
-        db_holder=db_holder,
-    ).get_by_id(comic_id)
-
-    return ComicWithTranslationsResponseSchema.from_dto(dto=comic_resp_dto)
+):
+    await ComicService(db_holder=db_holder).delete(comic_id=comic_id)
 
 
-@router.get("/comics/{number}", status_code=status.HTTP_200_OK)
+@router.get(
+    "/comics/{number}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": ComicByIssueNumberNotFoundError,
+        },
+    },
+)
 async def get_comic_by_number(
     number: IssueNumber,
+    *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicWithTranslationsResponseSchema:
     comic_resp_dto: ComicResponseWithTranslationsDTO = await ComicService(
@@ -78,14 +124,44 @@ async def get_comic_by_number(
     return ComicWithTranslationsResponseSchema.from_dto(dto=comic_resp_dto)
 
 
-@router.get("/comics/extras/{title}", status_code=status.HTTP_200_OK)
-async def get_extra_comic_by_title(
-    title: str,
+@router.get(
+    "/comics/by_id/{comic_id}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": ComicByIDNotFoundError,
+        },
+    },
+)
+async def get_comic_by_id(
+    comic_id: ComicID,
+    *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicWithTranslationsResponseSchema:
     comic_resp_dto: ComicResponseWithTranslationsDTO = await ComicService(
         db_holder=db_holder,
-    ).get_extra_by_title(title)
+    ).get_by_id(comic_id)
+
+    return ComicWithTranslationsResponseSchema.from_dto(dto=comic_resp_dto)
+
+
+@router.get(
+    "/comics/by_slug/{slug}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {
+            "model": ComicBySlugNotFoundError,
+        },
+    },
+)
+async def get_by_slug(
+    slug: str,
+    *,
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+) -> ComicWithTranslationsResponseSchema:
+    comic_resp_dto: ComicResponseWithTranslationsDTO = await ComicService(
+        db_holder=db_holder,
+    ).get_by_slug(slug)
 
     return ComicWithTranslationsResponseSchema.from_dto(dto=comic_resp_dto)
 
@@ -98,6 +174,7 @@ async def get_comics(
     date_from: datetime.date | None = None,
     date_to: datetime.date | None = None,
     order: Order = Order.ASC,
+    *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> list[ComicWithTranslationsResponseSchema]:
     comic_resp_dtos, total_count = await ComicService(
@@ -111,15 +188,7 @@ async def get_comics(
         ),
     )
 
-    response.headers["X-Response-Count"] = str(len(comic_resp_dtos))
+    response.headers["X-Response-Count"] = str(len(comic_resp_dtos))  # to schema
     response.headers["X-Total-Count"] = str(total_count)
 
     return [ComicWithTranslationsResponseSchema.from_dto(dto=dto) for dto in comic_resp_dtos]
-
-
-@router.delete("/comics/{comic_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_comic(
-    comic_id: ComicID,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
-):
-    await ComicService(db_holder=db_holder).delete(comic_id=comic_id)

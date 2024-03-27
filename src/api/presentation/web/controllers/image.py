@@ -3,16 +3,17 @@ from typing import Annotated
 from fastapi import Depends, File, Query, UploadFile
 from faststream.nats import JStream, PullSub
 from faststream.nats.fastapi import NatsBroker, NatsRouter
-from pydantic import HttpUrl
+from pydantic import HttpUrl, constr
 from shared.messages import ImageProcessOutMessage
 from shared.types import LanguageCode
 from starlette import status
 
 from api.application.exceptions.image import (
-    ImageOneTypeError,
+    DownloadingImageError,
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
     UploadedImageError,
+    UploadedImageTypeConflictError,
     UploadExceedSizeLimitError,
 )
 from api.application.image_saver import ImageSaveHelper
@@ -34,20 +35,23 @@ router = NatsRouter(
     status_code=status.HTTP_201_CREATED,
     responses={
         status.HTTP_400_BAD_REQUEST: {
-            "description": RequestFileIsEmptyError.message,
-        },
-        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {
-            "description": UnsupportedImageFormatError.message,
+            "model": RequestFileIsEmptyError
+            | UploadedImageError
+            | DownloadingImageError
+            | UploadedImageTypeConflictError,
         },
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: {
-            "description": UploadExceedSizeLimitError.message,
+            "model": UploadExceedSizeLimitError,
+        },
+        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {
+            "model": UnsupportedImageFormatError,
         },
     },
 )
 async def upload_image(
     broker: NatsBroker,
-    title: str,
-    number: Annotated[int | None, Query(gt=0)] = None,
+    title: constr(min_length=1, strip_whitespace=True),
+    number: Annotated[int | None, Query(ge=1)] = None,
     language: LanguageCode = LanguageCode.EN,
     is_draft: bool = False,
     image_file: Annotated[UploadFile, File(...)] = None,
@@ -58,7 +62,7 @@ async def upload_image(
     image_saver: ImageSaveHelper = Depends(Stub(ImageSaveHelper)),
 ) -> TranslationImageResponseSchema:
     if image_file and image_url:
-        raise ImageOneTypeError
+        raise UploadedImageTypeConflictError
     elif image_file is None and image_url is None:
         raise UploadedImageError
     else:
@@ -73,7 +77,7 @@ async def upload_image(
         image_saver=image_saver,
         broker=broker,
     ).create(
-        meta=TranslationImageMeta(
+        metadata=TranslationImageMeta(
             number=number,
             title=title,
             language=language,

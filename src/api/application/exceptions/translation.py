@@ -2,20 +2,15 @@ from dataclasses import dataclass
 from typing import Any
 
 from shared.types import LanguageCode
-from starlette import status
 
-from api.application.types import TranslationID
-from api.core.exceptions import BaseAppError
+from api.application.exceptions.base import BaseAppError
+from api.application.types import ComicID, TranslationID, TranslationImageID
 
 
 @dataclass
 class TranslationImagesNotCreatedError(BaseAppError):
-    image_ids: list[int]
+    image_ids: list[TranslationImageID]
     message: str = "Images were not created."
-
-    @property
-    def status_code(self) -> int:
-        return status.HTTP_409_CONFLICT
 
     @property
     def detail(self) -> str | dict[str, Any]:
@@ -27,13 +22,9 @@ class TranslationImagesNotCreatedError(BaseAppError):
 
 @dataclass
 class TranslationImagesAlreadyAttachedError(BaseAppError):
-    image_ids: list[int]
-    translation_ids: list[int]
-    message: str = "Images already attached to these translations."
-
-    @property
-    def status_code(self) -> int:
-        return status.HTTP_409_CONFLICT
+    image_ids: list[TranslationImageID]
+    translation_ids: list[TranslationID]
+    message: str = "Images already attached to another translations."
 
     @property
     def detail(self) -> str | dict[str, Any]:
@@ -45,14 +36,10 @@ class TranslationImagesAlreadyAttachedError(BaseAppError):
 
 
 @dataclass
-class TranslationUniqueError(BaseAppError):
-    comic_id: int
+class TranslationAlreadyExistsError(BaseAppError):
+    comic_id: ComicID
     language: LanguageCode
-    message: str = "Comic already has a translation into this language."
-
-    @property
-    def status_code(self) -> int:
-        return status.HTTP_409_CONFLICT
+    message: str = "A comic already has a translation into this language."
 
     @property
     def detail(self) -> str | dict[str, Any]:
@@ -64,30 +51,9 @@ class TranslationUniqueError(BaseAppError):
 
 
 @dataclass
-class TranslationImageVersionUniqueError(BaseAppError):
-    image_ids: list[int]
-    message: str = "The translation should not have multiple images of the same version."
-
-    @property
-    def status_code(self) -> int:
-        return status.HTTP_409_CONFLICT
-
-    @property
-    def detail(self) -> str | dict[str, Any]:
-        return {
-            "message": self.message,
-            "image_ids": self.image_ids,
-        }
-
-
-@dataclass
 class TranslationNotFoundError(BaseAppError):
     translation_id: TranslationID
     message: str = "Translation not found."
-
-    @property
-    def status_code(self) -> int:
-        return status.HTTP_404_NOT_FOUND
 
     @property
     def detail(self) -> str | dict[str, Any]:

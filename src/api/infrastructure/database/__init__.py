@@ -23,7 +23,7 @@ __all__ = [
     "check_db_connection",
 ]
 
-from api.core.settings import DbConfig
+from api.infrastructure.settings import DbConfig
 
 
 def create_db_engine(config: DbConfig) -> AsyncEngine:

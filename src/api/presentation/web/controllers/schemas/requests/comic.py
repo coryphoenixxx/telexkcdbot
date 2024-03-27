@@ -20,6 +20,18 @@ class ComicRequestSchema(BaseModel):
     is_interactive: bool
     tags: list[str]
 
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, tags: list[str]) -> list[str]:
+        result = []
+        for tag in tags:
+            stripped_tag = tag.strip()
+            if len(stripped_tag) < 2:
+                raise ValueError(f"`{tag}` is invalid tag. Min length is 2.")
+            else:
+                result.append(stripped_tag)
+        return result
+
     def to_dto(self) -> ComicRequestDTO:
         return ComicRequestDTO(
             number=self.number,
@@ -37,22 +49,6 @@ class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
     en_tooltip: str
     en_transcript_raw: str
     images: list[int]
-
-    @field_validator("en_tooltip", "en_transcript_raw", mode="before")
-    @classmethod
-    def preprocess_text_fields(cls, value: str | None):
-        if value is None:
-            value = ""
-        return value
-
-    @field_validator("tags")
-    @classmethod
-    def validate_tags(cls, tags: list[str]) -> list[str] | None:
-        if tags:
-            for tag in tags:
-                if not tag.strip() or len(tag) < 2:
-                    raise ValueError(f"{tag} is invalid.")
-        return list({tag.strip() for tag in tags})
 
     def to_dtos(self) -> tuple[ComicRequestDTO, TranslationRequestDTO]:
         return (

@@ -3,7 +3,11 @@ from pathlib import Path
 
 from shared.types import ImageFormat, LanguageCode
 
-from api.core.types import Dimensions
+
+@dataclass
+class Dimensions:
+    width: int
+    height: int
 
 
 @dataclass(slots=True)

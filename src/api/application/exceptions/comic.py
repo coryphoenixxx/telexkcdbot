@@ -1,20 +1,14 @@
 from dataclasses import dataclass
 from typing import Any
 
-from starlette import status
-
-from api.application.types import ComicID
-from api.core.exceptions import BaseAppError
+from api.application.exceptions.base import BaseAppError
+from api.application.types import ComicID, IssueNumber
 
 
 @dataclass
-class ComicNotFoundError(BaseAppError):
+class ComicByIDNotFoundError(BaseAppError):
     comic_id: ComicID
-    message: str = "Comic not found."
-
-    @property
-    def status_code(self) -> int:
-        return status.HTTP_404_NOT_FOUND
+    message: str = "A comic with this id not found."
 
     @property
     def detail(self) -> str | dict[str, Any]:
@@ -26,12 +20,8 @@ class ComicNotFoundError(BaseAppError):
 
 @dataclass
 class ComicByIssueNumberNotFoundError(BaseAppError):
-    number: int
-    message: str = "Comic with this issue number not found."
-
-    @property
-    def status_code(self) -> int:
-        return status.HTTP_404_NOT_FOUND
+    number: IssueNumber
+    message: str = "A comic with this issue number not found."
 
     @property
     def detail(self) -> str | dict[str, Any]:
@@ -42,30 +32,9 @@ class ComicByIssueNumberNotFoundError(BaseAppError):
 
 
 @dataclass
-class ExtraComicByTitleNotFoundError(BaseAppError):
-    title: str
-    message: str = "Extra comic with this title not found."
-
-    @property
-    def status_code(self) -> int:
-        return status.HTTP_404_NOT_FOUND
-
-    @property
-    def detail(self) -> str | dict[str, Any]:
-        return {
-            "message": self.message,
-            "title": self.title,
-        }
-
-
-@dataclass
-class ComicIssueNumberUniqueError(BaseAppError):
-    number: int
-    message: str = "Comic with this issue number already exists."
-
-    @property
-    def status_code(self) -> int:
-        return status.HTTP_409_CONFLICT
+class ComicNumberAlreadyExistsError(BaseAppError):
+    number: IssueNumber
+    message: str = "A comic with this issue number already exists."
 
     @property
     def detail(self) -> str | dict[str, Any]:
@@ -76,13 +45,22 @@ class ComicIssueNumberUniqueError(BaseAppError):
 
 
 @dataclass
-class ExtraComicSlugUniqueError(BaseAppError):
-    title: str
-    message: str = "Extra comic with this title already exists."
+class ComicBySlugNotFoundError(BaseAppError):
+    slug: str
+    message: str = "A comic with this slug not found."
 
     @property
-    def status_code(self) -> int:
-        return status.HTTP_409_CONFLICT
+    def detail(self) -> str | dict[str, Any]:
+        return {
+            "message": self.message,
+            "title": self.slug,
+        }
+
+
+@dataclass
+class ExtraComicTitleAlreadyExistsError(BaseAppError):
+    title: str
+    message: str = "An extra comic with this title already exists."
 
     @property
     def detail(self) -> str | dict[str, Any]:

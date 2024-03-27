@@ -13,7 +13,7 @@ from bot.config import AppConfig, load_settings
 
 router = Router()
 
-api_client = APIRESTClient(client=AsyncHttpClient())
+api_client = APIRESTClient(http_client=AsyncHttpClient())
 
 
 @router.message()

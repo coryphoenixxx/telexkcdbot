@@ -2,7 +2,7 @@
 
 import os
 
-from api.core.settings import load_settings
+from api.infrastructure.settings import load_settings
 
 settings = load_settings()
 

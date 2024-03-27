@@ -1,11 +1,13 @@
+import logging
+
 from slugify import slugify as base_slugify
 
-from api.core.exceptions import CreatedEmptySlugError
+logger = logging.getLogger(__name__)
 
 
-def slugify(word: str) -> str:
+def slugify(words: str) -> str:
     slug = base_slugify(
-        word,
+        words,
         separator="_",
         replacements=(
             ("+", " plus "),
@@ -19,5 +21,6 @@ def slugify(word: str) -> str:
         ),
     )
     if not slug:
-        raise CreatedEmptySlugError(word=word)
+        logger.error("Can't slugify words: %s", words)
+        return words
     return slug

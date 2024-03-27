@@ -12,23 +12,23 @@ class ComicService:
 
     async def create(
         self,
-        comic_base: ComicRequestDTO,
+        comic: ComicRequestDTO,
         en_translation: TranslationRequestDTO,
     ) -> ComicResponseWithTranslationsDTO:
         async with self._db_holder:
             comic_resp_dto = await self._db_holder.comic_repo.create(
-                dto=comic_base,
+                dto=comic,
                 en_title=en_translation.title,
             )
 
             en_translation.comic_id = comic_resp_dto.id
-            translation_resp_dto = await self._db_holder.translation_repo.create(dto=en_translation)
+            translation_resp_dto = await self._db_holder.translation_repo.create(en_translation)
 
             comic_resp_dto.translations.append(translation_resp_dto)
 
             await self._db_holder.commit()
 
-            return comic_resp_dto
+        return comic_resp_dto
 
     async def update(
         self,
@@ -42,25 +42,30 @@ class ComicService:
             )
             await self._db_holder.commit()
 
-            return comic_resp_dto
+        return comic_resp_dto
+
+    async def delete(self, comic_id: ComicID) -> None:
+        async with self._db_holder:
+            await self._db_holder.comic_repo.delete(comic_id)
+            await self._db_holder.commit()
 
     async def get_by_id(self, comic_id: ComicID) -> ComicResponseWithTranslationsDTO:
         async with self._db_holder:
             comic_resp_dto = await self._db_holder.comic_repo.get_by_id(comic_id)
 
-            return comic_resp_dto
+        return comic_resp_dto
 
     async def get_by_number(self, number: IssueNumber) -> ComicResponseWithTranslationsDTO:
         async with self._db_holder:
             comic_resp_dto = await self._db_holder.comic_repo.get_by_number(number)
 
-            return comic_resp_dto
+        return comic_resp_dto
 
-    async def get_extra_by_title(self, title: str) -> ComicResponseWithTranslationsDTO:
+    async def get_by_slug(self, slug: str) -> ComicResponseWithTranslationsDTO:
         async with self._db_holder:
-            comic_resp_dto = await self._db_holder.comic_repo.get_extra_by_title(title)
+            comic_resp_dto = await self._db_holder.comic_repo.get_by_slug(slug)
 
-            return comic_resp_dto
+        return comic_resp_dto
 
     async def get_list(
         self,
@@ -70,9 +75,4 @@ class ComicService:
             comic_resp_dtos = await self._db_holder.comic_repo.get_list(query_params)
             total_count = (await self._db_holder.comic_repo.get_counts()).comic_count
 
-            return comic_resp_dtos, total_count
-
-    async def delete(self, comic_id: ComicID) -> None:
-        async with self._db_holder:
-            await self._db_holder.comic_repo.delete(comic_id)
-            await self._db_holder.commit()
+        return comic_resp_dtos, total_count

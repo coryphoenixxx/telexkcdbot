@@ -2,9 +2,9 @@ import asyncio
 
 from alembic import context
 
-from api.core.settings import load_settings
 from api.infrastructure.database import create_db_engine
 from api.infrastructure.database.models.base import Base
+from api.infrastructure.settings import load_settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

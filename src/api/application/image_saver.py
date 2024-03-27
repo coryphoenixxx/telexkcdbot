@@ -6,8 +6,8 @@ from uuid import uuid4
 
 import aiofiles.os as aos
 
-from api.core.utils import slugify
 from api.presentation.types import ImageObj, TranslationImageMeta
+from api.utils import slugify
 
 
 class ImageSaveHelper:

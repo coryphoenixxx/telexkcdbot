@@ -4,12 +4,12 @@ from shared.http_client import AsyncHttpClient
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from api.application.image_saver import ImageSaveHelper
-from api.core.settings import load_settings
 from api.infrastructure.database import (
     create_db_engine,
     create_db_session_factory,
 )
 from api.infrastructure.database.holder import DatabaseHolder
+from api.infrastructure.settings import load_settings
 from api.presentation.events import lifespan
 from api.presentation.router import register_routers
 from api.presentation.upload_reader import UploadImageHandler
@@ -28,6 +28,7 @@ def create_app() -> FastAPI:
         default_response_class=ORJSONResponse,
     )
     app.add_middleware(ExceptionHandlerMiddleware)
+
     register_routers(app)
 
     engine = create_db_engine(settings.db)

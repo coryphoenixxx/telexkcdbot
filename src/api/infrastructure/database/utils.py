@@ -9,12 +9,12 @@ REPEATED_EMPTIES_PATTERN = re.compile(r"\s\s+")
 
 
 def build_searchable_text(title, transcript_raw: str) -> str:
-    transcript_text = re.sub(pattern=SQUARE_BRACKETS_PATTERN, repl="\n", string=transcript_raw)
-    transcript_text = re.sub(pattern=HTML_TAG_PATTERN, repl="\n", string=transcript_text)
-    transcript_text = re.sub(pattern=SPEAKER_PATTERN, repl="\n", string=transcript_text)
-    transcript_text = re.sub(pattern=PUNCTUATION_PATTERN, repl=" ", string=transcript_text)
-    transcript_text = re.sub(pattern=SEPARATE_NUMBER_PATTERN, repl=" ", string=transcript_text)
-    transcript_text = re.sub(pattern=REPEATED_EMPTIES_PATTERN, repl=" ", string=transcript_text)
+    transcript_text = SQUARE_BRACKETS_PATTERN.sub(repl="\n", string=transcript_raw)
+    transcript_text = HTML_TAG_PATTERN.sub(repl="\n", string=transcript_text)
+    transcript_text = SPEAKER_PATTERN.sub(repl="\n", string=transcript_text)
+    transcript_text = PUNCTUATION_PATTERN.sub(repl=" ", string=transcript_text)
+    transcript_text = SEPARATE_NUMBER_PATTERN.sub(repl=" ", string=transcript_text)
+    transcript_text = REPEATED_EMPTIES_PATTERN.sub(repl=" ", string=transcript_text)
     transcript_text.replace('�', '')
 
     return (title + " :: " + transcript_text.strip().lower())[:4000]

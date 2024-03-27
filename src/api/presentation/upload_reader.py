@@ -13,13 +13,14 @@ from starlette.datastructures import UploadFile
 from yarl import URL
 
 from api.application.exceptions.image import (
-    DownloadImageError,
+    DownloadingImageError,
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
     UploadExceedSizeLimitError,
 )
-from api.core.types import Dimensions
-from api.presentation.types import ImageObj
+from api.presentation.types import Dimensions, ImageObj
+
+logger = logging.getLogger(__name__)
 
 
 class UploadImageHandler:
@@ -48,8 +49,8 @@ class UploadImageHandler:
         try:
             return await asyncio.wait_for(self._download_job(url), self._download_timeout)
         except TimeoutError:
-            logging.error(f"Couldn't download {url} after {self._download_timeout} seconds.")
-        raise DownloadImageError(str(url))
+            logger.error(f"Couldn't download {url} after {self._download_timeout} seconds.")
+        raise DownloadingImageError(str(url))
 
     async def _download_job(self, url: URL | str) -> ImageObj:
         for _ in range(2):
@@ -58,6 +59,7 @@ class UploadImageHandler:
                     if response.status == 200:
                         return await self._read_to_temp(response.content)
             except (TimeoutError, ClientPayloadError):
+                await asyncio.sleep(0.1)
                 continue
 
     async def _read_to_temp(self, obj: StreamReader | UploadFile) -> ImageObj:
@@ -92,13 +94,12 @@ class UploadImageHandler:
 
         try:
             fmt = ImageFormat(filetype.guess_extension(path))
+            return fmt
         except ValueError:
             raise UnsupportedImageFormatError(
-                format=fmt,
+                invalid_format=fmt,
                 supported_formats=self._supported_formats,
             )
         except FileNotFoundError as err:
             logging.error(f"{err.strerror}: {path}")
             raise err
-        else:
-            return fmt

@@ -1,4 +1,3 @@
-
 from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.dtos.responses.translation import TranslationResponseDTO
 from api.application.types import TranslationID
@@ -9,13 +8,11 @@ class TranslationService:
     def __init__(self, db_holder: DatabaseHolder):
         self._db_holder = db_holder
 
-    async def create(
-        self,
-        dto: TranslationRequestDTO,
-    ) -> TranslationResponseDTO:
+    async def create(self, dto: TranslationRequestDTO) -> TranslationResponseDTO:
         async with self._db_holder:
             translation_resp_dto = await self._db_holder.translation_repo.create(dto)
             await self._db_holder.commit()
+
         return translation_resp_dto
 
     async def update(
@@ -29,6 +26,7 @@ class TranslationService:
                 dto=dto,
             )
             await self._db_holder.commit()
+
         return translation_resp_dto
 
     async def delete(self, translation_id: TranslationID):

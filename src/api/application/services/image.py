@@ -23,10 +23,10 @@ class TranslationImageService:
 
     async def create(
         self,
-        meta: TranslationImageMeta,
+        metadata: TranslationImageMeta,
         image: ImageObj | None = None,
     ) -> TranslationImageResponseDTO:
-        original_abs_path, original_rel_path = await self._image_saver.save(meta, image)
+        original_abs_path, original_rel_path = await self._image_saver.save(metadata, image)
 
         async with self._db_holder:
             image_dto = await self._db_holder.translation_image_repo.create(
@@ -38,7 +38,7 @@ class TranslationImageService:
 
         return image_dto
 
-    async def _process_image(self, image_id: int, original_abs_path: Path):
+    async def _process_image(self, image_id: int, original_abs_path: Path) -> None:
         await self._broker.publish(
             message=ImageProcessInMessage(
                 image_id=image_id,
