@@ -10,6 +10,11 @@ packages = [
     { include = "shared", from = "src" },
 ]
 
+
+[tool.poetry.scripts]
+scrape_origin_and_upload = "scripts.scrape_origin_and_upload:main"
+scrape_translations_and_upload = "scripts.scrape_translations_and_upload:main"
+
 [tool.poetry.dependencies]
 python = "^3.11"
 
@@ -60,14 +65,14 @@ nats-py = "2.7.0"
 [tool.poetry.group.bot.dependencies]
 aiogram = "^3.4.1"
 
+[tool.poetry.group.test.dependencies]
+pytest = "^8.0.0"
+
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.3"
 ruff = "^0.3"
 black = "^24"
-pytest = "^8.0.0"
-pympler = "^1.0.1"
-memray = "^1.11.0"
 
 
 [tool.pytest.ini_options]
@@ -95,6 +100,7 @@ lint.select = [
     "T20",
     "C4",
     "UP",
+    "G004"
 ]
 lint.ignore = [
     "N805",
