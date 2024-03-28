@@ -4,10 +4,10 @@ version = "1.0.0"
 description = "telexkcdbot"
 authors = ["coryphoenixxx <coryphoenixxx@gmail.com>"]
 license = "MIT"
-readme = "README.md"
 repository = "https://github.com/coryphoenixxx/telexkcdbot"
 packages = [
     { include = "shared", from = "src" },
+    { include = "api", from = "src" },
 ]
 
 
@@ -41,6 +41,8 @@ gunicorn = "^21.2.0"
 faststream = { extras = ["nats"], version = "^0.4" }
 pydantic = "^2.5"
 nats-py = "2.7.0"
+pyjwt = { extras = ["crypto"], version = "^2.8.0" }
+bcrypt = "^4.1.2"
 
 
 [tool.poetry.group.scraper.dependencies]

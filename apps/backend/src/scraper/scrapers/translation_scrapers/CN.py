@@ -3,15 +3,16 @@ from collections.abc import Iterable
 
 from bs4 import BeautifulSoup
 from rich.progress import Progress
+from shared.http_client import AsyncHttpClient
+from shared.types import LanguageCode
+from yarl import URL
+
 from scraper.dtos import XkcdTranslationData
 from scraper.pbar import ProgressBar
 from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
 from scraper.utils import run_concurrently
-from shared.http_client import AsyncHttpClient
-from shared.types import LanguageCode
-from yarl import URL
 
 
 class XkcdCNScraper(BaseScraper):

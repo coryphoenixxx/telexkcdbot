@@ -13,20 +13,18 @@ import uvloop
 from rich.progress import (
     Progress,
 )
-from yarl import URL
-
 from scraper.dtos import XkcdTranslationData
 from scraper.pbar import ProgressBar
 from scraper.scrapers import (
+    XkcdCNScraper,
+    XkcdDEScraper,
+    XkcdESScraper,
     XkcdExplainScraper,
     XkcdFRScraper,
     XkcdOriginScraper,
     XkcdOriginWithExplainDataScraper,
+    XkcdRUScraper,
 )
-from scraper.scrapers.translation_scrapers.CN import XkcdCNScraper
-from scraper.scrapers.translation_scrapers.DE import XkcdDEScraper
-from scraper.scrapers.translation_scrapers.ES import XkcdESScraper
-from scraper.scrapers.translation_scrapers.RU import XkcdRUScraper
 from scraper.types import LimitParams
 from scraper.utils import run_concurrently
 from scripts.common import positive_number_callback
@@ -35,6 +33,7 @@ from shared.api_rest_client import APIRESTClient
 from shared.http_client import AsyncHttpClient
 from shared.types import LanguageCode
 from shared.utils import flatten
+from yarl import URL
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +157,7 @@ async def get_number_comic_id_map(api_client: APIRESTClient) -> dict[int, int]:
 @click.option("--end", type=int, callback=positive_number_callback)
 @click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
 @click.option("--delay", type=float, default=0.01, callback=positive_number_callback)
-@click.option("--api-url", type=str, default="http://127.0.0.1:8000")
+@click.option("--api-url", type=str, default="http://127.0.0.1:8000/")
 async def main(start: int, end: int | None, chunk_size: int, delay: int, api_url: str):
     async with AsyncHttpClient() as http_client:
         api_client = APIRESTClient(api_url, http_client)

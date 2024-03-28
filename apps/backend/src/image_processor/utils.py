@@ -28,7 +28,7 @@ def convert_to_webp(img_obj: Image, img_path: Path) -> Path | None:
             img_obj.height > MAX_WEBP_SIZE,
         ],
     ):
-        return
+        return None
 
     converted_abs_path = img_path.with_name(
         img_path.stem.replace("_original", "_converted"),

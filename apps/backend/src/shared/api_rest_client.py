@@ -20,7 +20,11 @@ logger = logging.getLogger(__name__)
 
 
 class APIRESTClient:
-    def __init__(self, base_url: str, http_client: AsyncHttpClient):
+    def __init__(
+        self,
+        base_url: str = "http://127.0.0.1:8000/",
+        http_client: AsyncHttpClient = AsyncHttpClient(),
+    ):
         self._base_url = URL(base_url)
         self._http_client = http_client
 

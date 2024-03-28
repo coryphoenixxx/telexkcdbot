@@ -11,20 +11,20 @@ ENV PIP_ROOT_USER_ACTION=ignore                 \
     PYTHONUNBUFFERED=1                          \
     PYTHONDONTWRITEBYTECODE=1
 
-RUN pip install --no-cache-dir poetry==1.7.1
+RUN pip install --no-cache-dir poetry==1.8.1
 
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock README.md ./
+COPY apps/backend/pyproject.toml apps/backend/poetry.lock README.md ./
 
 
 RUN poetry install --no-ansi -vvv --only api --no-root && rm -rf $POETRY_CACHE_DIR
 
-COPY src/api /app/src/api
-COPY src/shared /app/src/shared
+COPY apps/backend/src/api /app/src/api
+COPY apps/backend/src/shared /app/src/shared
 
 RUN poetry install --only api
 
 WORKDIR /app/src/api
 
-CMD poetry run alembic upgrade head && poetry run gunicorn
+CMD poetry run gunicorn
