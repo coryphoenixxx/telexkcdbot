@@ -2,9 +2,9 @@ import asyncio
 
 from alembic import context
 
-from api.infrastructure.database import create_db_engine
+from api.infrastructure.database import create_db_engine, DBConfig
 from api.infrastructure.database.models.base import Base
-from api.infrastructure.settings import load_settings
+from shared.config_loader import load_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -39,7 +39,7 @@ async def run_async_migrations():
     and associate a connection with the context.
 
     """
-    engine = create_db_engine(config=load_settings().db)
+    engine = create_db_engine(config=load_config(DBConfig, scope="db"))
 
     async with engine.connect() as connection:
         await connection.run_sync(do_run_migrations)

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+from api.infrastructure.database.config import DBConfig
 from api.infrastructure.database.repositories import (
     ComicRepo,
     TranslationImageRepo,
@@ -21,17 +22,16 @@ __all__ = [
     "create_db_engine",
     "create_db_session_factory",
     "check_db_connection",
+    "DBConfig"
 ]
 
-from api.infrastructure.settings import DbConfig
 
-
-def create_db_engine(config: DbConfig) -> AsyncEngine:
+def create_db_engine(config: DBConfig) -> AsyncEngine:
     return create_async_engine(
-        url=config.pg.dsn,
-        echo=config.sqla.echo,
-        echo_pool=config.sqla.echo,
-        pool_size=config.sqla.pool_size,
+        url=config.dsn,
+        echo=config.echo,
+        echo_pool=config.echo,
+        pool_size=config.pool_size,
         pool_pre_ping=True,
     )
 

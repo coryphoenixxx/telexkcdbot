@@ -147,3 +147,4 @@ static
 .tmp
 /apps/frontend/.vscode/
 /apps/frontend/node_modules/
+/.configs/

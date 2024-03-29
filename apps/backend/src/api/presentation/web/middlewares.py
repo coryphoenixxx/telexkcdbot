@@ -13,6 +13,7 @@ from api.application.exceptions.comic import (
     ComicBySlugNotFoundError,
     ComicNumberAlreadyExistsError,
     ExtraComicTitleAlreadyExistsError,
+    ComicByIssueNumberNotFoundError,
 )
 from api.application.exceptions.image import (
     DownloadingImageError,
@@ -43,6 +44,7 @@ ERROR_TO_STATUS_MAP: Mapping[type[BaseAppError], int] = {
     TranslationImagesNotCreatedError: status.HTTP_400_BAD_REQUEST,
     TranslationImagesAlreadyAttachedError: status.HTTP_400_BAD_REQUEST,
     ComicByIDNotFoundError: status.HTTP_404_NOT_FOUND,
+    ComicByIssueNumberNotFoundError: status.HTTP_404_NOT_FOUND,
     ComicBySlugNotFoundError: status.HTTP_404_NOT_FOUND,
     TranslationAlreadyExistsError: status.HTTP_409_CONFLICT,
     TranslationNotFoundError: status.HTTP_404_NOT_FOUND,

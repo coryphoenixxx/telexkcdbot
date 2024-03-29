@@ -1,0 +1,26 @@
+[api]
+host = "127.0.0.1"
+port = 8000
+debug = true
+tmp_dir = "./../../../../.tmp"
+static_dir = "./../../../../static"
+upload_max_size = 10485760
+docs_url = "/docs"
+redoc_url = "/redoc"
+openapi_url = "/openapi.json"
+
+[db]
+host = "localhost"
+port = 5432
+driver = "asyncpg"
+dbname = "telexkcdbot"
+user = "admin"
+password = "password"
+echo = true
+pool_size = 40
+
+[gunicorn]
+wsgi_app = "api.app:app"
+worker_class = "api.main.CustomUvicornWorker"
+bind = "0.0.0.0:8000"
+workers = 3

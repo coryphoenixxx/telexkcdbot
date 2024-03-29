@@ -1,12 +1,19 @@
-# noqa: N999
+from dataclasses import dataclass
 
-import os
+from shared.config_loader import load_config
 
-from api.infrastructure.settings import load_settings
 
-settings = load_settings()
+@dataclass
+class GunicornConfig:
+    wsgi_app: str
+    worker_class: str
+    bind: str
+    workers: int
 
-wsgi_app = os.getenv("GUNICORN__WSGI_APP")
-bind = os.getenv("GUNICORN__BIND", default="0.0.0.0:8000")
-workers = os.getenv("GUNICORN__WEB_CONCURRENCY", default="3")
-worker_class = os.getenv("GUNICORN__WORKER_CLASS")
+
+config_ = load_config(GunicornConfig, scope="gunicorn")
+
+wsgi_app = config_.wsgi_app
+bind = config_.bind
+workers = config_.workers
+worker_class = config_.worker_class

@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
+
+from api.config import AppConfig
+from shared.config_loader import load_config
 from shared.http_client import AsyncHttpClient
 from sqlalchemy.ext.asyncio import AsyncEngine
 
@@ -9,29 +12,31 @@ from api.infrastructure.database import (
     create_db_session_factory,
 )
 from api.infrastructure.database.holder import DatabaseHolder
-from api.infrastructure.settings import load_settings
 from api.presentation.events import lifespan
 from api.presentation.router import register_routers
 from api.presentation.upload_reader import UploadImageHandler
 from api.presentation.web.middlewares import ExceptionHandlerMiddleware
 
 
-def create_app() -> FastAPI:
-    settings = load_settings()
+def create_app(config: AppConfig | None = None) -> FastAPI:
+    if config is None:
+        config = load_config(AppConfig)
 
     app = FastAPI(
         lifespan=lifespan,
-        debug=settings.app.debug,
-        docs_url=settings.app.docs_url,
-        redoc_url=settings.app.redoc_url,
-        openapi_url=settings.app.openapi_url,
+        debug=config.api.debug,
+        docs_url=config.api.docs_url,
+        redoc_url=config.api.redoc_url,
+        openapi_url=config.api.openapi_url,
         default_response_class=ORJSONResponse,
     )
     app.add_middleware(ExceptionHandlerMiddleware)
 
+    x= 1
+
     register_routers(app)
 
-    engine = create_db_engine(settings.db)
+    engine = create_db_engine(config.db)
     db_session_factory = create_db_session_factory(engine)
     http_client = AsyncHttpClient()
 
@@ -42,12 +47,12 @@ def create_app() -> FastAPI:
                 session_factory=db_session_factory,
             ),
             UploadImageHandler: lambda: UploadImageHandler(
-                tmp_dir=settings.app.tmp_dir,
-                upload_max_size=eval(settings.app.upload_max_size),
+                tmp_dir=config.api.tmp_dir,
+                upload_max_size=config.api.upload_max_size,
                 http_client=http_client,
             ),
             ImageSaveHelper: lambda: ImageSaveHelper(
-                static_dir=settings.app.static_dir,
+                static_dir=config.api.static_dir,
             ),
             AsyncHttpClient: lambda: http_client,
         },

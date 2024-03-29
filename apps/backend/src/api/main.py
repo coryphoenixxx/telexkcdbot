@@ -1,5 +1,6 @@
 import logging
 
+import uvicorn
 from uvicorn.workers import UvicornWorker
 
 
@@ -8,19 +9,11 @@ class CustomUvicornWorker(UvicornWorker):
         "loop": "uvloop",
         "http": "httptools",
         "lifespan": "on",
+        "app": "api.app:app",
+        "reload": True,
+        "log_level": logging.DEBUG,
     }
 
 
 if __name__ == "__main__":
-    import uvicorn
-
-    from api.infrastructure.settings import load_settings
-
-    settings = load_settings()
-
-    uvicorn.run(
-        **CustomUvicornWorker.CONFIG_KWARGS,
-        app="api.app:app",
-        reload=True,
-        log_level=logging.ERROR,
-    )
+    uvicorn.run(**CustomUvicornWorker.CONFIG_KWARGS)

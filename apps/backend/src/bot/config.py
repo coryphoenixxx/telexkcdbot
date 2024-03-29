@@ -1,32 +1,22 @@
-from pydantic import BaseModel, SecretStr
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from dataclasses import dataclass, field
 
 
-class BotConfig(BaseModel):
-    token: SecretStr
+@dataclass
+class BotConfig:
+    token: str
     admin_id: int
 
 
-class AppConfig(BaseModel):
+@dataclass
+class AppConfig:
     host: str
     port: int
-    base_webhook_url: str
+    webhook_url: str
     webhook_path: str
     webhook_secret: str
 
 
-class Settings(BaseSettings):
-    bot: BotConfig
-    app: AppConfig
-
-    model_config = SettingsConfigDict(
-        env_file_encoding="utf-8",
-        env_nested_delimiter="__",
-        extra="ignore",
-    )
-
-
-def load_settings() -> Settings:
-    settings = Settings()
-
-    return settings
+@dataclass
+class Config:
+    bot: BotConfig = field(default_factory=BotConfig)
+    app: AppConfig = field(default_factory=AppConfig)
