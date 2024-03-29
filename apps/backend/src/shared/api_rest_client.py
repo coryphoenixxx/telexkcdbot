@@ -170,9 +170,8 @@ class APIRESTClient:
         url = self._base_url / f"api/comics/{number}"
 
         async with self._http_client.safe_get(url) as response:
-            comic = await response.json()
-
-        return comic
+            if response.status == 200:
+                return await response.json()
 
     async def get_comics(
         self,
@@ -206,3 +205,6 @@ class APIRESTClient:
                 params[name] = str(value)
 
         return params
+
+    async def stop(self):
+        await self._http_client.close_all_sessions()
