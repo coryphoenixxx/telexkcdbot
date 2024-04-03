@@ -1,16 +1,13 @@
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
-
-from api.config import AppConfig
 from shared.config_loader import load_config
 from shared.http_client import AsyncHttpClient
 from sqlalchemy.ext.asyncio import AsyncEngine
+from starlette.middleware.cors import CORSMiddleware
 
 from api.application.image_saver import ImageSaveHelper
-from api.infrastructure.database import (
-    create_db_engine,
-    create_db_session_factory,
-)
+from api.config import AppConfig
+from api.infrastructure.database import create_db_engine, create_db_session_factory
 from api.infrastructure.database.holder import DatabaseHolder
 from api.presentation.events import lifespan
 from api.presentation.router import register_routers
@@ -31,8 +28,13 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
         default_response_class=ORJSONResponse,
     )
     app.add_middleware(ExceptionHandlerMiddleware)
-
-    x= 1
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     register_routers(app)
 

@@ -3,7 +3,7 @@ from pathlib import Path
 from faststream.nats import NatsBroker
 from shared.messages import ImageProcessInMessage
 
-from api.application.dtos.responses.image import TranslationImageResponseDTO
+from api.application.dtos.responses.image import TranslationImageOrphanResponseDTO
 from api.application.image_saver import ImageSaveHelper
 from api.application.types import TranslationImageID
 from api.infrastructure.database.holder import DatabaseHolder
@@ -25,7 +25,7 @@ class TranslationImageService:
         self,
         metadata: TranslationImageMeta,
         image: ImageObj | None = None,
-    ) -> TranslationImageResponseDTO:
+    ) -> TranslationImageOrphanResponseDTO:
         original_abs_path, original_rel_path = await self._image_saver.save(metadata, image)
 
         async with self._db_holder:

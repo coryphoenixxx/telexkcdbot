@@ -61,3 +61,16 @@ class TranslationNotFoundError(BaseAppError):
             "message": self.message,
             "translation_id": self.translation_id,
         }
+
+
+@dataclass
+class EnglishTranslationCreateForbiddenError(BaseAppError):
+    allowed: list[LanguageCode] = LanguageCode.translation_languages
+    message: str = "Creating an English translation is forbidden."
+
+    @property
+    def detail(self) -> str | dict[str, Any]:
+        return {
+            "message": self.message,
+            "allowed": self.allowed,
+        }

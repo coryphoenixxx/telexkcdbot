@@ -10,10 +10,10 @@ from starlette.responses import Response
 from api.application.exceptions.base import BaseAppError
 from api.application.exceptions.comic import (
     ComicByIDNotFoundError,
+    ComicByIssueNumberNotFoundError,
     ComicBySlugNotFoundError,
     ComicNumberAlreadyExistsError,
     ExtraComicTitleAlreadyExistsError,
-    ComicByIssueNumberNotFoundError,
 )
 from api.application.exceptions.image import (
     DownloadingImageError,
@@ -24,6 +24,7 @@ from api.application.exceptions.image import (
     UploadExceedSizeLimitError,
 )
 from api.application.exceptions.translation import (
+    EnglishTranslationCreateForbiddenError,
     TranslationAlreadyExistsError,
     TranslationImagesAlreadyAttachedError,
     TranslationImagesNotCreatedError,
@@ -48,6 +49,7 @@ ERROR_TO_STATUS_MAP: Mapping[type[BaseAppError], int] = {
     ComicBySlugNotFoundError: status.HTTP_404_NOT_FOUND,
     TranslationAlreadyExistsError: status.HTTP_409_CONFLICT,
     TranslationNotFoundError: status.HTTP_404_NOT_FOUND,
+    EnglishTranslationCreateForbiddenError: status.HTTP_400_BAD_REQUEST,
 }
 
 

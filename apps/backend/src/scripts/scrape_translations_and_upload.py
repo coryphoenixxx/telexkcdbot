@@ -82,7 +82,7 @@ def extract_prescraped_translations(
                             tooltip=tooltip if tooltip else None,
                             image=number_image_path_map[number],
                             language=LanguageCode(lang_code_dir),
-                        )
+                        ),
                     )
 
                     if pbar:
@@ -146,7 +146,8 @@ async def upload_translations(
 
 async def get_number_comic_id_map(api_client: APIRESTClient) -> dict[int, int]:
     d = {}
-    for comic in await api_client.get_comics():
+    data = (await api_client.get_comics())['data']
+    for comic in data:
         d[comic["number"]] = comic["id"]
 
     return d

@@ -3,6 +3,7 @@ from faststream.nats.fastapi import NatsRouter
 from starlette import status
 
 from api.application.exceptions.translation import (
+    EnglishTranslationCreateForbiddenError,
     TranslationAlreadyExistsError,
     TranslationImagesAlreadyAttachedError,
     TranslationImagesNotCreatedError,
@@ -15,8 +16,8 @@ from api.presentation.stub import Stub
 from api.presentation.web.controllers.schemas.requests import (
     TranslationRequestSchema,
 )
-from api.presentation.web.controllers.schemas.responses import (
-    TranslationResponseSchema,
+from api.presentation.web.controllers.schemas.responses.translation import (
+    TranslationWLanguageResponseSchema,
 )
 
 router = NatsRouter(tags=["Translations"])
@@ -26,6 +27,7 @@ router = NatsRouter(tags=["Translations"])
     "/translations",
     status_code=status.HTTP_201_CREATED,
     responses={
+        status.HTTP_400_BAD_REQUEST: {"model": EnglishTranslationCreateForbiddenError},
         status.HTTP_409_CONFLICT: {
             "model": TranslationAlreadyExistsError
             | TranslationImagesNotCreatedError
@@ -37,12 +39,11 @@ async def add_translation(
     schema: TranslationRequestSchema,
     *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
-) -> TranslationResponseSchema:
-    # TODO: deny EN translation creation
+) -> TranslationWLanguageResponseSchema:
     # TODO: deny EN translation draft creation
     translation_resp_dto = await TranslationService(db_holder).create(schema.to_dto())
 
-    return TranslationResponseSchema.from_dto(translation_resp_dto)
+    return TranslationWLanguageResponseSchema.from_dto(translation_resp_dto)
 
 
 @router.put(
@@ -62,13 +63,13 @@ async def update_translation(
     schema: TranslationRequestSchema,
     *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
-) -> TranslationResponseSchema:
+) -> TranslationWLanguageResponseSchema:
     # TODO: need comic_id in schema?
     translation_resp_dto = await TranslationService(
         db_holder=db_holder,
     ).update(translation_id, schema.to_dto())
 
-    return TranslationResponseSchema.from_dto(translation_resp_dto)
+    return TranslationWLanguageResponseSchema.from_dto(translation_resp_dto)
 
 
 @router.delete(

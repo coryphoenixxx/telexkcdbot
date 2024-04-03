@@ -1,9 +1,8 @@
 import re
 
-from aiogram import Router, F
+from aiogram import F, Router
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import Message
-
 from bot.filters.main import ComicNumberFilter
 from shared.api_rest_client import APIRESTClient
 
@@ -14,7 +13,7 @@ router = Router()
     CommandStart(
         deep_link=True,
         magic=F.args.regexp(re.compile(r"user_(\d+)")),
-    )
+    ),
 )
 async def start_handler(
     msg: Message,
@@ -26,9 +25,7 @@ async def start_handler(
 
 
 @router.message(CommandStart())
-async def start_handler(
-    msg: Message
-) -> None:
+async def start_handler(msg: Message) -> None:
     await msg.answer(f"HELLO, {msg.chat.username}. Base start.")
 
 

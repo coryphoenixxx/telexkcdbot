@@ -1,28 +1,64 @@
+from collections.abc import Mapping
+
+from pydantic import BaseModel, HttpUrl
+from shared.types import LanguageCode
+
 from api.application.dtos.responses.translation import TranslationResponseDTO
-from api.presentation.web.controllers.schemas.requests.translation import (
-    TranslationRequestSchema,
-)
+from api.application.types import TranslationDraftID
 from api.presentation.web.controllers.schemas.responses.image import (
-    TranslationImageWithPathsResponseSchema,
+    TranslationImageProcessedResponseSchema,
 )
 
 
-class TranslationResponseSchema(TranslationRequestSchema):
+# TODO: sort drafts by created date
+class TranslationResponseSchema(BaseModel):
     id: int
     comic_id: int
-    images: list[TranslationImageWithPathsResponseSchema]
+    title: str
+    tooltip: str
+    transcript_raw: str
+    translator_comment: str
+    source_link: HttpUrl | None
+    images: list[TranslationImageProcessedResponseSchema]
+    draft_ids: list[TranslationDraftID]
 
     @classmethod
-    def from_dto(cls, dto: TranslationResponseDTO) -> "TranslationResponseSchema":
-        return TranslationResponseSchema(
+    def from_dto(
+        cls,
+        dto: TranslationResponseDTO,
+    ) -> Mapping[LanguageCode, "TranslationResponseSchema"]:
+        return {
+            dto.language: TranslationResponseSchema(
+                id=dto.id,
+                comic_id=dto.comic_id,
+                title=dto.title,
+                tooltip=dto.tooltip,
+                transcript_raw=dto.transcript_raw,
+                translator_comment=dto.translator_comment,
+                source_link=dto.source_link,
+                images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
+                draft_ids=[d.id for d in dto.drafts],
+            ),
+        }
+
+
+class TranslationWLanguageResponseSchema(TranslationResponseSchema):
+    language: LanguageCode
+
+    @classmethod
+    def from_dto(
+        cls,
+        dto: TranslationResponseDTO,
+    ) -> "TranslationWLanguageResponseSchema":
+        return TranslationWLanguageResponseSchema(
             id=dto.id,
             comic_id=dto.comic_id,
+            language=dto.language,
             title=dto.title,
             tooltip=dto.tooltip,
             transcript_raw=dto.transcript_raw,
             translator_comment=dto.translator_comment,
-            language=dto.language,
-            images=[TranslationImageWithPathsResponseSchema.from_dto(img) for img in dto.images],
             source_link=dto.source_link,
-            is_draft=dto.is_draft,
+            images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
+            draft_ids=[d.id for d in dto.drafts],
         )

@@ -6,11 +6,11 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
+from shared.api_rest_client import APIRESTClient
+from shared.config_loader import load_config
 
 from bot.config import AppConfig, Config
 from bot.handlers.main import router
-from shared.api_rest_client import APIRESTClient
-from shared.config_loader import load_config
 
 
 async def on_startup(bot: Bot, config: AppConfig) -> None:

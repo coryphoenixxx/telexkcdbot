@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 def slugify(words: str) -> str:
     slug = base_slugify(
         words,
-        separator="_",
+        separator="-",
         replacements=(
             ("+", " plus "),
             ("%", " percent "),

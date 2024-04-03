@@ -1,8 +1,9 @@
 import asyncio
 from collections.abc import Callable
 
-from scraper.pbar import ProgressBar
 from shared.utils import chunked
+
+from scraper.pbar import ProgressBar
 
 
 async def progress_watcher(tasks: list[asyncio.Task], pbar: ProgressBar | None) -> None:

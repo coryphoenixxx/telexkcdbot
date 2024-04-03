@@ -5,13 +5,13 @@ from api.infrastructure.database.models import TranslationImageModel
 
 
 @dataclass(slots=True)
-class TranslationImageResponseDTO:
+class TranslationImageOrphanResponseDTO:
     id: TranslationImageID
     original_rel_path: str
 
 
 @dataclass(slots=True)
-class TranslationImageFullResponseDTO:
+class TranslationImageProcessedResponseDTO:
     id: TranslationImageID
     translation_id: TranslationID
     original_rel_path: str
@@ -20,8 +20,8 @@ class TranslationImageFullResponseDTO:
 
     @classmethod
     def from_model(cls, model: TranslationImageModel):
-        return TranslationImageFullResponseDTO(
-            id=model.id,
+        return TranslationImageProcessedResponseDTO(
+            id=model.image_id,
             translation_id=model.translation_id,
             original_rel_path=model.original_rel_path,
             converted_rel_path=model.converted_rel_path,

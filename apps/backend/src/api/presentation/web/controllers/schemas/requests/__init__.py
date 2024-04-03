@@ -1,8 +1,7 @@
-from .comic import ComicRequestSchema, ComicWithEnTranslationRequestSchema
+from .comic import ComicRequestSchema
 from .translation import TranslationRequestSchema
 
 __all__ = [
     "TranslationRequestSchema",
     "ComicRequestSchema",
-    "ComicWithEnTranslationRequestSchema",
 ]

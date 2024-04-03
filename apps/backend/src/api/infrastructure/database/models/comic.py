@@ -1,27 +1,30 @@
 from datetime import date
 
-from sqlalchemy import ForeignKey, Index, SmallInteger, and_, false, true
+from shared.types import LanguageCode
+from sqlalchemy import ForeignKey, Index, SmallInteger, and_, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.infrastructure.database.models import Base, TranslationModel
-from api.infrastructure.database.models.mixins import PkIdMixin, TimestampMixin
+from api.infrastructure.database.models.mixins import TimestampMixin
 
 
 class ComicTagAssociation(Base):
     __tablename__ = "comic_tag_association"
 
     comic_id: Mapped[int] = mapped_column(
-        ForeignKey("comics.id", ondelete="CASCADE"),
+        ForeignKey("comics.comic_id", ondelete="CASCADE"),
         primary_key=True,
     )
     tag_id: Mapped[int] = mapped_column(
-        ForeignKey("tags.id", ondelete="CASCADE"),
+        ForeignKey("tags.tag_id", ondelete="CASCADE"),
         primary_key=True,
     )
 
 
-class TagModel(PkIdMixin, Base):
+class TagModel(Base):
     __tablename__ = "tags"
+
+    tag_id: Mapped[int] = mapped_column(primary_key=True)
 
     name: Mapped[str] = mapped_column(unique=True)
 
@@ -31,15 +34,16 @@ class TagModel(PkIdMixin, Base):
     )
 
     def __str__(self):
-        return f"{self.__class__.__name__}(id={self.id}, name={self.name})"
+        return f"{self.__class__.__name__}(id={self.tag_id}, name={self.name})"
 
     def __repr__(self):
         return str(self)
 
 
-class ComicModel(PkIdMixin, Base, TimestampMixin):
+class ComicModel(Base, TimestampMixin):
     __tablename__ = "comics"
 
+    comic_id: Mapped[int] = mapped_column(primary_key=True)
     number: Mapped[int | None] = mapped_column(SmallInteger)
     slug: Mapped[str]
     publication_date: Mapped[date]
@@ -55,29 +59,32 @@ class ComicModel(PkIdMixin, Base, TimestampMixin):
         lazy="selectin",
     )
 
+    en_translation: Mapped[TranslationModel] = relationship(
+        lazy="joined",
+        back_populates="comic",
+        primaryjoin=lambda: and_(
+            ComicModel.comic_id == TranslationModel.comic_id,
+            TranslationModel.is_draft == false(),
+            TranslationModel.language == LanguageCode.EN,
+        ),
+    )
+
     translations: Mapped[list["TranslationModel"]] = relationship(
         lazy="joined",
         back_populates="comic",
         cascade="all, delete",
         primaryjoin=lambda: and_(
-            ComicModel.id == TranslationModel.comic_id,
+            ComicModel.comic_id == TranslationModel.comic_id,
             TranslationModel.is_draft == false(),
+            TranslationModel.language != LanguageCode.EN,
         ),
-    )
-
-    drafts: Mapped[list["TranslationModel"]] = relationship(
-        back_populates="comic",
-        cascade="all, delete",
-        primaryjoin=lambda: and_(
-            ComicModel.id == TranslationModel.comic_id,
-            TranslationModel.is_draft == true(),
-        ),
-        overlaps="translations",
+        overlaps="en_translation",
     )
 
     def __str__(self):
         return (
-            f"{self.__class__.__name__}" f"(id={self.id}, number={self.number}, slug={self.slug})"
+            f"{self.__class__.__name__}"
+            f"(id={self.comic_id}, number={self.number}, slug={self.slug})"
         )
 
     def __repr__(self):

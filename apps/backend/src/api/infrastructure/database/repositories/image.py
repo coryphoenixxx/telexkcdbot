@@ -3,30 +3,27 @@ from pathlib import Path
 from shared.utils import cast_or_none
 from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.application.dtos.responses.image import TranslationImageResponseDTO
+from api.application.dtos.responses.image import TranslationImageOrphanResponseDTO
 from api.application.types import TranslationImageID
 from api.infrastructure.database.models.translation import TranslationImageModel
+from api.infrastructure.database.repositories.base import BaseRepo
 
 
-class TranslationImageRepo:
-    def __init__(self, session: AsyncSession):
-        self._session = session
-
-    async def create(self, original_rel_path: Path) -> TranslationImageResponseDTO:
+class TranslationImageRepo(BaseRepo):
+    async def create(self, original_rel_path: Path) -> TranslationImageOrphanResponseDTO:
         stmt = (
             insert(TranslationImageModel)
             .values(original_rel_path=str(original_rel_path))
             .returning(
-                TranslationImageModel.id,
+                TranslationImageModel.image_id,
                 TranslationImageModel.original_rel_path,
             )
         )
 
         image_id, original_rel_path = (await self._session.execute(stmt)).one()
 
-        return TranslationImageResponseDTO(
+        return TranslationImageOrphanResponseDTO(
             id=image_id,
             original_rel_path=original_rel_path,
         )
@@ -39,15 +36,15 @@ class TranslationImageRepo:
     ) -> TranslationImageID:
         stmt = (
             update(TranslationImageModel)
-            .where(TranslationImageModel.id == image_id)
+            .where(TranslationImageModel.image_id == image_id)
             .values(
                 converted_rel_path=cast_or_none(str, converted_rel_path),
                 thumbnail_rel_path=str(thumbnail_rel_path),
             )
-            .returning(TranslationImageModel.id)
+            .returning(TranslationImageModel.image_id)
         )
 
-        # handle case when image not exists
+        # TODO: handle case when image not exists
 
         image_id: int = (await self._session.execute(stmt)).scalar_one()
 

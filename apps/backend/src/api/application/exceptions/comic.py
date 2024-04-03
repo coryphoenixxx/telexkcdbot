@@ -53,7 +53,7 @@ class ComicBySlugNotFoundError(BaseAppError):
     def detail(self) -> str | dict[str, Any]:
         return {
             "message": self.message,
-            "title": self.slug,
+            "slug": self.slug,
         }
 
 

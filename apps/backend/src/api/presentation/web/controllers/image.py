@@ -23,7 +23,9 @@ from api.infrastructure.database.holder import DatabaseHolder
 from api.presentation.stub import Stub
 from api.presentation.types import TranslationImageMeta
 from api.presentation.upload_reader import UploadImageHandler
-from api.presentation.web.controllers.schemas.responses.image import TranslationImageResponseSchema
+from api.presentation.web.controllers.schemas.responses.image import (
+    TranslationImageOrphanResponseSchema,
+)
 
 router = NatsRouter(
     tags=["Images"],
@@ -60,7 +62,7 @@ async def upload_image(
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
     upload_reader: UploadImageHandler = Depends(Stub(UploadImageHandler)),
     image_saver: ImageSaveHelper = Depends(Stub(ImageSaveHelper)),
-) -> TranslationImageResponseSchema:
+) -> TranslationImageOrphanResponseSchema:
     if image_file and image_url:
         raise UploadedImageTypeConflictError
     elif image_file is None and image_url is None:
@@ -86,7 +88,7 @@ async def upload_image(
         image=image_obj,
     )
 
-    return TranslationImageResponseSchema(
+    return TranslationImageOrphanResponseSchema(
         id=image_resp_dto.id,
         original=image_resp_dto.original_rel_path,
     )

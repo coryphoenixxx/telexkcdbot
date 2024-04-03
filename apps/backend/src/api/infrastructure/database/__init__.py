@@ -22,7 +22,7 @@ __all__ = [
     "create_db_engine",
     "create_db_session_factory",
     "check_db_connection",
-    "DBConfig"
+    "DBConfig",
 ]
 
 

@@ -1,24 +1,24 @@
 import datetime as dt
 
-from pydantic import BaseModel, HttpUrl, PositiveInt, field_validator
-from shared.types import (
-    LanguageCode,
-)
+from pydantic import BaseModel, HttpUrl, field_validator
 from shared.utils import cast_or_none
 
 from api.application.dtos.requests.comic import ComicRequestDTO
-from api.application.dtos.requests.translation import TranslationRequestDTO
-from api.application.types import TranslationImageID
+from api.application.types import IssueNumber, TranslationImageID
 
 
 class ComicRequestSchema(BaseModel):
-    number: PositiveInt | None
+    number: IssueNumber | None
+    title: str
     publication_date: dt.date
+    tooltip: str
+    transcript_raw: str
     xkcd_url: HttpUrl | None
     explain_url: HttpUrl
     link_on_click: HttpUrl | None
     is_interactive: bool
     tags: list[str]
+    image_ids: list[TranslationImageID]
 
     @field_validator("tags")
     @classmethod
@@ -35,41 +35,14 @@ class ComicRequestSchema(BaseModel):
     def to_dto(self) -> ComicRequestDTO:
         return ComicRequestDTO(
             number=self.number,
+            title=self.title,
             publication_date=self.publication_date,
+            tooltip=self.tooltip,
+            transcript_raw=self.transcript_raw,
             xkcd_url=cast_or_none(str, self.xkcd_url),
             explain_url=cast_or_none(str, self.explain_url),
             link_on_click=cast_or_none(str, self.link_on_click),
             is_interactive=self.is_interactive,
             tags=self.tags,
-        )
-
-
-class ComicWithEnTranslationRequestSchema(ComicRequestSchema):
-    en_title: str
-    en_tooltip: str
-    en_transcript_raw: str
-    images: list[int]
-
-    def to_dtos(self) -> tuple[ComicRequestDTO, TranslationRequestDTO]:
-        return (
-            ComicRequestDTO(
-                number=self.number,
-                publication_date=self.publication_date,
-                xkcd_url=cast_or_none(str, self.xkcd_url),
-                explain_url=cast_or_none(str, self.explain_url),
-                link_on_click=cast_or_none(str, self.link_on_click),
-                is_interactive=self.is_interactive,
-                tags=self.tags,
-            ),
-            TranslationRequestDTO(
-                comic_id=None,
-                title=self.en_title,
-                language=LanguageCode.EN,
-                tooltip=self.en_tooltip,
-                transcript_raw=self.en_transcript_raw,
-                translator_comment="",
-                images=[TranslationImageID(image_id) for image_id in self.images],
-                source_link=cast_or_none(str, self.xkcd_url),
-                is_draft=False,
-            ),
+            image_ids=self.image_ids,
         )

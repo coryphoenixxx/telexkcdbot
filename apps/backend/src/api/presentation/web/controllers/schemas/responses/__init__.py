@@ -1,11 +1,10 @@
+from .image import TranslationImageProcessedResponseSchema  # isort:skip
 from .translation import TranslationResponseSchema  # isort:skip
-from .comic import ComicResponseSchema, ComicWithTranslationsResponseSchema  # isort:skip
-from .image import TranslationImageWithPathsResponseSchema  # isort:skip
+from .comic import ComicWTranslationsResponseSchema  # isort:skip
 
 
 __all__ = [
-    "ComicResponseSchema",
-    "ComicWithTranslationsResponseSchema",
+    "ComicWTranslationsResponseSchema",
     "TranslationResponseSchema",
-    "TranslationImageWithPathsResponseSchema",
+    "TranslationImageProcessedResponseSchema",
 ]

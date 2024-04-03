@@ -1,10 +1,10 @@
 import asyncio
 
 from alembic import context
-
-from api.infrastructure.database import create_db_engine, DBConfig
-from api.infrastructure.database.models.base import Base
 from shared.config_loader import load_config
+
+from api.infrastructure.database import DBConfig, create_db_engine
+from api.infrastructure.database.models.base import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

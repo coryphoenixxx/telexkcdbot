@@ -1,7 +1,8 @@
 import datetime
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import NewType
+
+from api.application.types import Limit, Offset
 
 
 class Order(StrEnum):
@@ -15,12 +16,8 @@ class DateRange:
     end: datetime.date | None
 
 
-Limit = NewType("Limit", int)
-Offset = NewType("Offset", int)
-
-
 @dataclass(slots=True)
-class QueryParams:
+class ComicFilterParams:
     limit: Limit
     offset: Offset
     date_range: DateRange
@@ -30,6 +27,3 @@ class QueryParams:
 @dataclass(slots=True)
 class CountMetadata:
     comic_count: int
-    translation_count: int
-    draft_count: int
-    tag_count: int

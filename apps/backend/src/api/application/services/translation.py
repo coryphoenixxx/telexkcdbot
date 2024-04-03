@@ -1,5 +1,8 @@
+from shared.types import LanguageCode
+
 from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.dtos.responses.translation import TranslationResponseDTO
+from api.application.exceptions.translation import EnglishTranslationCreateForbiddenError
 from api.application.types import TranslationID
 from api.infrastructure.database.holder import DatabaseHolder
 
@@ -9,6 +12,9 @@ class TranslationService:
         self._db_holder = db_holder
 
     async def create(self, dto: TranslationRequestDTO) -> TranslationResponseDTO:
+        if dto.language == LanguageCode.EN:
+            raise EnglishTranslationCreateForbiddenError
+
         async with self._db_holder:
             translation_resp_dto = await self._db_holder.translation_repo.create(dto)
             await self._db_holder.commit()
