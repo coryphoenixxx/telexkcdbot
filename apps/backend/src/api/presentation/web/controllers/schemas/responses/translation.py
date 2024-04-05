@@ -1,10 +1,9 @@
 from collections.abc import Mapping
 
 from pydantic import BaseModel, HttpUrl
-from shared.types import LanguageCode
 
 from api.application.dtos.responses.translation import TranslationResponseDTO
-from api.application.types import TranslationDraftID
+from api.application.types import LanguageCode, TranslationDraftID
 from api.presentation.web.controllers.schemas.responses.image import (
     TranslationImageProcessedResponseSchema,
 )

@@ -1,6 +1,6 @@
 from collections.abc import Iterable, Sequence
 
-from shared.types import LanguageCode
+from shared.types import Order
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -15,12 +15,12 @@ from api.application.exceptions.comic import (
     ComicNumberAlreadyExistsError,
     ExtraComicTitleAlreadyExistsError,
 )
-from api.application.types import ComicID, IssueNumber
+from api.application.types import ComicID, IssueNumber, LanguageCode
 from api.infrastructure.database.models import TranslationModel
 from api.infrastructure.database.models.comic import ComicModel, TagModel
 from api.infrastructure.database.repositories.base import BaseRepo
 from api.infrastructure.database.repositories.mixins import GetImagesMixin
-from api.infrastructure.database.types import ComicFilterParams, Order
+from api.infrastructure.database.types import ComicFilterParams
 from api.infrastructure.database.utils import build_searchable_text
 from api.utils import slugify
 
@@ -72,8 +72,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         comic_id: ComicID,
         dto: ComicRequestDTO,
     ) -> ComicResponseDTO:
-        comic: ComicModel = await self._get_by_id(comic_id)
-        print(comic)
+        comic: ComicModel = await self._get_by_id(comic_id, with_for_update=True)
 
         tags = await self._create_tags(dto.tags)
 
@@ -137,7 +136,8 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         return ComicResponseWTranslationsDTO.from_model(model=comic)
 
     async def get_list(
-        self, query_params: ComicFilterParams
+        self,
+        query_params: ComicFilterParams,
     ) -> list[ComicResponseWTranslationsDTO]:
         stmt = select(ComicModel)
 
@@ -173,8 +173,8 @@ class ComicRepo(BaseRepo, GetImagesMixin):
 
         return (await self._session.scalars(stmt)).all()
 
-    async def _get_by_id(self, comic_id: ComicID) -> ComicModel:
-        comic = await self._session.get(ComicModel, comic_id)
+    async def _get_by_id(self, comic_id: ComicID, with_for_update: bool = False) -> ComicModel:
+        comic = await self._session.get(ComicModel, comic_id, with_for_update=with_for_update)
 
         if not comic:
             raise ComicByIDNotFoundError(comic_id=comic_id)

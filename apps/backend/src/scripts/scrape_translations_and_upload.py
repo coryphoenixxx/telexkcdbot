@@ -31,7 +31,6 @@ from scripts.common import positive_number_callback
 from scripts.common import progress as base_progress
 from shared.api_rest_client import APIRESTClient
 from shared.http_client import AsyncHttpClient
-from shared.types import LanguageCode
 from shared.utils import flatten
 from yarl import URL
 
@@ -81,7 +80,7 @@ def extract_prescraped_translations(
                             title=row["title"],
                             tooltip=tooltip if tooltip else None,
                             image=number_image_path_map[number],
-                            language=LanguageCode(lang_code_dir),
+                            language=lang_code_dir,
                         ),
                     )
 
@@ -146,7 +145,7 @@ async def upload_translations(
 
 async def get_number_comic_id_map(api_client: APIRESTClient) -> dict[int, int]:
     d = {}
-    data = (await api_client.get_comics())['data']
+    data = (await api_client.get_comics())["data"]
     for comic in data:
         d[comic["number"]] = comic["id"]
 

@@ -5,7 +5,6 @@ from faststream.nats import JStream, PullSub
 from faststream.nats.fastapi import NatsBroker, NatsRouter
 from pydantic import HttpUrl, constr
 from shared.messages import ImageProcessOutMessage
-from shared.types import LanguageCode
 from starlette import status
 
 from api.application.exceptions.image import (
@@ -18,7 +17,7 @@ from api.application.exceptions.image import (
 )
 from api.application.image_saver import ImageSaveHelper
 from api.application.services import TranslationImageService
-from api.application.types import TranslationImageID
+from api.application.types import LanguageCode, TranslationImageID
 from api.infrastructure.database.holder import DatabaseHolder
 from api.presentation.stub import Stub
 from api.presentation.types import TranslationImageMeta

@@ -1,6 +1,5 @@
 from collections.abc import Iterable
 
-from shared.types import LanguageCode
 from sqlalchemy import delete, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import noload
@@ -12,7 +11,7 @@ from api.application.exceptions.translation import (
     TranslationAlreadyExistsError,
     TranslationNotFoundError,
 )
-from api.application.types import TranslationID
+from api.application.types import LanguageCode, TranslationID
 from api.infrastructure.database.models import ComicModel, TranslationImageModel, TranslationModel
 from api.infrastructure.database.repositories.base import BaseRepo
 from api.infrastructure.database.repositories.mixins import GetImagesMixin

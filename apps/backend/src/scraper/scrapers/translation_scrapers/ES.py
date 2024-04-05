@@ -3,7 +3,6 @@ import re
 from bs4 import BeautifulSoup
 from rich.progress import Progress
 from shared.http_client import AsyncHttpClient
-from shared.types import LanguageCode
 from yarl import URL
 
 from scraper.dtos import XkcdTranslationData
@@ -37,7 +36,7 @@ class XkcdESScraper(BaseScraper):
                 title=self._extract_title(soup),
                 tooltip=self._extract_tooltip(soup),
                 image=self._extract_image_url(soup),
-                language=LanguageCode.ES,
+                language="ES",
             )
         except Exception as err:
             raise ScraperError(url) from err

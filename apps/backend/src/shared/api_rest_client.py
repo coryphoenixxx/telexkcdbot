@@ -2,7 +2,6 @@ import logging
 from pathlib import Path
 
 from aiohttp import ClientConnectorError, ClientResponse  # noqa: F401
-from api.infrastructure.database.types import Order
 from scraper.dtos import (
     XkcdOriginUploadData,
     XkcdOriginWithExplainScrapedData,
@@ -14,13 +13,12 @@ from yarl import URL
 
 from shared.http_client import AsyncHttpClient
 from shared.http_client.exceptions import HttpRequestError
-from shared.types import LanguageCode
+from shared.types import Order
 
 logger = logging.getLogger(__name__)
 
 
-class ApiServerError(Exception):
-    ...
+class ApiServerError(Exception): ...
 
 
 class APIRESTClient:
@@ -56,7 +54,7 @@ class APIRESTClient:
                 await self.upload_image(
                     title=data.title,
                     number=data.number,
-                    language=LanguageCode.EN,
+                    language="EN",
                     image_url=data.image_url,
                 )
             )["id"]
@@ -87,7 +85,7 @@ class APIRESTClient:
         self,
         title: str,
         number: int | None,
-        language: LanguageCode,
+        language: str,
         is_draft: bool = False,
         image_url: str | URL | None = None,
         image_path: Path | None = None,

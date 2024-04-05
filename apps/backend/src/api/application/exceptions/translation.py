@@ -1,10 +1,8 @@
 from dataclasses import dataclass
 from typing import Any
 
-from shared.types import LanguageCode
-
 from api.application.exceptions.base import BaseAppError
-from api.application.types import ComicID, TranslationID, TranslationImageID
+from api.application.types import ComicID, LanguageCode, TranslationID, TranslationImageID
 
 
 @dataclass
@@ -65,7 +63,7 @@ class TranslationNotFoundError(BaseAppError):
 
 @dataclass
 class EnglishTranslationCreateForbiddenError(BaseAppError):
-    allowed: list[LanguageCode] = LanguageCode.translation_languages
+    allowed: list[LanguageCode] = LanguageCode.NON_ENGLISH
     message: str = "Creating an English translation is forbidden."
 
     @property

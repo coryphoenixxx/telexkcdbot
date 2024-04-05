@@ -1,9 +1,7 @@
-from shared.types import LanguageCode
-
 from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.dtos.responses.translation import TranslationResponseDTO
 from api.application.exceptions.translation import EnglishTranslationCreateForbiddenError
-from api.application.types import TranslationID
+from api.application.types import LanguageCode, TranslationID
 from api.infrastructure.database.holder import DatabaseHolder
 
 

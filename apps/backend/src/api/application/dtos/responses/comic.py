@@ -5,7 +5,7 @@ from api.application.dtos.responses import (
     TranslationImageProcessedResponseDTO,
     TranslationResponseDTO,
 )
-from api.application.types import ComicID, IssueNumber
+from api.application.types import ComicID, IssueNumber, LanguageCode
 from api.infrastructure.database.models import ComicModel
 
 
@@ -23,6 +23,7 @@ class ComicResponseDTO:
     is_interactive: bool
     tags: list[str]
     images: list[TranslationImageProcessedResponseDTO]
+    translation_langs: list[LanguageCode]
 
     @classmethod
     def from_model(cls, model: ComicModel) -> "ComicResponseDTO":
@@ -38,7 +39,11 @@ class ComicResponseDTO:
             link_on_click=model.link_on_click,
             is_interactive=model.is_interactive,
             tags=sorted([tag.name for tag in model.tags]),  # TODO: sort by SQL?
-            images=model.en_translation.images,
+            images=[
+                TranslationImageProcessedResponseDTO.from_model(img)
+                for img in model.en_translation.images
+            ],
+            translation_langs=[tr.language for tr in model.translations],
         )
 
 
@@ -64,5 +69,6 @@ class ComicResponseWTranslationsDTO(ComicResponseDTO):
                 TranslationImageProcessedResponseDTO.from_model(img)
                 for img in model.en_translation.images
             ],
+            translation_langs=[tr.language for tr in model.translations],
             translations=[TranslationResponseDTO.from_model(t) for t in model.translations],
         )

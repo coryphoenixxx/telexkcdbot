@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 
-from shared.types import LanguageCode
-
 from api.application.dtos.responses.image import TranslationImageProcessedResponseDTO
-from api.application.types import ComicID, TranslationDraftID, TranslationID
+from api.application.types import ComicID, LanguageCode, TranslationDraftID, TranslationID
 from api.infrastructure.database.models import TranslationModel
 
 

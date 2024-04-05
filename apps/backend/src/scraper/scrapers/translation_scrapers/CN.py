@@ -4,7 +4,6 @@ from collections.abc import Iterable
 from bs4 import BeautifulSoup
 from rich.progress import Progress
 from shared.http_client import AsyncHttpClient
-from shared.types import LanguageCode
 from yarl import URL
 
 from scraper.dtos import XkcdTranslationData
@@ -34,7 +33,7 @@ class XkcdCNScraper(BaseScraper):
                 tooltip=tooltip,
                 image=self._extract_image_url(soup),
                 translator_comment=translator_comment,
-                language=LanguageCode.CN,
+                language="CN",
             )
         except Exception as err:
             raise ScraperError(url=url) from err

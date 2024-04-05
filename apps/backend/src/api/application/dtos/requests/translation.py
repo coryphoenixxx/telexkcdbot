@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 
-from shared.types import LanguageCode
-
-from api.application.types import ComicID, TranslationImageID
+from api.application.types import ComicID, LanguageCode, TranslationImageID
 
 
 @dataclass(slots=True)

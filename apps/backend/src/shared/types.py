@@ -8,17 +8,6 @@ class ImageFormat(StrEnum):
     GIF = "gif"
 
 
-class LanguageCode(StrEnum):
-    EN = "EN"
-    RU = "RU"
-    CN = "CN"
-    ES = "ES"
-    DE = "DE"
-    FR = "FR"
-    UA = "UA"
-    NL = "NL"
-
-    @classmethod
-    @property
-    def translation_languages(cls) -> "tuple[LanguageCode, ...]":
-        return tuple(n for n in cls if n != cls.EN)
+class Order(StrEnum):
+    ASC = "asc"
+    DESC = "desc"

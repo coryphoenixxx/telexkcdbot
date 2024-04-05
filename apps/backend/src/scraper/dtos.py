@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from shared.types import LanguageCode
 from yarl import URL
 
 
@@ -24,7 +23,7 @@ class XkcdTranslationData:
     title: str
     tooltip: str | None
     image: URL | Path | None
-    language: LanguageCode
+    language: str
     transcript_raw: str = ""
     translator_comment: str = ""
 
@@ -71,7 +70,7 @@ class XkcdOriginUploadData:
 class XkcdTranslationUploadData:
     comic_id: int
     title: str
-    language: LanguageCode
+    language: str
     tooltip: str | None
     transcript_raw: str
     translator_comment: str

@@ -1,14 +1,13 @@
 from pydantic import BaseModel, Field, HttpUrl, field_validator
-from shared.types import LanguageCode
 from shared.utils import cast_or_none
 
 from api.application.dtos.requests.translation import TranslationRequestDTO
-from api.application.types import ComicID, TranslationImageID
+from api.application.types import ComicID, LanguageCode, TranslationImageID
 
 
 class TranslationRequestSchema(BaseModel):
     comic_id: ComicID
-    language: LanguageCode
+    language: LanguageCode.NON_ENGLISH
     title: str = Field(min_length=1)
     tooltip: str = Field(default="")
     transcript_raw: str = Field(default="")

@@ -34,6 +34,6 @@ async def get_comic_by_number_handler(msg: Message, api_client: APIRESTClient) -
     comic = await api_client.get_comic_by_number(int(msg.text))
 
     if comic:
-        await msg.reply(comic["translations"][0]["title"])
+        await msg.reply(comic["title"])
     else:
         await msg.reply("Comic no found")

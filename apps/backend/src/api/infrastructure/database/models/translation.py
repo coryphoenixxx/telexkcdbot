@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING
 
-from shared.types import LanguageCode
 from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from api.application.types import LanguageCode
 from api.infrastructure.database.models import Base
 from api.infrastructure.database.models.mixins import TimestampMixin
 

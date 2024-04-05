@@ -1,12 +1,12 @@
 import datetime as dt
 from collections.abc import Mapping
-from functools import reduce
 
 from pydantic import BaseModel, HttpUrl
-from shared.types import LanguageCode
 
+from api.application.dtos.responses import TranslationResponseDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
-from api.application.types import ComicID, IssueNumber, Limit, Offset, TotalCount
+from api.application.types import ComicID, IssueNumber, LanguageCode, TotalCount
+from api.infrastructure.database.types import Limit, Offset
 from api.presentation.web.controllers.schemas.responses import (
     TranslationImageProcessedResponseSchema,
     TranslationResponseSchema,
@@ -32,6 +32,7 @@ class ComicResponseSchema(BaseModel):
     is_interactive: bool
     images: list[TranslationImageProcessedResponseSchema]
     tags: list[str]
+    translation_langs: list[LanguageCode]
 
     @classmethod
     def from_dto(cls, dto: ComicResponseDTO) -> "ComicResponseSchema":
@@ -48,7 +49,22 @@ class ComicResponseSchema(BaseModel):
             is_interactive=dto.is_interactive,
             tags=dto.tags,
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
+            translation_langs=dto.translation_langs,
         )
+
+
+def prepare_and_filter(
+    translations: list[TranslationResponseDTO],
+    filter_languages: list[LanguageCode] | None = None,
+) -> Mapping[LanguageCode, TranslationResponseSchema]:
+    translation_map = {}
+
+    for tr in translations:
+        lang = tr.language
+        if not filter_languages or lang in filter_languages:
+            translation_map.update(TranslationResponseSchema.from_dto(tr))
+
+    return translation_map
 
 
 class ComicWTranslationsResponseSchema(ComicResponseSchema):
@@ -58,16 +74,8 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
     def from_dto(
         cls,
         dto: ComicResponseWTranslationsDTO,
+        filter_languages: list[LanguageCode] | None = None,
     ) -> "ComicWTranslationsResponseSchema":
-        translation_map = (
-            reduce(
-                lambda d1, d2: d1 | d2,
-                [TranslationResponseSchema.from_dto(t) for t in dto.translations],
-            )
-            if dto.translations
-            else {}
-        )
-
         return ComicWTranslationsResponseSchema(
             id=dto.id,
             number=dto.number,
@@ -81,7 +89,8 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
             is_interactive=dto.is_interactive,
             tags=dto.tags,
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
-            translations=translation_map,
+            translation_langs=dto.translation_langs,
+            translations=prepare_and_filter(dto.translations, filter_languages),
         )
 
 

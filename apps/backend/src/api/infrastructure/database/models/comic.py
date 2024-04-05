@@ -1,9 +1,9 @@
 from datetime import date
 
-from shared.types import LanguageCode
 from sqlalchemy import ForeignKey, Index, SmallInteger, and_, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from api.application.types import LanguageCode
 from api.infrastructure.database.models import Base, TranslationModel
 from api.infrastructure.database.models.mixins import TimestampMixin
 

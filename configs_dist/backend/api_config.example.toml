@@ -24,3 +24,6 @@ wsgi_app = "api.app:app"
 worker_class = "api.main.CustomUvicornWorker"
 bind = "0.0.0.0:8000"
 workers = 3
+
+[other]
+allowed_languages = { RU = "🇷🇺", CN = "🇨🇳", ES = "🇪🇸", DE = "🇩🇪", FR = "🇫🇷" }

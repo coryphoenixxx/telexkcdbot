@@ -3,7 +3,6 @@ import re
 
 from rich.progress import Progress
 from shared.http_client import AsyncHttpClient
-from shared.types import LanguageCode
 from yarl import URL
 
 from scraper.dtos import XkcdTranslationData
@@ -37,7 +36,7 @@ class XkcdFRScraper(BaseScraper):
                 title=data[0],
                 tooltip=data[1],
                 image=self._BASE_URL / f"comics/{number}.jpg",
-                language=LanguageCode.FR,
+                language='FR',
             )
         except Exception as err:
             raise ScraperError(url) from err

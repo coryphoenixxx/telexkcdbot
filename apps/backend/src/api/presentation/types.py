@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-from shared.types import ImageFormat, LanguageCode
+from shared.types import ImageFormat
+
+from api.application.types import LanguageCode
 
 
 @dataclass

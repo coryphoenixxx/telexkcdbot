@@ -1,13 +1,12 @@
 import datetime
 from dataclasses import dataclass
-from enum import StrEnum
+from typing import Annotated, NewType
 
-from api.application.types import Limit, Offset
+from annotated_types import Ge
+from shared.types import Order
 
-
-class Order(StrEnum):
-    ASC = "asc"
-    DESC = "desc"
+Limit = NewType("Limit", Annotated[int, Ge(0)])
+Offset = NewType("Offset", Annotated[int, Ge(0)])
 
 
 @dataclass(slots=True)
@@ -22,8 +21,3 @@ class ComicFilterParams:
     offset: Offset
     date_range: DateRange
     order: Order
-
-
-@dataclass(slots=True)
-class CountMetadata:
-    comic_count: int
