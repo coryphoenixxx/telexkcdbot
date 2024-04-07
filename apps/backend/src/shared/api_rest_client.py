@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from aiohttp import ClientConnectorError, ClientResponse  # noqa: F401
+from aiohttp import ClientResponse  # noqa: F401
 from scraper.dtos import (
     XkcdOriginUploadData,
     XkcdOriginWithExplainScrapedData,
@@ -41,6 +41,22 @@ class APIRESTClient:
                     raise HttpRequestError(url, "Wrong status")
         except HttpRequestError as err:
             logger.fatal(f"API is unavailable. ({err.reason})")
+
+    async def login(self, username: str, password: str):
+        url = self._base_url / "api/users/login"
+
+        async with self._http_client.safe_post(
+            url=url,
+            json={
+                "username": username,
+                "raw_password": password,
+            },
+        ) as response:  # type: ClientResponse
+            if response.status != 200:
+                raise ApiServerError
+
+            session = self._http_client.get_session_by_host(host=URL(self._base_url).host)
+            session.cookie_jar.update_cookies({"session_id": response.cookies["session_id"].value})
 
     async def create_comic_with_image(
         self,
@@ -105,7 +121,7 @@ class APIRESTClient:
             params=params,
             data={"image_file": open(image_path, "rb") if image_path else ""},
         ) as response:  # type:ClientResponse
-            if response.status == 201:
+            if response.status != 201:
                 return await response.json()
             else:
                 raise ApiServerError

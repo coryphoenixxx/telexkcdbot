@@ -30,6 +30,7 @@ from api.application.exceptions.translation import (
     TranslationImagesNotCreatedError,
     TranslationNotFoundError,
 )
+from api.application.exceptions.user import InvalidCredentialsError, UsernameAlreadyExistsError
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +51,8 @@ ERROR_TO_STATUS_MAP: Mapping[type[BaseAppError], int] = {
     TranslationAlreadyExistsError: status.HTTP_409_CONFLICT,
     TranslationNotFoundError: status.HTTP_404_NOT_FOUND,
     EnglishTranslationCreateForbiddenError: status.HTTP_400_BAD_REQUEST,
+    UsernameAlreadyExistsError: status.HTTP_409_CONFLICT,
+    InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
 }
 
 

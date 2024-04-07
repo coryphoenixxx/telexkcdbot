@@ -2,6 +2,7 @@ import asyncio
 import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 
 from aiohttp import (
     AsyncResolver,
@@ -17,7 +18,14 @@ from aiohttp_retry import ExponentialRetry, RetryClient
 from yarl import URL
 
 from shared.http_client.exceptions import HttpRequestError
-from shared.utils import custom_json_dumps
+from shared.http_client.json_encoder import custom_json_dumps
+
+
+@dataclass
+class HostData:
+    client: RetryClient
+    session: ClientSession
+    timestamp: float
 
 
 class AsyncHttpClient:
@@ -38,7 +46,7 @@ class AsyncHttpClient:
         self._timeout = timeout
         self._attempts = attempts
         self._start_timeout = start_timeout
-        self._exceptions = set(exceptions)
+        self._exceptions = exceptions
         self._sessions_cache = {}
         self._sessions_cache_ttl = session_cache_ttl
 
@@ -89,12 +97,9 @@ class AsyncHttpClient:
         retry_statuses: tuple[int] | None,
         **kwargs,
     ) -> AsyncGenerator[ClientResponse, None]:
-        if isinstance(url, str):
-            url = URL(url)
-        if url.host is None:
-            raise InvalidURL(url)
+        url = self._check_url(url)
 
-        client: RetryClient | ClientSession = await self._get_or_create_client(
+        client: RetryClient = await self._get_or_create_client(
             host=url.host,
             retry_statuses=retry_statuses,
         )
@@ -104,7 +109,11 @@ class AsyncHttpClient:
         async with self._throttler:
             for _ in range(3):
                 try:
-                    async with client.request(method=method, url=url, **kwargs) as response:
+                    async with client.request(
+                        method=method,
+                        url=url,
+                        **kwargs,
+                    ) as response:
                         yield response
                         break
                 except ClientOSError as err:
@@ -118,29 +127,33 @@ class AsyncHttpClient:
         self,
         host: str,
         retry_statuses: tuple[int] | None,
-    ) -> RetryClient | ClientSession:
-        key = (host, retry_statuses)
-        client_with_ts = self._sessions_cache.get(key)
-
-        if client_with_ts:
-            client, _ = client_with_ts
-            self._sessions_cache[key] = client, time.time()
+    ) -> RetryClient:
+        if host_data := self._sessions_cache.get(host):
+            host_data.timestamp = time.time()
+            self._sessions_cache[host] = host_data
+            client = host_data.client
         else:
             session = self._create_session(host)
-
-            if not retry_statuses:
-                client = session
-            else:
-                client = self._create_retry_client(session, retry_statuses)
-
-            self._sessions_cache[key] = client, time.time()
+            client = self._create_retry_client(
+                session=session,
+                retry_statuses=retry_statuses,
+            )
+            self._sessions_cache[host] = HostData(
+                client=client,
+                session=session,
+                timestamp=time.time(),
+            )
 
         return client
+
+    def get_session_by_host(self, host: str) -> ClientSession | None:
+        if host_data := self._sessions_cache.get(host):
+            return host_data.session
 
     def _create_retry_client(
         self,
         session: ClientSession,
-        retry_statuses: tuple[int],
+        retry_statuses: tuple[int] | None,
     ) -> RetryClient:
         return RetryClient(
             raise_for_status=False,
@@ -149,17 +162,24 @@ class AsyncHttpClient:
                 start_timeout=self._start_timeout,
                 exceptions=self._exceptions,
                 retry_all_server_errors=False,
-                statuses=set(retry_statuses),
+                statuses=set(retry_statuses) if retry_statuses else None,
             ),
             client_session=session,
         )
 
     def _create_session(self, host: str) -> ClientSession:
-        if host == "localhost":
+        if host in ("localhost", "127.0.0.1"):
             connector = None
         else:
             connector = TCPConnector(
-                resolver=AsyncResolver(nameservers={"8.8.8.8", "8.8.4.4", "9.9.9.9", "1.1.1.1"}),
+                resolver=AsyncResolver(
+                    nameservers={
+                        "8.8.8.8",
+                        "8.8.4.4",
+                        "9.9.9.9",
+                        "1.1.1.1",
+                    },
+                ),
                 ttl_dns_cache=600,
                 ssl=False,
                 limit=500,
@@ -172,21 +192,23 @@ class AsyncHttpClient:
             json_serialize=custom_json_dumps,
         )
 
+    def _check_url(self, url: str | URL) -> URL:
+        if isinstance(url, str):
+            url = URL(url)
+        if url.host is None:
+            raise InvalidURL(url)
+        return url
+
     async def close_all_sessions(self) -> None:
-        for client, _ in self._sessions_cache.values():
-            await client.close()
+        for host_data in self._sessions_cache.values():
+            await host_data.client.close()
 
     async def close_sessions_regularly(self) -> None:
-        ttl = self._sessions_cache_ttl
-
         while True:
-            await asyncio.sleep(ttl)
+            await asyncio.sleep(self._sessions_cache_ttl)
 
-            candidates = []
-            for key, (_, timestamp) in self._sessions_cache.items():
-                if (time.time() - timestamp) > ttl:
-                    candidates.append(key)
-
-            for key in candidates:
-                client, _ = self._sessions_cache.pop(key)
-                await client.close()
+            for host, data in self._sessions_cache.copy().items():
+                if (time.time() - data.timestamp) > self._sessions_cache_ttl:
+                    data = self._sessions_cache.pop(host, None)
+                    if data.client:
+                        await data.client.close()

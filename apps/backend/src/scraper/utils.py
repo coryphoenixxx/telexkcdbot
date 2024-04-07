@@ -23,7 +23,7 @@ async def run_concurrently(
     results = []
 
     for chunk in chunked(
-        lst=data,
+        seq=data,
         n=chunk_size,
     ):
         try:
