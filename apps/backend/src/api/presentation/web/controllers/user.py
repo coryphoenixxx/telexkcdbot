@@ -6,7 +6,7 @@ from uuid import uuid4
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 from fastapi import Cookie, Depends
-from faststream.nats.fastapi import NatsRouter
+from faststream.nats.fastapi import NatsRouter as APIRouter
 from starlette import status
 from starlette.responses import Response
 
@@ -16,7 +16,7 @@ from api.application.exceptions.user import (
 )
 from api.presentation.web.controllers.schemas.requests.user import UserRequestSchema
 
-router = NatsRouter(
+router = APIRouter(
     tags=["Users"],
 )
 

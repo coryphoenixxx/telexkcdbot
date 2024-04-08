@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy import ForeignKey, Index, SmallInteger, and_, false
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from api.application.types import LanguageCode
+from api.application.types import Language
 from api.infrastructure.database.models import Base, TranslationModel
 from api.infrastructure.database.models.mixins import TimestampMixin
 
@@ -65,7 +65,7 @@ class ComicModel(Base, TimestampMixin):
         primaryjoin=lambda: and_(
             ComicModel.comic_id == TranslationModel.comic_id,
             TranslationModel.is_draft == false(),
-            TranslationModel.language == LanguageCode.EN,
+            TranslationModel.language == Language.EN,
         ),
     )
 
@@ -76,7 +76,7 @@ class ComicModel(Base, TimestampMixin):
         primaryjoin=lambda: and_(
             ComicModel.comic_id == TranslationModel.comic_id,
             TranslationModel.is_draft == false(),
-            TranslationModel.language != LanguageCode.EN,
+            TranslationModel.language != Language.EN,
         ),
         overlaps="en_translation",
     )

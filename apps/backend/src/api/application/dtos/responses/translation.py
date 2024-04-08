@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from api.application.dtos.responses.image import TranslationImageProcessedResponseDTO
-from api.application.types import ComicID, LanguageCode, TranslationDraftID, TranslationID
+from api.application.types import ComicID, Language, TranslationDraftID, TranslationID
 from api.infrastructure.database.models import TranslationModel
 
 
@@ -35,7 +35,7 @@ class TranslationResponseDTO:
     id: TranslationID
     comic_id: ComicID
     title: str
-    language: LanguageCode
+    language: Language
     tooltip: str
     transcript_raw: str
     translator_comment: str

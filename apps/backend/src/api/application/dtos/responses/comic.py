@@ -5,7 +5,7 @@ from api.application.dtos.responses import (
     TranslationImageProcessedResponseDTO,
     TranslationResponseDTO,
 )
-from api.application.types import ComicID, IssueNumber, LanguageCode
+from api.application.types import ComicID, IssueNumber, Language
 from api.infrastructure.database.models import ComicModel
 
 
@@ -23,7 +23,7 @@ class ComicResponseDTO:
     is_interactive: bool
     tags: list[str]
     images: list[TranslationImageProcessedResponseDTO]
-    translation_langs: list[LanguageCode]
+    translation_langs: list[Language.NON_ENGLISH]
 
     @classmethod
     def from_model(cls, model: ComicModel) -> "ComicResponseDTO":

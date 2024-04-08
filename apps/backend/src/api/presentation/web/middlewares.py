@@ -24,7 +24,7 @@ from api.application.exceptions.image import (
     UploadExceedSizeLimitError,
 )
 from api.application.exceptions.translation import (
-    EnglishTranslationCreateForbiddenError,
+    EnglishTranslationOperationForbiddenError,
     TranslationAlreadyExistsError,
     TranslationImagesAlreadyAttachedError,
     TranslationImagesNotCreatedError,
@@ -50,7 +50,7 @@ ERROR_TO_STATUS_MAP: Mapping[type[BaseAppError], int] = {
     ComicBySlugNotFoundError: status.HTTP_404_NOT_FOUND,
     TranslationAlreadyExistsError: status.HTTP_409_CONFLICT,
     TranslationNotFoundError: status.HTTP_404_NOT_FOUND,
-    EnglishTranslationCreateForbiddenError: status.HTTP_400_BAD_REQUEST,
+    EnglishTranslationOperationForbiddenError: status.HTTP_400_BAD_REQUEST,
     UsernameAlreadyExistsError: status.HTTP_409_CONFLICT,
     InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
 }

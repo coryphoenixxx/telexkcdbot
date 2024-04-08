@@ -1,4 +1,3 @@
-from collections.abc import Iterable
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +16,7 @@ class GetImagesMixin:
         session: AsyncSession,
         image_ids: list[TranslationImageID],
         translation_id: TranslationID | None = None,
-    ) -> Iterable[TranslationImageModel]:
+    ) -> list[TranslationImageModel]:
         if not image_ids:
             return []
 
@@ -41,4 +40,4 @@ class GetImagesMixin:
                 image_ids=sorted(image_ids),
             )
 
-        return image_models
+        return list(image_models)

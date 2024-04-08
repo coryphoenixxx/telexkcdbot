@@ -11,39 +11,31 @@ from scraper.dtos import (
 from scraper.pbar import ProgressBar
 from yarl import URL
 
+from shared.api_rest_client.exceptions import APIServerError
 from shared.http_client import AsyncHttpClient
-from shared.http_client.exceptions import HttpRequestError
 from shared.types import Order
 
 logger = logging.getLogger(__name__)
 
 
-class ApiServerError(Exception): ...
-
-
 class APIRESTClient:
     def __init__(
         self,
-        base_url: str = "http://127.0.0.1:8000/",
+        base_url: str,
         http_client: AsyncHttpClient = AsyncHttpClient(),
     ):
         self._base_url = URL(base_url)
         self._http_client = http_client
 
-    async def healthcheck(self) -> int | None:
-        url = self._base_url / "api/healthcheck"
+    async def healthcheck(self) -> None:
+        url = self._base_url / "healthcheck"
 
-        try:
-            async with self._http_client.safe_get(url) as response:
-                if response.status == 200:
-                    return response.status
-                else:
-                    raise HttpRequestError(url, "Wrong status")
-        except HttpRequestError as err:
-            logger.fatal(f"API is unavailable. ({err.reason})")
+        async with self._http_client.safe_get(url) as response:
+            if response.status != 200:
+                raise APIServerError
 
     async def login(self, username: str, password: str):
-        url = self._base_url / "api/users/login"
+        url = self._base_url / "users/login"
 
         async with self._http_client.safe_post(
             url=url,
@@ -53,7 +45,7 @@ class APIRESTClient:
             },
         ) as response:  # type: ClientResponse
             if response.status != 200:
-                raise ApiServerError
+                raise APIServerError
 
             session = self._http_client.get_session_by_host(host=URL(self._base_url).host)
             session.cookie_jar.update_cookies({"session_id": response.cookies["session_id"].value})
@@ -106,7 +98,7 @@ class APIRESTClient:
         image_url: str | URL | None = None,
         image_path: Path | None = None,
     ) -> dict[str, int | str]:
-        url = self._base_url / "api/translations/upload_image"
+        url = self._base_url / "translations/upload_image"
 
         params = self._build_params(
             title=title,
@@ -122,12 +114,12 @@ class APIRESTClient:
             data={"image_file": open(image_path, "rb") if image_path else ""},
         ) as response:  # type:ClientResponse
             if response.status != 201:
-                return await response.json()
+                raise APIServerError
             else:
-                raise ApiServerError
+                return await response.json()
 
     async def create_comic(self, comic: XkcdOriginUploadData) -> int:
-        url = self._base_url / "api/comics"
+        url = self._base_url / "comics"
 
         async with self._http_client.safe_post(
             url=url,
@@ -136,7 +128,7 @@ class APIRESTClient:
             if response.status == 201:
                 return (await response.json())["id"]
             else:
-                raise ApiServerError
+                raise APIServerError
 
     async def add_translation_with_image(
         self,
@@ -144,11 +136,11 @@ class APIRESTClient:
         number_comic_id_map: dict[int, int],
         pbar: ProgressBar | None = None,
     ):
-        url = self._base_url / "api/translations"
+        comic_id = number_comic_id_map[data.number]
+
+        url = self._base_url / f"comics/{comic_id}/translations"
 
         image_ids = []
-
-        comic_id = number_comic_id_map[data.number]
 
         if data.image:
             image_id = (
@@ -182,10 +174,10 @@ class APIRESTClient:
                     pbar.advance()
                 return (await response.json())["id"]
             else:
-                raise ApiServerError()
+                raise APIServerError()
 
     async def get_comic_by_number(self, number: int):
-        url = self._base_url / f"api/comics/{number}"
+        url = self._base_url / f"comics/{number}"
 
         async with self._http_client.safe_get(url) as response:
             if response.status == 200:
@@ -200,7 +192,7 @@ class APIRESTClient:
         date_to: str | None = None,
     ):
         # TODO: Set limits
-        url = self._base_url / "api/comics"
+        url = self._base_url / "comics"
 
         params = self._build_params(
             limit=limit,

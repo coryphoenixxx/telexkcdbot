@@ -157,7 +157,7 @@ async def get_number_comic_id_map(api_client: APIRESTClient) -> dict[int, int]:
 @click.option("--end", type=int, callback=positive_number_callback)
 @click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
 @click.option("--delay", type=float, default=0.01, callback=positive_number_callback)
-@click.option("--api-url", type=str, default="http://127.0.0.1:8000/")
+@click.option("--api-url", type=str, default="http://127.0.0.1:8000/api")
 async def main(start: int, end: int | None, chunk_size: int, delay: int, api_url: str):
     async with AsyncHttpClient() as http_client:
         api_client = APIRESTClient(api_url, http_client)

@@ -1,10 +1,11 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 
 from shared.types import Order
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import noload
+from sqlalchemy.sql.selectable import ForUpdateArg, ForUpdateParameter
 
 from api.application.dtos.requests.comic import ComicRequestDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
@@ -15,7 +16,7 @@ from api.application.exceptions.comic import (
     ComicNumberAlreadyExistsError,
     ExtraComicTitleAlreadyExistsError,
 )
-from api.application.types import ComicID, IssueNumber, LanguageCode
+from api.application.types import ComicID, IssueNumber, Language
 from api.infrastructure.database.models import TranslationModel
 from api.infrastructure.database.models.comic import ComicModel, TagModel
 from api.infrastructure.database.repositories.base import BaseRepo
@@ -44,7 +45,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
             translations=[
                 TranslationModel(
                     title=dto.title,
-                    language=LanguageCode.EN,
+                    language=Language.EN,
                     tooltip=dto.tooltip,
                     transcript_raw=dto.transcript_raw,
                     translator_comment="",
@@ -64,7 +65,9 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         except IntegrityError as err:
             self._handle_db_error(err, dto)
         else:
-            await self._session.refresh(comic, attribute_names=["en_translation"])
+            await self._session.refresh(
+                comic,
+            )
             return ComicResponseDTO.from_model(model=comic)
 
     async def update(
@@ -72,7 +75,10 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         comic_id: ComicID,
         dto: ComicRequestDTO,
     ) -> ComicResponseDTO:
-        comic: ComicModel = await self._get_by_id(comic_id, with_for_update=True)
+        comic: ComicModel = await self._get_by_id(
+            comic_id,
+            with_for_update=ForUpdateArg(of=ComicModel),
+        )
 
         tags = await self._create_tags(dto.tags)
 
@@ -157,7 +163,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
 
         return [ComicResponseWTranslationsDTO.from_model(model=comic) for comic in comics]
 
-    async def _create_tags(self, tag_names: list[str]) -> Iterable[TagModel]:
+    async def _create_tags(self, tag_names: list[str]) -> list[TagModel]:
         if not tag_names:
             return []
 
@@ -171,9 +177,13 @@ class ComicRepo(BaseRepo, GetImagesMixin):
 
         stmt = select(TagModel).where(TagModel.name.in_(tag_names))
 
-        return (await self._session.scalars(stmt)).all()
+        return list((await self._session.scalars(stmt)).all())
 
-    async def _get_by_id(self, comic_id: ComicID, with_for_update: bool = False) -> ComicModel:
+    async def _get_by_id(
+        self,
+        comic_id: ComicID,
+        with_for_update: ForUpdateParameter = False,
+    ) -> ComicModel:
         comic = await self._session.get(ComicModel, comic_id, with_for_update=with_for_update)
 
         if not comic:

@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from pydantic import BaseModel, HttpUrl
 
 from api.application.dtos.responses.translation import TranslationResponseDTO
-from api.application.types import LanguageCode, TranslationDraftID
+from api.application.types import FlagType, Language, TranslationDraftID
 from api.presentation.web.controllers.schemas.responses.image import (
     TranslationImageProcessedResponseSchema,
 )
@@ -15,34 +15,36 @@ class TranslationResponseSchema(BaseModel):
     comic_id: int
     title: str
     tooltip: str
-    transcript_raw: str
     translator_comment: str
     source_link: HttpUrl | None
     images: list[TranslationImageProcessedResponseSchema]
     draft_ids: list[TranslationDraftID]
+    flag: FlagType
 
     @classmethod
     def from_dto(
         cls,
         dto: TranslationResponseDTO,
-    ) -> Mapping[LanguageCode, "TranslationResponseSchema"]:
+    ) -> Mapping[Language, "TranslationResponseSchema"]:
         return {
             dto.language: TranslationResponseSchema(
                 id=dto.id,
                 comic_id=dto.comic_id,
+                flag=Language(dto.language).flag,
                 title=dto.title,
                 tooltip=dto.tooltip,
-                transcript_raw=dto.transcript_raw,
                 translator_comment=dto.translator_comment,
                 source_link=dto.source_link,
-                images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
+                images=[
+                    TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images
+                ],
                 draft_ids=[d.id for d in dto.drafts],
             ),
         }
 
 
 class TranslationWLanguageResponseSchema(TranslationResponseSchema):
-    language: LanguageCode
+    language: Language
 
     @classmethod
     def from_dto(
@@ -53,9 +55,9 @@ class TranslationWLanguageResponseSchema(TranslationResponseSchema):
             id=dto.id,
             comic_id=dto.comic_id,
             language=dto.language,
+            flag=Language(dto.language).flag,
             title=dto.title,
             tooltip=dto.tooltip,
-            transcript_raw=dto.transcript_raw,
             translator_comment=dto.translator_comment,
             source_link=dto.source_link,
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],

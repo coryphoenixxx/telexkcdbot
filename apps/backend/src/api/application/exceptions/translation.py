@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from api.application.exceptions.base import BaseAppError
-from api.application.types import ComicID, LanguageCode, TranslationID, TranslationImageID
+from api.application.types import ComicID, Language, TranslationID, TranslationImageID
 
 
 @dataclass
@@ -36,7 +36,7 @@ class TranslationImagesAlreadyAttachedError(BaseAppError):
 @dataclass
 class TranslationAlreadyExistsError(BaseAppError):
     comic_id: ComicID
-    language: LanguageCode
+    language: Language
     message: str = "A comic already has a translation into this language."
 
     @property
@@ -62,13 +62,9 @@ class TranslationNotFoundError(BaseAppError):
 
 
 @dataclass
-class EnglishTranslationCreateForbiddenError(BaseAppError):
-    allowed: list[LanguageCode] = LanguageCode.NON_ENGLISH
-    message: str = "Creating an English translation is forbidden."
+class EnglishTranslationOperationForbiddenError(BaseAppError):
+    message: str = "Operations on English translation are forbidden, use the original."
 
     @property
     def detail(self) -> str | dict[str, Any]:
-        return {
-            "message": self.message,
-            "allowed": self.allowed,
-        }
+        return {"message": self.message}

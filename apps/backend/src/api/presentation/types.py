@@ -3,7 +3,7 @@ from pathlib import Path
 
 from shared.types import ImageFormat
 
-from api.application.types import LanguageCode
+from api.application.types import Language
 
 
 @dataclass
@@ -23,5 +23,5 @@ class ImageObj:
 class TranslationImageMeta:
     number: int | None
     title: str
-    language: LanguageCode
+    language: Language
     is_draft: bool

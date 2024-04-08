@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, Index, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from api.application.types import LanguageCode
 from api.infrastructure.database.models import Base
 from api.infrastructure.database.models.mixins import TimestampMixin
 
@@ -40,7 +39,7 @@ class TranslationModel(Base, TimestampMixin):
     translation_id: Mapped[int] = mapped_column(primary_key=True)
     comic_id: Mapped[int] = mapped_column(ForeignKey("comics.comic_id", ondelete="CASCADE"))
     title: Mapped[str]
-    language: Mapped[LanguageCode] = mapped_column(String(2))
+    language: Mapped[str] = mapped_column(String(2))
     tooltip: Mapped[str] = mapped_column(default="")
     transcript_raw: Mapped[str] = mapped_column(default="")
     translator_comment: Mapped[str] = mapped_column(default="")

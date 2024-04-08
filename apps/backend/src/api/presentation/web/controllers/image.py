@@ -2,7 +2,8 @@ from typing import Annotated
 
 from fastapi import Depends, File, Query, UploadFile
 from faststream.nats import JStream, PullSub
-from faststream.nats.fastapi import NatsBroker, NatsRouter
+from faststream.nats.fastapi import NatsBroker
+from faststream.nats.fastapi import NatsRouter as APIRouter
 from pydantic import HttpUrl, constr
 from shared.messages import ImageProcessOutMessage
 from starlette import status
@@ -17,7 +18,7 @@ from api.application.exceptions.image import (
 )
 from api.application.image_saver import ImageSaveHelper
 from api.application.services import TranslationImageService
-from api.application.types import LanguageCode, TranslationImageID
+from api.application.types import Language, TranslationImageID
 from api.infrastructure.database.holder import DatabaseHolder
 from api.presentation.stub import Stub
 from api.presentation.types import TranslationImageMeta
@@ -26,7 +27,7 @@ from api.presentation.web.controllers.schemas.responses.image import (
     TranslationImageOrphanResponseSchema,
 )
 
-router = NatsRouter(
+router = APIRouter(
     tags=["Images"],
 )
 
@@ -53,7 +54,7 @@ async def upload_image(
     broker: NatsBroker,
     title: constr(min_length=1, strip_whitespace=True),
     number: Annotated[int | None, Query(ge=1)] = None,
-    language: LanguageCode = LanguageCode.EN,
+    language: Language = Language.EN,
     is_draft: bool = False,
     image_file: Annotated[UploadFile, File(...)] = None,
     image_url: HttpUrl | None = None,
