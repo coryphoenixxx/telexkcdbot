@@ -5,7 +5,7 @@ from pydantic import BaseModel, HttpUrl
 
 from api.application.dtos.responses import TranslationResponseDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
-from api.application.types import ComicID, FlagType, IssueNumber, Language, TotalCount
+from api.application.types import ComicID, IssueNumber, Language, TotalCount, TranslationID
 from api.infrastructure.database.types import Limit, Offset
 from api.presentation.web.controllers.schemas.responses import (
     TranslationImageProcessedResponseSchema,
@@ -22,18 +22,18 @@ class Pagination(BaseModel):
 class ComicResponseSchema(BaseModel):
     id: ComicID
     number: IssueNumber | None
-    title: str
-    flag: FlagType
     publication_date: dt.date
-    tooltip: str
-    transcript_raw: str
-    source_link: HttpUrl
     explain_url: HttpUrl | None
     link_on_click: HttpUrl | None
     is_interactive: bool
-    images: list[TranslationImageProcessedResponseSchema]
     tags: list[str]
     translation_langs: list[Language.NON_ENGLISH]
+
+    translation_id: TranslationID  # For transcript getting
+    xkcd_url: HttpUrl
+    title: str
+    tooltip: str
+    images: list[TranslationImageProcessedResponseSchema]
 
     @classmethod
     def from_dto(cls, dto: ComicResponseDTO) -> "ComicResponseSchema":
@@ -41,11 +41,10 @@ class ComicResponseSchema(BaseModel):
             id=dto.id,
             number=dto.number,
             title=dto.title,
-            flag=Language("EN").flag,
             publication_date=dto.publication_date,
+            translation_id=dto.translation_id,
             tooltip=dto.tooltip,
-            transcript_raw=dto.transcript_raw,
-            source_link=dto.xkcd_url,
+            xkcd_url=dto.xkcd_url,
             explain_url=dto.explain_url,
             link_on_click=dto.link_on_click,
             is_interactive=dto.is_interactive,
@@ -68,11 +67,10 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
             id=dto.id,
             number=dto.number,
             title=dto.title,
-            flag=Language("EN").flag,
             publication_date=dto.publication_date,
+            translation_id=dto.translation_id,
             tooltip=dto.tooltip,
-            transcript_raw=dto.transcript_raw,
-            source_link=dto.xkcd_url,
+            xkcd_url=dto.xkcd_url,
             explain_url=dto.explain_url,
             link_on_click=dto.link_on_click,
             is_interactive=dto.is_interactive,

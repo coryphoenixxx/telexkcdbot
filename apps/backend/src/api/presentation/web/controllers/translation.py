@@ -105,3 +105,20 @@ async def get_translation_by_id(
     translation_resp_dto = await TranslationService(db_holder).get_by_id(translation_id)
 
     return TranslationWLanguageResponseSchema.from_dto(translation_resp_dto)
+
+
+@router.get(
+    "/translations/{translation_id}/raw_transcript",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
+    },
+)
+async def get_translation_raw_transcript(
+    translation_id: TranslationID,
+    *,
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+) -> str:
+    translation_resp_dto = await TranslationService(db_holder).get_by_id(translation_id)
+
+    return translation_resp_dto.transcript_raw
