@@ -6,7 +6,7 @@ from api.application.types import ComicID, Language, TranslationID, TranslationI
 
 
 @dataclass
-class TranslationImagesNotCreatedError(BaseAppError):
+class ImagesNotCreatedError(BaseAppError):
     image_ids: list[TranslationImageID]
     message: str = "Images were not created."
 
@@ -19,7 +19,7 @@ class TranslationImagesNotCreatedError(BaseAppError):
 
 
 @dataclass
-class TranslationImagesAlreadyAttachedError(BaseAppError):
+class ImagesAlreadyAttachedError(BaseAppError):
     image_ids: list[TranslationImageID]
     translation_ids: list[TranslationID]
     message: str = "Images already attached to another translations."
@@ -64,6 +64,16 @@ class TranslationNotFoundError(BaseAppError):
 @dataclass
 class EnglishTranslationOperationForbiddenError(BaseAppError):
     message: str = "Operations on English translation are forbidden, use the original."
+
+    @property
+    def detail(self) -> str | dict[str, Any]:
+        return {"message": self.message}
+
+
+@dataclass
+class DraftForDraftCreationError(BaseAppError):
+    translation_id: TranslationID
+    message: str = "A translation with this id is draft. Creating draft for draft forbidden."
 
     @property
     def detail(self) -> str | dict[str, Any]:

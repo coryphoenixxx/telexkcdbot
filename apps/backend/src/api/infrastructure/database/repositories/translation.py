@@ -3,7 +3,9 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import noload
 from sqlalchemy.sql.selectable import ForUpdateArg, ForUpdateParameter
 
-from api.application.dtos.requests.translation import TranslationRequestDTO
+from api.application.dtos.requests.translation import (
+    BaseTranslationRequestDTO,
+)
 from api.application.dtos.responses.translation import TranslationResponseDTO
 from api.application.exceptions.comic import ComicByIDNotFoundError
 from api.application.exceptions.translation import (
@@ -18,7 +20,11 @@ from api.infrastructure.database.utils import build_searchable_text
 
 
 class TranslationRepo(BaseRepo, GetImagesMixin):
-    async def add(self, comic_id: ComicID, dto: TranslationRequestDTO) -> TranslationResponseDTO:
+    async def add(
+        self, comic_id: ComicID, dto: BaseTranslationRequestDTO,
+    ) -> TranslationResponseDTO:
+        images = await self._get_images(dto.image_ids)
+
         translation = TranslationModel(
             comic_id=comic_id,
             title=dto.title,
@@ -27,10 +33,11 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
             transcript_raw=dto.transcript_raw,
             translator_comment=dto.translator_comment,
             source_link=dto.source_link,
-            images=await self._get_images(self._session, dto.image_ids),
-            is_draft=False,
-            searchable_text=build_searchable_text(dto.title, dto.transcript_raw),
+            is_draft=dto.is_draft,
+            images=images,
+            searchable_text=build_searchable_text(dto.title, dto.transcript_raw, dto.is_draft),
             drafts=[],
+            original_id=dto.original_id,
         )
 
         self._session.add(translation)
@@ -38,24 +45,16 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
         try:
             await self._session.flush()
         except IntegrityError as err:
-            self._handle_db_error(
-                err=err,
-                comic_id=comic_id,
-                dto=dto,
-            )
+            self._handle_db_error(err, comic_id, dto)
         else:
             return TranslationResponseDTO.from_model(model=translation)
 
     async def update(
         self,
         translation_id: TranslationID,
-        dto: TranslationRequestDTO,
+        dto: BaseTranslationRequestDTO,
     ) -> TranslationResponseDTO:
-        images = await self._get_images(
-            session=self._session,
-            image_ids=dto.image_ids,
-            translation_id=translation_id,
-        )
+        images = await self._get_images(dto.image_ids, translation_id)
 
         translation = await self._get_by_id(
             translation_id,
@@ -76,9 +75,9 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
         try:
             await self._session.flush()
         except IntegrityError as err:
-            self._handle_db_error(err=err, comic_id=comic_id, dto=dto)
+            self._handle_db_error(err, comic_id, dto)
         else:
-            return TranslationResponseDTO.from_model(model=translation)
+            return TranslationResponseDTO.from_model(translation)
 
     async def delete(self, translation_id: TranslationID) -> None:
         stmt = (
@@ -118,7 +117,7 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
         self,
         err: DBAPIError,
         comic_id: ComicID,
-        dto: TranslationRequestDTO,
+        dto: BaseTranslationRequestDTO,
     ) -> None:
         constraint_name = err.__cause__.__cause__.constraint_name
 

@@ -50,7 +50,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
                     transcript_raw=dto.transcript_raw,
                     translator_comment="",
                     source_link=dto.xkcd_url,
-                    images=await self._get_images(self._session, dto.image_ids),
+                    images=await self._get_images(dto.image_ids),
                     is_draft=False,
                     searchable_text=build_searchable_text(dto.title, dto.transcript_raw),
                     drafts=[],
@@ -94,7 +94,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         comic.en_translation.title = dto.title
         comic.en_translation.tooltip = dto.tooltip
         comic.en_translation.transcript_raw = dto.transcript_raw
-        comic.en_translation.images = await self._get_images(self._session, dto.image_ids)
+        comic.en_translation.images = await self._get_images(dto.image_ids)
 
         try:
             await self._session.flush()

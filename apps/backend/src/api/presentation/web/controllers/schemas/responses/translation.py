@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from pydantic import BaseModel, HttpUrl
 
 from api.application.dtos.responses.translation import TranslationResponseDTO
-from api.application.types import FlagType, Language, TranslationDraftID
+from api.application.types import FlagType, Language, TranslationDraftID, TranslationID
 from api.presentation.web.controllers.schemas.responses.image import (
     TranslationImageProcessedResponseSchema,
 )
@@ -11,7 +11,7 @@ from api.presentation.web.controllers.schemas.responses.image import (
 
 # TODO: sort drafts by created date
 class TranslationResponseSchema(BaseModel):
-    id: int
+    id: TranslationID
     comic_id: int
     title: str
     tooltip: str
@@ -62,4 +62,29 @@ class TranslationWLanguageResponseSchema(TranslationResponseSchema):
             source_link=dto.source_link,
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
             draft_ids=[d.id for d in dto.drafts],
+        )
+
+
+class TranslationDraftResponseSchema(BaseModel):
+    id: TranslationDraftID
+    original_id: TranslationID
+    title: str
+    tooltip: str
+    translator_comment: str
+    source_link: HttpUrl | None
+    images: list[TranslationImageProcessedResponseSchema]
+
+    @classmethod
+    def from_dto(
+        cls,
+        dto: TranslationResponseDTO,
+    ) -> "TranslationDraftResponseSchema":
+        return TranslationDraftResponseSchema(
+            id=dto.id,
+            original_id=dto.original_id,
+            title=dto.title,
+            tooltip=dto.tooltip,
+            translator_comment=dto.translator_comment,
+            source_link=dto.source_link,
+            images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
         )

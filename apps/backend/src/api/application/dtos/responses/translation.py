@@ -32,7 +32,7 @@ class TranslationDraftResponseDTO:
 
 @dataclass(slots=True)
 class TranslationResponseDTO:
-    id: TranslationID
+    id: TranslationID | TranslationDraftID
     comic_id: ComicID
     title: str
     language: Language
@@ -42,6 +42,8 @@ class TranslationResponseDTO:
     source_link: str | None
     images: list[TranslationImageProcessedResponseDTO]
     drafts: list[TranslationDraftResponseDTO]
+    is_draft: bool
+    original_id: TranslationID | None
 
     @classmethod
     def from_model(cls, model: TranslationModel) -> "TranslationResponseDTO":
@@ -56,4 +58,6 @@ class TranslationResponseDTO:
             images=[TranslationImageProcessedResponseDTO.from_model(img) for img in model.images],
             source_link=model.source_link,
             drafts=[TranslationDraftResponseDTO.from_model(dr) for dr in model.drafts],
+            is_draft=model.is_draft,
+            original_id=model.original_id,
         )

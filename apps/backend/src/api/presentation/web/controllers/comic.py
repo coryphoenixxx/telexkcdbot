@@ -15,8 +15,8 @@ from api.application.exceptions.comic import (
     ExtraComicTitleAlreadyExistsError,
 )
 from api.application.exceptions.translation import (
-    TranslationImagesAlreadyAttachedError,
-    TranslationImagesNotCreatedError,
+    ImagesAlreadyAttachedError,
+    ImagesNotCreatedError,
 )
 from api.application.services.comic import ComicService
 from api.application.types import ComicID, IssueNumber, Language, TotalCount
@@ -40,11 +40,11 @@ router = APIRouter(
     "/comics",
     status_code=status.HTTP_201_CREATED,
     responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": ImagesNotCreatedError | ImagesAlreadyAttachedError,
+        },
         status.HTTP_409_CONFLICT: {
             "model": ComicNumberAlreadyExistsError | ExtraComicTitleAlreadyExistsError,
-        },
-        status.HTTP_400_BAD_REQUEST: {
-            "model": TranslationImagesNotCreatedError | TranslationImagesAlreadyAttachedError,
         },
     },
 )
