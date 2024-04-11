@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from api.application.exceptions.base import BaseAppError
-from api.application.types import ComicID, Language, TranslationID, TranslationImageID
+from api.types import ComicID, Language, TranslationID, TranslationImageID
 
 
 @dataclass
@@ -64,16 +64,6 @@ class TranslationNotFoundError(BaseAppError):
 @dataclass
 class EnglishTranslationOperationForbiddenError(BaseAppError):
     message: str = "Operations on English translation are forbidden, use the original."
-
-    @property
-    def detail(self) -> str | dict[str, Any]:
-        return {"message": self.message}
-
-
-@dataclass
-class DraftForDraftCreationError(BaseAppError):
-    translation_id: TranslationID
-    message: str = "A translation with this id is draft. Creating draft for draft forbidden."
 
     @property
     def detail(self) -> str | dict[str, Any]:

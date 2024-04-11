@@ -8,6 +8,7 @@ repository = "https://github.com/coryphoenixxx/telexkcdbot"
 packages = [
     { include = "shared", from = "src" },
     { include = "api", from = "src" },
+    { include = "data", from = "src" },
 ]
 
 

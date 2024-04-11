@@ -41,7 +41,7 @@ class TranslationModel(Base, TimestampMixin):
     title: Mapped[str]
     language: Mapped[str] = mapped_column(String(2))
     tooltip: Mapped[str] = mapped_column(default="")
-    transcript_raw: Mapped[str] = mapped_column(default="")
+    raw_transcript: Mapped[str] = mapped_column(default="")
     translator_comment: Mapped[str] = mapped_column(default="")
     source_link: Mapped[str | None]
     is_draft: Mapped[bool] = mapped_column(default=False)
@@ -53,24 +53,6 @@ class TranslationModel(Base, TimestampMixin):
     searchable_text: Mapped[str]
 
     comic: Mapped["ComicModel"] = relationship(back_populates="translations")
-
-    original_id: Mapped[int | None] = mapped_column(
-        ForeignKey(
-            "translations.translation_id",
-            ondelete="CASCADE",
-        ),
-    )
-    drafts: Mapped[list["TranslationModel"]] = relationship(
-        "TranslationModel",
-        back_populates="original",
-        lazy="joined",
-        join_depth=2,
-    )
-    original: Mapped["TranslationModel"] = relationship(
-        "TranslationModel",
-        back_populates="drafts",
-        remote_side=[translation_id],
-    )
 
     def __str__(self):
         return (

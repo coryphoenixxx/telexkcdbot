@@ -16,7 +16,6 @@ from rich.progress import (
 from scraper.dtos import XkcdTranslationData
 from scraper.pbar import ProgressBar
 from scraper.scrapers import (
-    XkcdCNScraper,
     XkcdDEScraper,
     XkcdESScraper,
     XkcdExplainScraper,
@@ -24,6 +23,7 @@ from scraper.scrapers import (
     XkcdOriginScraper,
     XkcdOriginWithExplainDataScraper,
     XkcdRUScraper,
+    XkcdZHScraper,
 )
 from scraper.types import LimitParams
 from scraper.utils import run_concurrently
@@ -71,14 +71,13 @@ def extract_prescraped_translations(
                         continue
 
                     source_link = row["source_link"]
-                    tooltip = row["tooltip"]
 
                     translations.append(
                         XkcdTranslationData(
                             number=number,
                             source_link=URL(source_link) if source_link else None,
                             title=row["title"],
-                            tooltip=tooltip if tooltip else None,
+                            tooltip=row["tooltip"],
                             image=number_image_path_map[number],
                             language=lang_code_dir,
                         ),
@@ -104,7 +103,7 @@ async def fetch_all_translations(
             tg.create_task(XkcdRUScraper(client=http_client).fetch_many(limits, progress)),
             tg.create_task(XkcdDEScraper(client=http_client).fetch_many(limits, progress)),
             tg.create_task(XkcdESScraper(client=http_client).fetch_many(limits, progress)),
-            tg.create_task(XkcdCNScraper(client=http_client).fetch_many(limits, progress)),
+            tg.create_task(XkcdZHScraper(client=http_client).fetch_many(limits, progress)),
             tg.create_task(XkcdFRScraper(client=http_client).fetch_many(limits, progress)),
         ]
 
@@ -162,8 +161,7 @@ async def main(start: int, end: int | None, chunk_size: int, delay: int, api_url
     async with AsyncHttpClient() as http_client:
         api_client = APIRESTClient(api_url, http_client)
 
-        if not await api_client.healthcheck():
-            return
+        await api_client.healthcheck()
 
         number_comic_id_map = await get_number_comic_id_map(api_client)
 

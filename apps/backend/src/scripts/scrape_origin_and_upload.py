@@ -43,8 +43,7 @@ async def main(start: int, end: int | None, chunk_size: int, delay: int, api_url
     async with AsyncHttpClient() as http_client:
         api_client = APIRESTClient(api_url, http_client)
 
-        if not await api_client.healthcheck():
-            return
+        await api_client.healthcheck()
 
         origin_with_explain_scraper = XkcdOriginWithExplainDataScraper(
             origin_scraper=XkcdOriginScraper(client=http_client),

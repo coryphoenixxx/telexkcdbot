@@ -14,7 +14,7 @@ from scraper.types import LimitParams
 from scraper.utils import run_concurrently
 
 
-class XkcdCNScraper(BaseScraper):
+class XkcdZHScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.in")
 
     def __init__(self, client: AsyncHttpClient):
@@ -33,7 +33,7 @@ class XkcdCNScraper(BaseScraper):
                 tooltip=tooltip,
                 image=self._extract_image_url(soup),
                 translator_comment=translator_comment,
-                language="CN",
+                language="ZH",
             )
         except Exception as err:
             raise ScraperError(url=url) from err

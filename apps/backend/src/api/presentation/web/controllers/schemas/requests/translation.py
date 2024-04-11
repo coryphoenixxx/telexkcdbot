@@ -1,33 +1,25 @@
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, HttpUrl, field_validator
 from shared.utils import cast_or_none
 
-from api.application.dtos.requests.translation import (
-    TranslationDraftRequestDTO,
-    TranslationRequestDTO,
-)
-from api.application.types import Language, TranslationImageID
+from api.application.dtos.requests.translation import TranslationRequestDTO
+from api.types import Language, TranslationImageID
 
 
 class TranslationRequestSchema(BaseModel):
-    language: Language.NON_ENGLISH
-    title: str = Field(min_length=1)
-    tooltip: str = Field(default="")
-    transcript_raw: str = Field(default="")
-    translator_comment: str = Field(default="")
+    language: Language
+    title: str
+    tooltip: str | None
+    raw_transcript: str
+    translator_comment: str
     image_ids: list[TranslationImageID]
     source_link: HttpUrl | None
+    is_draft: bool = False
 
-    @field_validator(
-        "tooltip",
-        "transcript_raw",
-        "translator_comment",
-        mode="before",
-    )
+    @field_validator("language", mode="before")
     @classmethod
-    def preprocess_text_fields(cls, value: str | None) -> str:
-        # TODO: i need default in attrs with this method?
-        if value is None:
-            value = ""
+    def _forbid_english(cls, value: Language) -> Language:
+        if value == Language.EN:
+            raise ValueError("creating an English translation or translation draft is forbidden.")
         return value
 
     def to_dto(self) -> TranslationRequestDTO:
@@ -35,43 +27,9 @@ class TranslationRequestSchema(BaseModel):
             title=self.title,
             language=self.language,
             tooltip=self.tooltip,
-            transcript_raw=self.transcript_raw,
+            raw_transcript=self.raw_transcript,
             translator_comment=self.translator_comment,
             image_ids=self.image_ids,
             source_link=cast_or_none(str, self.source_link),
-            original_id=None,
-        )
-
-
-class TranslationDraftSchema(BaseModel):
-    title: str = Field(min_length=1)
-    tooltip: str = Field(default="")
-    transcript_raw: str = Field(default="")
-    translator_comment: str = Field(default="")
-    image_ids: list[TranslationImageID]
-    source_link: HttpUrl | None
-
-    @field_validator(
-        "tooltip",
-        "transcript_raw",
-        "translator_comment",
-        mode="before",
-    )
-    @classmethod
-    def preprocess_text_fields(cls, value: str | None) -> str:
-        # TODO: i need default in attrs with this method?
-        if value is None:
-            value = ""
-        return value
-
-    def to_dto(self) -> TranslationDraftRequestDTO:
-        return TranslationDraftRequestDTO(
-            title=self.title,
-            language=None,
-            tooltip=self.tooltip,
-            transcript_raw=self.transcript_raw,
-            translator_comment=self.translator_comment,
-            image_ids=self.image_ids,
-            source_link=cast_or_none(str, self.source_link),
-            original_id=None,
+            is_draft=self.is_draft,
         )

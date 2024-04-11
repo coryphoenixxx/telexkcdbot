@@ -83,5 +83,5 @@ class XkcdOriginWithExplainDataScraper:
             image_url=origin_data.image_url,
             explain_url=explain_data.explain_url if explain_data else None,
             tags=explain_data.tags if explain_data else [],
-            transcript_raw=explain_data.transcript_raw if explain_data else "",
+            raw_transcript=explain_data.raw_transcript if explain_data else "",
         )

@@ -3,41 +3,39 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import noload
 from sqlalchemy.sql.selectable import ForUpdateArg, ForUpdateParameter
 
-from api.application.dtos.requests.translation import (
-    BaseTranslationRequestDTO,
-)
+from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.dtos.responses.translation import TranslationResponseDTO
 from api.application.exceptions.comic import ComicByIDNotFoundError
 from api.application.exceptions.translation import (
     TranslationAlreadyExistsError,
     TranslationNotFoundError,
 )
-from api.application.types import ComicID, TranslationID
 from api.infrastructure.database.models import TranslationModel
 from api.infrastructure.database.repositories.base import BaseRepo
 from api.infrastructure.database.repositories.mixins import GetImagesMixin
 from api.infrastructure.database.utils import build_searchable_text
+from api.types import ComicID, TranslationID
 
 
 class TranslationRepo(BaseRepo, GetImagesMixin):
     async def add(
-        self, comic_id: ComicID, dto: BaseTranslationRequestDTO,
+        self,
+        comic_id: ComicID,
+        dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
-        images = await self._get_images(dto.image_ids)
+        images = await self._get_images_by_ids(dto.image_ids)
 
         translation = TranslationModel(
             comic_id=comic_id,
             title=dto.title,
             language=dto.language,
             tooltip=dto.tooltip,
-            transcript_raw=dto.transcript_raw,
+            raw_transcript=dto.raw_transcript,
             translator_comment=dto.translator_comment,
             source_link=dto.source_link,
             is_draft=dto.is_draft,
             images=images,
-            searchable_text=build_searchable_text(dto.title, dto.transcript_raw, dto.is_draft),
-            drafts=[],
-            original_id=dto.original_id,
+            searchable_text=build_searchable_text(dto.title, dto.raw_transcript, dto.is_draft),
         )
 
         self._session.add(translation)
@@ -52,9 +50,9 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
     async def update(
         self,
         translation_id: TranslationID,
-        dto: BaseTranslationRequestDTO,
+        dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
-        images = await self._get_images(dto.image_ids, translation_id)
+        images = await self._get_images_by_ids(dto.image_ids, translation_id)
 
         translation = await self._get_by_id(
             translation_id,
@@ -66,11 +64,12 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
         translation.title = dto.title
         translation.language = dto.language
         translation.tooltip = dto.tooltip
-        translation.transcript_raw = dto.transcript_raw
+        translation.raw_transcript = dto.raw_transcript
         translation.translator_comment = dto.translator_comment
         translation.source_link = dto.source_link
         translation.images = images
-        translation.searchable_text = build_searchable_text(dto.title, dto.transcript_raw)
+        translation.searchable_text = build_searchable_text(dto.title, dto.raw_transcript)
+        translation.is_draft = dto.is_draft
 
         try:
             await self._session.flush()
@@ -117,7 +116,7 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
         self,
         err: DBAPIError,
         comic_id: ComicID,
-        dto: BaseTranslationRequestDTO,
+        dto: TranslationRequestDTO,
     ) -> None:
         constraint_name = err.__cause__.__cause__.constraint_name
 

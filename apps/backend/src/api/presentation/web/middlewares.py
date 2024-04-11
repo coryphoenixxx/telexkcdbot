@@ -24,7 +24,6 @@ from api.application.exceptions.image import (
     UploadExceedSizeLimitError,
 )
 from api.application.exceptions.translation import (
-    DraftForDraftCreationError,
     EnglishTranslationOperationForbiddenError,
     ImagesAlreadyAttachedError,
     ImagesNotCreatedError,
@@ -55,7 +54,6 @@ ERROR_TO_STATUS_MAP = MappingProxyType(
         EnglishTranslationOperationForbiddenError: status.HTTP_400_BAD_REQUEST,
         UsernameAlreadyExistsError: status.HTTP_409_CONFLICT,
         InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
-        DraftForDraftCreationError: status.HTTP_400_BAD_REQUEST,
     },
 )
 

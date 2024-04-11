@@ -18,7 +18,6 @@ from api.application.exceptions.image import (
 )
 from api.application.image_saver import ImageSaveHelper
 from api.application.services import TranslationImageService
-from api.application.types import Language, TranslationImageID
 from api.infrastructure.database.holder import DatabaseHolder
 from api.presentation.stub import Stub
 from api.presentation.types import TranslationImageMeta
@@ -26,6 +25,7 @@ from api.presentation.upload_reader import UploadImageHandler
 from api.presentation.web.controllers.schemas.responses.image import (
     TranslationImageOrphanResponseSchema,
 )
+from api.types import Language, TranslationImageID
 
 router = APIRouter(
     tags=["Images"],
@@ -51,7 +51,6 @@ router = APIRouter(
     },
 )
 async def upload_image(
-    broker: NatsBroker,
     title: constr(min_length=1, strip_whitespace=True),
     number: Annotated[int | None, Query(ge=1)] = None,
     language: Language = Language.EN,
@@ -62,6 +61,7 @@ async def upload_image(
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
     upload_reader: UploadImageHandler = Depends(Stub(UploadImageHandler)),
     image_saver: ImageSaveHelper = Depends(Stub(ImageSaveHelper)),
+    broker: NatsBroker,
 ) -> TranslationImageOrphanResponseSchema:
     if image_file and image_url:
         raise UploadedImageTypeConflictError

@@ -1,8 +1,9 @@
 from api.application.dtos.requests.comic import ComicRequestDTO
+from api.application.dtos.responses import TranslationResponseDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
-from api.application.types import ComicID, IssueNumber
 from api.infrastructure.database.holder import DatabaseHolder
 from api.infrastructure.database.types import ComicFilterParams
+from api.types import ComicID, IssueNumber
 
 
 class ComicService:
@@ -56,3 +57,13 @@ class ComicService:
             comic_resp_dtos = await self._db_holder.comic_repo.get_list(query_params)
 
         return comic_resp_dtos
+
+    async def get_translations(
+        self,
+        comic_id: ComicID,
+        is_draft: bool = False,
+    ) -> list[TranslationResponseDTO]:
+        async with self._db_holder:
+            draft_resp_dtos = await self._db_holder.comic_repo.get_translations(comic_id, is_draft)
+
+        return draft_resp_dtos

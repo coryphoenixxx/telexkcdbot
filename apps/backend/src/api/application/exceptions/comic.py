@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from api.application.exceptions.base import BaseAppError
-from api.application.types import ComicID, IssueNumber
+from api.types import ComicID, IssueNumber
 
 
 @dataclass

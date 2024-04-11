@@ -21,10 +21,10 @@ class XkcdTranslationData:
     number: int
     source_link: URL | None
     title: str
-    tooltip: str | None
     image: URL | Path | None
     language: str
-    transcript_raw: str = ""
+    tooltip: str = ""
+    raw_transcript: str = ""
     translator_comment: str = ""
 
 
@@ -33,7 +33,7 @@ class XkcdExplanationScrapedBaseData:
     number: int
     explain_url: URL
     tags: list[str]
-    transcript_raw: str
+    raw_transcript: str
 
 
 @dataclass(slots=True)
@@ -48,7 +48,7 @@ class XkcdOriginWithExplainScrapedData:
     image_url: URL | None
     explain_url: URL | None
     tags: list[str]
-    transcript_raw: str
+    raw_transcript: str
 
 
 @dataclass(slots=True)
@@ -62,7 +62,7 @@ class XkcdOriginUploadData:
     link_on_click: URL | None
     is_interactive: bool
     tags: list[str]
-    transcript_raw: str
+    raw_transcript: str
     image_ids: list[int]
 
 
@@ -72,7 +72,7 @@ class XkcdTranslationUploadData:
     title: str
     language: str
     tooltip: str | None
-    transcript_raw: str
+    raw_transcript: str
     translator_comment: str
     source_link: str | None
     image_ids: list[int]

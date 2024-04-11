@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: 1d07e2483014
+Revision ID: bfbb72709ca4
 Revises:
-Create Date: 2024-04-02 12:35:28.331266
+Create Date: 2024-04-10 20:20:45.153454
 
 """
 
@@ -11,7 +11,7 @@ from alembic import op
 from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
-revision = "1d07e2483014"
+revision = "bfbb72709ca4"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -27,7 +27,6 @@ def upgrade() -> None:
         sa.Column("number", sa.SmallInteger(), nullable=True),
         sa.Column("slug", sa.String(), nullable=False),
         sa.Column("publication_date", sa.Date(), nullable=False),
-        sa.Column("xkcd_url", sa.String(), nullable=True),
         sa.Column("explain_url", sa.String(), nullable=True),
         sa.Column("link_on_click", sa.String(), nullable=True),
         sa.Column("is_interactive", sa.Boolean(), nullable=False),
@@ -91,12 +90,11 @@ def upgrade() -> None:
         sa.Column("title", sa.String(), nullable=False),
         sa.Column("language", sa.String(length=2), nullable=False),
         sa.Column("tooltip", sa.String(), nullable=False),
-        sa.Column("transcript_raw", sa.String(), nullable=False),
+        sa.Column("raw_transcript", sa.String(), nullable=False),
         sa.Column("translator_comment", sa.String(), nullable=False),
         sa.Column("source_link", sa.String(), nullable=True),
         sa.Column("is_draft", sa.Boolean(), nullable=False),
         sa.Column("searchable_text", sa.String(), nullable=False),
-        sa.Column("original_id", sa.Integer(), nullable=True),
         sa.Column(
             "created_at",
             sa.DateTime(timezone=True),
@@ -113,12 +111,6 @@ def upgrade() -> None:
             ["comic_id"],
             ["comics.comic_id"],
             name=op.f("fk_translations_comic_id_comics"),
-            ondelete="CASCADE",
-        ),
-        sa.ForeignKeyConstraint(
-            ["original_id"],
-            ["translations.translation_id"],
-            name=op.f("fk_translations_original_id_translations"),
             ondelete="CASCADE",
         ),
         sa.PrimaryKeyConstraint("translation_id", name=op.f("pk_translations")),
@@ -176,17 +168,13 @@ def downgrade() -> None:
         postgresql_where=sa.text("NOT is_draft"),
     )
     op.drop_index(
-        "ix_translations_searchable_text",
-        table_name="translations",
-        postgresql_using="pgroonga",
+        "ix_translations_searchable_text", table_name="translations", postgresql_using="pgroonga"
     )
     op.drop_table("translations")
     op.drop_table("comic_tag_association")
     op.drop_table("tags")
     op.drop_index(
-        "uq_title_if_extra",
-        table_name="comics",
-        postgresql_where=sa.text("number IS NULL"),
+        "uq_title_if_extra", table_name="comics", postgresql_where=sa.text("number IS NULL")
     )
     op.drop_index(
         "uq_number_if_not_extra",

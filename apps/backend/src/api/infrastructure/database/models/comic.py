@@ -1,11 +1,11 @@
 from datetime import date
 
-from sqlalchemy import ForeignKey, Index, SmallInteger, and_, false
+from sqlalchemy import ForeignKey, Index, SmallInteger, and_, false, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from api.application.types import Language
 from api.infrastructure.database.models import Base, TranslationModel
 from api.infrastructure.database.models.mixins import TimestampMixin
+from api.types import Language
 
 
 class ComicTagAssociation(Base):
@@ -47,7 +47,6 @@ class ComicModel(Base, TimestampMixin):
     number: Mapped[int | None] = mapped_column(SmallInteger)
     slug: Mapped[str]
     publication_date: Mapped[date]
-    xkcd_url: Mapped[str | None]
     explain_url: Mapped[str | None]
     link_on_click: Mapped[str | None]
     is_interactive: Mapped[bool] = mapped_column(default=False)
@@ -59,7 +58,7 @@ class ComicModel(Base, TimestampMixin):
         lazy="selectin",
     )
 
-    en_translation: Mapped[TranslationModel] = relationship(
+    base_translation: Mapped[TranslationModel] = relationship(
         lazy="joined",
         back_populates="comic",
         primaryjoin=lambda: and_(
@@ -78,7 +77,19 @@ class ComicModel(Base, TimestampMixin):
             TranslationModel.is_draft == false(),
             TranslationModel.language != Language.EN,
         ),
-        overlaps="en_translation",
+        overlaps="base_translation",
+    )
+
+    translation_drafts: Mapped[list["TranslationModel"]] = relationship(
+        lazy="joined",
+        back_populates="comic",
+        cascade="all, delete",
+        primaryjoin=lambda: and_(
+            ComicModel.comic_id == TranslationModel.comic_id,
+            TranslationModel.is_draft == true(),
+            TranslationModel.language != Language.EN,
+        ),
+        overlaps="base_translation,translations",
     )
 
     def __str__(self):

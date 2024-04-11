@@ -8,6 +8,7 @@ from sqlalchemy.orm import noload
 from sqlalchemy.sql.selectable import ForUpdateArg, ForUpdateParameter
 
 from api.application.dtos.requests.comic import ComicRequestDTO
+from api.application.dtos.responses import TranslationResponseDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
 from api.application.exceptions.comic import (
     ComicByIDNotFoundError,
@@ -16,13 +17,13 @@ from api.application.exceptions.comic import (
     ComicNumberAlreadyExistsError,
     ExtraComicTitleAlreadyExistsError,
 )
-from api.application.types import ComicID, IssueNumber, Language
 from api.infrastructure.database.models import TranslationModel
 from api.infrastructure.database.models.comic import ComicModel, TagModel
 from api.infrastructure.database.repositories.base import BaseRepo
 from api.infrastructure.database.repositories.mixins import GetImagesMixin
 from api.infrastructure.database.types import ComicFilterParams
 from api.infrastructure.database.utils import build_searchable_text
+from api.types import ComicID, IssueNumber, Language
 from api.utils import slugify
 
 
@@ -31,13 +32,13 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         self,
         dto: ComicRequestDTO,
     ) -> ComicResponseDTO:
+        images = await self._get_images_by_ids(dto.image_ids)
         tags = await self._create_tags(dto.tags)
 
         comic = ComicModel(
             number=dto.number,
             slug=self._build_slug(dto.number, dto.title),
             publication_date=dto.publication_date,
-            xkcd_url=dto.xkcd_url,
             explain_url=dto.explain_url,
             link_on_click=dto.link_on_click,
             is_interactive=dto.is_interactive,
@@ -47,13 +48,12 @@ class ComicRepo(BaseRepo, GetImagesMixin):
                     title=dto.title,
                     language=Language.EN,
                     tooltip=dto.tooltip,
-                    transcript_raw=dto.transcript_raw,
+                    raw_transcript=dto.raw_transcript,
                     translator_comment="",
                     source_link=dto.xkcd_url,
-                    images=await self._get_images(dto.image_ids),
+                    images=images,
                     is_draft=False,
-                    searchable_text=build_searchable_text(dto.title, dto.transcript_raw),
-                    drafts=[],
+                    searchable_text=build_searchable_text(dto.title, dto.raw_transcript),
                 ),
             ],
         )
@@ -80,21 +80,22 @@ class ComicRepo(BaseRepo, GetImagesMixin):
             with_for_update=ForUpdateArg(of=ComicModel),
         )
 
+        images = await self._get_images_by_ids(dto.image_ids)
         tags = await self._create_tags(dto.tags)
 
         comic.number = dto.number
         comic.slug = self._build_slug(dto.number, dto.title)
         comic.publication_date = dto.publication_date
-        comic.xkcd_url = dto.xkcd_url
         comic.explain_url = dto.explain_url
         comic.link_on_click = dto.link_on_click
         comic.is_interactive = dto.is_interactive
         comic.tags = tags
 
-        comic.en_translation.title = dto.title
-        comic.en_translation.tooltip = dto.tooltip
-        comic.en_translation.transcript_raw = dto.transcript_raw
-        comic.en_translation.images = await self._get_images(dto.image_ids)
+        comic.base_translation.title = dto.title
+        comic.base_translation.tooltip = dto.tooltip
+        comic.base_translation.raw_transcript = dto.raw_transcript
+        comic.base_translation.images = images
+        comic.base_translation.xkcd_url = dto.xkcd_url
 
         try:
             await self._session.flush()
@@ -162,6 +163,17 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         comics: Sequence[ComicModel] = (await self._session.scalars(stmt)).unique().all()
 
         return [ComicResponseWTranslationsDTO.from_model(model=comic) for comic in comics]
+
+    async def get_translations(
+        self,
+        comic_id: ComicID,
+        is_draft: bool = False,
+    ) -> list[TranslationResponseDTO]:
+        comic: ComicModel = await self._get_by_id(comic_id)
+
+        if is_draft:
+            return [TranslationResponseDTO.from_model(model) for model in comic.translation_drafts]
+        return [TranslationResponseDTO.from_model(model) for model in comic.translations]
 
     async def _create_tags(self, tag_names: list[str]) -> list[TagModel]:
         if not tag_names:

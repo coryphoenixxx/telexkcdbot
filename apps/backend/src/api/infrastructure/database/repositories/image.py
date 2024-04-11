@@ -5,9 +5,9 @@ from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
 from api.application.dtos.responses.image import TranslationImageOrphanResponseDTO
-from api.application.types import TranslationImageID
 from api.infrastructure.database.models.translation import TranslationImageModel
 from api.infrastructure.database.repositories.base import BaseRepo
+from api.types import TranslationImageID
 
 
 class TranslationImageRepo(BaseRepo):

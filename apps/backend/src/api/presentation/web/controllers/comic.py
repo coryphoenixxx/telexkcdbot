@@ -19,7 +19,6 @@ from api.application.exceptions.translation import (
     ImagesNotCreatedError,
 )
 from api.application.services.comic import ComicService
-from api.application.types import ComicID, IssueNumber, Language, TotalCount
 from api.infrastructure.database.holder import DatabaseHolder
 from api.infrastructure.database.types import ComicFilterParams, DateRange, Limit, Offset
 from api.presentation.stub import Stub
@@ -30,6 +29,10 @@ from api.presentation.web.controllers.schemas.responses.comic import (
     ComicWTranslationsResponseSchema,
     Pagination,
 )
+from api.presentation.web.controllers.schemas.responses.translation import (
+    TranslationWLanguageResponseSchema,
+)
+from api.types import ComicID, IssueNumber, Language, TotalCount
 
 router = APIRouter(
     tags=["Comics"],
@@ -113,7 +116,7 @@ async def delete_comic(
 )
 async def get_comic_by_id(
     comic_id: ComicID,
-    lg: list[Language.NON_ENGLISH] = Query(default=None),
+    lg: list[Language] = Query(default=None),
     *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicResponseSchema | ComicWTranslationsResponseSchema:
@@ -121,7 +124,7 @@ async def get_comic_by_id(
         db_holder=db_holder,
     ).get_by_id(comic_id)
 
-    return _build_comic_by_params(comic_resp_dto, languages=lg)
+    return _build_response_comic_schema_by_params(comic_resp_dto, languages=lg)
 
 
 @router.get(
@@ -135,7 +138,7 @@ async def get_comic_by_id(
 )
 async def get_comic_by_issue_number(
     number: IssueNumber,
-    lg: list[Language.NON_ENGLISH] = Query(default=None),
+    lg: list[Language] = Query(default=None),
     *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicResponseSchema | ComicWTranslationsResponseSchema:
@@ -143,7 +146,7 @@ async def get_comic_by_issue_number(
         db_holder=db_holder,
     ).get_by_issue_number(number)
 
-    return _build_comic_by_params(comic_resp_dto, languages=lg)
+    return _build_response_comic_schema_by_params(comic_resp_dto, languages=lg)
 
 
 @router.get(
@@ -157,7 +160,7 @@ async def get_comic_by_issue_number(
 )
 async def get_comic_by_slug(
     slug: str,
-    lg: list[Language.NON_ENGLISH] = Query(default=None),
+    lg: list[Language] = Query(default=None),
     *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicResponseSchema | ComicWTranslationsResponseSchema:
@@ -165,7 +168,7 @@ async def get_comic_by_slug(
         db_holder=db_holder,
     ).get_by_slug(slug)
 
-    return _build_comic_by_params(comic_resp_dto, languages=lg)
+    return _build_response_comic_schema_by_params(comic_resp_dto, languages=lg)
 
 
 @router.get("/comics", status_code=status.HTTP_200_OK)
@@ -198,13 +201,31 @@ async def get_comics(
             limit=limit,
             offset=offset,
         ),
-        data=[ComicWTranslationsResponseSchema.from_dto(dto=dto) for dto in comic_resp_dtos],
+        data=[ComicResponseSchema.from_dto(dto=dto) for dto in comic_resp_dtos],
     )
 
 
-def _build_comic_by_params(
+@router.get(
+    "/comics/{comic_id}/translations",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicByIDNotFoundError},
+    },
+)
+async def get_comic_translations(
+    comic_id: ComicID,
+    is_draft: bool = False,
+    *,
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+) -> list[TranslationWLanguageResponseSchema]:
+    translation_resp_dtos = await ComicService(db_holder).get_translations(comic_id, is_draft)
+
+    return [TranslationWLanguageResponseSchema.from_dto(dto) for dto in translation_resp_dtos]
+
+
+def _build_response_comic_schema_by_params(
     dto: ComicResponseWTranslationsDTO,
-    languages: list[Language.NON_ENGLISH],
+    languages: list[Language],
 ) -> ComicResponseSchema | ComicWTranslationsResponseSchema:
     if languages:
         return ComicWTranslationsResponseSchema.from_dto(

@@ -148,3 +148,5 @@ static
 /apps/frontend/.vscode/
 /apps/frontend/node_modules/
 /.configs/
+/apps/frontend/
+/apps/backend/src/scripts/prescraped_translations.zip

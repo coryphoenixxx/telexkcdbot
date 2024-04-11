@@ -5,9 +5,9 @@ from shared.messages import ImageProcessInMessage
 
 from api.application.dtos.responses.image import TranslationImageOrphanResponseDTO
 from api.application.image_saver import ImageSaveHelper
-from api.application.types import TranslationImageID
 from api.infrastructure.database.holder import DatabaseHolder
 from api.presentation.types import ImageObj, TranslationImageMeta
+from api.types import TranslationImageID
 
 
 class TranslationImageService:

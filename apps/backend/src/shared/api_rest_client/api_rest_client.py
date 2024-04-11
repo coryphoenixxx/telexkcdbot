@@ -79,7 +79,7 @@ class APIRESTClient:
                 is_interactive=data.is_interactive,
                 explain_url=data.explain_url,
                 tags=data.tags,
-                transcript_raw=data.transcript_raw,
+                raw_transcript=data.raw_transcript,
                 image_ids=image_ids,
             ),
         )
@@ -159,7 +159,7 @@ class APIRESTClient:
             title=data.title,
             language=data.language,
             tooltip=data.tooltip,
-            transcript_raw=data.transcript_raw,
+            raw_transcript=data.raw_transcript,
             translator_comment=data.translator_comment,
             source_link=data.source_link,
             image_ids=image_ids,

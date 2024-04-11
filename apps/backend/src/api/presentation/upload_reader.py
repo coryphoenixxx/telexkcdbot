@@ -31,7 +31,7 @@ class UploadImageHandler:
         tmp_dir: Path,
         upload_max_size: int,
         http_client: AsyncHttpClient,
-        download_timeout: float = 10.0,
+        download_timeout: float = 30.0,
     ):
         self._tmp_dir = tmp_dir
         self._upload_max_size = upload_max_size
@@ -53,7 +53,7 @@ class UploadImageHandler:
         raise DownloadingImageError(str(url))
 
     async def _download_job(self, url: URL | str) -> ImageObj:
-        for _ in range(2):
+        for _ in range(3):
             try:
                 async with self._http_client.safe_get(url=url) as response:
                     if response.status == 200:

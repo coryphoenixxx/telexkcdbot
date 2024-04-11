@@ -1,49 +1,22 @@
 from dataclasses import dataclass
 
 from api.application.dtos.responses.image import TranslationImageProcessedResponseDTO
-from api.application.types import ComicID, Language, TranslationDraftID, TranslationID
 from api.infrastructure.database.models import TranslationModel
-
-
-@dataclass(slots=True)
-class TranslationDraftResponseDTO:
-    id: TranslationDraftID
-    original_id: TranslationID
-    title: str
-    tooltip: str
-    transcript_raw: str
-    translator_comment: str
-    source_link: str | None
-    images: list[TranslationImageProcessedResponseDTO]
-
-    @classmethod
-    def from_model(cls, model: TranslationModel) -> "TranslationDraftResponseDTO":
-        return TranslationDraftResponseDTO(
-            id=model.translation_id,
-            original_id=model.original_id,
-            title=model.title,
-            tooltip=model.tooltip,
-            transcript_raw=model.transcript_raw,
-            translator_comment=model.translator_comment,
-            images=[TranslationImageProcessedResponseDTO.from_model(img) for img in model.images],
-            source_link=model.source_link,
-        )
+from api.types import ComicID, Language, TranslationID
 
 
 @dataclass(slots=True)
 class TranslationResponseDTO:
-    id: TranslationID | TranslationDraftID
+    id: TranslationID
     comic_id: ComicID
     title: str
     language: Language
     tooltip: str
-    transcript_raw: str
+    raw_transcript: str
     translator_comment: str
     source_link: str | None
     images: list[TranslationImageProcessedResponseDTO]
-    drafts: list[TranslationDraftResponseDTO]
     is_draft: bool
-    original_id: TranslationID | None
 
     @classmethod
     def from_model(cls, model: TranslationModel) -> "TranslationResponseDTO":
@@ -53,11 +26,9 @@ class TranslationResponseDTO:
             language=model.language,
             title=model.title,
             tooltip=model.tooltip,
-            transcript_raw=model.transcript_raw,
+            raw_transcript=model.raw_transcript,
             translator_comment=model.translator_comment,
             images=[TranslationImageProcessedResponseDTO.from_model(img) for img in model.images],
             source_link=model.source_link,
-            drafts=[TranslationDraftResponseDTO.from_model(dr) for dr in model.drafts],
             is_draft=model.is_draft,
-            original_id=model.original_id,
         )

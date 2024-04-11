@@ -5,12 +5,12 @@ from pydantic import BaseModel, HttpUrl
 
 from api.application.dtos.responses import TranslationResponseDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
-from api.application.types import ComicID, IssueNumber, Language, TotalCount, TranslationID
 from api.infrastructure.database.types import Limit, Offset
 from api.presentation.web.controllers.schemas.responses import (
     TranslationImageProcessedResponseSchema,
     TranslationResponseSchema,
 )
+from api.types import ComicID, IssueNumber, Language, TotalCount, TranslationID
 
 
 class Pagination(BaseModel):
@@ -27,13 +27,12 @@ class ComicResponseSchema(BaseModel):
     link_on_click: HttpUrl | None
     is_interactive: bool
     tags: list[str]
-    translation_langs: list[Language.NON_ENGLISH]
-
     translation_id: TranslationID  # For transcript getting
     xkcd_url: HttpUrl
     title: str
     tooltip: str
     images: list[TranslationImageProcessedResponseSchema]
+    translation_langs: list[Language]
 
     @classmethod
     def from_dto(cls, dto: ComicResponseDTO) -> "ComicResponseSchema":
@@ -55,7 +54,7 @@ class ComicResponseSchema(BaseModel):
 
 
 class ComicWTranslationsResponseSchema(ComicResponseSchema):
-    translations: Mapping[Language.NON_ENGLISH, TranslationResponseSchema]
+    translations: Mapping[Language, TranslationResponseSchema]
 
     @classmethod
     def from_dto(
@@ -88,8 +87,8 @@ class ComicsWithMetadata(BaseModel):
 
 def _prepare_and_filter(
     translations: list[TranslationResponseDTO],
-    filter_languages: list[Language.NON_ENGLISH] | None = None,
-) -> Mapping[Language.NON_ENGLISH, TranslationResponseSchema]:
+    filter_languages: list[Language] | None = None,
+) -> Mapping[Language, TranslationResponseSchema]:
     translation_map = {}
     for tr in translations:
         if not filter_languages or tr.language in filter_languages:

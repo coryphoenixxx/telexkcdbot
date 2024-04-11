@@ -4,7 +4,7 @@ from pydantic import BaseModel, HttpUrl, field_validator
 from shared.utils import cast_or_none
 
 from api.application.dtos.requests.comic import ComicRequestDTO
-from api.application.types import IssueNumber, TranslationImageID
+from api.types import IssueNumber, TranslationImageID
 
 
 class ComicRequestSchema(BaseModel):
@@ -12,7 +12,7 @@ class ComicRequestSchema(BaseModel):
     title: str
     publication_date: dt.date
     tooltip: str
-    transcript_raw: str
+    raw_transcript: str
     xkcd_url: HttpUrl | None
     explain_url: HttpUrl
     link_on_click: HttpUrl | None
@@ -27,9 +27,8 @@ class ComicRequestSchema(BaseModel):
         for tag in tags:
             stripped_tag = tag.strip()
             if len(stripped_tag) < 2:
-                raise ValueError(f"`{tag}` is invalid tag. Min length is 2.")
-            else:
-                result.append(stripped_tag)
+                raise ValueError(f"`{tag}` is invalid tag. Minimum length is 2.")
+            result.append(stripped_tag)
         return result
 
     def to_dto(self) -> ComicRequestDTO:
@@ -38,7 +37,7 @@ class ComicRequestSchema(BaseModel):
             title=self.title,
             publication_date=self.publication_date,
             tooltip=self.tooltip,
-            transcript_raw=self.transcript_raw,
+            raw_transcript=self.raw_transcript,
             xkcd_url=cast_or_none(str, self.xkcd_url),
             explain_url=cast_or_none(str, self.explain_url),
             link_on_click=cast_or_none(str, self.link_on_click),

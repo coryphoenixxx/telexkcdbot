@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from api.application.types import TranslationID, TranslationImageID
 from api.infrastructure.database.models import TranslationImageModel
+from api.types import TranslationID, TranslationImageID
 
 
 @dataclass(slots=True)

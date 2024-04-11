@@ -4,15 +4,15 @@ from api.application.exceptions.translation import (
     ImagesAlreadyAttachedError,
     ImagesNotCreatedError,
 )
-from api.application.types import TranslationID, TranslationImageID
 from api.infrastructure.database.models import TranslationImageModel
+from api.types import TranslationID, TranslationImageID
 
 
 class GetImagesMixin:
-    async def _get_images(
-        self,
-        image_ids: list[TranslationImageID],
-        translation_id: TranslationID | None = None,
+    async def _get_images_by_ids(
+            self,
+            image_ids: list[TranslationImageID],
+            translation_id: TranslationID | None = None,
     ) -> list[TranslationImageModel]:
         if not image_ids:
             return []

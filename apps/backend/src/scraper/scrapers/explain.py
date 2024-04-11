@@ -40,7 +40,7 @@ class XkcdExplainScraper(BaseScraper):
                 number=number,
                 explain_url=self._extract_real_url(soup),
                 tags=self._extract_tags(soup),
-                transcript_raw=self._extract_transcript_html(soup),
+                raw_transcript=self._extract_transcript_html(soup),
             )
         except Exception as err:
             raise ScraperError(url) from err
