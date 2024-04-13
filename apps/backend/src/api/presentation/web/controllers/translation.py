@@ -14,16 +14,16 @@ from api.application.services import TranslationService
 from api.infrastructure.database.holder import DatabaseHolder
 from api.presentation.stub import Stub
 from api.presentation.web.controllers.schemas.requests import (
+    TranslationDraftRequestSchema,
     TranslationRequestSchema,
 )
 from api.presentation.web.controllers.schemas.responses.translation import (
+    TranslationWDraftStatusSchema,
     TranslationWLanguageResponseSchema,
 )
 from api.types import ComicID, TranslationID
 
-router = APIRouter(
-    tags=["Translations"],
-)
+router = APIRouter(tags=["Translations"])
 
 
 @router.post(
@@ -41,6 +41,27 @@ router = APIRouter(
 async def add_translation(
     comic_id: ComicID,
     schema: TranslationRequestSchema,
+    *,
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+) -> TranslationWLanguageResponseSchema:
+    translation_resp_dto = await TranslationService(db_holder).add(comic_id, schema.to_dto())
+
+    return TranslationWLanguageResponseSchema.from_dto(translation_resp_dto)
+
+
+@router.post(
+    "/comics/{comic_id}/translations/drafts",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicByIDNotFoundError},
+        status.HTTP_409_CONFLICT: {
+            "model": ImagesNotCreatedError | ImagesAlreadyAttachedError,
+        },
+    },
+)
+async def add_translation_draft(
+    comic_id: ComicID,
+    schema: TranslationDraftRequestSchema,
     *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> TranslationWLanguageResponseSchema:
@@ -101,10 +122,10 @@ async def get_translation_by_id(
     translation_id: TranslationID,
     *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
-) -> TranslationWLanguageResponseSchema:
+) -> TranslationWDraftStatusSchema:
     translation_resp_dto = await TranslationService(db_holder).get_by_id(translation_id)
 
-    return TranslationWLanguageResponseSchema.from_dto(translation_resp_dto)
+    return TranslationWDraftStatusSchema.from_dto(translation_resp_dto)
 
 
 @router.get(
@@ -122,3 +143,18 @@ async def get_translation_raw_transcript(
     translation_resp_dto = await TranslationService(db_holder).get_by_id(translation_id)
 
     return translation_resp_dto.raw_transcript
+
+
+@router.post(
+    "/translations/{translation_id}/publish",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
+    },
+)
+async def publish_draft(
+    translation_id: TranslationID,
+    *,
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+):
+    await TranslationService(db_holder).publish(translation_id)

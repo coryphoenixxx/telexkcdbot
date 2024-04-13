@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 
-from shared.types import Order
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
@@ -25,6 +24,7 @@ from api.infrastructure.database.types import ComicFilterParams
 from api.infrastructure.database.utils import build_searchable_text
 from api.types import ComicID, IssueNumber, Language
 from api.utils import slugify
+from shared.types import Order
 
 
 class ComicRepo(BaseRepo, GetImagesMixin):
@@ -65,9 +65,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         except IntegrityError as err:
             self._handle_db_error(err, dto)
         else:
-            await self._session.refresh(
-                comic,
-            )
+            await self._session.refresh(comic)
             return ComicResponseDTO.from_model(model=comic)
 
     async def update(

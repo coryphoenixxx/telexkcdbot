@@ -17,7 +17,6 @@ class TranslationResponseSchema(BaseModel):
     translator_comment: str
     source_link: HttpUrl | None
     images: list[TranslationImageProcessedResponseSchema]
-    is_draft: bool
 
     @classmethod
     def from_dto(
@@ -35,7 +34,6 @@ class TranslationResponseSchema(BaseModel):
                 images=[
                     TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images
                 ],
-                is_draft=dto.is_draft,
             ),
         }
 
@@ -49,6 +47,26 @@ class TranslationWLanguageResponseSchema(TranslationResponseSchema):
         dto: TranslationResponseDTO,
     ) -> "TranslationWLanguageResponseSchema":
         return TranslationWLanguageResponseSchema(
+            id=dto.id,
+            comic_id=dto.comic_id,
+            language=dto.language,
+            title=dto.title,
+            tooltip=dto.tooltip,
+            translator_comment=dto.translator_comment,
+            source_link=dto.source_link,
+            images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
+        )
+
+
+class TranslationWDraftStatusSchema(TranslationWLanguageResponseSchema):
+    is_draft: bool
+
+    @classmethod
+    def from_dto(
+        cls,
+        dto: TranslationResponseDTO,
+    ) -> "TranslationWDraftStatusSchema":
+        return TranslationWDraftStatusSchema(
             id=dto.id,
             comic_id=dto.comic_id,
             language=dto.language,

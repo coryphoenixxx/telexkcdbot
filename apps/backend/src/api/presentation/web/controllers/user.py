@@ -16,9 +16,7 @@ from api.application.exceptions.user import (
 )
 from api.presentation.web.controllers.schemas.requests.user import UserRequestSchema
 
-router = APIRouter(
-    tags=["Users"],
-)
+router = APIRouter(tags=["Users"])
 
 MOCK_DB = {}
 SESSION_IDS = {}

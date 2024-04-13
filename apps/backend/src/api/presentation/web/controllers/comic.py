@@ -34,9 +34,7 @@ from api.presentation.web.controllers.schemas.responses.translation import (
 )
 from api.types import ComicID, IssueNumber, Language, TotalCount
 
-router = APIRouter(
-    tags=["Comics"],
-)
+router = APIRouter(tags=["Comics"])
 
 
 @router.post(

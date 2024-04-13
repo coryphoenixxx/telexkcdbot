@@ -16,6 +16,9 @@ class TranslationService:
         comic_id: ComicID,
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
+        if dto.language == Language.EN:
+            raise EnglishTranslationOperationForbiddenError
+
         async with self._db_holder:
             translation_resp_dto = await self._db_holder.translation_repo.add(comic_id, dto)
             await self._db_holder.commit()
@@ -27,10 +30,13 @@ class TranslationService:
         translation_id: TranslationID,
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
+        if dto.language == Language.EN:
+            raise EnglishTranslationOperationForbiddenError
+
         async with self._db_holder:
             candidate = await self._db_holder.translation_repo.get_by_id(translation_id)
 
-            if candidate.language == Language.EN and dto.language != Language.EN:
+            if candidate.language == Language.EN:
                 raise EnglishTranslationOperationForbiddenError
 
             translation_resp_dto = await self._db_holder.translation_repo.update(
@@ -58,3 +64,25 @@ class TranslationService:
             translation_resp_dto = await self._db_holder.translation_repo.get_by_id(translation_id)
 
         return translation_resp_dto
+
+    async def publish(self, translation_id: TranslationID):
+        async with self._db_holder:
+            candidate = await self._db_holder.translation_repo.get_by_id(translation_id)
+
+            if candidate.is_draft:
+                published_translations = await self._db_holder.comic_repo.get_translations(
+                    comic_id=candidate.comic_id,
+                )
+
+                published = None
+                for tr in published_translations:
+                    if tr.language == candidate.language:
+                        published = await self._db_holder.translation_repo.get_by_id(tr.id)
+                        break
+
+                if published:
+                    await self._db_holder.translation_repo.update_draft_status(published.id, True)
+
+                await self._db_holder.translation_repo.update_draft_status(candidate.id, False)
+
+                await self._db_holder.commit()

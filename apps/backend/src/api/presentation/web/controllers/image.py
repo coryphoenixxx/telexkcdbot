@@ -27,9 +27,7 @@ from api.presentation.web.controllers.schemas.responses.image import (
 )
 from api.types import Language, TranslationImageID
 
-router = APIRouter(
-    tags=["Images"],
-)
+router = APIRouter(tags=["Images"])
 
 
 @router.post(

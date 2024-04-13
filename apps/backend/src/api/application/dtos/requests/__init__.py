@@ -1,5 +1,5 @@
-from .translation import TranslationRequestDTO # isort:skip
-from .comic import ComicRequestDTO # isort:skip
+from .comic import ComicRequestDTO
+from .translation import TranslationRequestDTO
 
 __all__ = [
     "ComicRequestDTO",

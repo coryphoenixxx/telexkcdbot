@@ -69,7 +69,6 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
         translation.source_link = dto.source_link
         translation.images = images
         translation.searchable_text = build_searchable_text(dto.title, dto.raw_transcript)
-        translation.is_draft = dto.is_draft
 
         try:
             await self._session.flush()
@@ -77,6 +76,14 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
             self._handle_db_error(err, comic_id, dto)
         else:
             return TranslationResponseDTO.from_model(translation)
+
+    async def update_draft_status(
+        self,
+        translation_id: TranslationID,
+        new_draft_status: bool,
+    ):
+        translation = await self._get_by_id(translation_id, with_for_update=True)
+        translation.is_draft = new_draft_status
 
     async def delete(self, translation_id: TranslationID) -> None:
         stmt = (
