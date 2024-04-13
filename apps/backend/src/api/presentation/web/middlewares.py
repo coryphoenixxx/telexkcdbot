@@ -7,53 +7,28 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from starlette.requests import Request
 from starlette.responses import Response
 
-from api.application.exceptions.base import BaseAppError
-from api.application.exceptions.comic import (
-    ComicByIDNotFoundError,
-    ComicByIssueNumberNotFoundError,
-    ComicBySlugNotFoundError,
-    ComicNumberAlreadyExistsError,
-    ExtraComicTitleAlreadyExistsError,
+from api.application.exceptions.base import (
+    BaseAppError,
+    BaseNotFoundError,
+    BaseConflictError,
+    BaseBadRequestError,
 )
 from api.application.exceptions.image import (
-    DownloadingImageError,
-    RequestFileIsEmptyError,
     UnsupportedImageFormatError,
-    UploadedImageError,
-    UploadedImageTypeConflictError,
     UploadExceedSizeLimitError,
 )
-from api.application.exceptions.translation import (
-    EnglishTranslationOperationForbiddenError,
-    ImagesAlreadyAttachedError,
-    ImagesNotCreatedError,
-    TranslationAlreadyExistsError,
-    TranslationNotFoundError,
-)
-from api.application.exceptions.user import InvalidCredentialsError, UsernameAlreadyExistsError
+from api.application.exceptions.user import InvalidCredentialsError
 
 logger = logging.getLogger(__name__)
 
 ERROR_TO_STATUS_MAP = MappingProxyType(
     {
-        RequestFileIsEmptyError: status.HTTP_400_BAD_REQUEST,
-        UploadedImageError: status.HTTP_400_BAD_REQUEST,
-        DownloadingImageError: status.HTTP_400_BAD_REQUEST,
-        UploadedImageTypeConflictError: status.HTTP_400_BAD_REQUEST,
+        BaseBadRequestError: status.HTTP_400_BAD_REQUEST,
+        InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
+        BaseNotFoundError: status.HTTP_404_NOT_FOUND,
+        BaseConflictError: status.HTTP_409_CONFLICT,
         UploadExceedSizeLimitError: status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         UnsupportedImageFormatError: status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-        ComicNumberAlreadyExistsError: status.HTTP_409_CONFLICT,
-        ExtraComicTitleAlreadyExistsError: status.HTTP_409_CONFLICT,
-        ImagesNotCreatedError: status.HTTP_400_BAD_REQUEST,
-        ImagesAlreadyAttachedError: status.HTTP_400_BAD_REQUEST,
-        ComicByIDNotFoundError: status.HTTP_404_NOT_FOUND,
-        ComicByIssueNumberNotFoundError: status.HTTP_404_NOT_FOUND,
-        ComicBySlugNotFoundError: status.HTTP_404_NOT_FOUND,
-        TranslationAlreadyExistsError: status.HTTP_409_CONFLICT,
-        TranslationNotFoundError: status.HTTP_404_NOT_FOUND,
-        EnglishTranslationOperationForbiddenError: status.HTTP_400_BAD_REQUEST,
-        UsernameAlreadyExistsError: status.HTTP_409_CONFLICT,
-        InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
     },
 )
 
@@ -63,8 +38,12 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
         try:
             return await call_next(request)
         except BaseAppError as err:
+            err_class = ERROR_TO_STATUS_MAP.get(err.__class__.__base__)
+            if not err_class:
+                err_class = ERROR_TO_STATUS_MAP[err.__class__]
+
             return ORJSONResponse(
-                status_code=ERROR_TO_STATUS_MAP[err.__class__],
+                status_code=err_class,
                 content=err.detail,
             )
         except Exception as err:

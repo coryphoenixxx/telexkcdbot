@@ -1,10 +1,10 @@
 import datetime as dt
 
 from pydantic import BaseModel, HttpUrl, field_validator
-from shared.utils import cast_or_none
 
 from api.application.dtos.requests.comic import ComicRequestDTO
 from api.types import IssueNumber, TranslationImageID
+from shared.utils import cast_or_none
 
 
 class ComicRequestSchema(BaseModel):
@@ -15,7 +15,7 @@ class ComicRequestSchema(BaseModel):
     raw_transcript: str
     xkcd_url: HttpUrl | None
     explain_url: HttpUrl
-    link_on_click: HttpUrl | None
+    click_url: HttpUrl | None
     is_interactive: bool
     tags: list[str]
     image_ids: list[TranslationImageID]
@@ -40,7 +40,7 @@ class ComicRequestSchema(BaseModel):
             raw_transcript=self.raw_transcript,
             xkcd_url=cast_or_none(str, self.xkcd_url),
             explain_url=cast_or_none(str, self.explain_url),
-            link_on_click=cast_or_none(str, self.link_on_click),
+            click_url=cast_or_none(str, self.click_url),
             is_interactive=self.is_interactive,
             tags=self.tags,
             image_ids=self.image_ids,

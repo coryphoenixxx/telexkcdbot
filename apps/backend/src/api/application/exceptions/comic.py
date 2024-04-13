@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from typing import Any
 
-from api.application.exceptions.base import BaseAppError
+from api.application.exceptions.base import BaseNotFoundError, BaseConflictError
 from api.types import ComicID, IssueNumber
 
 
 @dataclass
-class ComicByIDNotFoundError(BaseAppError):
+class ComicByIDNotFoundError(BaseNotFoundError):
     comic_id: ComicID
     message: str = "A comic with this id not found."
 
@@ -19,7 +19,7 @@ class ComicByIDNotFoundError(BaseAppError):
 
 
 @dataclass
-class ComicByIssueNumberNotFoundError(BaseAppError):
+class ComicByIssueNumberNotFoundError(BaseNotFoundError):
     number: IssueNumber
     message: str = "A comic with this issue number not found."
 
@@ -32,7 +32,7 @@ class ComicByIssueNumberNotFoundError(BaseAppError):
 
 
 @dataclass
-class ComicNumberAlreadyExistsError(BaseAppError):
+class ComicNumberAlreadyExistsError(BaseConflictError):
     number: IssueNumber
     message: str = "A comic with this issue number already exists."
 
@@ -45,7 +45,7 @@ class ComicNumberAlreadyExistsError(BaseAppError):
 
 
 @dataclass
-class ComicBySlugNotFoundError(BaseAppError):
+class ComicBySlugNotFoundError(BaseNotFoundError):
     slug: str
     message: str = "A comic with this slug not found."
 
@@ -58,7 +58,7 @@ class ComicBySlugNotFoundError(BaseAppError):
 
 
 @dataclass
-class ExtraComicTitleAlreadyExistsError(BaseAppError):
+class ExtraComicTitleAlreadyExistsError(BaseConflictError):
     title: str
     message: str = "An extra comic with this title already exists."
 

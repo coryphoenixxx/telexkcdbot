@@ -5,3 +5,12 @@ class BaseAppError(Exception):
     @property
     def detail(self) -> str | dict[str, Any]:
         raise NotImplementedError
+
+
+class BaseNotFoundError(BaseAppError): ...
+
+
+class BaseConflictError(BaseAppError): ...
+
+
+class BaseBadRequestError(BaseAppError): ...

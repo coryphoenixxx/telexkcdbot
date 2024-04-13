@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from api.application.exceptions.base import BaseAppError
+from api.application.exceptions.base import BaseAppError, BaseBadRequestError
 
 
 @dataclass
@@ -33,7 +33,7 @@ class UploadExceedSizeLimitError(BaseAppError):
 
 
 @dataclass
-class RequestFileIsEmptyError(BaseAppError):
+class RequestFileIsEmptyError(BaseBadRequestError):
     message: str = "Request file is empty."
 
     @property
@@ -44,7 +44,7 @@ class RequestFileIsEmptyError(BaseAppError):
 
 
 @dataclass
-class UploadedImageTypeConflictError(BaseAppError):
+class UploadedImageTypeConflictError(BaseBadRequestError):
     message: str = "Either an image url or an image file, not both."
 
     @property
@@ -55,7 +55,7 @@ class UploadedImageTypeConflictError(BaseAppError):
 
 
 @dataclass
-class UploadedImageError(BaseAppError):
+class UploadedImageError(BaseBadRequestError):
     message: str = "Either an image url or an image file must be."
 
     @property
@@ -66,7 +66,7 @@ class UploadedImageError(BaseAppError):
 
 
 @dataclass
-class DownloadingImageError(BaseAppError):
+class DownloadingImageError(BaseBadRequestError):
     url: str
     message: str = "Couldn't download the image from this URL."
 

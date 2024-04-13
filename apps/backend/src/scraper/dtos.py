@@ -11,7 +11,7 @@ class XkcdOriginScrapedData:
     xkcd_url: URL
     title: str
     tooltip: str = ""
-    link_on_click: URL | None = None
+    click_url: URL | None = None
     is_interactive: bool = False
     image_url: URL | None = None
 
@@ -43,7 +43,7 @@ class XkcdOriginWithExplainScrapedData:
     publication_date: str
     xkcd_url: URL
     tooltip: str
-    link_on_click: URL | None
+    click_url: URL | None
     is_interactive: bool
     image_url: URL | None
     explain_url: URL | None
@@ -59,7 +59,7 @@ class XkcdOriginUploadData:
     xkcd_url: URL
     explain_url: URL | None
     tooltip: str
-    link_on_click: URL | None
+    click_url: URL | None
     is_interactive: bool
     tags: list[str]
     raw_transcript: str

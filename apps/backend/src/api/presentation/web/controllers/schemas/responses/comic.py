@@ -24,7 +24,7 @@ class ComicResponseSchema(BaseModel):
     number: IssueNumber | None
     publication_date: dt.date
     explain_url: HttpUrl | None
-    link_on_click: HttpUrl | None
+    click_url: HttpUrl | None
     is_interactive: bool
     tags: list[str]
     translation_id: TranslationID  # For transcript getting
@@ -45,7 +45,7 @@ class ComicResponseSchema(BaseModel):
             tooltip=dto.tooltip,
             xkcd_url=dto.xkcd_url,
             explain_url=dto.explain_url,
-            link_on_click=dto.link_on_click,
+            click_url=dto.click_url,
             is_interactive=dto.is_interactive,
             tags=dto.tags,
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
@@ -71,7 +71,7 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
             tooltip=dto.tooltip,
             xkcd_url=dto.xkcd_url,
             explain_url=dto.explain_url,
-            link_on_click=dto.link_on_click,
+            click_url=dto.click_url,
             is_interactive=dto.is_interactive,
             tags=dto.tags,
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],

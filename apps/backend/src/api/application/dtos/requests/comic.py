@@ -13,7 +13,7 @@ class ComicRequestDTO:
     raw_transcript: str
     xkcd_url: str | None
     explain_url: str | None
-    link_on_click: str | None
+    click_url: str | None
     is_interactive: bool
     tags: list[str]
     image_ids: list[TranslationImageID]

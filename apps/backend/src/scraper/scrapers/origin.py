@@ -3,7 +3,6 @@ import logging
 import re
 
 from rich.progress import Progress
-from shared.http_client import AsyncHttpClient
 from yarl import URL
 
 from scraper.dtos import (
@@ -15,6 +14,7 @@ from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
 from scraper.utils import run_concurrently
+from shared.http_client import AsyncHttpClient
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ X2_IMAGE_URL_PATTERN = re.compile(r"//(.*?) 2x")
 IMAGE_URL_PATTERN = re.compile(r"https://imgs.xkcd.com/comics/(.*?).(jpg|jpeg|png|webp|gif)")
 
 
-def build_date(y: str, m: str, d: str) -> str:
+def _build_date(y: str, m: str, d: str) -> str:
     return f"{int(y)}-{int(m):02d}-{int(d):02d}"
 
 
@@ -61,18 +61,18 @@ class XkcdOriginScraper(BaseScraper):
                 json_data = await response.json()
 
             try:
-                link_on_click, large_image_page_url = self._process_link(json_data["link"])
+                click_url, large_image_page_url = self._process_link(json_data["link"])
 
                 data = XkcdOriginScrapedData(
                     number=json_data["num"],
                     xkcd_url=url,
                     title=self._process_title(json_data["title"]),
-                    publication_date=build_date(
+                    publication_date=_build_date(
                         y=json_data["year"],
                         m=json_data["month"],
                         d=json_data["day"],
                     ),
-                    link_on_click=link_on_click,
+                    click_url=click_url,
                     tooltip=json_data["alt"],
                     image_url=(
                         await self._fetch_large_image_url(large_image_page_url)
@@ -144,7 +144,7 @@ class XkcdOriginScraper(BaseScraper):
         return html.unescape(title)
 
     def _process_link(self, link: str | None) -> tuple[URL | None, URL | None]:
-        link_on_click, large_image_page_url = None, None
+        click_url, large_image_page_url = None, None
 
         if link:
             link = URL(link)
@@ -153,9 +153,9 @@ class XkcdOriginScraper(BaseScraper):
             elif "980/huge" in link.path:
                 large_image_page_url = "https://imgs.xkcd.com/comics/money_huge.png"
             elif link.scheme:
-                link_on_click = link
+                click_url = link
 
-        return link_on_click, large_image_page_url
+        return click_url, large_image_page_url
 
     def _process_image_url(self, url: str) -> URL | None:
         if IMAGE_URL_PATTERN.match(url):

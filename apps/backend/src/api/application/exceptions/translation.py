@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from typing import Any
 
-from api.application.exceptions.base import BaseAppError
+from api.application.exceptions.base import BaseNotFoundError, BaseConflictError, \
+    BaseBadRequestError
 from api.types import ComicID, Language, TranslationID, TranslationImageID
 
 
 @dataclass
-class ImagesNotCreatedError(BaseAppError):
+class ImagesNotCreatedError(BaseBadRequestError):
     image_ids: list[TranslationImageID]
     message: str = "Images were not created."
 
@@ -19,7 +20,7 @@ class ImagesNotCreatedError(BaseAppError):
 
 
 @dataclass
-class ImagesAlreadyAttachedError(BaseAppError):
+class ImagesAlreadyAttachedError(BaseBadRequestError):
     image_ids: list[TranslationImageID]
     translation_ids: list[TranslationID]
     message: str = "Images already attached to another translations."
@@ -34,7 +35,7 @@ class ImagesAlreadyAttachedError(BaseAppError):
 
 
 @dataclass
-class TranslationAlreadyExistsError(BaseAppError):
+class TranslationAlreadyExistsError(BaseConflictError):
     comic_id: ComicID
     language: Language
     message: str = "A comic already has a translation into this language."
@@ -49,7 +50,7 @@ class TranslationAlreadyExistsError(BaseAppError):
 
 
 @dataclass
-class TranslationNotFoundError(BaseAppError):
+class TranslationNotFoundError(BaseNotFoundError):
     translation_id: TranslationID
     message: str = "Translation not found."
 
@@ -62,7 +63,7 @@ class TranslationNotFoundError(BaseAppError):
 
 
 @dataclass
-class EnglishTranslationOperationForbiddenError(BaseAppError):
+class EnglishTranslationOperationForbiddenError(BaseBadRequestError):
     message: str = "Operations on English translation are forbidden, use the original."
 
     @property

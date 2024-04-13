@@ -48,7 +48,7 @@ class ComicModel(Base, TimestampMixin):
     slug: Mapped[str]
     publication_date: Mapped[date]
     explain_url: Mapped[str | None]
-    link_on_click: Mapped[str | None]
+    click_url: Mapped[str | None]
     is_interactive: Mapped[bool] = mapped_column(default=False)
 
     tags: Mapped[list["TagModel"]] = relationship(

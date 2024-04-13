@@ -78,7 +78,7 @@ class XkcdOriginWithExplainDataScraper:
             xkcd_url=origin_data.xkcd_url,
             title=origin_data.title,
             tooltip=origin_data.tooltip,
-            link_on_click=origin_data.link_on_click,
+            click_url=origin_data.click_url,
             is_interactive=origin_data.is_interactive,
             image_url=origin_data.image_url,
             explain_url=explain_data.explain_url if explain_data else None,

@@ -40,7 +40,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
             slug=self._build_slug(dto.number, dto.title),
             publication_date=dto.publication_date,
             explain_url=dto.explain_url,
-            link_on_click=dto.link_on_click,
+            click_url=dto.click_url,
             is_interactive=dto.is_interactive,
             tags=tags,
             translations=[
@@ -85,7 +85,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         comic.slug = self._build_slug(dto.number, dto.title)
         comic.publication_date = dto.publication_date
         comic.explain_url = dto.explain_url
-        comic.link_on_click = dto.link_on_click
+        comic.click_url = dto.click_url
         comic.is_interactive = dto.is_interactive
         comic.tags = tags
 

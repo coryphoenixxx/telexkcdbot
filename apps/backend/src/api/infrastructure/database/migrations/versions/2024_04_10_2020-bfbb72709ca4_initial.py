@@ -28,7 +28,7 @@ def upgrade() -> None:
         sa.Column("slug", sa.String(), nullable=False),
         sa.Column("publication_date", sa.Date(), nullable=False),
         sa.Column("explain_url", sa.String(), nullable=True),
-        sa.Column("link_on_click", sa.String(), nullable=True),
+        sa.Column("click_url", sa.String(), nullable=True),
         sa.Column("is_interactive", sa.Boolean(), nullable=False),
         sa.Column(
             "created_at",
@@ -168,13 +168,17 @@ def downgrade() -> None:
         postgresql_where=sa.text("NOT is_draft"),
     )
     op.drop_index(
-        "ix_translations_searchable_text", table_name="translations", postgresql_using="pgroonga",
+        "ix_translations_searchable_text",
+        table_name="translations",
+        postgresql_using="pgroonga",
     )
     op.drop_table("translations")
     op.drop_table("comic_tag_association")
     op.drop_table("tags")
     op.drop_index(
-        "uq_title_if_extra", table_name="comics", postgresql_where=sa.text("number IS NULL"),
+        "uq_title_if_extra",
+        table_name="comics",
+        postgresql_where=sa.text("number IS NULL"),
     )
     op.drop_index(
         "uq_number_if_not_extra",

@@ -15,7 +15,7 @@ class ComicResponseDTO:
     number: IssueNumber | None
     publication_date: dt.date
     explain_url: str | None
-    link_on_click: str | None
+    click_url: str | None
     is_interactive: bool
     tags: list[str]
     translation_langs: list[Language]
@@ -37,7 +37,7 @@ class ComicResponseDTO:
             tooltip=model.base_translation.tooltip,
             xkcd_url=model.base_translation.source_link,
             explain_url=model.explain_url,
-            link_on_click=model.link_on_click,
+            click_url=model.click_url,
             is_interactive=model.is_interactive,
             tags=sorted([tag.name for tag in model.tags]),  # TODO: sort by SQL?
             images=[
@@ -63,7 +63,7 @@ class ComicResponseWTranslationsDTO(ComicResponseDTO):
             tooltip=model.base_translation.tooltip,
             xkcd_url=model.base_translation.source_link,
             explain_url=model.explain_url,
-            link_on_click=model.link_on_click,
+            click_url=model.click_url,
             is_interactive=model.is_interactive,
             tags=sorted([tag.name for tag in model.tags]),
             images=[
