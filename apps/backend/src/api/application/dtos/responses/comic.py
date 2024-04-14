@@ -18,7 +18,7 @@ class ComicResponseDTO:
     click_url: str | None
     is_interactive: bool
     tags: list[str]
-    translation_langs: list[Language]
+    has_translations: list[Language]
 
     translation_id: TranslationID
     xkcd_url: str | None
@@ -44,7 +44,7 @@ class ComicResponseDTO:
                 TranslationImageProcessedResponseDTO.from_model(img)
                 for img in model.base_translation.images
             ],
-            translation_langs=[tr.language for tr in model.translations],
+            has_translations=[tr.language for tr in model.translations],
         )
 
 
@@ -70,6 +70,6 @@ class ComicResponseWTranslationsDTO(ComicResponseDTO):
                 TranslationImageProcessedResponseDTO.from_model(img)
                 for img in model.base_translation.images
             ],
-            translation_langs=[tr.language for tr in model.translations],
+            has_translations=[tr.language for tr in model.translations],
             translations=[TranslationResponseDTO.from_model(t) for t in model.translations],
         )

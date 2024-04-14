@@ -32,7 +32,7 @@ class ComicResponseSchema(BaseModel):
     title: str
     tooltip: str
     images: list[TranslationImageProcessedResponseSchema]
-    translation_langs: list[Language]
+    has_translations: list[Language]
 
     @classmethod
     def from_dto(cls, dto: ComicResponseDTO) -> "ComicResponseSchema":
@@ -49,7 +49,7 @@ class ComicResponseSchema(BaseModel):
             is_interactive=dto.is_interactive,
             tags=dto.tags,
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
-            translation_langs=dto.translation_langs,
+            has_translations=dto.has_translations,
         )
 
 
@@ -58,9 +58,9 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
 
     @classmethod
     def from_dto(
-        cls,
-        dto: ComicResponseWTranslationsDTO,
-        filter_languages: list[Language] | None = None,
+            cls,
+            dto: ComicResponseWTranslationsDTO,
+            filter_languages: list[Language] | None = None,
     ) -> "ComicWTranslationsResponseSchema":
         return ComicWTranslationsResponseSchema(
             id=dto.id,
@@ -75,7 +75,7 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
             is_interactive=dto.is_interactive,
             tags=dto.tags,
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
-            translation_langs=dto.translation_langs,
+            has_translations=dto.has_translations,
             translations=_prepare_and_filter(dto.translations, filter_languages),
         )
 
@@ -86,8 +86,8 @@ class ComicsWithMetadata(BaseModel):
 
 
 def _prepare_and_filter(
-    translations: list[TranslationResponseDTO],
-    filter_languages: list[Language] | None = None,
+        translations: list[TranslationResponseDTO],
+        filter_languages: list[Language] | None = None,
 ) -> Mapping[Language, TranslationResponseSchema]:
     translation_map = {}
     for tr in translations:

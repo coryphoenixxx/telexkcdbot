@@ -3,10 +3,15 @@ import re
 from aiogram import F, Router
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import Message
+from aiogram.utils.markdown import hlink, hbold, hcode
+from aiogram.utils.media_group import MediaGroupBuilder
+
 from bot.filters.main import ComicNumberFilter
 from shared.api_rest_client import APIRESTClient
 
 router = Router()
+
+LANG = "RU"
 
 
 @router.message(
@@ -29,11 +34,62 @@ async def start_handler(msg: Message) -> None:
     await msg.answer(f"HELLO, {msg.chat.username}. Base start.")
 
 
+prepare_tag = lambda tag: "_".join(tag.split())
+
+hspoiler = lambda text: f'<span class="tg-spoiler">{text}</span>'
+
+
+def build_caption(
+    number: int,
+    en_title: str,
+    xkcd_url: str,
+    translation_title: str,
+    translation_source_url: str,
+    publication_date: str,
+    tooltip: str,
+    translation_tooltip: str,
+    tags: list[str],
+) -> str:
+    # TODO: remove redundant slash in urls
+
+    header = f"""{hbold(f"№{number}")}. {hlink(en_title, xkcd_url)}  |  {hspoiler(hlink(translation_title, translation_source_url))}\n"""
+    publication_date = f"({hcode(publication_date)})"
+    tooltip = f"{tooltip}\n{'-'*20}\n{hspoiler(translation_tooltip)}"
+    tags = "_" * 20 + "\n" + "".join([f"#{prepare_tag(t)}   " for t in tags])
+
+    return "\n\n".join([header + publication_date, tooltip, tags]).strip()
+
+
 @router.message(ComicNumberFilter())
-async def get_comic_by_number_handler(msg: Message, api_client: APIRESTClient) -> None:
-    comic = await api_client.get_comic_by_number(int(msg.text))
+async def get_comic_by_number_handler(
+    msg: Message, api_client: APIRESTClient, img_prefix: str
+) -> None:
+    comic = await api_client.get_comic_by_number(
+        int(msg.text),
+        languages=[LANG],
+    )
+
+    album_builder = MediaGroupBuilder(
+        caption=build_caption(
+            number=comic["number"],
+            en_title=comic["title"],
+            translation_title=comic["translations"][LANG]["title"],
+            publication_date=comic["publication_date"],
+            tooltip=comic["tooltip"],
+            translation_tooltip=comic["translations"][LANG]["tooltip"],
+            xkcd_url=comic["xkcd_url"],
+            translation_source_url=comic["translations"][LANG]["source_link"],
+            tags=comic["tags"],
+        )
+    )
+
+    album_builder.add_photo(media=img_prefix + comic["images"][0]["converted"])
+    album_builder.add_photo(
+        media=img_prefix + comic["translations"][LANG]["images"][0]["converted"],
+        has_spoiler=True,
+    )
 
     if comic:
-        await msg.reply(comic["title"])
+        await msg.answer_media_group(album_builder.build())
     else:
         await msg.reply("Comic no found")

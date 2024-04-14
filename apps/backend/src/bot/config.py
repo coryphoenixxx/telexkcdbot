@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 class BotConfig:
     token: str
     admin_id: int
+    api_url: str
 
 
 @dataclass
