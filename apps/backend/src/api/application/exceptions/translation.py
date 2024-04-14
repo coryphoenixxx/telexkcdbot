@@ -1,8 +1,11 @@
 from dataclasses import dataclass
 from typing import Any
 
-from api.application.exceptions.base import BaseNotFoundError, BaseConflictError, \
-    BaseBadRequestError
+from api.application.exceptions.base import (
+    BaseBadRequestError,
+    BaseConflictError,
+    BaseNotFoundError,
+)
 from api.types import ComicID, Language, TranslationID, TranslationImageID
 
 

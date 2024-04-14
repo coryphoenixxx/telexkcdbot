@@ -59,7 +59,7 @@ class UploadImageHandler:
                     if response.status == 200:
                         return await self._read_to_temp(response.content)
             except (TimeoutError, ClientPayloadError):
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(1)
                 continue
 
     async def _read_to_temp(self, obj: StreamReader | UploadFile) -> ImageObj:

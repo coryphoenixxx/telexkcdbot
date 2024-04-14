@@ -3,7 +3,7 @@ import json
 from enum import EnumType, StrEnum
 from typing import Annotated, NewType
 
-from annotated_types import Ge, Gt, Len
+from annotated_types import Ge, Gt, Len, MaxLen, MinLen
 
 ComicID = NewType("ComicID", Annotated[int, Gt(0)])
 IssueNumber = NewType("IssueNumber", Annotated[int, Gt(0)])
@@ -13,6 +13,7 @@ TranslationImageID = NewType("TranslationImageID", Annotated[int, Gt(0)])
 TotalCount = NewType("TotalCount", Annotated[int, Ge(0)])
 
 Alpha2LangCode = NewType("Alpha2LangCode", Annotated[str, Len(2)])
+Tag = NewType("Tag", Annotated[str, MinLen(2), MaxLen(50)])
 
 
 class LanguageEnum(StrEnum):

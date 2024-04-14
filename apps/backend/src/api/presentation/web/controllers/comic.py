@@ -20,7 +20,7 @@ from api.application.exceptions.translation import (
 )
 from api.application.services.comic import ComicService
 from api.infrastructure.database.holder import DatabaseHolder
-from api.infrastructure.database.types import ComicFilterParams, DateRange, Limit, Offset
+from api.infrastructure.database.types import ComicFilterParams, DateRange, Limit, Offset, TagParam
 from api.presentation.stub import Stub
 from api.presentation.web.controllers.schemas.requests.comic import ComicRequestSchema
 from api.presentation.web.controllers.schemas.responses.comic import (
@@ -32,7 +32,7 @@ from api.presentation.web.controllers.schemas.responses.comic import (
 from api.presentation.web.controllers.schemas.responses.translation import (
     TranslationWLanguageResponseSchema,
 )
-from api.types import ComicID, IssueNumber, Language, TotalCount
+from api.types import ComicID, IssueNumber, Language, Tag
 
 router = APIRouter(tags=["Comics"])
 
@@ -158,7 +158,7 @@ async def get_comic_by_issue_number(
 )
 async def get_comic_by_slug(
     slug: str,
-    lg: list[Language] = Query(default=None),
+    languages: list[Language] = Query(default=None, alias="lg"),
     *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicResponseSchema | ComicWTranslationsResponseSchema:
@@ -166,23 +166,25 @@ async def get_comic_by_slug(
         db_holder=db_holder,
     ).get_by_slug(slug)
 
-    return _build_response_comic_schema_by_params(comic_resp_dto, languages=lg)
+    return _build_response_comic_schema_by_params(comic_resp_dto, languages=languages)
 
 
 @router.get("/comics", status_code=status.HTTP_200_OK)
 async def get_comics(
-    limit: int | None = None,
-    page: int | None = None,
-    date_from: datetime.date | None = None,
-    date_to: datetime.date | None = None,
+    page_size: int | None = Query(None, alias="psize"),
+    page_num: int | None = Query(None, alias="pnum"),
+    date_from: datetime.date | None = Query(None),
+    date_to: datetime.date | None = Query(None),
     order: Order = Order.ASC,
+    tags: list[Tag] = Query(None, alias="tag"),
+    tag_param: TagParam | None = None,
     *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
 ) -> ComicsWithMetadata:
-    limit = Limit(limit) if page else None
-    offset = Offset(limit * (page - 1)) if limit and page else None
+    limit = Limit(page_size) if page_num else None
+    offset = Offset(limit * (page_num - 1)) if limit and page_num else None
 
-    comic_resp_dtos = await ComicService(
+    count, comic_resp_dtos = await ComicService(
         db_holder=db_holder,
     ).get_list(
         ComicFilterParams(
@@ -190,12 +192,14 @@ async def get_comics(
             offset=offset,
             order=order,
             date_range=DateRange(start=date_from, end=date_to),
+            tags=tags,
+            tag_param=tag_param,
         ),
     )
 
     return ComicsWithMetadata(
         meta=Pagination(
-            total=TotalCount(len(comic_resp_dtos)),
+            total=count,
             limit=limit,
             offset=offset,
         ),

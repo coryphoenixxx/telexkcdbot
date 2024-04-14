@@ -3,7 +3,7 @@ from api.application.dtos.responses import TranslationResponseDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
 from api.infrastructure.database.holder import DatabaseHolder
 from api.infrastructure.database.types import ComicFilterParams
-from api.types import ComicID, IssueNumber
+from api.types import ComicID, IssueNumber, TotalCount
 
 
 class ComicService:
@@ -52,11 +52,11 @@ class ComicService:
     async def get_list(
         self,
         query_params: ComicFilterParams,
-    ) -> list[ComicResponseWTranslationsDTO]:
+    ) -> tuple[TotalCount, list[ComicResponseWTranslationsDTO]]:
         async with self._db_holder:
-            comic_resp_dtos = await self._db_holder.comic_repo.get_list(query_params)
+            count, comic_resp_dtos = await self._db_holder.comic_repo.get_list(query_params)
 
-        return comic_resp_dtos
+        return count, comic_resp_dtos
 
     async def get_translations(
         self,

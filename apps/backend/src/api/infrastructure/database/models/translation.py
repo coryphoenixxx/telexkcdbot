@@ -47,7 +47,7 @@ class TranslationModel(Base, TimestampMixin):
     is_draft: Mapped[bool] = mapped_column(default=False)
     images: Mapped[list["TranslationImageModel"]] = relationship(
         back_populates="translation",
-        lazy="selectin",
+        lazy="joined",
     )
 
     searchable_text: Mapped[str]

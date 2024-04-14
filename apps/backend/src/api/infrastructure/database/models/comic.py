@@ -5,7 +5,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.infrastructure.database.models import Base, TranslationModel
 from api.infrastructure.database.models.mixins import TimestampMixin
-from api.types import Language
 
 
 class ComicTagAssociation(Base):
@@ -52,42 +51,42 @@ class ComicModel(Base, TimestampMixin):
     is_interactive: Mapped[bool] = mapped_column(default=False)
 
     tags: Mapped[list["TagModel"]] = relationship(
+        lazy="selectin",
         back_populates="comics",
         secondary="comic_tag_association",
         cascade="all, delete",
-        lazy="selectin",
     )
 
     base_translation: Mapped[TranslationModel] = relationship(
-        lazy="joined",
+        lazy="selectin",
         back_populates="comic",
         primaryjoin=lambda: and_(
             ComicModel.comic_id == TranslationModel.comic_id,
             TranslationModel.is_draft == false(),
-            TranslationModel.language == Language.EN,
+            TranslationModel.language == "EN",
         ),
     )
 
     translations: Mapped[list["TranslationModel"]] = relationship(
-        lazy="joined",
+        lazy="selectin",
         back_populates="comic",
         cascade="all, delete",
         primaryjoin=lambda: and_(
             ComicModel.comic_id == TranslationModel.comic_id,
             TranslationModel.is_draft == false(),
-            TranslationModel.language != Language.EN,
+            TranslationModel.language != "EN",
         ),
         overlaps="base_translation",
     )
 
     translation_drafts: Mapped[list["TranslationModel"]] = relationship(
-        lazy="joined",
+        lazy="selectin",
         back_populates="comic",
         cascade="all, delete",
         primaryjoin=lambda: and_(
             ComicModel.comic_id == TranslationModel.comic_id,
             TranslationModel.is_draft == true(),
-            TranslationModel.language != Language.EN,
+            TranslationModel.language != "EN",
         ),
         overlaps="base_translation,translations",
     )

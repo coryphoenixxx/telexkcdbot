@@ -35,7 +35,7 @@ class AsyncHttpClient:
         timeout: int = 60,
         session_cache_ttl: int = 60,
         attempts: int = 5,
-        start_timeout: float = 2.0,
+        start_timeout: float = 0.5,
         exceptions: tuple[type[Exception]] | None = (
             TimeoutError,
             ServerConnectionError,

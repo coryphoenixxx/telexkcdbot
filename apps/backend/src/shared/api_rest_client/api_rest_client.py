@@ -2,8 +2,6 @@ import logging
 from pathlib import Path
 
 from aiohttp import ClientResponse  # noqa: F401
-from yarl import URL
-
 from scraper.dtos import (
     XkcdOriginUploadData,
     XkcdOriginWithExplainScrapedData,
@@ -11,6 +9,8 @@ from scraper.dtos import (
     XkcdTranslationUploadData,
 )
 from scraper.pbar import ProgressBar
+from yarl import URL
+
 from shared.api_rest_client.exceptions import APIServerError
 from shared.http_client import AsyncHttpClient
 from shared.types import Order

@@ -9,9 +9,9 @@ from starlette.responses import Response
 
 from api.application.exceptions.base import (
     BaseAppError,
-    BaseNotFoundError,
-    BaseConflictError,
     BaseBadRequestError,
+    BaseConflictError,
+    BaseNotFoundError,
 )
 from api.application.exceptions.image import (
     UnsupportedImageFormatError,

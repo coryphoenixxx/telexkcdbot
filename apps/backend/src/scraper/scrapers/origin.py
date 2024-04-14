@@ -3,6 +3,7 @@ import logging
 import re
 
 from rich.progress import Progress
+from shared.http_client import AsyncHttpClient
 from yarl import URL
 
 from scraper.dtos import (
@@ -14,7 +15,6 @@ from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
 from scraper.types import LimitParams
 from scraper.utils import run_concurrently
-from shared.http_client import AsyncHttpClient
 
 logger = logging.getLogger(__name__)
 

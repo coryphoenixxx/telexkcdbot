@@ -1,6 +1,5 @@
-from collections.abc import Sequence
-
-from sqlalchemy import delete, select
+from shared.types import Order
+from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import noload
@@ -20,11 +19,10 @@ from api.infrastructure.database.models import TranslationModel
 from api.infrastructure.database.models.comic import ComicModel, TagModel
 from api.infrastructure.database.repositories.base import BaseRepo
 from api.infrastructure.database.repositories.mixins import GetImagesMixin
-from api.infrastructure.database.types import ComicFilterParams
+from api.infrastructure.database.types import ComicFilterParams, TagParam
 from api.infrastructure.database.utils import build_searchable_text
-from api.types import ComicID, IssueNumber, Language
+from api.types import ComicID, IssueNumber, Language, TotalCount
 from api.utils import slugify
-from shared.types import Order
 
 
 class ComicRepo(BaseRepo, GetImagesMixin):
@@ -66,7 +64,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
             self._handle_db_error(err, dto)
         else:
             await self._session.refresh(comic)
-            return ComicResponseDTO.from_model(model=comic)
+            return ComicResponseDTO.from_model(comic)
 
     async def update(
         self,
@@ -100,7 +98,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         except IntegrityError as err:
             self._handle_db_error(err, dto)
         else:
-            return ComicResponseDTO.from_model(model=comic)
+            return ComicResponseDTO.from_model(comic)
 
     async def delete(self, comic_id: ComicID) -> None:
         stmt = (
@@ -118,7 +116,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
     async def get_by_id(self, comic_id: ComicID) -> ComicResponseWTranslationsDTO:
         comic: ComicModel = await self._get_by_id(comic_id)
 
-        return ComicResponseWTranslationsDTO.from_model(model=comic)
+        return ComicResponseWTranslationsDTO.from_model(comic)
 
     async def get_by_issue_number(self, number: IssueNumber) -> ComicResponseWTranslationsDTO:
         stmt = select(ComicModel).where(ComicModel.number == number)
@@ -128,7 +126,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         if not comic:
             raise ComicByIssueNumberNotFoundError(number=number)
 
-        return ComicResponseWTranslationsDTO.from_model(model=comic)
+        return ComicResponseWTranslationsDTO.from_model(comic)
 
     async def get_by_slug(self, slug: str) -> ComicResponseWTranslationsDTO:
         stmt = select(ComicModel).where(ComicModel.slug == slug).options()
@@ -138,36 +136,45 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         if not comic:
             raise ComicBySlugNotFoundError(slug=slug)
 
-        return ComicResponseWTranslationsDTO.from_model(model=comic)
+        return ComicResponseWTranslationsDTO.from_model(comic)
 
     async def get_list(
         self,
-        query_params: ComicFilterParams,
-    ) -> list[ComicResponseWTranslationsDTO]:
-        stmt = select(ComicModel)
+        filter_params: ComicFilterParams,
+    ) -> tuple[TotalCount, list[ComicResponseWTranslationsDTO]]:
+        stmt = select(ComicModel, func.count(ComicModel.comic_id).over().label("count"))
 
-        if not query_params.order or query_params.order == Order.ASC:
+        if filter_params.date_range.start:
+            stmt = stmt.where(ComicModel.publication_date >= filter_params.date_range.start)
+        if filter_params.date_range.end:
+            stmt = stmt.where(ComicModel.publication_date <= filter_params.date_range.end)
+
+        if filter_params.tags:
+            stmt = stmt.outerjoin(ComicModel.tags).where(TagModel.name.in_(filter_params.tags))
+            if filter_params.tag_param == TagParam.AND and len(filter_params.tags) > 1:
+                stmt = stmt.group_by(ComicModel.comic_id).having(
+                    func.count(TagModel.tag_id) == len(filter_params.tags),
+                )
+
+        if not filter_params.order or filter_params.order == Order.ASC:
             stmt = stmt.order_by(ComicModel.number.asc())
         else:
             stmt = stmt.order_by(ComicModel.number.desc())
 
-        if query_params.date_range.start:
-            stmt = stmt.where(ComicModel.publication_date >= query_params.date_range.start)
-        if query_params.date_range.end:
-            stmt = stmt.where(ComicModel.publication_date <= query_params.date_range.end)
+        stmt = stmt.limit(filter_params.limit).offset(filter_params.offset)
 
-        stmt = stmt.limit(query_params.limit).offset(query_params.offset)
+        count, comics = 0, []
+        if result := (await self._session.execute(stmt)).unique().all():
+            count, comics = result[0][1], [r[0] for r in result]
 
-        comics: Sequence[ComicModel] = (await self._session.scalars(stmt)).unique().all()
-
-        return [ComicResponseWTranslationsDTO.from_model(model=comic) for comic in comics]
+        return count, [ComicResponseWTranslationsDTO.from_model(comic) for comic in comics]
 
     async def get_translations(
         self,
         comic_id: ComicID,
         is_draft: bool = False,
     ) -> list[TranslationResponseDTO]:
-        comic: ComicModel = await self._get_by_id(comic_id)
+        comic = await self._get_by_id(comic_id)
 
         if is_draft:
             return [TranslationResponseDTO.from_model(model) for model in comic.translation_drafts]

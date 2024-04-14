@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime as dt
 
-from api.types import IssueNumber, TranslationImageID
+from api.types import IssueNumber, Tag, TranslationImageID
 
 
 @dataclass(slots=True)
@@ -15,5 +15,5 @@ class ComicRequestDTO:
     explain_url: str | None
     click_url: str | None
     is_interactive: bool
-    tags: list[str]
+    tags: list[Tag]
     image_ids: list[TranslationImageID]

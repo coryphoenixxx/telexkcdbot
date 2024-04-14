@@ -1,10 +1,10 @@
 import datetime as dt
 
-from pydantic import BaseModel, HttpUrl, field_validator
+from pydantic import BaseModel, HttpUrl
+from shared.utils import cast_or_none
 
 from api.application.dtos.requests.comic import ComicRequestDTO
-from api.types import IssueNumber, TranslationImageID
-from shared.utils import cast_or_none
+from api.types import IssueNumber, Tag, TranslationImageID
 
 
 class ComicRequestSchema(BaseModel):
@@ -17,19 +17,8 @@ class ComicRequestSchema(BaseModel):
     explain_url: HttpUrl
     click_url: HttpUrl | None
     is_interactive: bool
-    tags: list[str]
+    tags: list[Tag]
     image_ids: list[TranslationImageID]
-
-    @field_validator("tags")
-    @classmethod
-    def validate_tags(cls, tags: list[str]) -> list[str]:
-        result = []
-        for tag in tags:
-            stripped_tag = tag.strip()
-            if len(stripped_tag) < 2:
-                raise ValueError(f"`{tag}` is invalid tag. Minimum length is 2.")
-            result.append(stripped_tag)
-        return result
 
     def to_dto(self) -> ComicRequestDTO:
         return ComicRequestDTO(
