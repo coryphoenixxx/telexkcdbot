@@ -32,11 +32,11 @@ class XkcdFRScraper(BaseScraper):
         try:
             translation = XkcdTranslationData(
                 number=number,
-                source_link=url,
+                source_url=url,
                 title=data[0],
                 tooltip=data[1],
                 image=self._BASE_URL / f"comics/{number}.jpg",
-                language='FR',
+                language="FR",
             )
         except Exception as err:
             raise ScraperError(url) from err

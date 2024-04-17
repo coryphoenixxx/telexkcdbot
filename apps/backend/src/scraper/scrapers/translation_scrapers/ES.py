@@ -32,7 +32,7 @@ class XkcdESScraper(BaseScraper):
         try:
             data = XkcdTranslationData(
                 number=number,
-                source_link=url,
+                source_url=url,
                 title=self._extract_title(soup),
                 tooltip=self._extract_tooltip(soup),
                 image=self._extract_image_url(soup),

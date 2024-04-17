@@ -14,7 +14,7 @@ class TranslationResponseDTO:
     tooltip: str
     raw_transcript: str
     translator_comment: str
-    source_link: str | None
+    source_url: str | None
     images: list[TranslationImageProcessedResponseDTO]
     is_draft: bool
 
@@ -29,6 +29,6 @@ class TranslationResponseDTO:
             raw_transcript=model.raw_transcript,
             translator_comment=model.translator_comment,
             images=[TranslationImageProcessedResponseDTO.from_model(img) for img in model.images],
-            source_link=model.source_link,
+            source_url=model.source_url,
             is_draft=model.is_draft,
         )

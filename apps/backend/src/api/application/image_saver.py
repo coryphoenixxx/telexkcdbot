@@ -1,4 +1,5 @@
 import logging
+import os
 import shutil
 from pathlib import Path
 from typing import Final
@@ -23,6 +24,7 @@ class ImageSaveHelper:
         await aos.makedirs(abs_path.parent, exist_ok=True)
 
         try:
+            os.chmod(image.path, 0o644)
             shutil.move(image.path, abs_path)
         except FileNotFoundError as err:
             logging.error(f"{err.strerror}: {image.path}")

@@ -15,7 +15,7 @@ class TranslationResponseSchema(BaseModel):
     title: str
     tooltip: str
     translator_comment: str
-    source_link: HttpUrl | None
+    source_url: HttpUrl | None
     images: list[TranslationImageProcessedResponseSchema]
 
     @classmethod
@@ -30,7 +30,7 @@ class TranslationResponseSchema(BaseModel):
                 title=dto.title,
                 tooltip=dto.tooltip,
                 translator_comment=dto.translator_comment,
-                source_link=dto.source_link,
+                source_url=dto.source_url,
                 images=[
                     TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images
                 ],
@@ -53,7 +53,7 @@ class TranslationWLanguageResponseSchema(TranslationResponseSchema):
             title=dto.title,
             tooltip=dto.tooltip,
             translator_comment=dto.translator_comment,
-            source_link=dto.source_link,
+            source_url=dto.source_url,
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
         )
 
@@ -73,7 +73,7 @@ class TranslationWDraftStatusSchema(TranslationWLanguageResponseSchema):
             title=dto.title,
             tooltip=dto.tooltip,
             translator_comment=dto.translator_comment,
-            source_link=dto.source_link,
+            source_url=dto.source_url,
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
             is_draft=dto.is_draft,
         )

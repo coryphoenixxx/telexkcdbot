@@ -14,7 +14,7 @@ class TranslationRequestSchema(BaseModel):
     raw_transcript: str
     translator_comment: str
     image_ids: list[TranslationImageID]
-    source_link: HttpUrl | None
+    source_url: HttpUrl | None
 
     def to_dto(self) -> TranslationRequestDTO:
         return TranslationRequestDTO(
@@ -24,7 +24,7 @@ class TranslationRequestSchema(BaseModel):
             raw_transcript=self.raw_transcript,
             translator_comment=self.translator_comment,
             image_ids=self.image_ids,
-            source_link=cast_or_none(str, self.source_link),
+            source_url=cast_or_none(str, self.source_url),
             is_draft=False,
         )
 

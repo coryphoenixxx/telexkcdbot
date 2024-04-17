@@ -28,7 +28,7 @@ class XkcdZHScraper(BaseScraper):
 
             data = XkcdTranslationData(
                 number=self._extract_number_from_url(url),
-                source_link=url,
+                source_url=url,
                 title=self._extract_title(soup),
                 tooltip=tooltip,
                 image=self._extract_image_url(soup),

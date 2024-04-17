@@ -1,4 +1,6 @@
-from sqlalchemy import delete
+from typing import NoReturn
+
+from sqlalchemy import delete, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import noload
 from sqlalchemy.sql.selectable import ForUpdateArg, ForUpdateParameter
@@ -8,13 +10,14 @@ from api.application.dtos.responses.translation import TranslationResponseDTO
 from api.application.exceptions.comic import ComicByIDNotFoundError
 from api.application.exceptions.translation import (
     TranslationAlreadyExistsError,
-    TranslationNotFoundError,
+    TranslationByIDNotFoundError,
+    TranslationByLanguageNotFoundError,
 )
 from api.infrastructure.database.models import TranslationModel
 from api.infrastructure.database.repositories.base import BaseRepo
 from api.infrastructure.database.repositories.mixins import GetImagesMixin
 from api.infrastructure.database.utils import build_searchable_text
-from api.types import ComicID, TranslationID
+from api.types import ComicID, Language, TranslationID
 
 
 class TranslationRepo(BaseRepo, GetImagesMixin):
@@ -32,7 +35,7 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
             tooltip=dto.tooltip,
             raw_transcript=dto.raw_transcript,
             translator_comment=dto.translator_comment,
-            source_link=dto.source_link,
+            source_url=dto.source_url,
             is_draft=dto.is_draft,
             images=images,
             searchable_text=build_searchable_text(dto.title, dto.raw_transcript, dto.is_draft),
@@ -66,7 +69,7 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
         translation.tooltip = dto.tooltip
         translation.raw_transcript = dto.raw_transcript
         translation.translator_comment = dto.translator_comment
-        translation.source_link = dto.source_link
+        translation.source_url = dto.source_url
         translation.images = images
         translation.searchable_text = build_searchable_text(dto.title, dto.raw_transcript)
 
@@ -81,7 +84,7 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
         self,
         translation_id: TranslationID,
         new_draft_status: bool,
-    ):
+    ) -> None:
         translation = await self._get_by_id(translation_id, with_for_update=True)
         translation.is_draft = new_draft_status
 
@@ -96,10 +99,21 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
         translation = (await self._session.scalars(stmt)).unique().one_or_none()
 
         if not translation:
-            raise TranslationNotFoundError(translation_id=translation_id)
+            raise TranslationByIDNotFoundError(translation_id=translation_id)
 
     async def get_by_id(self, translation_id: TranslationID) -> TranslationResponseDTO:
-        translation = await self._get_by_id(translation_id)
+        return TranslationResponseDTO.from_model(model=await self._get_by_id(translation_id))
+
+    async def get_by_language(self, comic_id, language: Language) -> TranslationResponseDTO:
+        stmt = select(TranslationModel).where(
+            TranslationModel.comic_id == comic_id,
+            TranslationModel.language == language,
+        )
+
+        translation = (await self._session.scalars(stmt)).unique().one_or_none()
+
+        if not translation:
+            raise TranslationByLanguageNotFoundError(comic_id, language)
 
         return TranslationResponseDTO.from_model(translation)
 
@@ -108,28 +122,27 @@ class TranslationRepo(BaseRepo, GetImagesMixin):
         translation_id: TranslationID,
         with_for_update: ForUpdateParameter = False,
     ) -> TranslationModel:
-        translation = await self._session.get(
+        translation_model = await self._session.get(
             TranslationModel,
             translation_id,
             with_for_update=with_for_update,
         )
 
-        if not translation:
-            raise TranslationNotFoundError(translation_id=translation_id)
+        if not translation_model:
+            raise TranslationByIDNotFoundError(translation_id=translation_id)
 
-        return translation
+        return translation_model
 
     def _handle_db_error(
         self,
         err: DBAPIError,
         comic_id: ComicID,
         dto: TranslationRequestDTO,
-    ) -> None:
-        constraint_name = err.__cause__.__cause__.constraint_name
-
-        if constraint_name == "uq_translation_if_not_draft":
-            raise TranslationAlreadyExistsError(comic_id, dto.language)
-        elif constraint_name == "fk_translations_comic_id_comics":
-            raise ComicByIDNotFoundError(comic_id)
-
-        raise err
+    ) -> NoReturn:
+        match err.__cause__.__cause__.constraint_name:  # type: ignore
+            case "uq_translation_if_not_draft":
+                raise TranslationAlreadyExistsError(comic_id, dto.language)
+            case "fk_translations_comic_id_comics":
+                raise ComicByIDNotFoundError(comic_id)
+            case _:
+                raise err

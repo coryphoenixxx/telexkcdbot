@@ -57,7 +57,7 @@ class ComicModel(Base, TimestampMixin):
         cascade="all, delete",
     )
 
-    base_translation: Mapped[TranslationModel] = relationship(
+    original: Mapped[TranslationModel] = relationship(
         lazy="selectin",
         back_populates="comic",
         primaryjoin=lambda: and_(
@@ -76,7 +76,7 @@ class ComicModel(Base, TimestampMixin):
             TranslationModel.is_draft == false(),
             TranslationModel.language != "EN",
         ),
-        overlaps="base_translation",
+        overlaps="original",
     )
 
     translation_drafts: Mapped[list["TranslationModel"]] = relationship(
@@ -88,7 +88,7 @@ class ComicModel(Base, TimestampMixin):
             TranslationModel.is_draft == true(),
             TranslationModel.language != "EN",
         ),
-        overlaps="base_translation,translations",
+        overlaps="original,translations",
     )
 
     def __str__(self):

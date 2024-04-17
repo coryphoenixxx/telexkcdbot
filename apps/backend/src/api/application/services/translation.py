@@ -1,7 +1,7 @@
 from api.application.dtos.requests.translation import TranslationRequestDTO
 from api.application.dtos.responses.translation import TranslationResponseDTO
 from api.application.exceptions.translation import (
-    EnglishTranslationOperationForbiddenError,
+    OriginalTranslationOperationForbiddenError,
 )
 from api.infrastructure.database.holder import DatabaseHolder
 from api.types import ComicID, Language, TranslationID
@@ -17,13 +17,13 @@ class TranslationService:
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
         if dto.language == Language.EN:
-            raise EnglishTranslationOperationForbiddenError
+            raise OriginalTranslationOperationForbiddenError
 
         async with self._db_holder:
-            translation_resp_dto = await self._db_holder.translation_repo.add(comic_id, dto)
+            translation = await self._db_holder.translation_repo.add(comic_id, dto)
             await self._db_holder.commit()
 
-        return translation_resp_dto
+        return translation
 
     async def update(
         self,
@@ -31,29 +31,29 @@ class TranslationService:
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
         if dto.language == Language.EN:
-            raise EnglishTranslationOperationForbiddenError
+            raise OriginalTranslationOperationForbiddenError
 
         async with self._db_holder:
             candidate = await self._db_holder.translation_repo.get_by_id(translation_id)
 
             if candidate.language == Language.EN:
-                raise EnglishTranslationOperationForbiddenError
+                raise OriginalTranslationOperationForbiddenError
 
-            translation_resp_dto = await self._db_holder.translation_repo.update(
+            translation = await self._db_holder.translation_repo.update(
                 translation_id=translation_id,
                 dto=dto,
             )
 
             await self._db_holder.commit()
 
-        return translation_resp_dto
+        return translation
 
     async def delete(self, translation_id: TranslationID) -> None:
         async with self._db_holder:
-            translation_resp_dto = await self._db_holder.translation_repo.get_by_id(translation_id)
+            tranlation = await self._db_holder.translation_repo.get_by_id(translation_id)
 
-            if translation_resp_dto.language == Language.EN:
-                raise EnglishTranslationOperationForbiddenError
+            if tranlation.language == Language.EN:
+                raise OriginalTranslationOperationForbiddenError
 
             await self._db_holder.translation_repo.delete(translation_id)
 
@@ -61,9 +61,22 @@ class TranslationService:
 
     async def get_by_id(self, translation_id: TranslationID) -> TranslationResponseDTO:
         async with self._db_holder:
-            translation_resp_dto = await self._db_holder.translation_repo.get_by_id(translation_id)
+            translation = await self._db_holder.translation_repo.get_by_id(translation_id)
 
-        return translation_resp_dto
+        return translation
+
+    async def get_by_language(
+        self,
+        comic_id: ComicID,
+        language: Language,
+    ) -> TranslationResponseDTO:
+        async with self._db_holder:
+            translation = await self._db_holder.translation_repo.get_by_language(
+                comic_id=comic_id,
+                language=language,
+            )
+
+        return translation
 
     async def publish(self, translation_id: TranslationID):
         async with self._db_holder:

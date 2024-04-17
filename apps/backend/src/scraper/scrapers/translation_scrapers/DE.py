@@ -44,7 +44,7 @@ class XkcdDEScraper(BaseScraper):
         try:
             translation = XkcdTranslationData(
                 number=number,
-                source_link=url,
+                source_url=url,
                 title=self._extract_title(soup),
                 tooltip=self._extract_tooltip(soup),
                 image=await self._extract_image_url(soup),

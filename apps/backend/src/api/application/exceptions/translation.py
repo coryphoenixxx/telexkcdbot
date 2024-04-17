@@ -53,7 +53,7 @@ class TranslationAlreadyExistsError(BaseConflictError):
 
 
 @dataclass
-class TranslationNotFoundError(BaseNotFoundError):
+class TranslationByIDNotFoundError(BaseNotFoundError):
     translation_id: TranslationID
     message: str = "Translation not found."
 
@@ -66,7 +66,21 @@ class TranslationNotFoundError(BaseNotFoundError):
 
 
 @dataclass
-class EnglishTranslationOperationForbiddenError(BaseBadRequestError):
+class TranslationByLanguageNotFoundError(BaseNotFoundError):
+    comic_id: ComicID
+    language: Language
+    message: str = "Translation not found."
+
+    @property
+    def detail(self) -> str | dict[str, Any]:
+        return {
+            "message": self.message,
+            "comic_id": self.comic_id,
+        }
+
+
+@dataclass
+class OriginalTranslationOperationForbiddenError(BaseBadRequestError):
     message: str = "Operations on English translation are forbidden, use the original."
 
     @property

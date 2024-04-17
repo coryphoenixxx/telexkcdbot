@@ -4,11 +4,12 @@ from starlette import status
 
 from api.application.exceptions.comic import ComicByIDNotFoundError
 from api.application.exceptions.translation import (
-    EnglishTranslationOperationForbiddenError,
     ImagesAlreadyAttachedError,
     ImagesNotCreatedError,
+    OriginalTranslationOperationForbiddenError,
     TranslationAlreadyExistsError,
-    TranslationNotFoundError,
+    TranslationByIDNotFoundError,
+    TranslationByLanguageNotFoundError,
 )
 from api.application.services import TranslationService
 from api.infrastructure.database.holder import DatabaseHolder
@@ -21,7 +22,7 @@ from api.presentation.web.controllers.schemas.responses.translation import (
     TranslationWDraftStatusSchema,
     TranslationWLanguageResponseSchema,
 )
-from api.types import ComicID, TranslationID
+from api.types import ComicID, Language, TranslationID
 
 router = APIRouter(tags=["Translations"])
 
@@ -74,8 +75,8 @@ async def add_translation_draft(
     "/translations/{translation_id}",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_400_BAD_REQUEST: {"model": EnglishTranslationOperationForbiddenError},
-        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
+        status.HTTP_400_BAD_REQUEST: {"model": OriginalTranslationOperationForbiddenError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
         status.HTTP_409_CONFLICT: {
             "model": ImagesNotCreatedError | ImagesAlreadyAttachedError,
         },
@@ -99,8 +100,8 @@ async def update_translation(
     "/translations/{translation_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
-        status.HTTP_400_BAD_REQUEST: {"model": EnglishTranslationOperationForbiddenError},
-        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
+        status.HTTP_400_BAD_REQUEST: {"model": OriginalTranslationOperationForbiddenError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
     },
 )
 async def delete_translation(
@@ -115,7 +116,7 @@ async def delete_translation(
     "/translations/{translation_id}",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
     },
 )
 async def get_translation_by_id(
@@ -132,7 +133,7 @@ async def get_translation_by_id(
     "/translations/{translation_id}/raw_transcript",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
     },
 )
 async def get_translation_raw_transcript(
@@ -145,11 +146,29 @@ async def get_translation_raw_transcript(
     return translation_resp_dto.raw_transcript
 
 
+@router.get(
+    "/comics/{comic_id}/translations/{language}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": TranslationByLanguageNotFoundError},
+    },
+)
+async def get_translation_by_language(
+    comic_id: ComicID,
+    language: Language,
+    *,
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+) -> TranslationWLanguageResponseSchema:
+    result = await TranslationService(db_holder).get_by_language(comic_id, language)
+
+    return TranslationWLanguageResponseSchema.from_dto(result)
+
+
 @router.post(
     "/translations/{translation_id}/publish",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
     },
 )
 async def publish_draft(

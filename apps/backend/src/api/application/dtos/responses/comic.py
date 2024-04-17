@@ -31,18 +31,18 @@ class ComicResponseDTO:
         return ComicResponseDTO(
             id=model.comic_id,
             number=model.number,
-            title=model.base_translation.title,
-            translation_id=model.base_translation.translation_id,
+            title=model.original.title,
+            translation_id=model.original.translation_id,
             publication_date=model.publication_date,
-            tooltip=model.base_translation.tooltip,
-            xkcd_url=model.base_translation.source_link,
+            tooltip=model.original.tooltip,
+            xkcd_url=model.original.source_url,
             explain_url=model.explain_url,
             click_url=model.click_url,
             is_interactive=model.is_interactive,
             tags=sorted([tag.name for tag in model.tags]),  # TODO: sort by SQL?
             images=[
                 TranslationImageProcessedResponseDTO.from_model(img)
-                for img in model.base_translation.images
+                for img in model.original.images
             ],
             has_translations=[tr.language for tr in model.translations],
         )
@@ -57,18 +57,18 @@ class ComicResponseWTranslationsDTO(ComicResponseDTO):
         return ComicResponseWTranslationsDTO(
             id=model.comic_id,
             number=model.number,
-            title=model.base_translation.title,
-            translation_id=model.base_translation.translation_id,
+            title=model.original.title,
+            translation_id=model.original.translation_id,
             publication_date=model.publication_date,
-            tooltip=model.base_translation.tooltip,
-            xkcd_url=model.base_translation.source_link,
+            tooltip=model.original.tooltip,
+            xkcd_url=model.original.source_url,
             explain_url=model.explain_url,
             click_url=model.click_url,
             is_interactive=model.is_interactive,
             tags=sorted([tag.name for tag in model.tags]),
             images=[
                 TranslationImageProcessedResponseDTO.from_model(img)
-                for img in model.base_translation.images
+                for img in model.original.images
             ],
             has_translations=[tr.language for tr in model.translations],
             translations=[TranslationResponseDTO.from_model(t) for t in model.translations],

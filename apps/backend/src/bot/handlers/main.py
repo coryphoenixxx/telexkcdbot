@@ -3,9 +3,8 @@ import re
 from aiogram import F, Router
 from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import Message
-from aiogram.utils.markdown import hlink, hbold, hcode
+from aiogram.utils.markdown import hbold, hcode, hlink
 from aiogram.utils.media_group import MediaGroupBuilder
-
 from bot.filters.main import ComicNumberFilter
 from shared.api_rest_client import APIRESTClient
 
@@ -62,7 +61,7 @@ def build_caption(
 
 @router.message(ComicNumberFilter())
 async def get_comic_by_number_handler(
-    msg: Message, api_client: APIRESTClient, img_prefix: str
+    msg: Message, api_client: APIRESTClient, img_prefix: str,
 ) -> None:
     comic = await api_client.get_comic_by_number(
         int(msg.text),
@@ -78,16 +77,16 @@ async def get_comic_by_number_handler(
             tooltip=comic["tooltip"],
             translation_tooltip=comic["translations"][LANG]["tooltip"],
             xkcd_url=comic["xkcd_url"],
-            translation_source_url=comic["translations"][LANG]["source_link"],
+            translation_source_url=comic["translations"][LANG]["source_url"],
             tags=comic["tags"],
-        )
+        ),
     )
 
-    album_builder.add_photo(media=img_prefix + comic["images"][0]["converted"])
-    album_builder.add_photo(
-        media=img_prefix + comic["translations"][LANG]["images"][0]["converted"],
-        has_spoiler=True,
-    )
+    orig_img_url = img_prefix + comic["images"][0]["converted"]
+    tran_img_url = img_prefix + comic["translations"][LANG]["images"][0]["converted"]
+
+    album_builder.add_photo(media=orig_img_url)
+    album_builder.add_photo(media=tran_img_url, has_spoiler=True)
 
     if comic:
         await msg.answer_media_group(album_builder.build())

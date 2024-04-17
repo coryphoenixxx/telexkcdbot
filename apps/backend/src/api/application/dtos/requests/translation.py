@@ -10,6 +10,6 @@ class TranslationRequestDTO:
     tooltip: str
     raw_transcript: str
     translator_comment: str
-    source_link: str | None
+    source_url: str | None
     image_ids: list[TranslationImageID]
     is_draft: bool

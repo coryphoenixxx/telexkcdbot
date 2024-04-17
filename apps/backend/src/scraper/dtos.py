@@ -19,7 +19,7 @@ class XkcdOriginScrapedData:
 @dataclass(slots=True)
 class XkcdTranslationData:
     number: int
-    source_link: URL | None
+    source_url: URL | None
     title: str
     image: URL | Path | None
     language: str
@@ -74,5 +74,5 @@ class XkcdTranslationUploadData:
     tooltip: str | None
     raw_transcript: str
     translator_comment: str
-    source_link: str | None
+    source_url: str | None
     image_ids: list[int]

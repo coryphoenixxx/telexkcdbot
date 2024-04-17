@@ -3,6 +3,7 @@ import datetime
 from fastapi import Depends
 from fastapi.params import Query
 from faststream.nats.fastapi import NatsRouter as APIRouter
+from shared.types import Order
 from starlette import status
 
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
@@ -32,7 +33,6 @@ from api.presentation.web.controllers.schemas.responses.translation import (
     TranslationWLanguageResponseSchema,
 )
 from api.types import ComicID, IssueNumber, Language, Tag
-from shared.types import Order
 
 router = APIRouter(tags=["Comics"])
 

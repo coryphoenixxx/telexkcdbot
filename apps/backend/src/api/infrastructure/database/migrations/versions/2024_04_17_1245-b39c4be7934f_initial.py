@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: bfbb72709ca4
+Revision ID: b39c4be7934f
 Revises:
-Create Date: 2024-04-10 20:20:45.153454
+Create Date: 2024-04-17 12:45:08.462570
 
 """
 
@@ -11,7 +11,7 @@ from alembic import op
 from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
-revision = "bfbb72709ca4"
+revision = "b39c4be7934f"
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -92,7 +92,7 @@ def upgrade() -> None:
         sa.Column("tooltip", sa.String(), nullable=False),
         sa.Column("raw_transcript", sa.String(), nullable=False),
         sa.Column("translator_comment", sa.String(), nullable=False),
-        sa.Column("source_link", sa.String(), nullable=True),
+        sa.Column("source_url", sa.String(), nullable=True),
         sa.Column("is_draft", sa.Boolean(), nullable=False),
         sa.Column("searchable_text", sa.String(), nullable=False),
         sa.Column(
@@ -168,17 +168,13 @@ def downgrade() -> None:
         postgresql_where=sa.text("NOT is_draft"),
     )
     op.drop_index(
-        "ix_translations_searchable_text",
-        table_name="translations",
-        postgresql_using="pgroonga",
+        "ix_translations_searchable_text", table_name="translations", postgresql_using="pgroonga",
     )
     op.drop_table("translations")
     op.drop_table("comic_tag_association")
     op.drop_table("tags")
     op.drop_index(
-        "uq_title_if_extra",
-        table_name="comics",
-        postgresql_where=sa.text("number IS NULL"),
+        "uq_title_if_extra", table_name="comics", postgresql_where=sa.text("number IS NULL"),
     )
     op.drop_index(
         "uq_number_if_not_extra",

@@ -43,7 +43,7 @@ class TranslationModel(Base, TimestampMixin):
     tooltip: Mapped[str] = mapped_column(default="")
     raw_transcript: Mapped[str] = mapped_column(default="")
     translator_comment: Mapped[str] = mapped_column(default="")
-    source_link: Mapped[str | None]
+    source_url: Mapped[str | None]
     is_draft: Mapped[bool] = mapped_column(default=False)
     images: Mapped[list["TranslationImageModel"]] = relationship(
         back_populates="translation",

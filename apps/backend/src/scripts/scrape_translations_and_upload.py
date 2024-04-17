@@ -70,12 +70,12 @@ def extract_prescraped_translations(
                     if number < limits.start or number > limits.end:
                         continue
 
-                    source_link = row["source_link"]
+                    source_url = row["source_url"]
 
                     translations.append(
                         XkcdTranslationData(
                             number=number,
-                            source_link=URL(source_link) if source_link else None,
+                            source_url=URL(source_url) if source_url else None,
                             title=row["title"],
                             tooltip=row["tooltip"],
                             image=number_image_path_map[number],

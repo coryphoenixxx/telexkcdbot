@@ -48,7 +48,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
                     tooltip=dto.tooltip,
                     raw_transcript=dto.raw_transcript,
                     translator_comment="",
-                    source_link=dto.xkcd_url,
+                    source_url=dto.xkcd_url,
                     images=images,
                     is_draft=False,
                     searchable_text=build_searchable_text(dto.title, dto.raw_transcript),
@@ -87,11 +87,11 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         comic.is_interactive = dto.is_interactive
         comic.tags = tags
 
-        comic.base_translation.title = dto.title
-        comic.base_translation.tooltip = dto.tooltip
-        comic.base_translation.raw_transcript = dto.raw_transcript
-        comic.base_translation.images = images
-        comic.base_translation.xkcd_url = dto.xkcd_url
+        comic.original.title = dto.title
+        comic.original.tooltip = dto.tooltip
+        comic.original.raw_transcript = dto.raw_transcript
+        comic.original.images = images
+        comic.original.xkcd_url = dto.xkcd_url
 
         try:
             await self._session.flush()
@@ -129,7 +129,7 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         return ComicResponseWTranslationsDTO.from_model(comic)
 
     async def get_by_slug(self, slug: str) -> ComicResponseWTranslationsDTO:
-        stmt = select(ComicModel).where(ComicModel.slug == slug).options()
+        stmt = select(ComicModel).where(ComicModel.slug == slug)
 
         comic: ComicModel | None = (await self._session.scalars(stmt)).unique().one_or_none()
 
