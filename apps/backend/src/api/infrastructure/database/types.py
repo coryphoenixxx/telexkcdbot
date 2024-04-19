@@ -25,6 +25,7 @@ class DateRange:
 
 @dataclass(slots=True)
 class ComicFilterParams:
+    q: str | None
     limit: Limit | None
     offset: Offset | None
     date_range: DateRange | None

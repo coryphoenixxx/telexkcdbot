@@ -142,7 +142,13 @@ class ComicRepo(BaseRepo, GetImagesMixin):
         self,
         filter_params: ComicFilterParams,
     ) -> tuple[TotalCount, list[ComicResponseWTranslationsDTO]]:
-        stmt = select(ComicModel, func.count(ComicModel.comic_id).over().label("count"))
+        stmt = select(ComicModel, func.count(ComicModel.comic_id).over().label("total"))
+
+        if filter_params.q:
+            subq = select(TranslationModel.comic_id).where(
+                TranslationModel.searchable_text.op("&@")(filter_params.q),
+            )
+            stmt = stmt.where(ComicModel.comic_id.in_(subq))
 
         if filter_params.date_range.start:
             stmt = stmt.where(ComicModel.publication_date >= filter_params.date_range.start)
@@ -163,11 +169,13 @@ class ComicRepo(BaseRepo, GetImagesMixin):
 
         stmt = stmt.limit(filter_params.limit).offset(filter_params.offset)
 
-        count, comics = 0, []
-        if result := (await self._session.execute(stmt)).unique().all():
-            count, comics = result[0][1], [r[0] for r in result]
+        print((await self._session.scalars(stmt)).unique().all())
 
-        return count, [ComicResponseWTranslationsDTO.from_model(comic) for comic in comics]
+        total, comics = 0, []
+        if result := (await self._session.execute(stmt)).unique().all():
+            total, comics = result[0][1], [r[0] for r in result]
+
+        return total, [ComicResponseWTranslationsDTO.from_model(comic) for comic in comics]
 
     async def get_translations(
         self,

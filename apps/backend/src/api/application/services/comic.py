@@ -54,9 +54,9 @@ class ComicService:
         query_params: ComicFilterParams,
     ) -> tuple[TotalCount, list[ComicResponseWTranslationsDTO]]:
         async with self._db_holder:
-            count, comic_resp_dtos = await self._db_holder.comic_repo.get_list(query_params)
+            total, comic_resp_dtos = await self._db_holder.comic_repo.get_list(query_params)
 
-        return count, comic_resp_dtos
+        return total, comic_resp_dtos
 
     async def get_translations(
         self,
