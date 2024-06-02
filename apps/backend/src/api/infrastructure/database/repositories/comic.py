@@ -169,8 +169,6 @@ class ComicRepo(BaseRepo, GetImagesMixin):
 
         stmt = stmt.limit(filter_params.limit).offset(filter_params.offset)
 
-        print((await self._session.scalars(stmt)).unique().all())
-
         total, comics = 0, []
         if result := (await self._session.execute(stmt)).unique().all():
             total, comics = result[0][1], [r[0] for r in result]

@@ -51,7 +51,7 @@ async def add_translation(
 
 
 @router.post(
-    "/comics/{comic_id}/translations/drafts",
+    "/comics/{comic_id}/translation-drafts",
     status_code=status.HTTP_201_CREATED,
     responses={
         status.HTTP_404_NOT_FOUND: {"model": ComicByIDNotFoundError},
@@ -146,6 +146,21 @@ async def get_translation_raw_transcript(
     return translation_resp_dto.raw_transcript
 
 
+@router.post(
+    "/translations/{translation_id}/publish",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
+    },
+)
+async def publish_draft(
+    translation_id: TranslationID,
+    *,
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+):
+    await TranslationService(db_holder).publish(translation_id)
+
+
 @router.get(
     "/comics/{comic_id}/translations/{language}",
     status_code=status.HTTP_200_OK,
@@ -164,16 +179,35 @@ async def get_translation_by_language(
     return TranslationWLanguageResponseSchema.from_dto(result)
 
 
-@router.post(
-    "/translations/{translation_id}/publish",
+@router.get(
+    "/comics/{comic_id}/translations",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": ComicByIDNotFoundError},
     },
 )
-async def publish_draft(
-    translation_id: TranslationID,
+async def get_comic_translations(
+    comic_id: ComicID,
     *,
     db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
-):
-    await TranslationService(db_holder).publish(translation_id)
+) -> list[TranslationWLanguageResponseSchema]:
+    translation_resp_dtos = await TranslationService(db_holder).get_all(comic_id, False)
+
+    return [TranslationWLanguageResponseSchema.from_dto(dto) for dto in translation_resp_dtos]
+
+
+@router.get(
+    "/comics/{comic_id}/translation-drafts",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicByIDNotFoundError},
+    },
+)
+async def get_comic_translation_drafts(
+    comic_id: ComicID,
+    *,
+    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+) -> list[TranslationWLanguageResponseSchema]:
+    translation_resp_dtos = await TranslationService(db_holder).get_all(comic_id, True)
+
+    return [TranslationWLanguageResponseSchema.from_dto(dto) for dto in translation_resp_dtos]

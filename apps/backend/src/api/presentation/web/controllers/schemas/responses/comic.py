@@ -58,9 +58,9 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
 
     @classmethod
     def from_dto(
-            cls,
-            dto: ComicResponseWTranslationsDTO,
-            filter_languages: list[Language] | None = None,
+        cls,
+        dto: ComicResponseWTranslationsDTO,
+        filter_languages: list[Language] | None = None,
     ) -> "ComicWTranslationsResponseSchema":
         return ComicWTranslationsResponseSchema(
             id=dto.id,
@@ -80,14 +80,14 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
         )
 
 
-class ComicsWithMetadata(BaseModel):
+class ComicsWMetadata(BaseModel):
     meta: Pagination
-    data: list[ComicResponseSchema | ComicWTranslationsResponseSchema]
+    data: list[ComicResponseSchema]
 
 
 def _prepare_and_filter(
-        translations: list[TranslationResponseDTO],
-        filter_languages: list[Language] | None = None,
+    translations: list[TranslationResponseDTO],
+    filter_languages: list[Language] | None = None,
 ) -> Mapping[Language, TranslationResponseSchema]:
     translation_map = {}
     for tr in translations:

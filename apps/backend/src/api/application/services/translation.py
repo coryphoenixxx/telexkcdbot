@@ -78,6 +78,16 @@ class TranslationService:
 
         return translation
 
+    async def get_all(
+        self,
+        comic_id: ComicID,
+        is_draft: bool = False,
+    ) -> list[TranslationResponseDTO]:
+        async with self._db_holder:
+            draft_resp_dtos = await self._db_holder.comic_repo.get_translations(comic_id, is_draft)
+
+        return draft_resp_dtos
+
     async def publish(self, translation_id: TranslationID):
         async with self._db_holder:
             candidate = await self._db_holder.translation_repo.get_by_id(translation_id)

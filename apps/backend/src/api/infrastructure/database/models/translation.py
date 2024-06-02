@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Index, String
+from sqlalchemy import ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from api.infrastructure.database.models import Base
@@ -50,7 +50,7 @@ class TranslationModel(Base, TimestampMixin):
         lazy="joined",
     )
 
-    searchable_text: Mapped[str]
+    searchable_text: Mapped[str] = mapped_column(Text)
 
     comic: Mapped["ComicModel"] = relationship(back_populates="translations")
 
