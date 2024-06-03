@@ -12,7 +12,7 @@ from yarl import URL
 
 from shared.api_rest_client.exceptions import APIServerError
 from shared.http_client import AsyncHttpClient
-from shared.types import Order
+from shared.my_types import Order
 
 logger = logging.getLogger(__name__)
 

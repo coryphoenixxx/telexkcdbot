@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from api.infrastructure.database.config import DBConfig
+from api.infrastructure.database.config import DbConfig
 
 
 @dataclass
@@ -17,5 +17,5 @@ class APIConfig:
 
 @dataclass
 class AppConfig:
-    db: DBConfig = field(default_factory=DBConfig)
+    db: DbConfig = field(default_factory=DbConfig)
     api: APIConfig = field(default_factory=APIConfig)

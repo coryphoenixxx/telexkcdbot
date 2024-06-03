@@ -1,11 +1,9 @@
 from typing import Annotated
 
-from fastapi import Depends, File, Query, UploadFile
-from faststream.nats import JStream, PullSub
-from faststream.nats.fastapi import NatsBroker
-from faststream.nats.fastapi import NatsRouter as APIRouter
+from dishka import FromDishka as Depends
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter, File, Query, UploadFile
 from pydantic import HttpUrl, constr
-from shared.messages import ImageProcessOutMessage
 from starlette import status
 
 from api.application.exceptions.image import (
@@ -16,18 +14,15 @@ from api.application.exceptions.image import (
     UploadedImageTypeConflictError,
     UploadExceedSizeLimitError,
 )
-from api.application.image_saver import ImageSaveHelper
 from api.application.services import TranslationImageService
-from api.infrastructure.database.holder import DatabaseHolder
-from api.presentation.stub import Stub
-from api.presentation.types import TranslationImageMeta
+from api.my_types import Language
+from api.presentation.my_types import TranslationImageMeta
 from api.presentation.upload_reader import UploadImageHandler
 from api.presentation.web.controllers.schemas.responses.image import (
     TranslationImageOrphanResponseSchema,
 )
-from api.types import Language, TranslationImageID
 
-router = APIRouter(tags=["Images"])
+router = APIRouter(tags=["Images"], route_class=DishkaRoute)
 
 
 @router.post(
@@ -56,10 +51,8 @@ async def upload_image(
     image_file: Annotated[UploadFile, File(...)] = None,
     image_url: HttpUrl | None = None,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
-    upload_reader: UploadImageHandler = Depends(Stub(UploadImageHandler)),
-    image_saver: ImageSaveHelper = Depends(Stub(ImageSaveHelper)),
-    broker: NatsBroker,
+    upload_reader: Depends[UploadImageHandler],
+    service: Depends[TranslationImageService],
 ) -> TranslationImageOrphanResponseSchema:
     if image_file and image_url:
         raise UploadedImageTypeConflictError
@@ -72,11 +65,7 @@ async def upload_image(
             else await upload_reader.download(str(image_url))
         )
 
-    image_resp_dto = await TranslationImageService(
-        db_holder=db_holder,
-        image_saver=image_saver,
-        broker=broker,
-    ).create(
+    image_resp_dto = await service.create(
         metadata=TranslationImageMeta(
             number=number,
             title=title,
@@ -92,26 +81,27 @@ async def upload_image(
     )
 
 
-@router.subscriber(
-    "internal.api.images.process.out",
-    queue="process_images_out_queue",
-    stream=JStream(
-        name="process_images_out_stream",
-        max_age=600,
-    ),
-    pull_sub=PullSub(),
-    durable="api",
-)
-async def processed_images_handler(
-    msg: ImageProcessOutMessage,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
-    image_saver: ImageSaveHelper = Depends(Stub(ImageSaveHelper)),
-):
-    await TranslationImageService(
-        db_holder=db_holder,
-        image_saver=image_saver,
-    ).update(
-        image_id=TranslationImageID(msg.image_id),
-        converted_abs_path=msg.converted_abs_path,
-        thumbnail_abs_path=msg.thumbnail_abs_path,
-    )
+# from faststream.nats import JStream, PullSub
+# from shared.messages import ImageProcessOutMessage
+#
+# @router.subscriber(
+#     "internal.api.images.process.out",
+#     queue="process_images_out_queue",
+#     stream=JStream(
+#         name="process_images_out_stream",
+#         max_age=600,
+#     ),
+#     pull_sub=PullSub(),
+#     durable="api",
+# )
+# @inject
+# async def processed_images_handler(
+#     msg: ImageProcessOutMessage,
+#     *,
+#     service: FromDishka[TranslationImageService],
+# ):
+#     await service.update(
+#         image_id=msg.image_id,
+#         converted_abs_path=msg.converted_abs_path,
+#         thumbnail_abs_path=msg.thumbnail_abs_path,
+#     )

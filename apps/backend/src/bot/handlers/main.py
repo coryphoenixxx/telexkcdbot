@@ -53,7 +53,7 @@ def build_caption(
 
     header = f"""{hbold(f"№{number}")}. {hlink(en_title, xkcd_url)}  |  {hspoiler(hlink(translation_title, translation_source_url))}\n"""
     publication_date = f"({hcode(publication_date)})"
-    tooltip = f"{tooltip}\n{'-'*20}\n{hspoiler(translation_tooltip)}"
+    tooltip = f"{tooltip}\n{'-' * 20}\n{hspoiler(translation_tooltip)}"
     tags = "_" * 20 + "\n" + "".join([f"#{prepare_tag(t)}   " for t in tags])
 
     return "\n\n".join([header + publication_date, tooltip, tags]).strip()
@@ -61,32 +61,50 @@ def build_caption(
 
 @router.message(ComicNumberFilter())
 async def get_comic_by_number_handler(
-    msg: Message, api_client: APIRESTClient, img_prefix: str,
+    msg: Message,
+    api_client: APIRESTClient,
+    img_prefix: str,
 ) -> None:
     comic = await api_client.get_comic_by_number(
         int(msg.text),
         languages=[LANG],
     )
 
-    album_builder = MediaGroupBuilder(
-        caption=build_caption(
-            number=comic["number"],
-            en_title=comic["title"],
-            translation_title=comic["translations"][LANG]["title"],
-            publication_date=comic["publication_date"],
-            tooltip=comic["tooltip"],
-            translation_tooltip=comic["translations"][LANG]["tooltip"],
-            xkcd_url=comic["xkcd_url"],
-            translation_source_url=comic["translations"][LANG]["source_url"],
-            tags=comic["tags"],
-        ),
+    album_builder = MediaGroupBuilder()
+
+    orig_img_url = img_prefix + comic["images"][0]["original"]
+    tran_img_url = img_prefix + comic["translations"][LANG]["images"][0]["original"]
+
+    print(tran_img_url)
+
+    # album_builder.add_photo(media=orig_img_url)
+    # album_builder.add_photo(media=tran_img_url, has_spoiler=True)
+
+    caption = build_caption(
+        number=comic["number"],
+        en_title=comic["title"],
+        translation_title=comic["translations"][LANG]["title"],
+        publication_date=comic["publication_date"],
+        tooltip=comic["tooltip"],
+        translation_tooltip=comic["translations"][LANG]["tooltip"],
+        xkcd_url=comic["xkcd_url"],
+        translation_source_url=comic["translations"][LANG]["source_url"],
+        tags=comic["tags"],
     )
 
-    orig_img_url = img_prefix + comic["images"][0]["converted"]
-    tran_img_url = img_prefix + comic["translations"][LANG]["images"][0]["converted"]
+    # album_builder.add_photo(media=orig_img_url, disable_content_type_detection=True)
+    # album_builder.add_photo(
+    #     media=tran_img_url,
+    #     disable_content_type_detection=True,
+    #     caption=caption,
+    # )
 
-    album_builder.add_photo(media=orig_img_url)
-    album_builder.add_photo(media=tran_img_url, has_spoiler=True)
+    album_builder.add_document(media=orig_img_url, disable_content_type_detection=True)
+    album_builder.add_document(
+        media=tran_img_url,
+        disable_content_type_detection=True,
+        caption=caption,
+    )
 
     if comic:
         await msg.answer_media_group(album_builder.build())

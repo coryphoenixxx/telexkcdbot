@@ -6,7 +6,7 @@ from api.application.dtos.responses import (
     TranslationResponseDTO,
 )
 from api.infrastructure.database.models import ComicModel
-from api.types import ComicID, IssueNumber, Language, TranslationID
+from api.my_types import ComicID, IssueNumber, Language, TranslationID
 
 
 @dataclass(slots=True)

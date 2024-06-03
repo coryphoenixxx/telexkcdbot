@@ -1,4 +1,5 @@
 import logging
+from types import TracebackType
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -8,25 +9,26 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from api.infrastructure.database.config import DBConfig
-from api.infrastructure.database.repositories import (
-    ComicRepo,
-    TranslationImageRepo,
-    TranslationRepo,
+from api.infrastructure.database.config import DbConfig
+from api.infrastructure.database.gateways import (
+    ComicGateway,
+    TranslationGateway,
+    TranslationImageGateway,
 )
 
 __all__ = [
-    "ComicRepo",
-    "TranslationImageRepo",
-    "TranslationRepo",
+    "ComicGateway",
+    "TranslationImageGateway",
+    "TranslationGateway",
     "create_db_engine",
     "create_db_session_factory",
     "check_db_connection",
-    "DBConfig",
+    "DbConfig",
+    "UnitOfWork",
 ]
 
 
-def create_db_engine(config: DBConfig) -> AsyncEngine:
+def create_db_engine(config: DbConfig) -> AsyncEngine:
     return create_async_engine(
         url=config.dsn,
         echo=config.echo,
@@ -50,3 +52,27 @@ async def check_db_connection(engine: AsyncEngine):
             await conn.execute(text("SELECT 1"))
     except ConnectionError as e:
         logging.fatal(f"Database connection failed! ERROR: {e.strerror}")
+
+
+class UnitOfWork:
+    def __init__(self, session: AsyncSession):
+        self._session = session
+
+    async def __aenter__(self) -> "UnitOfWork":
+        return self
+
+    async def __aexit__(
+            self,
+            exc_type: type[BaseException] | None,
+            exc_val: BaseException | None,
+            exc_tb: TracebackType | None,
+    ) -> None:
+        if exc_type:
+            await self.rollback()
+        await self._session.close()
+
+    async def commit(self) -> None:
+        await self._session.commit()
+
+    async def rollback(self) -> None:
+        await self._session.rollback()

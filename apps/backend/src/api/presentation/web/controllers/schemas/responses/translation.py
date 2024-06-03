@@ -3,10 +3,10 @@ from collections.abc import Mapping
 from pydantic import BaseModel, HttpUrl
 
 from api.application.dtos.responses.translation import TranslationResponseDTO
+from api.my_types import Language, TranslationID
 from api.presentation.web.controllers.schemas.responses.image import (
     TranslationImageProcessedResponseSchema,
 )
-from api.types import Language, TranslationID
 
 
 class TranslationResponseSchema(BaseModel):

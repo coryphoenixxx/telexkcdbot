@@ -7,15 +7,16 @@ from uuid import uuid4
 
 import aiofiles.os as aos
 
-from api.presentation.types import ImageObj, TranslationImageMeta
+from api.config import APIConfig
+from api.presentation.my_types import ImageObj, TranslationImageMeta
 from api.utils import slugify
 
 
 class ImageSaveHelper:
     _IMAGES_URL_PREFIX: Final = "images/comics/"
 
-    def __init__(self, static_dir: Path):
-        self._static_dir = static_dir.absolute().resolve()
+    def __init__(self, config: APIConfig):
+        self._static_dir = config.static_dir.absolute().resolve()
 
     async def save(self, meta: TranslationImageMeta, image: ImageObj) -> tuple[Path, Path]:
         rel_path = self._build_rel_path(meta, image)

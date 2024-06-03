@@ -5,7 +5,7 @@ from api.application.exceptions.translation import (
     ImagesNotCreatedError,
 )
 from api.infrastructure.database.models import TranslationImageModel
-from api.types import TranslationID, TranslationImageID
+from api.my_types import TranslationID, TranslationImageID
 
 
 class GetImagesMixin:

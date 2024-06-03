@@ -22,8 +22,9 @@ python = "^3.12"
 
 [tool.poetry.group.api.dependencies]
 fastapi = "^0.111"
-uvicorn = { extras = ["standard"], version = "^0.30" }
+uvicorn = { extras = ["standard"], version = "^0.29" }
 sqlalchemy = "^2.0.23"
+dishka = "^1.2.0"
 asyncpg = "^0.29.0"
 python-multipart = "^0.0.9"
 orjson = "^3.9.10"

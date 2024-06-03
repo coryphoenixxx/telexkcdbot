@@ -8,7 +8,7 @@ import imagesize
 from aiofiles.tempfile import NamedTemporaryFile
 from aiohttp import ClientPayloadError, StreamReader
 from shared.http_client import AsyncHttpClient
-from shared.types import ImageFormat
+from shared.my_types import ImageFormat
 from starlette.datastructures import UploadFile
 from yarl import URL
 
@@ -18,7 +18,8 @@ from api.application.exceptions.image import (
     UnsupportedImageFormatError,
     UploadExceedSizeLimitError,
 )
-from api.presentation.types import Dimensions, ImageObj
+from api.config import APIConfig
+from api.presentation.my_types import Dimensions, ImageObj
 
 logger = logging.getLogger(__name__)
 
@@ -28,13 +29,12 @@ class UploadImageHandler:
 
     def __init__(
         self,
-        tmp_dir: Path,
-        upload_max_size: int,
+        config: APIConfig,
         http_client: AsyncHttpClient,
         download_timeout: float = 30.0,
     ):
-        self._tmp_dir = tmp_dir
-        self._upload_max_size = upload_max_size
+        self._tmp_dir = config.tmp_dir
+        self._upload_max_size = config.upload_max_size
         self._supported_formats = tuple(ImageFormat)
         self._http_client = http_client
         self._download_timeout = download_timeout

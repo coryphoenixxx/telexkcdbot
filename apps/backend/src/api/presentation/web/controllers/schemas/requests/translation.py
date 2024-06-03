@@ -4,7 +4,7 @@ from shared.utils import cast_or_none
 from api.application.dtos.requests.translation import (
     TranslationRequestDTO,
 )
-from api.types import Language, TranslationImageID
+from api.my_types import Language, TranslationImageID
 
 
 class TranslationRequestSchema(BaseModel):

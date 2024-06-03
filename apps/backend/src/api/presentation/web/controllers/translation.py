@@ -1,5 +1,6 @@
-from fastapi import Depends
-from faststream.nats.fastapi import NatsRouter as APIRouter
+from dishka import FromDishka as Depends
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter
 from starlette import status
 
 from api.application.exceptions.comic import ComicByIDNotFoundError
@@ -12,8 +13,7 @@ from api.application.exceptions.translation import (
     TranslationByLanguageNotFoundError,
 )
 from api.application.services import TranslationService
-from api.infrastructure.database.holder import DatabaseHolder
-from api.presentation.stub import Stub
+from api.my_types import ComicID, Language, TranslationID
 from api.presentation.web.controllers.schemas.requests import (
     TranslationDraftRequestSchema,
     TranslationRequestSchema,
@@ -22,9 +22,8 @@ from api.presentation.web.controllers.schemas.responses.translation import (
     TranslationWDraftStatusSchema,
     TranslationWLanguageResponseSchema,
 )
-from api.types import ComicID, Language, TranslationID
 
-router = APIRouter(tags=["Translations"])
+router = APIRouter(tags=["Translations"], route_class=DishkaRoute)
 
 
 @router.post(
@@ -43,9 +42,9 @@ async def add_translation(
     comic_id: ComicID,
     schema: TranslationRequestSchema,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    service: Depends[TranslationService],
 ) -> TranslationWLanguageResponseSchema:
-    translation_resp_dto = await TranslationService(db_holder).add(comic_id, schema.to_dto())
+    translation_resp_dto = await service.add(comic_id, schema.to_dto())
 
     return TranslationWLanguageResponseSchema.from_dto(translation_resp_dto)
 
@@ -64,9 +63,9 @@ async def add_translation_draft(
     comic_id: ComicID,
     schema: TranslationDraftRequestSchema,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    service: Depends[TranslationService],
 ) -> TranslationWLanguageResponseSchema:
-    translation_resp_dto = await TranslationService(db_holder).add(comic_id, schema.to_dto())
+    translation_resp_dto = await service.add(comic_id, schema.to_dto())
 
     return TranslationWLanguageResponseSchema.from_dto(translation_resp_dto)
 
@@ -86,12 +85,9 @@ async def update_translation(
     translation_id: TranslationID,
     schema: TranslationRequestSchema,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    service: Depends[TranslationService],
 ) -> TranslationWLanguageResponseSchema:
-    translation_resp_dto = await TranslationService(db_holder).update(
-        translation_id=translation_id,
-        dto=schema.to_dto(),
-    )
+    translation_resp_dto = await service.update(translation_id, schema.to_dto())
 
     return TranslationWLanguageResponseSchema.from_dto(translation_resp_dto)
 
@@ -107,9 +103,9 @@ async def update_translation(
 async def delete_translation(
     translation_id: TranslationID,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    service: Depends[TranslationService],
 ):
-    await TranslationService(db_holder).delete(translation_id)
+    await service.delete(translation_id)
 
 
 @router.get(
@@ -122,9 +118,9 @@ async def delete_translation(
 async def get_translation_by_id(
     translation_id: TranslationID,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    service: Depends[TranslationService],
 ) -> TranslationWDraftStatusSchema:
-    translation_resp_dto = await TranslationService(db_holder).get_by_id(translation_id)
+    translation_resp_dto = await service.get_by_id(translation_id)
 
     return TranslationWDraftStatusSchema.from_dto(translation_resp_dto)
 
@@ -139,9 +135,9 @@ async def get_translation_by_id(
 async def get_translation_raw_transcript(
     translation_id: TranslationID,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    service: Depends[TranslationService],
 ) -> str:
-    translation_resp_dto = await TranslationService(db_holder).get_by_id(translation_id)
+    translation_resp_dto = await service.get_by_id(translation_id)
 
     return translation_resp_dto.raw_transcript
 
@@ -156,9 +152,9 @@ async def get_translation_raw_transcript(
 async def publish_draft(
     translation_id: TranslationID,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    service: Depends[TranslationService],
 ):
-    await TranslationService(db_holder).publish(translation_id)
+    await service.publish(translation_id)
 
 
 @router.get(
@@ -172,9 +168,9 @@ async def get_translation_by_language(
     comic_id: ComicID,
     language: Language,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    service: Depends[TranslationService],
 ) -> TranslationWLanguageResponseSchema:
-    result = await TranslationService(db_holder).get_by_language(comic_id, language)
+    result = await service.get_by_language(comic_id, language)
 
     return TranslationWLanguageResponseSchema.from_dto(result)
 
@@ -189,9 +185,9 @@ async def get_translation_by_language(
 async def get_comic_translations(
     comic_id: ComicID,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    service: Depends[TranslationService],
 ) -> list[TranslationWLanguageResponseSchema]:
-    translation_resp_dtos = await TranslationService(db_holder).get_all(comic_id, False)
+    translation_resp_dtos = await service.get_all(comic_id, False)
 
     return [TranslationWLanguageResponseSchema.from_dto(dto) for dto in translation_resp_dtos]
 
@@ -206,8 +202,8 @@ async def get_comic_translations(
 async def get_comic_translation_drafts(
     comic_id: ComicID,
     *,
-    db_holder: DatabaseHolder = Depends(Stub(DatabaseHolder)),
+    service: Depends[TranslationService],
 ) -> list[TranslationWLanguageResponseSchema]:
-    translation_resp_dtos = await TranslationService(db_holder).get_all(comic_id, True)
+    translation_resp_dtos = await service.get_all(comic_id, True)
 
     return [TranslationWLanguageResponseSchema.from_dto(dto) for dto in translation_resp_dtos]

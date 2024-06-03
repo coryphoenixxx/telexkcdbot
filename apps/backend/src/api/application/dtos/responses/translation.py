@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from api.application.dtos.responses.image import TranslationImageProcessedResponseDTO
 from api.infrastructure.database.models import TranslationModel
-from api.types import ComicID, Language, TranslationID
+from api.my_types import ComicID, Language, TranslationID
 
 
 @dataclass(slots=True)

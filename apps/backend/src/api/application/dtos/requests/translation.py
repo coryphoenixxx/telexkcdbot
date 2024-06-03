@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from api.types import TranslationImageID
+from api.my_types import TranslationImageID
 
 
 @dataclass(slots=True)

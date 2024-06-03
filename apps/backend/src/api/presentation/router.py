@@ -1,7 +1,4 @@
-import logging
-
-from fastapi import FastAPI
-from faststream.nats.fastapi import NatsRouter
+from fastapi import APIRouter, FastAPI
 
 from api.presentation.web.controllers import (
     comic_router,
@@ -10,10 +7,7 @@ from api.presentation.web.controllers import (
     user_router,
 )
 
-root_router = NatsRouter(
-    prefix="/api",
-    log_level=logging.DEBUG,
-)
+root_router = APIRouter(prefix="/api")
 
 
 @root_router.get("/healthcheck", status_code=200)

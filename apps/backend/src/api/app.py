@@ -1,18 +1,22 @@
+from contextlib import asynccontextmanager
+
+from dishka import make_async_container
+from dishka.integrations.fastapi import setup_dishka as setup_ioc
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from shared.config_loader import load_config
-from shared.http_client import AsyncHttpClient
-from sqlalchemy.ext.asyncio import AsyncEngine
 from starlette.middleware.cors import CORSMiddleware
 
-from api.application.image_saver import ImageSaveHelper
 from api.config import AppConfig
-from api.infrastructure.database import create_db_engine, create_db_session_factory
-from api.infrastructure.database.holder import DatabaseHolder
-from api.presentation.events import lifespan
+from api.ioc import ConfigsProvider, DbProvider, GatewaysProvider, HelpersProvider, ServicesProvider
 from api.presentation.router import register_routers
-from api.presentation.upload_reader import UploadImageHandler
 from api.presentation.web.middlewares import ExceptionHandlerMiddleware
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    await app.state.dishka_container.close()
 
 
 def create_app(config: AppConfig | None = None) -> FastAPI:
@@ -38,27 +42,15 @@ def create_app(config: AppConfig | None = None) -> FastAPI:
 
     register_routers(app)
 
-    engine = create_db_engine(config.db)
-    db_session_factory = create_db_session_factory(engine)
-    http_client = AsyncHttpClient()
-
-    app.dependency_overrides.update(
-        {
-            AsyncEngine: lambda: engine,
-            DatabaseHolder: lambda: DatabaseHolder(
-                session_factory=db_session_factory,
-            ),
-            UploadImageHandler: lambda: UploadImageHandler(
-                tmp_dir=config.api.tmp_dir,
-                upload_max_size=config.api.upload_max_size,
-                http_client=http_client,
-            ),
-            ImageSaveHelper: lambda: ImageSaveHelper(
-                static_dir=config.api.static_dir,
-            ),
-            AsyncHttpClient: lambda: http_client,
-        },
+    container = make_async_container(
+        ConfigsProvider(),
+        DbProvider(),
+        HelpersProvider(),
+        GatewaysProvider(),
+        ServicesProvider(),
     )
+
+    setup_ioc(container, app)
 
     return app
 

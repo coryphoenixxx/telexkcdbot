@@ -3,7 +3,7 @@ from types import TracebackType
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from api.infrastructure.database import ComicRepo, TranslationImageRepo, TranslationRepo
+from api.infrastructure.database import ComicGateway, TranslationGateway, TranslationImageGateway
 
 
 class DatabaseHolder:
@@ -11,16 +11,16 @@ class DatabaseHolder:
         self._session_factory = session_factory
 
     @cached_property
-    def comic_repo(self) -> ComicRepo:
-        return ComicRepo(self._session)
+    def comic_repo(self) -> ComicGateway:
+        return ComicGateway(self._session)
 
     @cached_property
-    def translation_repo(self) -> TranslationRepo:
-        return TranslationRepo(self._session)
+    def translation_repo(self) -> TranslationGateway:
+        return TranslationGateway(self._session)
 
     @cached_property
-    def translation_image_repo(self) -> TranslationImageRepo:
-        return TranslationImageRepo(self._session)
+    def translation_image_repo(self) -> TranslationImageGateway:
+        return TranslationImageGateway(self._session)
 
     async def __aenter__(self) -> None:
         self._session: AsyncSession = self._session_factory()

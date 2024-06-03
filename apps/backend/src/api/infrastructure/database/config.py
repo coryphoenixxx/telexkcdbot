@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass
-class DBConfig:
+class DbConfig:
     driver: str
     host: str
     port: int

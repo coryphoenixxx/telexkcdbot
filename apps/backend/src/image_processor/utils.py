@@ -2,7 +2,7 @@ import warnings
 from pathlib import Path
 
 from PIL import Image, ImageSequence
-from shared.types import ImageFormat
+from shared.my_types import ImageFormat
 
 THUMB_SIZE = (200, 200)
 MAX_WEBP_SIZE = 16383

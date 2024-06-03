@@ -4,9 +4,9 @@ from enum import StrEnum
 from typing import Annotated, NewType
 
 from annotated_types import Ge
-from shared.types import Order
+from shared.my_types import Order
 
-from api.types import Tag
+from api.my_types import Tag
 
 Limit = NewType("Limit", Annotated[int, Ge(0)])
 Offset = NewType("Offset", Annotated[int, Ge(0)])

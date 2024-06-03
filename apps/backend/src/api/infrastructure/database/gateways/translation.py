@@ -13,14 +13,14 @@ from api.application.exceptions.translation import (
     TranslationByIDNotFoundError,
     TranslationByLanguageNotFoundError,
 )
+from api.infrastructure.database.gateways.base import BaseGateway
+from api.infrastructure.database.gateways.mixins import GetImagesMixin
 from api.infrastructure.database.models import TranslationModel
-from api.infrastructure.database.repositories.base import BaseRepo
-from api.infrastructure.database.repositories.mixins import GetImagesMixin
 from api.infrastructure.database.utils import build_searchable_text
-from api.types import ComicID, Language, TranslationID
+from api.my_types import ComicID, Language, TranslationID
 
 
-class TranslationRepo(BaseRepo, GetImagesMixin):
+class TranslationGateway(BaseGateway, GetImagesMixin):
     async def add(
         self,
         comic_id: ComicID,

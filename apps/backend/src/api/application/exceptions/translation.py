@@ -6,7 +6,7 @@ from api.application.exceptions.base import (
     BaseConflictError,
     BaseNotFoundError,
 )
-from api.types import ComicID, Language, TranslationID, TranslationImageID
+from api.my_types import ComicID, Language, TranslationID, TranslationImageID
 
 
 @dataclass

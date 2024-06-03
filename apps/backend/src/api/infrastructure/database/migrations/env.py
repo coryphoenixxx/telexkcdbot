@@ -3,7 +3,7 @@ import asyncio
 from alembic import context
 from shared.config_loader import load_config
 
-from api.infrastructure.database import DBConfig, create_db_engine
+from api.infrastructure.database import DbConfig, create_db_engine
 from api.infrastructure.database.models.base import Base
 
 # this is the Alembic Config object, which provides
@@ -39,7 +39,7 @@ async def run_async_migrations():
     and associate a connection with the context.
 
     """
-    engine = create_db_engine(config=load_config(DBConfig, scope="db"))
+    engine = create_db_engine(config=load_config(DbConfig, scope="db"))
 
     async with engine.connect() as connection:
         await connection.run_sync(do_run_migrations)

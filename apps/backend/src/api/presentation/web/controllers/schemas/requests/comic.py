@@ -4,7 +4,7 @@ from pydantic import BaseModel, HttpUrl
 from shared.utils import cast_or_none
 
 from api.application.dtos.requests.comic import ComicRequestDTO
-from api.types import IssueNumber, Tag, TranslationImageID
+from api.my_types import IssueNumber, Tag, TranslationImageID
 
 
 class ComicRequestSchema(BaseModel):

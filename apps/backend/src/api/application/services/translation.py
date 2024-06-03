@@ -3,13 +3,20 @@ from api.application.dtos.responses.translation import TranslationResponseDTO
 from api.application.exceptions.translation import (
     OriginalTranslationOperationForbiddenError,
 )
-from api.infrastructure.database.holder import DatabaseHolder
-from api.types import ComicID, Language, TranslationID
+from api.infrastructure.database import ComicGateway, TranslationGateway, UnitOfWork
+from api.my_types import ComicID, Language, TranslationID
 
 
 class TranslationService:
-    def __init__(self, db_holder: DatabaseHolder):
-        self._db_holder = db_holder
+    def __init__(
+        self,
+        uow: UnitOfWork,
+        translation_gateway: TranslationGateway,
+        comic_gateway: ComicGateway,
+    ):
+        self._uow = uow
+        self._comic_gateway = comic_gateway
+        self._translation_gateway = translation_gateway
 
     async def add(
         self,
@@ -19,9 +26,9 @@ class TranslationService:
         if dto.language == Language.EN:
             raise OriginalTranslationOperationForbiddenError
 
-        async with self._db_holder:
-            translation = await self._db_holder.translation_repo.add(comic_id, dto)
-            await self._db_holder.commit()
+        translation = await self._translation_gateway.add(comic_id, dto)
+
+        await self._uow.commit()
 
         return translation
 
@@ -33,79 +40,63 @@ class TranslationService:
         if dto.language == Language.EN:
             raise OriginalTranslationOperationForbiddenError
 
-        async with self._db_holder:
-            candidate = await self._db_holder.translation_repo.get_by_id(translation_id)
+        candidate = await self._translation_gateway.get_by_id(translation_id)
 
-            if candidate.language == Language.EN:
-                raise OriginalTranslationOperationForbiddenError
+        if candidate.language == Language.EN:
+            raise OriginalTranslationOperationForbiddenError
 
-            translation = await self._db_holder.translation_repo.update(
-                translation_id=translation_id,
-                dto=dto,
-            )
+        translation = await self._translation_gateway.update(translation_id=translation_id, dto=dto)
 
-            await self._db_holder.commit()
+        await self._uow.commit()
 
         return translation
 
     async def delete(self, translation_id: TranslationID) -> None:
-        async with self._db_holder:
-            tranlation = await self._db_holder.translation_repo.get_by_id(translation_id)
+        translation = await self._translation_gateway.get_by_id(translation_id)
 
-            if tranlation.language == Language.EN:
-                raise OriginalTranslationOperationForbiddenError
+        if translation.language == Language.EN:
+            raise OriginalTranslationOperationForbiddenError
 
-            await self._db_holder.translation_repo.delete(translation_id)
+        await self._translation_gateway.delete(translation_id)
 
-            await self._db_holder.commit()
+        await self._uow.commit()
 
     async def get_by_id(self, translation_id: TranslationID) -> TranslationResponseDTO:
-        async with self._db_holder:
-            translation = await self._db_holder.translation_repo.get_by_id(translation_id)
-
-        return translation
+        return await self._translation_gateway.get_by_id(translation_id)
 
     async def get_by_language(
         self,
         comic_id: ComicID,
         language: Language,
     ) -> TranslationResponseDTO:
-        async with self._db_holder:
-            translation = await self._db_holder.translation_repo.get_by_language(
-                comic_id=comic_id,
-                language=language,
-            )
-
-        return translation
+        return await self._translation_gateway.get_by_language(comic_id, language)
 
     async def get_all(
         self,
         comic_id: ComicID,
         is_draft: bool = False,
     ) -> list[TranslationResponseDTO]:
-        async with self._db_holder:
-            draft_resp_dtos = await self._db_holder.comic_repo.get_translations(comic_id, is_draft)
+        draft_resp_dtos = await self._comic_gateway.get_translations(comic_id, is_draft)
 
         return draft_resp_dtos
 
     async def publish(self, translation_id: TranslationID):
-        async with self._db_holder:
-            candidate = await self._db_holder.translation_repo.get_by_id(translation_id)
+        candidate = await self._translation_gateway.get_by_id(translation_id)
 
-            if candidate.is_draft:
-                published_translations = await self._db_holder.comic_repo.get_translations(
-                    comic_id=candidate.comic_id,
-                )
+        if candidate.is_draft:
+            published_translations = await self._comic_gateway.get_translations(
+                comic_id=candidate.comic_id,
+            )
 
-                published = None
-                for tr in published_translations:
-                    if tr.language == candidate.language:
-                        published = await self._db_holder.translation_repo.get_by_id(tr.id)
-                        break
+            published = None
+            for tr in published_translations:
+                if tr.language == candidate.language:
+                    published = await self._translation_gateway.get_by_id(tr.id)
+                    break
 
-                if published:
-                    await self._db_holder.translation_repo.update_draft_status(published.id, True)
+            if published:
+                await self._translation_gateway.update_draft_status(published.id, True)
 
-                await self._db_holder.translation_repo.update_draft_status(candidate.id, False)
+            await self._translation_gateway.update_draft_status(candidate.id, False)
 
-                await self._db_holder.commit()
+            await self._uow.commit()

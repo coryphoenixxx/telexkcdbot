@@ -5,12 +5,12 @@ from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
 from api.application.dtos.responses.image import TranslationImageOrphanResponseDTO
+from api.infrastructure.database.gateways.base import BaseGateway
 from api.infrastructure.database.models.translation import TranslationImageModel
-from api.infrastructure.database.repositories.base import BaseRepo
-from api.types import TranslationImageID
+from api.my_types import TranslationImageID
 
 
-class TranslationImageRepo(BaseRepo):
+class TranslationImageGateway(BaseGateway):
     async def create(self, original_rel_path: Path) -> TranslationImageOrphanResponseDTO:
         stmt = (
             insert(TranslationImageModel)

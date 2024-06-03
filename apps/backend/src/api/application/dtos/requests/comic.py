@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime as dt
 
-from api.types import IssueNumber, Tag, TranslationImageID
+from api.my_types import IssueNumber, Tag, TranslationImageID
 
 
 @dataclass(slots=True)
