@@ -10,10 +10,10 @@ from scraper.dtos import (
     XkcdOriginScrapedData,
     XkcdOriginWithExplainScrapedData,
 )
+from scraper.my_types import LimitParams
 from scraper.pbar import ProgressBar
 from scraper.scrapers.base import BaseScraper
 from scraper.scrapers.exceptions import ScraperError
-from scraper.types import LimitParams
 from scraper.utils import run_concurrently
 
 logger = logging.getLogger(__name__)

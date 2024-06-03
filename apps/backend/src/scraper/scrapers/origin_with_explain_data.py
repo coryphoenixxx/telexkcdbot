@@ -7,9 +7,9 @@ from scraper.dtos import (
     XkcdOriginScrapedData,
     XkcdOriginWithExplainScrapedData,
 )
+from scraper.my_types import LimitParams
 from scraper.scrapers import XkcdOriginScraper
 from scraper.scrapers.explain import XkcdExplainScraper
-from scraper.types import LimitParams
 
 
 class XkcdOriginWithExplainDataScraper:

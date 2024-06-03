@@ -1,7 +1,7 @@
 from api.application.dtos.requests.comic import ComicRequestDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
 from api.infrastructure.database import ComicGateway, UnitOfWork
-from api.infrastructure.database.types import ComicFilterParams
+from api.infrastructure.database.my_types import ComicFilterParams
 from api.my_types import ComicID, IssueNumber, TotalCount
 
 

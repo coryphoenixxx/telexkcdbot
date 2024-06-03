@@ -1,7 +1,7 @@
 import logging
 from types import TracebackType
 
-from sqlalchemy import text
+from sqlalchemy import URL, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -30,7 +30,14 @@ __all__ = [
 
 def create_db_engine(config: DbConfig) -> AsyncEngine:
     return create_async_engine(
-        url=config.dsn,
+        url=URL.create(
+            drivername=f"postgresql+{config.driver}",
+            username=config.user,
+            password=config.password,
+            host=config.host,
+            port=config.port,
+            database=config.dbname,
+        ),
         echo=config.echo,
         echo_pool=config.echo,
         pool_size=config.pool_size,
@@ -62,10 +69,10 @@ class UnitOfWork:
         return self
 
     async def __aexit__(
-            self,
-            exc_type: type[BaseException] | None,
-            exc_val: BaseException | None,
-            exc_tb: TracebackType | None,
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         if exc_type:
             await self.rollback()

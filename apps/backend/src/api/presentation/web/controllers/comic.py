@@ -20,7 +20,13 @@ from api.application.exceptions.translation import (
     ImagesNotCreatedError,
 )
 from api.application.services.comic import ComicService
-from api.infrastructure.database.types import ComicFilterParams, DateRange, Limit, Offset, TagParam
+from api.infrastructure.database.my_types import (
+    ComicFilterParams,
+    DateRange,
+    Limit,
+    Offset,
+    TagParam,
+)
 from api.my_types import ComicID, IssueNumber, Language, Tag
 from api.presentation.web.controllers.schemas.requests.comic import ComicRequestSchema
 from api.presentation.web.controllers.schemas.responses.comic import (

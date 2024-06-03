@@ -14,6 +14,7 @@ from rich.progress import (
     Progress,
 )
 from scraper.dtos import XkcdTranslationData
+from scraper.my_types import LimitParams
 from scraper.pbar import ProgressBar
 from scraper.scrapers import (
     XkcdDEScraper,
@@ -25,7 +26,6 @@ from scraper.scrapers import (
     XkcdRUScraper,
     XkcdZHScraper,
 )
-from scraper.types import LimitParams
 from scraper.utils import run_concurrently
 from scripts.common import positive_number_callback
 from scripts.common import progress as base_progress

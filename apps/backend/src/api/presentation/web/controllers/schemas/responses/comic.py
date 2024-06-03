@@ -5,7 +5,7 @@ from pydantic import BaseModel, HttpUrl
 
 from api.application.dtos.responses import TranslationResponseDTO
 from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
-from api.infrastructure.database.types import Limit, Offset
+from api.infrastructure.database.my_types import Limit, Offset
 from api.my_types import ComicID, IssueNumber, Language, TotalCount, TranslationID
 from api.presentation.web.controllers.schemas.responses import (
     TranslationImageProcessedResponseSchema,

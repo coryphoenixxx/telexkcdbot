@@ -4,13 +4,13 @@ import asyncclick as click
 import uvloop
 from rich.progress import Progress
 from scraper.dtos import XkcdOriginWithExplainScrapedData
+from scraper.my_types import LimitParams
 from scraper.pbar import ProgressBar
 from scraper.scrapers import (
     XkcdExplainScraper,
     XkcdOriginScraper,
     XkcdOriginWithExplainDataScraper,
 )
-from scraper.types import LimitParams
 from scraper.utils import run_concurrently
 from scripts.common import positive_number_callback
 from scripts.common import progress as base_progress

@@ -19,7 +19,7 @@ from api.infrastructure.database.gateways.base import BaseGateway
 from api.infrastructure.database.gateways.mixins import GetImagesMixin
 from api.infrastructure.database.models import TranslationModel
 from api.infrastructure.database.models.comic import ComicModel, TagModel
-from api.infrastructure.database.types import ComicFilterParams, TagParam
+from api.infrastructure.database.my_types import ComicFilterParams, TagParam
 from api.infrastructure.database.utils import build_searchable_text
 from api.my_types import ComicID, IssueNumber, Language, TotalCount
 from api.utils import slugify
