@@ -3,8 +3,9 @@ import asyncio
 from alembic import context
 from shared.config_loader import load_config
 
-from api.infrastructure.database import DbConfig, create_db_engine
-from api.infrastructure.database.models.base import Base
+from api.infrastructure.database.config import DbConfig
+from api.infrastructure.database.main import create_db_engine
+from api.infrastructure.database.models import BaseModel
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -18,7 +19,7 @@ config = context.config
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = Base.metadata
+target_metadata = BaseModel.metadata
 
 
 # other values from the config, defined by the needs of env.py,

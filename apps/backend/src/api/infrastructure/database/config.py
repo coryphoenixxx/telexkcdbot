@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(slots=True)
 class DbConfig:
-    driver: str
     host: str
     port: int
     user: str
@@ -11,3 +10,4 @@ class DbConfig:
     dbname: str
     echo: bool
     pool_size: int
+    driver: str = "psycopg"

@@ -3,9 +3,12 @@ from typing import Annotated
 from dishka import FromDishka as Depends
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, File, Query, UploadFile
+from faststream.nats import NatsBroker
 from pydantic import HttpUrl, constr
+from shared.messages import ImageProcessInMessage
 from starlette import status
 
+from api.application.dtos.common import Language, TranslationImageMeta
 from api.application.exceptions.image import (
     DownloadingImageError,
     RequestFileIsEmptyError,
@@ -15,12 +18,8 @@ from api.application.exceptions.image import (
     UploadExceedSizeLimitError,
 )
 from api.application.services import TranslationImageService
-from api.my_types import Language
-from api.presentation.my_types import TranslationImageMeta
-from api.presentation.upload_reader import UploadImageHandler
-from api.presentation.web.controllers.schemas.responses.image import (
-    TranslationImageOrphanResponseSchema,
-)
+from api.presentation.web.controllers.schemas.responses import TranslationImageOrphanResponseSchema
+from api.presentation.web.upload_reader import UploadImageHandler
 
 router = APIRouter(tags=["Images"], route_class=DishkaRoute)
 
@@ -53,6 +52,7 @@ async def upload_image(
     *,
     upload_reader: Depends[UploadImageHandler],
     service: Depends[TranslationImageService],
+    broker: Depends[NatsBroker],
 ) -> TranslationImageOrphanResponseSchema:
     if image_file and image_url:
         raise UploadedImageTypeConflictError
@@ -65,7 +65,7 @@ async def upload_image(
             else await upload_reader.download(str(image_url))
         )
 
-    image_resp_dto = await service.create(
+    original_abs_path, image_resp_dto = await service.create(
         metadata=TranslationImageMeta(
             number=number,
             title=title,
@@ -75,33 +75,16 @@ async def upload_image(
         image=image_obj,
     )
 
-    return TranslationImageOrphanResponseSchema(
-        id=image_resp_dto.id,
-        original=image_resp_dto.original_rel_path,
+    await broker.publish(
+        message=ImageProcessInMessage(
+            image_id=image_resp_dto.id,
+            original_abs_path=original_abs_path,
+        ),
+        subject="internal.api.images.process.in",
+        stream="process_images_in_stream",
     )
 
-
-# from faststream.nats import JStream, PullSub
-# from shared.messages import ImageProcessOutMessage
-#
-# @router.subscriber(
-#     "internal.api.images.process.out",
-#     queue="process_images_out_queue",
-#     stream=JStream(
-#         name="process_images_out_stream",
-#         max_age=600,
-#     ),
-#     pull_sub=PullSub(),
-#     durable="api",
-# )
-# @inject
-# async def processed_images_handler(
-#     msg: ImageProcessOutMessage,
-#     *,
-#     service: FromDishka[TranslationImageService],
-# ):
-#     await service.update(
-#         image_id=msg.image_id,
-#         converted_abs_path=msg.converted_abs_path,
-#         thumbnail_abs_path=msg.thumbnail_abs_path,
-#     )
+    return TranslationImageOrphanResponseSchema(
+        id=image_resp_dto.id,
+        original=str(image_resp_dto.original_rel_path),
+    )

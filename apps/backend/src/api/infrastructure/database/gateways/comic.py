@@ -1,13 +1,19 @@
+from typing import NoReturn
+
 from shared.my_types import Order
 from sqlalchemy import delete, func, select
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import noload
 from sqlalchemy.sql.selectable import ForUpdateArg, ForUpdateParameter
 
-from api.application.dtos.requests.comic import ComicRequestDTO
-from api.application.dtos.responses import TranslationResponseDTO
-from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
+from api.application.dtos.common import ComicFilterParams, Language, TagParam, TotalCount
+from api.application.dtos.requests import ComicRequestDTO
+from api.application.dtos.responses import (
+    ComicResponseDTO,
+    ComicResponseWTranslationsDTO,
+    TranslationResponseDTO,
+)
 from api.application.exceptions.comic import (
     ComicByIDNotFoundError,
     ComicByIssueNumberNotFoundError,
@@ -15,14 +21,16 @@ from api.application.exceptions.comic import (
     ComicNumberAlreadyExistsError,
     ExtraComicTitleAlreadyExistsError,
 )
+from api.core.entities import ComicID, IssueNumber
+from api.infrastructure.database.constraints import (
+    UNIQUE_COMIC_NUMBER_IF_NOT_EXTRA_CONSTRAINT,
+    UNIQUE_COMIC_TITLE_IF_NOT_EXTRA_CONSTRAINT,
+)
 from api.infrastructure.database.gateways.base import BaseGateway
 from api.infrastructure.database.gateways.mixins import GetImagesMixin
-from api.infrastructure.database.models import TranslationModel
-from api.infrastructure.database.models.comic import ComicModel, TagModel
-from api.infrastructure.database.my_types import ComicFilterParams, TagParam
+from api.infrastructure.database.models import ComicModel, TagModel, TranslationModel
 from api.infrastructure.database.utils import build_searchable_text
-from api.my_types import ComicID, IssueNumber, Language, TotalCount
-from api.utils import slugify
+from api.infrastructure.slugger import slugify
 
 
 class ComicGateway(BaseGateway, GetImagesMixin):
@@ -222,11 +230,14 @@ class ComicGateway(BaseGateway, GetImagesMixin):
 
     def _handle_db_error(
         self,
-        err: IntegrityError,
+        err: DBAPIError,
         dto: ComicRequestDTO,
-    ):
-        constraint = err.__cause__.__cause__.constraint_name
-        if constraint == "uq_number_if_not_extra":
+    ) -> NoReturn:
+        cause = str(err.__cause__)
+
+        if UNIQUE_COMIC_NUMBER_IF_NOT_EXTRA_CONSTRAINT in cause:
             raise ComicNumberAlreadyExistsError(number=dto.number)
-        if constraint == "uq_title_if_extra":
+        elif UNIQUE_COMIC_TITLE_IF_NOT_EXTRA_CONSTRAINT in cause:
             raise ExtraComicTitleAlreadyExistsError(title=dto.title)
+        else:
+            raise err

@@ -1,9 +1,11 @@
 import logging
 from types import MappingProxyType
 
+from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from starlette import status
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
@@ -54,3 +56,14 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
                     "message": "An unexpected error occurred.",
                 },
             )
+
+
+def register_middlewares(app: FastAPI):
+    app.add_middleware(ExceptionHandlerMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )

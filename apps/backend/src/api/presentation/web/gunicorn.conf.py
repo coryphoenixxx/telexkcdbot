@@ -6,9 +6,9 @@ from shared.config_loader import load_config
 @dataclass
 class GunicornConfig:
     wsgi_app: str
-    worker_class: str
     bind: str
     workers: int
+    worker_class: str
 
 
 config_ = load_config(GunicornConfig, scope="gunicorn")

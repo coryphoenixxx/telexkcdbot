@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from aiohttp import ClientResponse  # noqa: F401
+from aiohttp import ClientResponse
 from scraper.dtos import (
     XkcdOriginUploadData,
     XkcdOriginWithExplainScrapedData,

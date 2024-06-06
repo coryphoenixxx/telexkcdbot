@@ -3,6 +3,7 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter
 from starlette import status
 
+from api.application.dtos.common import Language
 from api.application.exceptions.comic import ComicByIDNotFoundError
 from api.application.exceptions.translation import (
     ImagesAlreadyAttachedError,
@@ -13,12 +14,12 @@ from api.application.exceptions.translation import (
     TranslationByLanguageNotFoundError,
 )
 from api.application.services import TranslationService
-from api.my_types import ComicID, Language, TranslationID
+from api.core.entities import ComicID, TranslationID
 from api.presentation.web.controllers.schemas.requests import (
     TranslationDraftRequestSchema,
     TranslationRequestSchema,
 )
-from api.presentation.web.controllers.schemas.responses.translation import (
+from api.presentation.web.controllers.schemas.responses import (
     TranslationWDraftStatusSchema,
     TranslationWLanguageResponseSchema,
 )

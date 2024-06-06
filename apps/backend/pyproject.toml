@@ -117,6 +117,7 @@ lint.ignore = [
     "ARG001",
     "RUF013",
     "N999",
+    "F401",
 ]
 lint.fixable = [
     "A",

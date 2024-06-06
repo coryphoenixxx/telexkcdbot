@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from api.application.exceptions.base import BaseAppError, BaseBadRequestError
+from .base import BaseAppError, BaseBadRequestError
 
 
 @dataclass

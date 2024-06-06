@@ -1,4 +1,4 @@
-from aiohttp import ClientPayloadError, ClientResponse  # noqa: F401
+from aiohttp import ClientPayloadError
 from bs4 import BeautifulSoup
 from shared.http_client import AsyncHttpClient
 from yarl import URL

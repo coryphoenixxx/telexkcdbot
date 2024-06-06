@@ -7,7 +7,16 @@ from fastapi.params import Query
 from shared.my_types import Order
 from starlette import status
 
-from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
+from api.application.dtos.common import (
+    ComicFilterParams,
+    DateRange,
+    Language,
+    Limit,
+    Offset,
+    Tag,
+    TagParam,
+)
+from api.application.dtos.responses import ComicResponseDTO, ComicResponseWTranslationsDTO
 from api.application.exceptions.comic import (
     ComicByIDNotFoundError,
     ComicByIssueNumberNotFoundError,
@@ -20,20 +29,13 @@ from api.application.exceptions.translation import (
     ImagesNotCreatedError,
 )
 from api.application.services.comic import ComicService
-from api.infrastructure.database.my_types import (
-    ComicFilterParams,
-    DateRange,
-    Limit,
-    Offset,
-    TagParam,
-)
-from api.my_types import ComicID, IssueNumber, Language, Tag
-from api.presentation.web.controllers.schemas.requests.comic import ComicRequestSchema
-from api.presentation.web.controllers.schemas.responses.comic import (
+from api.core.entities import ComicID, IssueNumber
+from api.presentation.web.controllers.schemas.requests import ComicRequestSchema
+from api.presentation.web.controllers.schemas.responses import (
     ComicResponseSchema,
     ComicsWMetadata,
     ComicWTranslationsResponseSchema,
-    Pagination,
+    PaginationSchema,
 )
 
 router = APIRouter(tags=["Comics"], route_class=DishkaRoute)
@@ -256,7 +258,7 @@ async def get_comics(
     )
 
     return ComicsWMetadata(
-        meta=Pagination(
+        meta=PaginationSchema(
             total=total,
             limit=limit,
             offset=offset,

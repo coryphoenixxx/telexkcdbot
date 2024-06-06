@@ -1,12 +1,64 @@
 from dataclasses import dataclass
 from datetime import datetime as dt
+from pathlib import Path
 
-from api.application.dtos.responses import (
-    TranslationImageProcessedResponseDTO,
-    TranslationResponseDTO,
-)
-from api.infrastructure.database.models import ComicModel
-from api.my_types import ComicID, IssueNumber, Language, TranslationID
+from api.application.dtos.common import Language
+from api.core.entities import ComicID, IssueNumber, TranslationID, TranslationImageID
+from api.infrastructure.database.models import ComicModel, TranslationImageModel, TranslationModel
+
+
+@dataclass(slots=True)
+class TranslationImageOrphanResponseDTO:
+    id: TranslationImageID
+    original_rel_path: Path
+
+
+@dataclass(slots=True)
+class TranslationImageProcessedResponseDTO:
+    id: TranslationImageID
+    translation_id: TranslationID
+    original_rel_path: str
+    converted_rel_path: str
+    thumbnail_rel_path: str
+
+    @classmethod
+    def from_model(cls, model: "TranslationImageModel"):
+        return TranslationImageProcessedResponseDTO(
+            id=model.image_id,
+            translation_id=model.translation_id,
+            original_rel_path=model.original_rel_path,
+            converted_rel_path=model.converted_rel_path,
+            thumbnail_rel_path=model.thumbnail_rel_path,
+        )
+
+
+@dataclass(slots=True)
+class TranslationResponseDTO:
+    id: TranslationID
+    comic_id: ComicID
+    title: str
+    language: Language
+    tooltip: str
+    raw_transcript: str
+    translator_comment: str
+    source_url: str | None
+    images: list[TranslationImageProcessedResponseDTO]
+    is_draft: bool
+
+    @classmethod
+    def from_model(cls, model: "TranslationModel") -> "TranslationResponseDTO":
+        return TranslationResponseDTO(
+            id=model.translation_id,
+            comic_id=model.comic_id,
+            language=model.language,
+            title=model.title,
+            tooltip=model.tooltip,
+            raw_transcript=model.raw_transcript,
+            translator_comment=model.translator_comment,
+            images=[TranslationImageProcessedResponseDTO.from_model(img) for img in model.images],
+            source_url=model.source_url,
+            is_draft=model.is_draft,
+        )
 
 
 @dataclass(slots=True)
@@ -27,7 +79,7 @@ class ComicResponseDTO:
     images: list[TranslationImageProcessedResponseDTO]
 
     @classmethod
-    def from_model(cls, model: ComicModel) -> "ComicResponseDTO":
+    def from_model(cls, model: "ComicModel") -> "ComicResponseDTO":
         return ComicResponseDTO(
             id=model.comic_id,
             number=model.number,
@@ -53,7 +105,7 @@ class ComicResponseWTranslationsDTO(ComicResponseDTO):
     translations: list[TranslationResponseDTO]
 
     @classmethod
-    def from_model(cls, model: ComicModel) -> "ComicResponseWTranslationsDTO":
+    def from_model(cls, model: "ComicModel") -> "ComicResponseWTranslationsDTO":
         return ComicResponseWTranslationsDTO(
             id=model.comic_id,
             number=model.number,

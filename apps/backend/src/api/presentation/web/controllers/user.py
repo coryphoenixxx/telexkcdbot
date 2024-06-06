@@ -14,7 +14,7 @@ from api.application.exceptions.user import (
     InvalidCredentialsError,
     UsernameAlreadyExistsError,
 )
-from api.presentation.web.controllers.schemas.requests.user import UserRequestSchema
+from api.presentation.web.controllers.schemas.requests import UserRequestSchema
 
 router = APIRouter(tags=["Users"], route_class=DishkaRoute)
 

@@ -1,12 +1,14 @@
 from dataclasses import dataclass
 from typing import Any
 
-from api.application.exceptions.base import (
+from api.application.dtos.common import Language
+from api.core.entities import ComicID, TranslationID, TranslationImageID
+
+from .base import (
     BaseBadRequestError,
     BaseConflictError,
     BaseNotFoundError,
 )
-from api.my_types import ComicID, Language, TranslationID, TranslationImageID
 
 
 @dataclass

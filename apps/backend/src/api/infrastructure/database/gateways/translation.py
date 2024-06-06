@@ -5,19 +5,21 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import noload
 from sqlalchemy.sql.selectable import ForUpdateArg, ForUpdateParameter
 
-from api.application.dtos.requests.translation import TranslationRequestDTO
-from api.application.dtos.responses.translation import TranslationResponseDTO
+from api.application.dtos.common import Language
+from api.application.dtos.requests import TranslationRequestDTO
+from api.application.dtos.responses import TranslationResponseDTO
 from api.application.exceptions.comic import ComicByIDNotFoundError
 from api.application.exceptions.translation import (
     TranslationAlreadyExistsError,
     TranslationByIDNotFoundError,
     TranslationByLanguageNotFoundError,
 )
+from api.core.entities import ComicID, TranslationID
+from api.infrastructure.database.constraints import UNIQUE_TRANSLATION_IF_NOT_DRAFT
 from api.infrastructure.database.gateways.base import BaseGateway
 from api.infrastructure.database.gateways.mixins import GetImagesMixin
 from api.infrastructure.database.models import TranslationModel
 from api.infrastructure.database.utils import build_searchable_text
-from api.my_types import ComicID, Language, TranslationID
 
 
 class TranslationGateway(BaseGateway, GetImagesMixin):
@@ -139,10 +141,11 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
         comic_id: ComicID,
         dto: TranslationRequestDTO,
     ) -> NoReturn:
-        match err.__cause__.__cause__.constraint_name:  # type: ignore
-            case "uq_translation_if_not_draft":
-                raise TranslationAlreadyExistsError(comic_id, dto.language)
-            case "fk_translations_comic_id_comics":
-                raise ComicByIDNotFoundError(comic_id)
-            case _:
-                raise err
+        cause = str(err.__cause__)
+
+        if UNIQUE_TRANSLATION_IF_NOT_DRAFT in cause:
+            raise TranslationAlreadyExistsError(comic_id, dto.language)
+        elif "fk_translations_comic_id_comics" in cause:
+            raise ComicByIDNotFoundError(comic_id)
+        else:
+            raise err

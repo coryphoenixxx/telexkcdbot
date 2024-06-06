@@ -1,8 +1,9 @@
-from api.application.dtos.requests.comic import ComicRequestDTO
-from api.application.dtos.responses.comic import ComicResponseDTO, ComicResponseWTranslationsDTO
-from api.infrastructure.database import ComicGateway, UnitOfWork
-from api.infrastructure.database.my_types import ComicFilterParams
-from api.my_types import ComicID, IssueNumber, TotalCount
+from api.application.dtos.common import ComicFilterParams, TotalCount
+from api.application.dtos.requests import ComicRequestDTO
+from api.application.dtos.responses import ComicResponseDTO, ComicResponseWTranslationsDTO
+from api.core.entities import ComicID, IssueNumber
+from api.infrastructure.database.gateways import ComicGateway
+from api.infrastructure.database.uow import UnitOfWork
 
 
 class ComicService:

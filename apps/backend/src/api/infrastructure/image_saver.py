@@ -7,9 +7,9 @@ from uuid import uuid4
 
 import aiofiles.os as aos
 
-from api.config import APIConfig
-from api.presentation.my_types import ImageObj, TranslationImageMeta
-from api.utils import slugify
+from api.application.dtos.common import ImageObj, TranslationImageMeta
+from api.infrastructure.slugger import slugify
+from api.presentation.web.config import APIConfig
 
 
 class ImageSaveHelper:

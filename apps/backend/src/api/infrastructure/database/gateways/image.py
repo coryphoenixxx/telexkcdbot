@@ -4,10 +4,10 @@ from shared.utils import cast_or_none
 from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
-from api.application.dtos.responses.image import TranslationImageOrphanResponseDTO
+from api.application.dtos.responses import TranslationImageOrphanResponseDTO
+from api.core.entities import TranslationImageID
 from api.infrastructure.database.gateways.base import BaseGateway
-from api.infrastructure.database.models.translation import TranslationImageModel
-from api.my_types import TranslationImageID
+from api.infrastructure.database.models import TranslationImageModel
 
 
 class TranslationImageGateway(BaseGateway):

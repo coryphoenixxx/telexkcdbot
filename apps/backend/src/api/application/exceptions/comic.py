@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import Any
 
-from api.application.exceptions.base import BaseConflictError, BaseNotFoundError
-from api.my_types import ComicID, IssueNumber
+from api.core.entities import ComicID, IssueNumber
+
+from .base import BaseConflictError, BaseNotFoundError
 
 
 @dataclass

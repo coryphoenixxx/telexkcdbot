@@ -1,10 +1,12 @@
-from api.application.dtos.requests.translation import TranslationRequestDTO
-from api.application.dtos.responses.translation import TranslationResponseDTO
+from api.application.dtos.common import Language
+from api.application.dtos.requests import TranslationRequestDTO
+from api.application.dtos.responses import TranslationResponseDTO
 from api.application.exceptions.translation import (
     OriginalTranslationOperationForbiddenError,
 )
-from api.infrastructure.database import ComicGateway, TranslationGateway, UnitOfWork
-from api.my_types import ComicID, Language, TranslationID
+from api.core.entities import ComicID, TranslationID
+from api.infrastructure.database.gateways import ComicGateway, TranslationGateway
+from api.infrastructure.database.uow import UnitOfWork
 
 
 class TranslationService:

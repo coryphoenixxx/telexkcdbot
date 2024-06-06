@@ -45,14 +45,14 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("comic_id", name=op.f("pk_comics")),
     )
     op.create_index(
-        "uq_number_if_not_extra",
+        "uq_comic_number_if_not_extra",
         "comics",
         ["number"],
         unique=True,
         postgresql_where=sa.text("number IS NOT NULL"),
     )
     op.create_index(
-        "uq_title_if_extra",
+        "uq_comic_title_if_extra",
         "comics",
         ["slug"],
         unique=True,
@@ -168,16 +168,20 @@ def downgrade() -> None:
         postgresql_where=sa.text("NOT is_draft"),
     )
     op.drop_index(
-        "ix_translations_searchable_text", table_name="translations", postgresql_using="pgroonga",
+        "ix_translations_searchable_text",
+        table_name="translations",
+        postgresql_using="pgroonga",
     )
     op.drop_table("translations")
     op.drop_table("comic_tag_association")
     op.drop_table("tags")
     op.drop_index(
-        "uq_title_if_extra", table_name="comics", postgresql_where=sa.text("number IS NULL"),
+        "uq_comic_title_if_extra",
+        table_name="comics",
+        postgresql_where=sa.text("number IS NULL"),
     )
     op.drop_index(
-        "uq_number_if_not_extra",
+        "uq_comic_number_if_not_extra",
         table_name="comics",
         postgresql_where=sa.text("number IS NOT NULL"),
     )

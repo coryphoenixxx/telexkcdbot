@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from api.my_types import TranslationImageID
+from api.core.entities import TranslationImageID
 from pydantic import BaseModel
 
 

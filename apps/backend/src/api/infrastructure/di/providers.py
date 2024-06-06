@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterable
 
 from dishka import Provider, Scope, provide
+from faststream.nats import NatsBroker
 from shared.config_loader import load_config
 from shared.http_client import AsyncHttpClient
 from sqlalchemy.ext.asyncio import (
@@ -9,20 +10,22 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 
-from api.application.image_saver import ImageSaveHelper
 from api.application.services import ComicService, TranslationImageService, TranslationService
-from api.config import APIConfig
-from api.infrastructure.database import (
+from api.infrastructure.database.config import DbConfig
+from api.infrastructure.database.gateways import (
     ComicGateway,
-    DbConfig,
     TranslationGateway,
     TranslationImageGateway,
-    UnitOfWork,
+)
+from api.infrastructure.database.main import (
     check_db_connection,
     create_db_engine,
     create_db_session_factory,
 )
-from api.presentation.upload_reader import UploadImageHandler
+from api.infrastructure.database.uow import UnitOfWork
+from api.infrastructure.image_saver import ImageSaveHelper
+from api.presentation.web.config import APIConfig
+from api.presentation.web.upload_reader import UploadImageHandler
 
 
 class ConfigsProvider(Provider):
@@ -78,6 +81,16 @@ class HelpersProvider(Provider):
         return UploadImageHandler(config, http_client)
 
     image_save_helper = provide(ImageSaveHelper, scope=Scope.REQUEST)
+
+
+class BrokerProvider(Provider):
+    @provide(scope=Scope.APP)
+    async def broker(self) -> AsyncIterable[NatsBroker]:
+        broker = NatsBroker()
+
+        await broker.start()
+        yield broker
+        await broker.close()
 
 
 class GatewaysProvider(Provider):

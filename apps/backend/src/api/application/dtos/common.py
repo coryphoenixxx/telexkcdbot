@@ -1,17 +1,15 @@
+import datetime
 import importlib.resources
 import json
+from dataclasses import dataclass
 from enum import EnumType, StrEnum
+from pathlib import Path
 from typing import Annotated, NewType
 
-from annotated_types import Ge, Gt, Len, MaxLen, MinLen
-
-ComicID = NewType("ComicID", Annotated[int, Gt(0)])
-IssueNumber = NewType("IssueNumber", Annotated[int, Gt(0)])
-TranslationID = NewType("TranslationID", Annotated[int, Gt(0)])
-TranslationImageID = NewType("TranslationImageID", Annotated[int, Gt(0)])
+from annotated_types import Ge, Len, MaxLen, MinLen
+from shared.my_types import ImageFormat, Order
 
 TotalCount = NewType("TotalCount", Annotated[int, Ge(0)])
-
 Alpha2LangCode = NewType("Alpha2LangCode", Annotated[str, Len(2)])
 Tag = NewType("Tag", Annotated[str, MinLen(2), MaxLen(50)])
 
@@ -45,3 +43,49 @@ def _build_language_type() -> EnumType:
 
 
 Language = _build_language_type()
+
+Limit = NewType("Limit", Annotated[int, Ge(0)])
+Offset = NewType("Offset", Annotated[int, Ge(0)])
+
+
+class TagParam(StrEnum):
+    AND = "AND"
+    OR = "OR"
+
+
+@dataclass(slots=True)
+class DateRange:
+    start: datetime.date | None
+    end: datetime.date | None
+
+
+@dataclass(slots=True)
+class ComicFilterParams:
+    q: str | None
+    limit: Limit | None
+    offset: Offset | None
+    date_range: DateRange | None
+    order: Order | None
+    tags: list[Tag] | None
+    tag_param: TagParam | None
+
+
+@dataclass(slots=True)
+class TranslationImageMeta:
+    number: int | None
+    title: str
+    language: Alpha2LangCode
+    is_draft: bool
+
+
+@dataclass
+class Dimensions:
+    width: int
+    height: int
+
+
+@dataclass(slots=True)
+class ImageObj:
+    path: Path
+    fmt: ImageFormat
+    dimensions: Dimensions

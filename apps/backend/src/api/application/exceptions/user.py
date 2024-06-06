@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from api.application.exceptions.base import BaseAppError, BaseConflictError
+from .base import BaseAppError, BaseConflictError
 
 
 @dataclass

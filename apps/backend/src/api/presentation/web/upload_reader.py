@@ -12,14 +12,14 @@ from shared.my_types import ImageFormat
 from starlette.datastructures import UploadFile
 from yarl import URL
 
+from api.application.dtos.common import Dimensions, ImageObj
 from api.application.exceptions.image import (
     DownloadingImageError,
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
     UploadExceedSizeLimitError,
 )
-from api.config import APIConfig
-from api.presentation.my_types import Dimensions, ImageObj
+from api.presentation.web.config import APIConfig
 
 logger = logging.getLogger(__name__)
 
