@@ -17,7 +17,7 @@ progress = Progress(
 
 def positive_number_callback(ctx, param, value: int) -> int | None:
     if not value:
-        return
+        return None
     if isinstance(value, int | float) and value > 0:
         return value
     raise click.BadParameter("parameter must be positive")

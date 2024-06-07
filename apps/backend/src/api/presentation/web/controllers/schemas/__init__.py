@@ -1,3 +1,5 @@
+# ruff: noqa: F401
+
 from .requests import (
     ComicRequestSchema,
     TranslationDraftRequestSchema,

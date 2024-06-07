@@ -27,7 +27,7 @@ class XkcdESScraper(BaseScraper):
         number = self._extract_number(soup)
 
         if not number or number < range_[0] or number > range_[1]:
-            return
+            return None
 
         try:
             data = XkcdTranslationData(

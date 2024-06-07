@@ -24,6 +24,7 @@ from api.infrastructure.database.main import (
 )
 from api.infrastructure.database.uow import UnitOfWork
 from api.infrastructure.image_saver import ImageSaveHelper
+from api.presentation.tg_bot.config import BotConfig
 from api.presentation.web.config import APIConfig
 from api.presentation.web.upload_reader import UploadImageHandler
 
@@ -36,6 +37,10 @@ class ConfigsProvider(Provider):
     @provide(scope=Scope.APP)
     def api_config(self) -> APIConfig:
         return load_config(APIConfig, scope="api")
+
+    @provide(scope=Scope.APP)
+    def bot_config(self) -> BotConfig:
+        return load_config(BotConfig, scope="bot")
 
 
 class DbProvider(Provider):

@@ -33,13 +33,13 @@ class XkcdDEScraper(BaseScraper):
 
     async def fetch_one(self, number: int) -> XkcdTranslationData | None:
         if number == 404:
-            return
+            return None
 
         url = self._BASE_URL / (str(number) + "/")
         soup = await self._get_soup(url, allow_redirects=False)
 
         if not len(soup):
-            return
+            return None
 
         try:
             translation = XkcdTranslationData(

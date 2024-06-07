@@ -28,7 +28,7 @@ class ImageSaveHelper:
             os.chmod(image.path, 0o644)
             shutil.move(image.path, abs_path)
         except FileNotFoundError as err:
-            logging.error(f"{err.strerror}: {image.path}")
+            logging.exception(f"{err.strerror}: {image.path}")
             raise err
 
         return abs_path, rel_path

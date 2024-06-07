@@ -14,7 +14,6 @@ from api.infrastructure.di.providers import (
     HelpersProvider,
     ServicesProvider,
 )
-from api.presentation.web.config import APIConfig
 from api.presentation.web.middlewares import register_middlewares
 from api.presentation.web.routers import register_routers
 
@@ -25,7 +24,7 @@ async def lifespan(app: FastAPI):
     await app.state.dishka_container.close()
 
 
-async def create_app() -> FastAPI:
+def create_app() -> FastAPI:
     container = make_async_container(
         ConfigsProvider(),
         DbProvider(),
@@ -35,17 +34,17 @@ async def create_app() -> FastAPI:
         BrokerProvider(),
     )
 
-    config = await container.get(APIConfig)
-
     app = FastAPI(
         lifespan=lifespan,
-        debug=config.debug,
-        docs_url=config.docs_url,
-        redoc_url=config.redoc_url,
-        openapi_url=config.openapi_url,
+        # debug=config.debug,
+        # docs_url=config.docs_url,
+        # redoc_url=config.redoc_url,
+        # openapi_url=config.openapi_url,
         default_response_class=ORJSONResponse,
         root_path="/api",
     )
+
+     # TODO: get app from ioc?
 
     register_middlewares(app)
     register_routers(app)

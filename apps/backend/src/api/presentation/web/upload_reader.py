@@ -101,5 +101,5 @@ class UploadImageHandler:
                 supported_formats=self._supported_formats,
             )
         except FileNotFoundError as err:
-            logging.error(f"{err.strerror}: {path}")
+            logging.exception(f"{err.strerror}: {path}")
             raise err
