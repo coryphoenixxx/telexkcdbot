@@ -16,7 +16,6 @@ from api.application.dtos.common import (
     Tag,
     TagParam,
 )
-from api.application.dtos.responses import ComicResponseDTO, ComicResponseWTranslationsDTO
 from api.application.exceptions.comic import (
     ComicByIDNotFoundError,
     ComicByIssueNumberNotFoundError,
@@ -58,7 +57,7 @@ async def create_comic(
     *,
     service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    comic_resp_dto: ComicResponseDTO = await service.create(schema.to_dto())
+    comic_resp_dto = await service.create(schema.to_dto())
 
     return ComicResponseSchema.from_dto(comic_resp_dto)
 
@@ -81,7 +80,7 @@ async def update_comic(
     *,
     service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    comic_resp_dto: ComicResponseDTO = await service.update(comic_id, schema.to_dto())
+    comic_resp_dto = await service.update(comic_id, schema.to_dto())
 
     return ComicResponseSchema.from_dto(comic_resp_dto)
 
@@ -99,7 +98,7 @@ async def delete_comic(
     comic_id: ComicID,
     *,
     service: Depends[ComicService],
-):
+) -> None:
     await service.delete(comic_id=comic_id)
 
 
@@ -117,7 +116,7 @@ async def get_comic_by_id(
     *,
     service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    comic_resp_dto: ComicResponseWTranslationsDTO = await service.get_by_id(comic_id)
+    comic_resp_dto = await service.get_by_id(comic_id)
 
     return ComicResponseSchema.from_dto(dto=comic_resp_dto)
 
@@ -136,7 +135,7 @@ async def get_comic_by_issue_number(
     *,
     service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    comic_resp_dto: ComicResponseWTranslationsDTO = await service.get_by_issue_number(number)
+    comic_resp_dto = await service.get_by_issue_number(number)
 
     return ComicResponseSchema.from_dto(dto=comic_resp_dto)
 
@@ -155,7 +154,7 @@ async def get_comic_by_slug(
     *,
     service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    comic_resp_dto: ComicResponseWTranslationsDTO = await service.get_by_slug(slug)
+    comic_resp_dto = await service.get_by_slug(slug)
 
     return ComicResponseSchema.from_dto(dto=comic_resp_dto)
 
@@ -171,11 +170,11 @@ async def get_comic_by_slug(
 )
 async def get_comic_with_translations_by_id(
     comic_id: ComicID,
-    languages: list[Language] = Query(default=None, alias="lg"),
+    languages: list[Language] = Query(default=None, alias="lg"),  # noqa: B008
     *,
     service: Depends[ComicService],
 ) -> ComicWTranslationsResponseSchema:
-    comic_resp_dto: ComicResponseWTranslationsDTO = await service.get_by_id(comic_id)
+    comic_resp_dto = await service.get_by_id(comic_id)
 
     return ComicWTranslationsResponseSchema.from_dto(
         dto=comic_resp_dto,
@@ -194,11 +193,11 @@ async def get_comic_with_translations_by_id(
 )
 async def get_comic_with_translations_by_issue_number(
     number: IssueNumber,
-    languages: list[Language] = Query(default=None, alias="lg"),
+    languages: list[Language] = Query(default=None, alias="lg"),  # noqa: B008
     *,
     service: Depends[ComicService],
 ) -> ComicWTranslationsResponseSchema:
-    comic_resp_dto: ComicResponseWTranslationsDTO = await service.get_by_issue_number(number)
+    comic_resp_dto = await service.get_by_issue_number(number)
 
     return ComicWTranslationsResponseSchema.from_dto(
         dto=comic_resp_dto,
@@ -217,11 +216,11 @@ async def get_comic_with_translations_by_issue_number(
 )
 async def get_comic_with_translations_by_slug(
     slug: str,
-    languages: list[Language] = Query(default=None, alias="lg"),
+    languages: list[Language] = Query(default=None, alias="lg"),  # noqa: B008
     *,
     service: Depends[ComicService],
 ) -> ComicWTranslationsResponseSchema:
-    comic_resp_dto: ComicResponseWTranslationsDTO = await service.get_by_slug(slug)
+    comic_resp_dto = await service.get_by_slug(slug)
 
     return ComicWTranslationsResponseSchema.from_dto(
         dto=comic_resp_dto,
@@ -234,10 +233,10 @@ async def get_comics(
     q: str = Query(min_length=1, max_length=50, default=None),
     page_size: int | None = Query(None, alias="psize"),
     page_num: int | None = Query(None, alias="pnum"),
-    date_from: datetime.date | None = Query(None),
-    date_to: datetime.date | None = Query(None),
+    date_from: datetime.date | None = Query(None),  # noqa: B008
+    date_to: datetime.date | None = Query(None),  # noqa: B008
     order: Order = Order.ASC,
-    tags: list[Tag] = Query(None, alias="tag"),
+    tags: list[Tag] = Query(None, alias="tag"),  # noqa: B008
     tag_param: TagParam | None = None,
     *,
     service: Depends[ComicService],

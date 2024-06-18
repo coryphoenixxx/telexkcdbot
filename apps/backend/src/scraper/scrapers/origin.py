@@ -4,6 +4,7 @@ import re
 
 from rich.progress import Progress
 from shared.http_client import AsyncHttpClient
+from shared.my_types import HTTPStatusCodes
 from yarl import URL
 
 from scraper.dtos import (
@@ -31,7 +32,7 @@ def _build_date(y: str, m: str, d: str) -> str:
 class XkcdOriginScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.com/")
 
-    def __init__(self, client: AsyncHttpClient):
+    def __init__(self, client: AsyncHttpClient) -> None:
         super().__init__(client=client)
         self._cached_latest_number = None
 
@@ -49,7 +50,7 @@ class XkcdOriginScraper(BaseScraper):
 
         url = self._BASE_URL / f"{number!s}/"
 
-        if number == 404:
+        if number == HTTPStatusCodes.HTTP_404_NOT_FOUND:
             data = XkcdOriginScrapedData(
                 number=404,
                 xkcd_url=url,
@@ -120,6 +121,7 @@ class XkcdOriginScraper(BaseScraper):
             large_image_url = img_tag.get("src")
             if large_image_url:
                 return URL(large_image_url)
+        return None
 
     async def _fetch_2x_image_url(self, xkcd_url: URL) -> URL | None:
         x2_image_url = None
@@ -160,3 +162,4 @@ class XkcdOriginScraper(BaseScraper):
     def _process_image_url(self, url: str) -> URL | None:
         if IMAGE_URL_PATTERN.match(url):
             return URL(url)
+        return None

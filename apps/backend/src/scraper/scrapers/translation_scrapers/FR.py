@@ -16,7 +16,7 @@ from scraper.utils import run_concurrently
 class XkcdFRScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.arnaud.at/")
 
-    def __init__(self, client: AsyncHttpClient):
+    def __init__(self, client: AsyncHttpClient) -> None:
         super().__init__(client=client)
         self._cached_number_data_map = None
 

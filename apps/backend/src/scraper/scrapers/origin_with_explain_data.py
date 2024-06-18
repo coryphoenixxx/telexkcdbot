@@ -17,7 +17,7 @@ class XkcdOriginWithExplainDataScraper:
         self,
         origin_scraper: XkcdOriginScraper,
         explain_scraper: XkcdExplainScraper,
-    ):
+    ) -> None:
         self.origin_scraper = origin_scraper
         self.explain_scraper = explain_scraper
 
@@ -30,17 +30,18 @@ class XkcdOriginWithExplainDataScraper:
                 fetch_origin_task = tg.create_task(self.origin_scraper.fetch_one(number))
                 fetch_explain_task = tg.create_task(self.explain_scraper.fetch_one(number))
         except* Exception as errors:
-            for exc in errors.exceptions:
-                raise exc
+            for _ in errors.exceptions:
+                raise
         else:
-            origin_data, explain_data = fetch_origin_task.result(), fetch_explain_task.result()
+            origin_data, explain_data = (
+                fetch_origin_task.result(),
+                fetch_explain_task.result(),
+            )
 
             if not origin_data:
                 return None
 
-            data = self._combine(origin_data, explain_data)
-
-            return data
+            return self._combine(origin_data, explain_data)
 
     async def fetch_many(
         self,

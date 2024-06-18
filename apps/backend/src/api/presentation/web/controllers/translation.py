@@ -105,7 +105,7 @@ async def delete_translation(
     translation_id: TranslationID,
     *,
     service: Depends[TranslationService],
-):
+) -> None:
     await service.delete(translation_id)
 
 
@@ -154,7 +154,7 @@ async def publish_draft(
     translation_id: TranslationID,
     *,
     service: Depends[TranslationService],
-):
+) -> None:
     await service.publish(translation_id)
 
 
@@ -171,9 +171,9 @@ async def get_translation_by_language(
     *,
     service: Depends[TranslationService],
 ) -> TranslationWLanguageResponseSchema:
-    result = await service.get_by_language(comic_id, language)
+    dto = await service.get_by_language(comic_id, language)
 
-    return TranslationWLanguageResponseSchema.from_dto(result)
+    return TranslationWLanguageResponseSchema.from_dto(dto)
 
 
 @router.get(
@@ -188,9 +188,9 @@ async def get_comic_translations(
     *,
     service: Depends[TranslationService],
 ) -> list[TranslationWLanguageResponseSchema]:
-    translation_resp_dtos = await service.get_all(comic_id, False)
+    dtos = await service.get_translations(comic_id)
 
-    return [TranslationWLanguageResponseSchema.from_dto(dto) for dto in translation_resp_dtos]
+    return [TranslationWLanguageResponseSchema.from_dto(dto) for dto in dtos]
 
 
 @router.get(
@@ -205,6 +205,6 @@ async def get_comic_translation_drafts(
     *,
     service: Depends[TranslationService],
 ) -> list[TranslationWLanguageResponseSchema]:
-    translation_resp_dtos = await service.get_all(comic_id, True)
+    dtos = await service.get_translation_drafts(comic_id)
 
-    return [TranslationWLanguageResponseSchema.from_dto(dto) for dto in translation_resp_dtos]
+    return [TranslationWLanguageResponseSchema.from_dto(dto) for dto in dtos]

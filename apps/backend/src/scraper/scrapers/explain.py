@@ -1,9 +1,8 @@
+import importlib.resources
 import logging
 import re
-from pathlib import Path
 
 from bs4 import BeautifulSoup
-from bs4.element import Tag
 from rich.progress import Progress
 from shared.http_client import AsyncHttpClient
 from yarl import URL
@@ -18,12 +17,13 @@ from scraper.utils import run_concurrently
 logger = logging.getLogger(__name__)
 
 NUMBER_FROM_URL_PATTERN = re.compile(r"(\d*?): .*?")
+TRANSCRIPT_TEXT_MAX_LENGTH = 25_000
 
 
 class XkcdExplainScraper(BaseScraper):
     _BASE_URL = URL("https://explainxkcd.com/")
 
-    def __init__(self, client: AsyncHttpClient):
+    def __init__(self, client: AsyncHttpClient) -> None:
         super().__init__(client=client)
         self._bad_tags = self._load_bad_tags()
         self._cached_latest_number = None
@@ -125,27 +125,29 @@ class XkcdExplainScraper(BaseScraper):
     def _extract_transcript_html(self, soup: BeautifulSoup) -> str:
         transcript_html = ""
 
-        transcript_tag: Tag = soup.find(id="Transcript")
+        transcript_tag = soup.find(id="Transcript")
 
         if transcript_tag:
             transcript_header = transcript_tag.parent
             if transcript_header:
                 temp, length = "", 0
-                for tag in transcript_header.find_next_siblings():  # type: Tag
+                for tag in transcript_header.find_next_siblings():
                     tag_name = tag.name
+
                     if tag.get("id") == "Discussion" or tag_name in ("h1", "h2"):
                         break
-                    elif tag_name == "table" and "transcript is incomplete" in tag.get_text():
-                        continue
-                    else:
-                        tag_as_text = str(tag)
-                        length += len(tag_as_text)
 
-                        if length > 25_000:
-                            temp = ""
-                            break
-                        else:
-                            temp += tag_as_text
+                    if tag_name == "table" and "transcript is incomplete" in tag.get_text():
+                        continue
+
+                    tag_as_text = str(tag)
+                    length += len(tag_as_text)
+
+                    if length > TRANSCRIPT_TEXT_MAX_LENGTH:
+                        temp = ""
+                        break
+
+                    temp += tag_as_text
 
                 transcript_html = temp
 
@@ -155,7 +157,7 @@ class XkcdExplainScraper(BaseScraper):
         bad_tags = set()
 
         try:
-            with open((Path(__file__).parent / "data/bad_tags.txt").resolve()) as f:  # TODO: FIX
+            with importlib.resources.open_text("data", "bad_tags.txt") as f:
                 bad_tags = {line.lower() for line in f.read().splitlines() if line}
         except FileNotFoundError:
             logger.warning("Loading bad tags failed: File not found.")

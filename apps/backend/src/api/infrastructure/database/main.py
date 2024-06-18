@@ -35,7 +35,7 @@ def create_db_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSe
     )
 
 
-async def check_db_connection(engine: AsyncEngine):
+async def check_db_connection(engine: AsyncEngine) -> None:
     try:
         async with engine.connect() as conn:
             await conn.execute(text("SELECT 1"))

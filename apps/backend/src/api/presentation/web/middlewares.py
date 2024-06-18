@@ -48,8 +48,9 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
                 status_code=err_class,
                 content=err.detail,
             )
-        except Exception as err:
-            logger.error(err, exc_info=True)
+
+        except Exception:
+            logger.exception("Something went wrong.")
             return ORJSONResponse(
                 status_code=500,
                 content={
@@ -58,7 +59,7 @@ class ExceptionHandlerMiddleware(BaseHTTPMiddleware):
             )
 
 
-def register_middlewares(app: FastAPI):
+def register_middlewares(app: FastAPI) -> None:
     app.add_middleware(ExceptionHandlerMiddleware)
     app.add_middleware(
         CORSMiddleware,

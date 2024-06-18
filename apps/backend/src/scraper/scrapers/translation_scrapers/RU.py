@@ -21,7 +21,7 @@ class XkcdRUScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.ru/")
     _NUM_LIST_URL = _BASE_URL / "num"
 
-    def __init__(self, client: AsyncHttpClient):
+    def __init__(self, client: AsyncHttpClient) -> None:
         super().__init__(client=client)
 
     async def get_all_nums(self) -> list[int]:
@@ -92,21 +92,18 @@ class XkcdRUScraper(BaseScraper):
 
     def _extract_transcript(self, soup: BeautifulSoup) -> str:
         transcript_block = soup.find("div", {"class": "transcription"})
-        transcript_html = self._extract_tag_content(
+        return self._extract_tag_content(
             tag=transcript_block,
             pattern=DIV_CONTENT_PATTERN,
         )
 
-        return transcript_html
-
     def _extract_comment(self, soup: BeautifulSoup) -> str:
         comment_block = soup.find("div", {"class": "comment"})
-        comment_html = self._extract_tag_content(
+
+        return self._extract_tag_content(
             tag=comment_block,
             pattern=DIV_CONTENT_PATTERN,
         )
-
-        return comment_html
 
     def _extract_tag_content(self, tag: Tag, pattern: str | re.Pattern[str]) -> str:
         content = ""

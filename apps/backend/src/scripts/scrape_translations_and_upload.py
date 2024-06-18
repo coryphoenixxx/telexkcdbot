@@ -27,14 +27,18 @@ from scraper.scrapers import (
     XkcdZHScraper,
 )
 from scraper.utils import run_concurrently
-from scripts.common import positive_number_callback
-from scripts.common import progress as base_progress
-from shared.api_rest_client import APIRESTClient
+from shared.api_client import APIClient
 from shared.http_client import AsyncHttpClient
 from shared.utils import flatten
 from yarl import URL
 
+from scripts.common import positive_number_callback
+from scripts.common import progress as base_progress
+
 logger = logging.getLogger(__name__)
+
+
+class DatabaseIsEmptyError(Exception): ...
 
 
 def extract_prescraped_translations(
@@ -61,7 +65,7 @@ def extract_prescraped_translations(
 
                 number_image_path_map[int(image_name.split(".")[0])] = image_path
 
-            with open(root / "data.csv") as data_file:
+            with Path(root / "data.csv").open() as data_file:
                 csv_reader = csv.DictReader(data_file)
 
                 for row in csv_reader:
@@ -96,7 +100,7 @@ async def fetch_all_translations(
     http_client: AsyncHttpClient,
     limits: LimitParams,
     progress: Progress,
-    temp_dir,
+    temp_dir: str,
 ) -> list[XkcdTranslationData]:
     async with asyncio.TaskGroup() as tg:
         tasks = [
@@ -117,7 +121,7 @@ async def fetch_all_translations(
         )
     except FileNotFoundError as err:
         logger.warning(
-            f"File not found: {err.filename}. Skip prescraped translations extraction...",
+            "File not found: %s. Skip prescraped translations extraction...", err.filename
         )
     else:
         translations.extend(prescraped_translations)
@@ -126,12 +130,12 @@ async def fetch_all_translations(
 
 
 async def upload_translations(
-    api_client: APIRESTClient,
+    api_client: APIClient,
     number_comic_id_map: dict[int, int],
     translation_data: list[XkcdTranslationData],
     limits: LimitParams,
     progress: Progress,
-):
+) -> None:
     await run_concurrently(
         data=translation_data,
         coro=api_client.add_translation_with_image,
@@ -142,7 +146,7 @@ async def upload_translations(
     )
 
 
-async def get_number_comic_id_map(api_client: APIRESTClient) -> dict[int, int]:
+async def get_number_comic_id_map(api_client: APIClient) -> dict[int, int]:
     d = {}
     data = (await api_client.get_comics())["data"]
     for comic in data:
@@ -157,17 +161,16 @@ async def get_number_comic_id_map(api_client: APIRESTClient) -> dict[int, int]:
 @click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
 @click.option("--delay", type=float, default=0.01, callback=positive_number_callback)
 @click.option("--api-url", type=str, default="http://127.0.0.1:8000/api")
-async def main(start: int, end: int | None, chunk_size: int, delay: int, api_url: str):
+async def main(start: int, end: int | None, chunk_size: int, delay: int, api_url: str) -> None:
     async with AsyncHttpClient() as http_client:
-        api_client = APIRESTClient(api_url, http_client)
+        api_client = APIClient(api_url, http_client)
 
         await api_client.healthcheck()
 
         number_comic_id_map = await get_number_comic_id_map(api_client)
 
         if not number_comic_id_map:
-            print("Looks like database is empty.")
-            return
+            raise DatabaseIsEmptyError("Looks like database is empty.")
 
         origin_with_explain_scraper = XkcdOriginWithExplainDataScraper(
             origin_scraper=XkcdOriginScraper(client=http_client),

@@ -14,7 +14,7 @@ class TranslationImageService:
         gateway: TranslationImageGateway,
         uow: UnitOfWork,
         image_saver: ImageSaveHelper,
-    ):
+    ) -> None:
         self._gateway = gateway
         self._uow = uow
         self._image_saver = image_saver
@@ -37,7 +37,7 @@ class TranslationImageService:
         image_id: TranslationImageID,
         converted_abs_path: Path | None,
         thumbnail_abs_path: Path,
-    ):
+    ) -> None:
         await self._gateway.update(
             image_id=image_id,
             converted_rel_path=self._image_saver.cut_rel_path(converted_abs_path),

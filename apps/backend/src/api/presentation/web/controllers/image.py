@@ -18,7 +18,9 @@ from api.application.exceptions.image import (
     UploadExceedSizeLimitError,
 )
 from api.application.services import TranslationImageService
-from api.presentation.web.controllers.schemas.responses import TranslationImageOrphanResponseSchema
+from api.presentation.web.controllers.schemas.responses import (
+    TranslationImageOrphanResponseSchema,
+)
 from api.presentation.web.upload_reader import UploadImageHandler
 
 router = APIRouter(tags=["Images"], route_class=DishkaRoute)
@@ -46,7 +48,7 @@ async def upload_image(
     title: constr(min_length=1, strip_whitespace=True),
     number: Annotated[int | None, Query(ge=1)] = None,
     language: Language = Language.EN,
-    is_draft: bool = False,
+    is_draft: bool = False,  # noqa: FBT001, FBT002
     image_file: Annotated[UploadFile, File(...)] = None,
     image_url: HttpUrl | None = None,
     *,
@@ -56,14 +58,15 @@ async def upload_image(
 ) -> TranslationImageOrphanResponseSchema:
     if image_file and image_url:
         raise UploadedImageTypeConflictError
-    elif image_file is None and image_url is None:
+
+    if image_file is None and image_url is None:
         raise UploadedImageError
-    else:
-        image_obj = (
-            await upload_reader.read(image_file)
-            if image_file
-            else await upload_reader.download(str(image_url))
-        )
+
+    image_obj = (
+        await upload_reader.read(image_file)
+        if image_file
+        else await upload_reader.download(str(image_url))
+    )
 
     original_abs_path, image_resp_dto = await service.create(
         metadata=TranslationImageMeta(

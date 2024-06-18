@@ -3,6 +3,7 @@ import re
 from bs4 import BeautifulSoup
 from rich.progress import Progress
 from shared.http_client import AsyncHttpClient
+from shared.my_types import HTTPStatusCodes
 from yarl import URL
 
 from scraper.dtos import XkcdTranslationData
@@ -16,7 +17,7 @@ from scraper.utils import run_concurrently
 class XkcdDEScraper(BaseScraper):
     _BASE_URL = URL("https://xkcde.dapete.net/")
 
-    def __init__(self, client: AsyncHttpClient):
+    def __init__(self, client: AsyncHttpClient) -> None:
         super().__init__(client=client)
 
     async def fetch_latest_number(self) -> int:
@@ -32,7 +33,7 @@ class XkcdDEScraper(BaseScraper):
         )
 
     async def fetch_one(self, number: int) -> XkcdTranslationData | None:
-        if number == 404:
+        if number == HTTPStatusCodes.HTTP_404_NOT_FOUND:
             return None
 
         url = self._BASE_URL / (str(number) + "/")

@@ -18,7 +18,7 @@ XKCD_NUMBER_PATTERN = re.compile(r".*xkcd.com/(.*)")
 class XkcdESScraper(BaseScraper):
     _BASE_URL = URL("https://es.xkcd.com/")
 
-    def __init__(self, client: AsyncHttpClient):
+    def __init__(self, client: AsyncHttpClient) -> None:
         super().__init__(client=client)
 
     async def fetch_one(self, url: URL, range_: tuple[int, int]) -> XkcdTranslationData | None:
@@ -68,22 +68,22 @@ class XkcdESScraper(BaseScraper):
         soup = await self._get_soup(url)
 
         link_tags = soup.find("div", {"id": "archive-ul"}).find_all("a")
-        links = [self._BASE_URL / tag.get("href")[3:] for tag in link_tags]
 
-        return links
+        return [self._BASE_URL / tag.get("href")[3:] for tag in link_tags]
 
     def _extract_number(self, soup: BeautifulSoup) -> int | None:
         xkcd_link = soup.find("div", {"id": "middleContent"}).find_all("a")[-1].get("href")
 
         if match := XKCD_NUMBER_PATTERN.match(xkcd_link):
             return int(match.group(1).replace("/", ""))
+        return None
 
-    def _extract_title(self, soup) -> str:
+    def _extract_title(self, soup: BeautifulSoup) -> str:
         return soup.find("div", {"id": "middleContent"}).find("h1").text
 
-    def _extract_tooltip(self, soup) -> str:
+    def _extract_tooltip(self, soup: BeautifulSoup) -> str:
         return soup.find("img", {"class": "strip"}).get("title")
 
-    def _extract_image_url(self, soup) -> URL:
+    def _extract_image_url(self, soup: BeautifulSoup) -> URL:
         src = soup.find("img", {"class": "strip"}).get("src")
         return self._BASE_URL / src[6:]

@@ -8,7 +8,7 @@ class BotRunMode(Enum):
 
 
 @dataclass(slots=True)
-class AppConfig:
+class BotAppConfig:
     host: str
     port: int
 
@@ -25,5 +25,5 @@ class BotConfig:
     token: str
     admin_id: int
     run_method: BotRunMode
-    app: AppConfig
+    app: BotAppConfig
     webhook: WebhookConfig

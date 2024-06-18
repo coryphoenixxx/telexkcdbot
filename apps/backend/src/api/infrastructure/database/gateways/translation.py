@@ -40,7 +40,11 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
             source_url=dto.source_url,
             is_draft=dto.is_draft,
             images=images,
-            searchable_text=build_searchable_text(dto.title, dto.raw_transcript, dto.is_draft),
+            searchable_text=build_searchable_text(
+                dto.title,
+                dto.raw_transcript,
+                is_draft=dto.is_draft,
+            ),
         )
 
         self._session.add(translation)
@@ -85,6 +89,7 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
     async def update_draft_status(
         self,
         translation_id: TranslationID,
+        *,
         new_draft_status: bool,
     ) -> None:
         translation = await self._get_by_id(translation_id, with_for_update=True)
@@ -106,7 +111,9 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
     async def get_by_id(self, translation_id: TranslationID) -> TranslationResponseDTO:
         return TranslationResponseDTO.from_model(model=await self._get_by_id(translation_id))
 
-    async def get_by_language(self, comic_id, language: Language) -> TranslationResponseDTO:
+    async def get_by_language(
+        self, comic_id: ComicID, language: Language
+    ) -> TranslationResponseDTO:
         stmt = select(TranslationModel).where(
             TranslationModel.comic_id == comic_id,
             TranslationModel.language == language,
@@ -122,6 +129,7 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
     async def _get_by_id(
         self,
         translation_id: TranslationID,
+        *,
         with_for_update: ForUpdateParameter = False,
     ) -> TranslationModel:
         translation_model = await self._session.get(
@@ -145,7 +153,8 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
 
         if UNIQUE_TRANSLATION_IF_NOT_DRAFT in cause:
             raise TranslationAlreadyExistsError(comic_id, dto.language)
-        elif "fk_translations_comic_id_comics" in cause:
+
+        if "fk_translations_comic_id_comics" in cause:
             raise ComicByIDNotFoundError(comic_id)
-        else:
-            raise err
+
+        raise err

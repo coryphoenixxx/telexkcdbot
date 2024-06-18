@@ -1,13 +1,18 @@
-from api.application.dtos.common import ComicFilterParams, TotalCount
+from shared.my_types import Order
+
+from api.application.dtos.common import ComicFilterParams, Limit, TotalCount
 from api.application.dtos.requests import ComicRequestDTO
-from api.application.dtos.responses import ComicResponseDTO, ComicResponseWTranslationsDTO
+from api.application.dtos.responses import (
+    ComicResponseDTO,
+    ComicResponseWTranslationsDTO,
+)
 from api.core.entities import ComicID, IssueNumber
 from api.infrastructure.database.gateways import ComicGateway
 from api.infrastructure.database.uow import UnitOfWork
 
 
 class ComicService:
-    def __init__(self, uow: UnitOfWork, gateway: ComicGateway):
+    def __init__(self, uow: UnitOfWork, gateway: ComicGateway) -> None:
         self._uow = uow
         self._gateway = gateway
 
@@ -30,19 +35,23 @@ class ComicService:
         await self._uow.commit()
 
     async def get_by_id(self, comic_id: ComicID) -> ComicResponseWTranslationsDTO:
-        comic_resp_dto = await self._gateway.get_by_id(comic_id)
-
-        return comic_resp_dto
+        return await self._gateway.get_by_id(comic_id)
 
     async def get_by_issue_number(self, number: IssueNumber) -> ComicResponseWTranslationsDTO:
-        comic_resp_dto = await self._gateway.get_by_issue_number(number)
-
-        return comic_resp_dto
+        return await self._gateway.get_by_issue_number(number)
 
     async def get_by_slug(self, slug: str) -> ComicResponseWTranslationsDTO:
-        comic_resp_dto = await self._gateway.get_by_slug(slug)
+        return await self._gateway.get_by_slug(slug)
 
-        return comic_resp_dto
+    async def get_latest_issue_number(self) -> IssueNumber:
+        return (
+            await self._gateway.get_list(
+                filter_params=ComicFilterParams(
+                    limit=Limit(1),
+                    order=Order.DESC,
+                )
+            )
+        )[1][0].number
 
     async def get_list(
         self,

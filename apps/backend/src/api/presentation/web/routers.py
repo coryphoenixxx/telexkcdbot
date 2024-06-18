@@ -1,12 +1,10 @@
 from fastapi import FastAPI
 
-from api.presentation.web.controllers import (
-    comic_router,
-    default_router,
-    image_router,
-    translation_router,
-    user_router,
-)
+from api.presentation.web.controllers.comic import router as comic_router
+from api.presentation.web.controllers.default import router as default_router
+from api.presentation.web.controllers.image import router as image_router
+from api.presentation.web.controllers.translation import router as translation_router
+from api.presentation.web.controllers.user import router as user_router
 
 
 def register_routers(app: FastAPI) -> None:

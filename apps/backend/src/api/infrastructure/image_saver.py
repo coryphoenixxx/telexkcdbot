@@ -1,5 +1,4 @@
 import logging
-import os
 import shutil
 from pathlib import Path
 from typing import Final
@@ -8,14 +7,14 @@ from uuid import uuid4
 import aiofiles.os as aos
 
 from api.application.dtos.common import ImageObj, TranslationImageMeta
+from api.core.configs.web import APIConfig
 from api.infrastructure.slugger import slugify
-from api.presentation.web.config import APIConfig
 
 
 class ImageSaveHelper:
     _IMAGES_URL_PREFIX: Final = "images/comics/"
 
-    def __init__(self, config: APIConfig):
+    def __init__(self, config: APIConfig) -> None:
         self._static_dir = config.static_dir.absolute().resolve()
 
     async def save(self, meta: TranslationImageMeta, image: ImageObj) -> tuple[Path, Path]:
@@ -25,17 +24,18 @@ class ImageSaveHelper:
         await aos.makedirs(abs_path.parent, exist_ok=True)
 
         try:
-            os.chmod(image.path, 0o644)
+            Path(image.path).chmod(0o644)
             shutil.move(image.path, abs_path)
         except FileNotFoundError as err:
-            logging.exception(f"{err.strerror}: {image.path}")
-            raise err
+            logging.exception("%s: %s", err.strerror, image.path)
+            raise
 
         return abs_path, rel_path
 
-    def cut_rel_path(self, path: Path | None):
+    def cut_rel_path(self, path: Path | None) -> Path | None:
         if path:
             return path.relative_to(self._static_dir)
+        return None
 
     def _build_rel_path(self, meta: TranslationImageMeta, image: ImageObj) -> Path:
         slug = slugify(meta.title)
@@ -57,6 +57,6 @@ class ImageSaveHelper:
                 path = Path(f"{meta.number:04d}/{meta.language}/drafts/{filename}")
 
         if not path:
-            logging.error(f"Invalid meta: {meta}")
+            logging.error("Invalid meta: %s", meta)
 
         return self._IMAGES_URL_PREFIX / path

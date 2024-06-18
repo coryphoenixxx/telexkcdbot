@@ -5,33 +5,34 @@ from functools import partial
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 from dishka import AsyncContainer, make_async_container
 from dishka.integrations.aiogram import setup_dishka
 from shared.config_loader import load_config
 
-from api.infrastructure.di.providers import (
+from api.core.configs.bot import BotAppConfig, BotConfig, BotRunMode, WebhookConfig
+from api.core.di.providers import (
     ConfigsProvider,
     DbProvider,
     GatewaysProvider,
     HelpersProvider,
     ServicesProvider,
 )
-from api.presentation.tg_bot.config import AppConfig, BotConfig, BotRunMode, WebhookConfig
-from api.presentation.tg_bot.handlers.comic import router as comic_router
-from api.presentation.tg_bot.handlers.start import router as start_router
+from api.presentation.tg_bot.controllers.comic import router as comic_router
+from api.presentation.tg_bot.controllers.start import router as start_router
 
 logger = logging.getLogger(__name__)
 
 
-async def on_startup(bot: Bot, admin_id: int):
+async def on_startup(bot: Bot, admin_id: int) -> None:
     message = "Bot successfully started."
     await bot.send_message(chat_id=admin_id, text=message)
     logger.info(message)
 
 
-async def on_shutdown(bot: Bot, admin_id: int, ioc: AsyncContainer):
+async def on_shutdown(bot: Bot, admin_id: int, ioc: AsyncContainer) -> None:
     message = "Bot is stopping..."
     logger.info(message)
     await bot.send_message(chat_id=admin_id, text=message)
@@ -39,7 +40,7 @@ async def on_shutdown(bot: Bot, admin_id: int, ioc: AsyncContainer):
     await ioc.close()
 
 
-async def setup_webhook(bot: Bot, config: WebhookConfig):
+async def setup_webhook(bot: Bot, config: WebhookConfig) -> None:
     await bot.set_webhook(
         url=config.url + config.path,
         secret_token=config.secret_token,
@@ -48,11 +49,11 @@ async def setup_webhook(bot: Bot, config: WebhookConfig):
 
 
 def webhook_run(
-        bot: Bot,
-        dp: Dispatcher,
-        app_config: AppConfig,
-        webhook_config: WebhookConfig,
-):
+    bot: Bot,
+    dp: Dispatcher,
+    app_config: BotAppConfig,
+    webhook_config: WebhookConfig,
+) -> None:
     dp.startup.register(partial(setup_webhook, config=webhook_config))
 
     app = web.Application()
@@ -74,12 +75,12 @@ def webhook_run(
     )
 
 
-async def polling_run(bot: Bot, dp: Dispatcher):
+async def polling_run(bot: Bot, dp: Dispatcher) -> None:
     await bot.delete_webhook()
     await dp.start_polling(bot)
 
 
-def main():
+def main() -> None:
     config = load_config(BotConfig, scope="bot")
 
     ioc = make_async_container(
@@ -95,7 +96,7 @@ def main():
         default=DefaultBotProperties(parse_mode="HTML"),
     )  # TODO: get bot instance from ioc
 
-    dp = Dispatcher()
+    dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(start_router)
     dp.include_router(comic_router)
     dp.startup.register(partial(on_startup, admin_id=config.admin_id))

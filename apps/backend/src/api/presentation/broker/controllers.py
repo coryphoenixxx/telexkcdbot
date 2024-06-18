@@ -5,7 +5,7 @@ from PIL import Image
 from shared.messages import ImageProcessInMessage
 
 from api.application.services import TranslationImageService
-from api.presentation.events.image_processor import convert_to_webp, create_thumbnail, is_animation
+from api.presentation.broker.image_processor import convert_to_webp, create_thumbnail, is_animation
 
 router = NatsRouter()
 

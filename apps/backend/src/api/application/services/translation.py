@@ -15,7 +15,7 @@ class TranslationService:
         uow: UnitOfWork,
         translation_gateway: TranslationGateway,
         comic_gateway: ComicGateway,
-    ):
+    ) -> None:
         self._uow = uow
         self._comic_gateway = comic_gateway
         self._translation_gateway = translation_gateway
@@ -73,16 +73,13 @@ class TranslationService:
     ) -> TranslationResponseDTO:
         return await self._translation_gateway.get_by_language(comic_id, language)
 
-    async def get_all(
-        self,
-        comic_id: ComicID,
-        is_draft: bool = False,
-    ) -> list[TranslationResponseDTO]:
-        draft_resp_dtos = await self._comic_gateway.get_translations(comic_id, is_draft)
+    async def get_translations(self, comic_id: ComicID) -> list[TranslationResponseDTO]:
+        return await self._comic_gateway.get_translations(comic_id)
 
-        return draft_resp_dtos
+    async def get_translation_drafts(self, comic_id: ComicID) -> list[TranslationResponseDTO]:
+        return await self._comic_gateway.get_translation_drafts(comic_id)
 
-    async def publish(self, translation_id: TranslationID):
+    async def publish(self, translation_id: TranslationID) -> None:
         candidate = await self._translation_gateway.get_by_id(translation_id)
 
         if candidate.is_draft:
@@ -97,8 +94,14 @@ class TranslationService:
                     break
 
             if published:
-                await self._translation_gateway.update_draft_status(published.id, True)
+                await self._translation_gateway.update_draft_status(
+                    published.id,
+                    new_draft_status=True,
+                )
 
-            await self._translation_gateway.update_draft_status(candidate.id, False)
+            await self._translation_gateway.update_draft_status(
+                candidate.id,
+                new_draft_status=False,
+            )
 
             await self._uow.commit()

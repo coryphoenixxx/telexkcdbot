@@ -1,10 +1,17 @@
 from dataclasses import dataclass
 from datetime import datetime as dt
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from api.application.dtos.common import Language
 from api.core.entities import ComicID, IssueNumber, TranslationID, TranslationImageID
-from api.infrastructure.database.models import ComicModel, TranslationImageModel, TranslationModel
+
+if TYPE_CHECKING:
+    from api.infrastructure.database.models import (
+        ComicModel,
+        TranslationImageModel,
+        TranslationModel,
+    )
 
 
 @dataclass(slots=True)
@@ -22,7 +29,7 @@ class TranslationImageProcessedResponseDTO:
     thumbnail_rel_path: str
 
     @classmethod
-    def from_model(cls, model: "TranslationImageModel"):
+    def from_model(cls, model: "TranslationImageModel") -> "TranslationImageProcessedResponseDTO":
         return TranslationImageProcessedResponseDTO(
             id=model.image_id,
             translation_id=model.translation_id,
@@ -91,7 +98,7 @@ class ComicResponseDTO:
             explain_url=model.explain_url,
             click_url=model.click_url,
             is_interactive=model.is_interactive,
-            tags=sorted([tag.name for tag in model.tags]),  # TODO: sort by SQL?
+            tags=[tag.name for tag in model.tags],
             images=[
                 TranslationImageProcessedResponseDTO.from_model(img)
                 for img in model.original.images

@@ -1,0 +1,35 @@
+[api]
+host = "0.0.0.0"
+port = 8000
+tmp_dir = ""
+static_dir = ""
+upload_max_size = 10485760
+
+[db]
+host = "localhost"
+port = 5432
+dbname = "telexkcdbot"
+user = "admin"
+password = "password"
+echo = false
+pool_size = 40
+
+[gunicorn]
+wsgi_app = "api.main.web:create_app()"
+bind = "0.0.0.0:8000"
+workers = 5
+worker_class = "uvicorn.workers.UvicornWorker"
+
+[bot]
+token = ""
+admin_id = 1234567890
+run_method = "WEBHOOK"
+
+[bot.app]
+host = "0.0.0.0"
+port = 5000
+
+[bot.webhook]
+url = ""
+secret_token = ""
+path = "/bot/webhook"

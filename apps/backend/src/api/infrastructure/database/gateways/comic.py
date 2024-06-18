@@ -7,7 +7,12 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import noload
 from sqlalchemy.sql.selectable import ForUpdateArg, ForUpdateParameter
 
-from api.application.dtos.common import ComicFilterParams, Language, TagParam, TotalCount
+from api.application.dtos.common import (
+    ComicFilterParams,
+    Language,
+    TagParam,
+    TotalCount,
+)
 from api.application.dtos.requests import ComicRequestDTO
 from api.application.dtos.responses import (
     ComicResponseDTO,
@@ -158,10 +163,11 @@ class ComicGateway(BaseGateway, GetImagesMixin):
             )
             stmt = stmt.where(ComicModel.comic_id.in_(subq))
 
-        if filter_params.date_range.start:
-            stmt = stmt.where(ComicModel.publication_date >= filter_params.date_range.start)
-        if filter_params.date_range.end:
-            stmt = stmt.where(ComicModel.publication_date <= filter_params.date_range.end)
+        if filter_params.date_range:
+            if filter_params.date_range.start:
+                stmt = stmt.where(ComicModel.publication_date >= filter_params.date_range.start)
+            if filter_params.date_range.end:
+                stmt = stmt.where(ComicModel.publication_date <= filter_params.date_range.end)
 
         if filter_params.tags:
             stmt = stmt.outerjoin(ComicModel.tags).where(TagModel.name.in_(filter_params.tags))
@@ -183,16 +189,15 @@ class ComicGateway(BaseGateway, GetImagesMixin):
 
         return total, [ComicResponseWTranslationsDTO.from_model(comic) for comic in comics]
 
-    async def get_translations(
-        self,
-        comic_id: ComicID,
-        is_draft: bool = False,
-    ) -> list[TranslationResponseDTO]:
+    async def get_translations(self, comic_id: ComicID) -> list[TranslationResponseDTO]:
         comic = await self._get_by_id(comic_id)
 
-        if is_draft:
-            return [TranslationResponseDTO.from_model(model) for model in comic.translation_drafts]
         return [TranslationResponseDTO.from_model(model) for model in comic.translations]
+
+    async def get_translation_drafts(self, comic_id: ComicID) -> list[TranslationResponseDTO]:
+        comic = await self._get_by_id(comic_id)
+
+        return [TranslationResponseDTO.from_model(model) for model in comic.translation_drafts]
 
     async def _create_tags(self, tag_names: list[str]) -> list[TagModel]:
         if not tag_names:
@@ -213,6 +218,7 @@ class ComicGateway(BaseGateway, GetImagesMixin):
     async def _get_by_id(
         self,
         comic_id: ComicID,
+        *,
         with_for_update: ForUpdateParameter = False,
     ) -> ComicModel:
         comic = await self._session.get(ComicModel, comic_id, with_for_update=with_for_update)
@@ -237,7 +243,8 @@ class ComicGateway(BaseGateway, GetImagesMixin):
 
         if UNIQUE_COMIC_NUMBER_IF_NOT_EXTRA_CONSTRAINT in cause:
             raise ComicNumberAlreadyExistsError(number=dto.number)
-        elif UNIQUE_COMIC_TITLE_IF_NOT_EXTRA_CONSTRAINT in cause:
+
+        if UNIQUE_COMIC_TITLE_IF_NOT_EXTRA_CONSTRAINT in cause:
             raise ExtraComicTitleAlreadyExistsError(title=dto.title)
-        else:
-            raise err
+
+        raise err

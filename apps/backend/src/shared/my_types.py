@@ -1,4 +1,4 @@
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 
 
 class ImageFormat(StrEnum):
@@ -11,3 +11,9 @@ class ImageFormat(StrEnum):
 class Order(StrEnum):
     ASC = "asc"
     DESC = "desc"
+
+
+class HTTPStatusCodes(IntEnum):
+    HTTP_200_OK = 200
+    HTTP_201_CREATED = 201
+    HTTP_404_NOT_FOUND = 404

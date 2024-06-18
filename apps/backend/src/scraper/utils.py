@@ -33,11 +33,12 @@ async def run_concurrently(
                 if pbar:
                     tg.create_task(progress_watcher(tasks, pbar))
         except* Exception as errors:
-            for e in errors.exceptions:
-                raise e
+            for _ in errors.exceptions:
+                raise
         else:
             for task in tasks:
-                if result := task.result():
+                result = task.result()
+                if result:
                     results.append(result)
 
         await asyncio.sleep(delay)

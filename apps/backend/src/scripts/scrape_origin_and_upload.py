@@ -12,18 +12,19 @@ from scraper.scrapers import (
     XkcdOriginWithExplainDataScraper,
 )
 from scraper.utils import run_concurrently
+from shared.api_client import APIClient
+from shared.http_client import AsyncHttpClient
+
 from scripts.common import positive_number_callback
 from scripts.common import progress as base_progress
-from shared.api_rest_client import APIRESTClient
-from shared.http_client import AsyncHttpClient
 
 
 async def upload_origin_with_explanation(
-    api_client: APIRESTClient,
+    api_client: APIClient,
     origin_data: list[XkcdOriginWithExplainScrapedData],
     limits: LimitParams,
     progress: Progress,
-):
+) -> None:
     await run_concurrently(
         data=origin_data,
         coro=api_client.create_comic_with_image,
@@ -39,9 +40,9 @@ async def upload_origin_with_explanation(
 @click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
 @click.option("--delay", type=float, default=0.01, callback=positive_number_callback)
 @click.option("--api-url", type=str, default="http://127.0.0.1:8000/api")
-async def main(start: int, end: int | None, chunk_size: int, delay: int, api_url: str):
+async def main(start: int, end: int | None, chunk_size: int, delay: int, api_url: str) -> None:
     async with AsyncHttpClient() as http_client:
-        api_client = APIRESTClient(api_url, http_client)
+        api_client = APIClient(api_url, http_client)
 
         await api_client.healthcheck()
 

@@ -4,9 +4,10 @@ from typing import Any, TypeVar
 T = TypeVar("T")
 
 
-def cast_or_none(cast_to: type["T"], value: Any) -> type["T"] | None:
+def cast_or_none(cast_to: type["T"], value: Any) -> T | None:
     if value:
         return cast_to(value)
+    return None
 
 
 def chunked(seq: Sequence["T"], n: int) -> Generator[list["T"], None, None]:

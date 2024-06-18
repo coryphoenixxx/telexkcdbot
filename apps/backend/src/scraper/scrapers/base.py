@@ -8,7 +8,7 @@ class BaseScraper:
     def __init__(self, client: AsyncHttpClient) -> None:
         self._client = client
 
-    async def _get_soup(self, url: URL, **kwargs):
+    async def _get_soup(self, url: URL, **kwargs) -> BeautifulSoup:
         for _ in range(3):
             try:
                 async with self._client.safe_get(url=url, **kwargs) as response:

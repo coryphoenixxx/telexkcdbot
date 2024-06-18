@@ -1,6 +1,7 @@
 import datetime as dt
 
 from pydantic import BaseModel, HttpUrl, SecretStr
+from pydantic.types import SecretType
 from shared.utils import cast_or_none
 
 from api.application.dtos.common import Language, Tag
@@ -72,5 +73,5 @@ class UserRequestSchema(BaseModel):
     raw_password: SecretStr
 
     @property
-    def secret(self):
+    def secret(self) -> SecretType:
         return self.raw_password.get_secret_value()

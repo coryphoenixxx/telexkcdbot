@@ -16,12 +16,12 @@ router = Router()
 async def start_handler_with_user_id(
     msg: Message,
     command: CommandObject,
-):
+) -> None:
     user_id = command.args.split("_")[1]
 
     await msg.answer(f"HELLO, {msg.chat.username} with {user_id=}")
 
 
 @router.message(CommandStart())
-async def start_handler(msg: Message):
+async def start_handler(msg: Message) -> None:
     await msg.answer(f"HELLO, {msg.chat.username}. Base start.")

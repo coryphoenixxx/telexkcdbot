@@ -1,6 +1,8 @@
+# ruff: noqa
+
 import time
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import uuid4
 
 from argon2 import PasswordHasher
@@ -32,9 +34,9 @@ class UserDBModel:
 class Argon2Hasher:
     def __init__(
         self,
+        hasher: PasswordHasher,
         salt: bytes = bytes("SomeSalt", "UTF-8"),
-        hasher: PasswordHasher = PasswordHasher(),
-    ):
+    ) -> None:
         self._hasher = hasher
         self._salt = salt
 
@@ -44,18 +46,18 @@ class Argon2Hasher:
             salt=self._salt,
         )
 
-    def verify(self, hashed_password: str, raw_password: str):
+    def verify(self, hashed_password: str, raw_password: str) -> Literal[True]:
         try:
             return self._hasher.verify(hashed_password, raw_password)
-        except VerifyMismatchError:
-            raise InvalidCredentialsError
+        except VerifyMismatchError as err:
+            raise InvalidCredentialsError from err
 
 
 def get_hasher() -> Argon2Hasher:
     return Argon2Hasher()
 
 
-def check_username(username: str):
+def check_username(username: str) -> None:
     for v in MOCK_DB.values():
         if v["username"] == username:
             raise UsernameAlreadyExistsError(username)
@@ -111,7 +113,7 @@ def delete_session_id(session_id: str) -> None:
 async def register_user(
     user: UserRequestSchema,
     hasher: Argon2Hasher = Depends(get_hasher),
-):
+) -> dict:
     # TODO: check password strength
 
     check_username(user.username)
@@ -129,7 +131,7 @@ async def login_user(
     response: Response,
     user: UserRequestSchema,
     hasher: Argon2Hasher = Depends(get_hasher),
-):
+) -> dict:
     db_user = get_user_by_username(user.username)
     if not db_user:
         raise InvalidCredentialsError
@@ -151,7 +153,7 @@ async def login_user(
 async def logout_user(
     response: Response,
     session_id: Annotated[str | None, Cookie()] = None,
-):
+) -> dict:
     delete_session_id(session_id)
 
     response.delete_cookie(session_id)

@@ -15,20 +15,20 @@ Tag = NewType("Tag", Annotated[str, MinLen(2), MaxLen(50)])
 
 
 class LanguageEnum(StrEnum):
-    def __new__(cls, code: Alpha2LangCode, name: str, native: str):
+    def __new__(cls, code: Alpha2LangCode, name: str, native: str) -> str:
         member = str.__new__(cls, code)
         member._value_ = code
-        member._name = name
-        member._native = native
+        member._name = name  # noqa: SLF001
+        member._native = native  # noqa: SLF001
 
         return member
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def native(self):
+    def native(self) -> str:
         return self._native
 
 
@@ -61,13 +61,13 @@ class DateRange:
 
 @dataclass(slots=True)
 class ComicFilterParams:
-    q: str | None
-    limit: Limit | None
-    offset: Offset | None
-    date_range: DateRange | None
-    order: Order | None
-    tags: list[Tag] | None
-    tag_param: TagParam | None
+    q: str | None = None
+    limit: Limit | None = None
+    offset: Offset | None = None
+    date_range: DateRange | None = None
+    order: Order | None = None
+    tags: list[Tag] | None = None
+    tag_param: TagParam | None = None
 
 
 @dataclass(slots=True)

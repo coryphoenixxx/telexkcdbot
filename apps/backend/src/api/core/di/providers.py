@@ -10,7 +10,13 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 
-from api.application.services import ComicService, TranslationImageService, TranslationService
+from api.application.services import (
+    ComicService,
+    TranslationImageService,
+    TranslationService,
+)
+from api.core.configs.bot import BotConfig
+from api.core.configs.web import APIConfig
 from api.infrastructure.database.config import DbConfig
 from api.infrastructure.database.gateways import (
     ComicGateway,
@@ -24,8 +30,6 @@ from api.infrastructure.database.main import (
 )
 from api.infrastructure.database.uow import UnitOfWork
 from api.infrastructure.image_saver import ImageSaveHelper
-from api.presentation.tg_bot.config import BotConfig
-from api.presentation.web.config import APIConfig
 from api.presentation.web.upload_reader import UploadImageHandler
 
 

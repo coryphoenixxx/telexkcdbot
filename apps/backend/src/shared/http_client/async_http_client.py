@@ -3,6 +3,7 @@ import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from types import TracebackType
 
 from aiohttp import (
     AsyncResolver,
@@ -41,7 +42,7 @@ class AsyncHttpClient:
             ServerConnectionError,
             ConnectionError,
         ),
-    ):
+    ) -> None:
         self._throttler = asyncio.Semaphore(max_conns)
         self._timeout = timeout
         self._attempts = attempts
@@ -56,7 +57,12 @@ class AsyncHttpClient:
         self._close_sessions_task = asyncio.create_task(self.close_sessions_regularly())
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         await self.close_all_sessions()
 
     @asynccontextmanager
@@ -149,6 +155,7 @@ class AsyncHttpClient:
     def get_session_by_host(self, host: str) -> ClientSession | None:
         if host_data := self._sessions_cache.get(host):
             return host_data.session
+        return None
 
     def _create_retry_client(
         self,
@@ -207,8 +214,8 @@ class AsyncHttpClient:
         while True:
             await asyncio.sleep(self._sessions_cache_ttl)
 
-            for host, data in self._sessions_cache.copy().items():
-                if (time.time() - data.timestamp) > self._sessions_cache_ttl:
+            for host, host_data in self._sessions_cache.copy().items():
+                if (time.time() - host_data.timestamp) > self._sessions_cache_ttl:
                     data = self._sessions_cache.pop(host, None)
                     if data.client:
                         await data.client.close()

@@ -15,7 +15,7 @@ progress = Progress(
 )
 
 
-def positive_number_callback(ctx, param, value: int) -> int | None:
+def positive_number_callback(ctx, param, value: int) -> int | None:  # noqa: ARG001
     if not value:
         return None
     if isinstance(value, int | float) and value > 0:

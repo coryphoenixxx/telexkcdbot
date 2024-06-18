@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -6,7 +7,7 @@ from dishka.integrations.fastapi import setup_dishka as setup_ioc
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
-from api.infrastructure.di.providers import (
+from api.core.di.providers import (
     BrokerProvider,
     ConfigsProvider,
     DbProvider,
@@ -19,7 +20,7 @@ from api.presentation.web.routers import register_routers
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> Generator[None, None, None]:
     yield
     await app.state.dishka_container.close()
 
@@ -36,15 +37,11 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         lifespan=lifespan,
-        # debug=config.debug,
-        # docs_url=config.docs_url,
-        # redoc_url=config.redoc_url,
-        # openapi_url=config.openapi_url,
         default_response_class=ORJSONResponse,
         root_path="/api",
     )
 
-     # TODO: get app from ioc?
+    # TODO: get app from ioc?
 
     register_middlewares(app)
     register_routers(app)
@@ -56,7 +53,7 @@ def create_app() -> FastAPI:
 
 if __name__ == "__main__":
     uvicorn.run(
-        "api.presentation.web.__main__:create_app",
+        "api.main.web:create_app",
         factory=True,
         reload=True,
         reload_delay=1,

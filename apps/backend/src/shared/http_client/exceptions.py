@@ -5,7 +5,7 @@ class AsyncHttpClientError(Exception): ...
 
 
 class HttpRequestError(AsyncHttpClientError):
-    def __init__(self, url: URL | str, reason: str, method: str = "GET"):
+    def __init__(self, url: URL | str, reason: str, method: str = "GET") -> None:
         super().__init__()
         self._message = f"{method} request to `{url}` failed, reason: `{reason}`"
         self._reason = reason

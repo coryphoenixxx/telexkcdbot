@@ -60,13 +60,13 @@ class TranslationImageModel(BaseModel, TimestampMixin):
 
     translation: Mapped["TranslationModel"] = relationship(back_populates="images")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"{self.__class__.__name__}"
             f"(id={self.image_id}, original_rel_path={self.original_rel_path})"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
 
@@ -91,14 +91,14 @@ class TranslationModel(BaseModel, TimestampMixin):
 
     comic: Mapped["ComicModel"] = relationship(back_populates="translations")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"{self.__class__.__name__}"
             f"(id={self.translation_id}, comic_id={self.comic_id}, "
             f"language={self.language}, title={self.title})"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     __table_args__ = (
@@ -142,10 +142,10 @@ class TagModel(BaseModel):
         secondary="comic_tag_association",
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.__class__.__name__}(id={self.tag_id}, name={self.name})"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
 
@@ -201,13 +201,13 @@ class ComicModel(BaseModel, TimestampMixin):
         overlaps="original,translations",
     )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (
             f"{self.__class__.__name__}"
             f"(id={self.comic_id}, number={self.number}, slug={self.slug})"
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self)
 
     __table_args__ = (

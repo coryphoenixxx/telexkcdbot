@@ -10,7 +10,7 @@ SINGLE_CHARACTER_PATTERN = re.compile(r"\b.\b")
 PUNCTUATION_PATTERN = re.compile(r"[.:;!?,/\"\']")
 
 
-def build_searchable_text(title, raw_transcript: str, is_draft: bool = False) -> str:
+def build_searchable_text(title: str, raw_transcript: str, *, is_draft: bool = False) -> str:
     if is_draft:
         return ""
 
