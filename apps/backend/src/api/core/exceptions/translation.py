@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from api.application.dtos.common import Language
-from api.core.entities import ComicID, TranslationID, TranslationImageID
+from api.core.value_objects import ComicID, TranslationID, TranslationImageID
 
 from .base import (
     BaseBadRequestError,
@@ -12,30 +12,30 @@ from .base import (
 
 
 @dataclass
-class ImagesNotCreatedError(BaseBadRequestError):
-    image_ids: list[TranslationImageID]
-    message: str = "Images were not created."
+class ImageNotFoundError(BaseBadRequestError):
+    image_id: TranslationImageID
+    message: str = "Image not found."
 
     @property
     def detail(self) -> str | dict[str, Any]:
         return {
             "message": self.message,
-            "image_ids": self.image_ids,
+            "image_id": self.image_id,
         }
 
 
 @dataclass
-class ImagesAlreadyAttachedError(BaseBadRequestError):
-    image_ids: list[TranslationImageID]
-    translation_ids: list[TranslationID]
-    message: str = "Images already attached to another translations."
+class ImageAlreadyAttachedError(BaseBadRequestError):
+    image_id: TranslationImageID
+    translation_id: TranslationID
+    message: str = "Image already attached to another translation."
 
     @property
     def detail(self) -> str | dict[str, Any]:
         return {
             "message": self.message,
-            "image_ids": self.image_ids,
-            "translation_ids": self.translation_ids,
+            "image_id": self.image_id,
+            "translation_id": self.translation_id,
         }
 
 
@@ -55,30 +55,12 @@ class TranslationAlreadyExistsError(BaseConflictError):
 
 
 @dataclass
-class TranslationByIDNotFoundError(BaseNotFoundError):
-    translation_id: TranslationID
+class TranslationNotFoundError(BaseNotFoundError):
     message: str = "Translation not found."
 
     @property
     def detail(self) -> str | dict[str, Any]:
-        return {
-            "message": self.message,
-            "translation_id": self.translation_id,
-        }
-
-
-@dataclass
-class TranslationByLanguageNotFoundError(BaseNotFoundError):
-    comic_id: ComicID
-    language: Language
-    message: str = "Translation not found."
-
-    @property
-    def detail(self) -> str | dict[str, Any]:
-        return {
-            "message": self.message,
-            "comic_id": self.comic_id,
-        }
+        return {"message": self.message}
 
 
 @dataclass

@@ -1,11 +1,14 @@
 from pathlib import Path
 
 from shared.utils import cast_or_none
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 
-from api.application.dtos.responses import TranslationImageOrphanResponseDTO
-from api.core.entities import TranslationImageID
+from api.application.dtos.responses import (
+    TranslationImageOrphanResponseDTO,
+)
+from api.core.exceptions import ImageAlreadyAttachedError, ImageNotFoundError
+from api.core.value_objects import TranslationID, TranslationImageID
 from api.infrastructure.database.gateways.base import BaseGateway
 from api.infrastructure.database.models import TranslationImageModel
 
@@ -49,3 +52,35 @@ class TranslationImageGateway(BaseGateway):
         image_id: int = (await self._session.execute(stmt)).scalar_one()
 
         return TranslationImageID(image_id)
+
+    async def link(
+        self,
+        translation_id: TranslationID,
+        image_ids: list[TranslationImageID],
+    ) -> None:
+        if not image_ids:
+            return
+
+        image_ids = sorted(set(image_ids))
+        db_images = (
+            await self._session.scalars(
+                select(TranslationImageModel)
+                .where(
+                    TranslationImageModel.image_id.in_(image_ids),
+                )
+                .order_by(TranslationImageModel.image_id)
+            )
+        ).all()
+
+        db_image_ids = {image.image_id for image in db_images}
+        for img_id in sorted(image_ids):
+            if img_id not in db_image_ids:
+                raise ImageNotFoundError(img_id)
+
+        for img in db_images:
+            owner_id = img.translation_id
+            if owner_id and owner_id != translation_id:
+                raise ImageAlreadyAttachedError(img.image_id, owner_id)
+
+        for img in db_images:
+            img.translation_id = translation_id

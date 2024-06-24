@@ -6,7 +6,7 @@ from shared.utils import cast_or_none
 
 from api.application.dtos.common import Language, Tag
 from api.application.dtos.requests import ComicRequestDTO, TranslationRequestDTO
-from api.core.entities import IssueNumber, TranslationImageID
+from api.core.value_objects import IssueNumber, TranslationImageID
 
 
 class ComicRequestSchema(BaseModel):

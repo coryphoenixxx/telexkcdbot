@@ -1,35 +1,63 @@
+import re
+from collections.abc import Sequence
+from html import unescape
 from typing import NoReturn
 
 from sqlalchemy import delete, select
 from sqlalchemy.exc import DBAPIError, IntegrityError
-from sqlalchemy.orm import noload
-from sqlalchemy.sql.selectable import ForUpdateArg, ForUpdateParameter
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.interfaces import ORMOption
 
 from api.application.dtos.common import Language
 from api.application.dtos.requests import TranslationRequestDTO
 from api.application.dtos.responses import TranslationResponseDTO
-from api.application.exceptions.comic import ComicByIDNotFoundError
-from api.application.exceptions.translation import (
+from api.core.exceptions import (
+    ComicNotFoundError,
     TranslationAlreadyExistsError,
-    TranslationByIDNotFoundError,
-    TranslationByLanguageNotFoundError,
+    TranslationNotFoundError,
 )
-from api.core.entities import ComicID, TranslationID
-from api.infrastructure.database.constraints import UNIQUE_TRANSLATION_IF_NOT_DRAFT
+from api.core.value_objects import ComicID, TranslationID
 from api.infrastructure.database.gateways.base import BaseGateway
-from api.infrastructure.database.gateways.mixins import GetImagesMixin
-from api.infrastructure.database.models import TranslationModel
-from api.infrastructure.database.utils import build_searchable_text
+from api.infrastructure.database.models import (
+    UNIQUE_TRANSLATION_IF_NOT_DRAFT_CONSTRAINT,
+    TranslationModel,
+)
+
+SQUARE_BRACKETS_PATTERN = re.compile(r"\[.*?]")
+HTML_TAG_PATTERN = re.compile(r"<.*?>")
+SPEAKER_PATTERN = re.compile(r"^[\[\w -\]]{3,20}: ", re.UNICODE | re.MULTILINE)
+SEPARATE_NUMBER_PATTERN = re.compile(r"\s[0-9]+\s")
+REPEATED_EMPTIES_PATTERN = re.compile(r"\s\s+")
+SINGLE_CHARACTER_PATTERN = re.compile(r"\b.\b")
+PUNCTUATION_PATTERN = re.compile(r"[.:;!?,/\"\']")
 
 
-class TranslationGateway(BaseGateway, GetImagesMixin):
-    async def add(
+def build_searchable_text(title: str, raw_transcript: str, is_draft: bool = False) -> str:
+    if is_draft:
+        return ""
+
+    transcript_text = unescape(unescape(raw_transcript))
+
+    transcript_text = SQUARE_BRACKETS_PATTERN.sub(repl="\n", string=transcript_text)
+    transcript_text = HTML_TAG_PATTERN.sub(repl="\n", string=transcript_text)
+    transcript_text = SPEAKER_PATTERN.sub(repl="\n", string=transcript_text)
+    transcript_text = SEPARATE_NUMBER_PATTERN.sub(repl=" ", string=transcript_text)
+    transcript_text = PUNCTUATION_PATTERN.sub(repl=" ", string=transcript_text)
+
+    normalized = "".join(ch for ch in transcript_text if ch.isalnum() or ch == " ")
+
+    normalized = SINGLE_CHARACTER_PATTERN.sub(repl=" ", string=normalized)
+    normalized = REPEATED_EMPTIES_PATTERN.sub(repl=" ", string=normalized)
+
+    return (title.lower() + " :: " + normalized.strip().lower())[:3800]
+
+
+class TranslationGateway(BaseGateway):
+    async def create(
         self,
         comic_id: ComicID,
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
-        images = await self._get_images_by_ids(dto.image_ids)
-
         translation = TranslationModel(
             comic_id=comic_id,
             title=dto.title,
@@ -37,14 +65,10 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
             tooltip=dto.tooltip,
             raw_transcript=dto.raw_transcript,
             translator_comment=dto.translator_comment,
+            images=[],
             source_url=dto.source_url,
             is_draft=dto.is_draft,
-            images=images,
-            searchable_text=build_searchable_text(
-                dto.title,
-                dto.raw_transcript,
-                is_draft=dto.is_draft,
-            ),
+            searchable_text=build_searchable_text(dto.title, dto.raw_transcript, dto.is_draft),
         )
 
         self._session.add(translation)
@@ -61,12 +85,7 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
         translation_id: TranslationID,
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
-        images = await self._get_images_by_ids(dto.image_ids, translation_id)
-
-        translation = await self._get_by_id(
-            translation_id,
-            with_for_update=ForUpdateArg(of=TranslationModel),
-        )
+        translation = await self._get_by_id(translation_id)
 
         comic_id = translation.comic_id
 
@@ -76,7 +95,6 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
         translation.raw_transcript = dto.raw_transcript
         translation.translator_comment = dto.translator_comment
         translation.source_url = dto.source_url
-        translation.images = images
         translation.searchable_text = build_searchable_text(dto.title, dto.raw_transcript)
 
         try:
@@ -84,7 +102,19 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
         except IntegrityError as err:
             self._handle_db_error(err, comic_id, dto)
         else:
-            return TranslationResponseDTO.from_model(translation)
+            return TranslationResponseDTO.from_model(model=translation)
+
+    async def update_original(
+        self,
+        comic_id: ComicID,
+        dto: TranslationRequestDTO,
+    ) -> TranslationResponseDTO:
+        stmt = select(TranslationModel.translation_id).where(
+            TranslationModel.comic_id == comic_id, TranslationModel.language == Language.EN
+        )
+        translation_id = await self._session.scalar(stmt)
+
+        return await self.update(translation_id, dto)
 
     async def update_draft_status(
         self,
@@ -92,21 +122,12 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
         *,
         new_draft_status: bool,
     ) -> None:
-        translation = await self._get_by_id(translation_id, with_for_update=True)
+        translation = await self._get_by_id(translation_id, ())
         translation.is_draft = new_draft_status
 
     async def delete(self, translation_id: TranslationID) -> None:
-        stmt = (
-            delete(TranslationModel)
-            .options(noload(TranslationModel.images))
-            .where(TranslationModel.translation_id == translation_id)
-            .returning(TranslationModel)
-        )
-
-        translation = (await self._session.scalars(stmt)).unique().one_or_none()
-
-        if not translation:
-            raise TranslationByIDNotFoundError(translation_id=translation_id)
+        stmt = delete(TranslationModel).where(TranslationModel.translation_id == translation_id)
+        await self._session.execute(stmt)
 
     async def get_by_id(self, translation_id: TranslationID) -> TranslationResponseDTO:
         return TranslationResponseDTO.from_model(model=await self._get_by_id(translation_id))
@@ -122,26 +143,24 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
         translation = (await self._session.scalars(stmt)).unique().one_or_none()
 
         if not translation:
-            raise TranslationByLanguageNotFoundError(comic_id, language)
+            raise TranslationNotFoundError
 
         return TranslationResponseDTO.from_model(translation)
 
     async def _get_by_id(
         self,
         translation_id: TranslationID,
-        *,
-        with_for_update: ForUpdateParameter = False,
+        options: Sequence[ORMOption] | None = None,
     ) -> TranslationModel:
-        translation_model = await self._session.get(
-            TranslationModel,
-            translation_id,
-            with_for_update=with_for_update,
-        )
+        if options is None:
+            options = (joinedload(TranslationModel.images),)
 
-        if not translation_model:
-            raise TranslationByIDNotFoundError(translation_id=translation_id)
+        translation = await self._get_model_by_id(TranslationModel, translation_id, options=options)
 
-        return translation_model
+        if not translation:
+            raise TranslationNotFoundError
+
+        return translation
 
     def _handle_db_error(
         self,
@@ -151,10 +170,9 @@ class TranslationGateway(BaseGateway, GetImagesMixin):
     ) -> NoReturn:
         cause = str(err.__cause__)
 
-        if UNIQUE_TRANSLATION_IF_NOT_DRAFT in cause:
+        if UNIQUE_TRANSLATION_IF_NOT_DRAFT_CONSTRAINT in cause:
             raise TranslationAlreadyExistsError(comic_id, dto.language)
-
         if "fk_translations_comic_id_comics" in cause:
-            raise ComicByIDNotFoundError(comic_id)
+            raise ComicNotFoundError
 
         raise err

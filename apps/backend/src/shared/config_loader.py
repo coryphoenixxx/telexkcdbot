@@ -1,9 +1,9 @@
 import functools
 import os
-import tomllib
 from pathlib import Path
 from typing import TypeVar
 
+import tomllib
 from adaptix import Retort
 
 T = TypeVar("T")

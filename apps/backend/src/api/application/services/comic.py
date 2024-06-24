@@ -4,48 +4,62 @@ from api.application.dtos.common import ComicFilterParams, Limit, TotalCount
 from api.application.dtos.requests import ComicRequestDTO
 from api.application.dtos.responses import (
     ComicResponseDTO,
-    ComicResponseWTranslationsDTO,
 )
-from api.core.entities import ComicID, IssueNumber
-from api.infrastructure.database.gateways import ComicGateway
-from api.infrastructure.database.uow import UnitOfWork
+from api.core.value_objects import ComicID, IssueNumber
+from api.infrastructure.database.gateways import (
+    ComicGateway,
+    TranslationGateway,
+    TranslationImageGateway,
+)
+from api.infrastructure.database.transaction import TransactionManager
 
 
 class ComicService:
-    def __init__(self, uow: UnitOfWork, gateway: ComicGateway) -> None:
-        self._uow = uow
-        self._gateway = gateway
+    def __init__(
+        self,
+        transaction: TransactionManager,
+        comic_gateway: ComicGateway,
+        translation_gateway: TranslationGateway,
+        translation_image_gateway: TranslationImageGateway,
+    ) -> None:
+        self._transaction = transaction
+        self._comic_gateway = comic_gateway
+        self._translation_gateway = translation_gateway
+        self._translation_image_gateway = translation_image_gateway
 
-    async def create(self, comic_req_dto: ComicRequestDTO) -> ComicResponseDTO:
-        comic_resp_dto = await self._gateway.create(comic_req_dto)
+    async def create(self, dto: ComicRequestDTO) -> ComicResponseDTO:
+        comic_id = await self._comic_gateway.create_base(dto)
+        translation = await self._translation_gateway.create(comic_id, dto.original)
+        await self._translation_image_gateway.link(translation.id, dto.image_ids)
 
-        await self._uow.commit()
+        await self._transaction.commit()
 
-        return comic_resp_dto
+        return await self._comic_gateway.get_by_id(comic_id)
 
-    async def update(self, comic_id: ComicID, comic_req_dto: ComicRequestDTO) -> ComicResponseDTO:
-        comic_resp_dto = await self._gateway.update(comic_id, comic_req_dto)
-        await self._uow.commit()
+    async def update(self, comic_id: ComicID, dto: ComicRequestDTO) -> ComicResponseDTO:
+        await self._comic_gateway.update_base(comic_id, dto)
+        translation = await self._translation_gateway.update_original(comic_id, dto.original)
+        await self._translation_image_gateway.link(translation.id, dto.image_ids)
+        await self._transaction.commit()
 
-        return comic_resp_dto
+        return await self._comic_gateway.get_by_id(comic_id)
 
     async def delete(self, comic_id: ComicID) -> None:
-        await self._gateway.delete(comic_id)
+        await self._comic_gateway.delete(comic_id)
+        await self._transaction.commit()
 
-        await self._uow.commit()
+    async def get_by_id(self, comic_id: ComicID) -> ComicResponseDTO:
+        return await self._comic_gateway.get_by_id(comic_id)
 
-    async def get_by_id(self, comic_id: ComicID) -> ComicResponseWTranslationsDTO:
-        return await self._gateway.get_by_id(comic_id)
+    async def get_by_issue_number(self, number: IssueNumber) -> ComicResponseDTO:
+        return await self._comic_gateway.get_by_issue_number(number)
 
-    async def get_by_issue_number(self, number: IssueNumber) -> ComicResponseWTranslationsDTO:
-        return await self._gateway.get_by_issue_number(number)
-
-    async def get_by_slug(self, slug: str) -> ComicResponseWTranslationsDTO:
-        return await self._gateway.get_by_slug(slug)
+    async def get_by_slug(self, slug: str) -> ComicResponseDTO:
+        return await self._comic_gateway.get_by_slug(slug)
 
     async def get_latest_issue_number(self) -> IssueNumber:
         return (
-            await self._gateway.get_list(
+            await self._comic_gateway.get_list(
                 filter_params=ComicFilterParams(
                     limit=Limit(1),
                     order=Order.DESC,
@@ -56,7 +70,7 @@ class ComicService:
     async def get_list(
         self,
         query_params: ComicFilterParams,
-    ) -> tuple[TotalCount, list[ComicResponseWTranslationsDTO]]:
-        total, comic_resp_dtos = await self._gateway.get_list(query_params)
+    ) -> tuple[TotalCount, list[ComicResponseDTO]]:
+        total, comic_resp_dtos = await self._comic_gateway.get_list(query_params)
 
         return total, comic_resp_dtos

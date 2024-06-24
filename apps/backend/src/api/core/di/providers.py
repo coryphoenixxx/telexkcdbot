@@ -28,7 +28,7 @@ from api.infrastructure.database.main import (
     create_db_engine,
     create_db_session_factory,
 )
-from api.infrastructure.database.uow import UnitOfWork
+from api.infrastructure.database.transaction import TransactionManager
 from api.infrastructure.image_saver import ImageSaveHelper
 from api.presentation.web.upload_reader import UploadImageHandler
 
@@ -70,8 +70,8 @@ class DbProvider(Provider):
             yield session
 
     @provide(scope=Scope.REQUEST)
-    async def uow(self, session: AsyncSession) -> AsyncIterable[UnitOfWork]:
-        async with UnitOfWork(session) as uow:
+    async def uow(self, session: AsyncSession) -> AsyncIterable[TransactionManager]:
+        async with TransactionManager(session) as uow:
             yield uow
 
 

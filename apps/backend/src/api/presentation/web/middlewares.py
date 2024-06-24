@@ -9,17 +9,17 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from api.application.exceptions.base import (
+from api.core.exceptions.base import (
     BaseAppError,
     BaseBadRequestError,
     BaseConflictError,
     BaseNotFoundError,
 )
-from api.application.exceptions.image import (
+from api.core.exceptions import (
     UnsupportedImageFormatError,
     UploadExceedSizeLimitError,
 )
-from api.application.exceptions.user import InvalidCredentialsError
+from api.core.exceptions import InvalidCredentialsError
 
 logger = logging.getLogger(__name__)
 

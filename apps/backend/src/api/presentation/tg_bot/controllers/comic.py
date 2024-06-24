@@ -12,13 +12,13 @@ from dishka import FromDishka as Depends
 
 from api.application.services import ComicService
 from api.core.configs.bot import BotConfig
-from api.core.entities import IssueNumber
+from api.core.value_objects import IssueNumber
+from api.presentation.tg_bot.filters import ComicNumberFilter
+from api.presentation.tg_bot.keyboards.navigation import build_navigation_keyboard
 from api.presentation.web.controllers.schemas import (
     ComicResponseSchema,
     TranslationImageProcessedResponseSchema,
 )
-from api.presentation.tg_bot.filters import ComicNumberFilter
-from api.presentation.tg_bot.keyboards.navigation import build_navigation_keyboard
 
 router = Router()
 

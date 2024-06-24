@@ -2,9 +2,9 @@ from pathlib import Path
 
 from api.application.dtos.common import ImageObj, TranslationImageMeta
 from api.application.dtos.responses import TranslationImageOrphanResponseDTO
-from api.core.entities import TranslationImageID
+from api.core.value_objects import TranslationImageID
 from api.infrastructure.database.gateways import TranslationImageGateway
-from api.infrastructure.database.uow import UnitOfWork
+from api.infrastructure.database.transaction import TransactionManager
 from api.infrastructure.image_saver import ImageSaveHelper
 
 
@@ -12,11 +12,11 @@ class TranslationImageService:
     def __init__(
         self,
         gateway: TranslationImageGateway,
-        uow: UnitOfWork,
+        transaction: TransactionManager,
         image_saver: ImageSaveHelper,
     ) -> None:
         self._gateway = gateway
-        self._uow = uow
+        self._transaction = transaction
         self._image_saver = image_saver
 
     async def create(
@@ -28,7 +28,7 @@ class TranslationImageService:
 
         image_dto = await self._gateway.create(original_rel_path)
 
-        await self._uow.commit()
+        await self._transaction.commit()
 
         return original_abs_path, image_dto
 
@@ -43,4 +43,4 @@ class TranslationImageService:
             converted_rel_path=self._image_saver.cut_rel_path(converted_abs_path),
             thumbnail_rel_path=self._image_saver.cut_rel_path(thumbnail_abs_path),
         )
-        await self._uow.commit()
+        await self._transaction.commit()

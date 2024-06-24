@@ -12,7 +12,7 @@ from fastapi import APIRouter, Cookie, Depends
 from starlette import status
 from starlette.responses import Response
 
-from api.application.exceptions.user import (
+from api.core.exceptions import (
     InvalidCredentialsError,
     UsernameAlreadyExistsError,
 )

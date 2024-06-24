@@ -2,9 +2,11 @@ from typing import Any
 
 
 class BaseAppError(Exception):
+    message: str
+
     @property
     def detail(self) -> str | dict[str, Any]:
-        raise NotImplementedError
+        return {"message": self.message}
 
 
 class BaseNotFoundError(BaseAppError): ...

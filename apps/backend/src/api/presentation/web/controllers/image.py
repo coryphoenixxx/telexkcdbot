@@ -9,7 +9,8 @@ from shared.messages import ImageProcessInMessage
 from starlette import status
 
 from api.application.dtos.common import Language, TranslationImageMeta
-from api.application.exceptions.image import (
+from api.application.services import TranslationImageService
+from api.core.exceptions import (
     DownloadingImageError,
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
@@ -17,7 +18,6 @@ from api.application.exceptions.image import (
     UploadedImageTypeConflictError,
     UploadExceedSizeLimitError,
 )
-from api.application.services import TranslationImageService
 from api.presentation.web.controllers.schemas.responses import (
     TranslationImageOrphanResponseSchema,
 )

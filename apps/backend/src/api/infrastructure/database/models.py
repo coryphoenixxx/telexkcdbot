@@ -7,18 +7,13 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
-    and_,
-    false,
     func,
-    true,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
-from api.infrastructure.database.constraints import (
-    UNIQUE_COMIC_NUMBER_IF_NOT_EXTRA_CONSTRAINT,
-    UNIQUE_COMIC_TITLE_IF_NOT_EXTRA_CONSTRAINT,
-    UNIQUE_TRANSLATION_IF_NOT_DRAFT,
-)
+UNIQUE_COMIC_NUMBER_IF_NOT_EXTRA_CONSTRAINT = "uq_comic_number_if_not_extra"
+UNIQUE_COMIC_TITLE_IF_NOT_EXTRA_CONSTRAINT = "uq_comic_title_if_extra"
+UNIQUE_TRANSLATION_IF_NOT_DRAFT_CONSTRAINT = "uq_translation_if_not_draft"
 
 
 class BaseModel(DeclarativeBase):
@@ -82,10 +77,8 @@ class TranslationModel(BaseModel, TimestampMixin):
     translator_comment: Mapped[str] = mapped_column(default="")
     source_url: Mapped[str | None]
     is_draft: Mapped[bool] = mapped_column(default=False)
-    images: Mapped[list["TranslationImageModel"]] = relationship(
-        back_populates="translation",
-        lazy="joined",
-    )
+
+    images: Mapped[list["TranslationImageModel"]] = relationship(back_populates="translation")
 
     searchable_text: Mapped[str] = mapped_column(Text)
 
@@ -103,7 +96,7 @@ class TranslationModel(BaseModel, TimestampMixin):
 
     __table_args__ = (
         Index(
-            UNIQUE_TRANSLATION_IF_NOT_DRAFT,
+            UNIQUE_TRANSLATION_IF_NOT_DRAFT_CONSTRAINT,
             "language",
             "comic_id",
             unique=True,
@@ -161,44 +154,14 @@ class ComicModel(BaseModel, TimestampMixin):
     is_interactive: Mapped[bool] = mapped_column(default=False)
 
     tags: Mapped[list["TagModel"]] = relationship(
-        lazy="selectin",
         back_populates="comics",
         secondary="comic_tag_association",
         cascade="all, delete",
     )
 
-    original: Mapped[TranslationModel] = relationship(
-        lazy="selectin",
-        back_populates="comic",
-        primaryjoin=lambda: and_(
-            ComicModel.comic_id == TranslationModel.comic_id,
-            TranslationModel.is_draft == false(),
-            TranslationModel.language == "EN",
-        ),
-    )
-
     translations: Mapped[list["TranslationModel"]] = relationship(
-        lazy="selectin",
         back_populates="comic",
         cascade="all, delete",
-        primaryjoin=lambda: and_(
-            ComicModel.comic_id == TranslationModel.comic_id,
-            TranslationModel.is_draft == false(),
-            TranslationModel.language != "EN",
-        ),
-        overlaps="original",
-    )
-
-    translation_drafts: Mapped[list["TranslationModel"]] = relationship(
-        lazy="selectin",
-        back_populates="comic",
-        cascade="all, delete",
-        primaryjoin=lambda: and_(
-            ComicModel.comic_id == TranslationModel.comic_id,
-            TranslationModel.is_draft == true(),
-            TranslationModel.language != "EN",
-        ),
-        overlaps="original,translations",
     )
 
     def __str__(self) -> str:

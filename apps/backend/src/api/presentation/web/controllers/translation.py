@@ -4,17 +4,16 @@ from fastapi import APIRouter
 from starlette import status
 
 from api.application.dtos.common import Language
-from api.application.exceptions.comic import ComicByIDNotFoundError
-from api.application.exceptions.translation import (
-    ImagesAlreadyAttachedError,
-    ImagesNotCreatedError,
+from api.application.services import TranslationService
+from api.core.exceptions import (
+    ComicNotFoundError,
+    ImageAlreadyAttachedError,
+    ImageNotFoundError,
     OriginalTranslationOperationForbiddenError,
     TranslationAlreadyExistsError,
-    TranslationByIDNotFoundError,
-    TranslationByLanguageNotFoundError,
+    TranslationNotFoundError,
 )
-from api.application.services import TranslationService
-from api.core.entities import ComicID, TranslationID
+from api.core.value_objects import ComicID, TranslationID
 from api.presentation.web.controllers.schemas.requests import (
     TranslationDraftRequestSchema,
     TranslationRequestSchema,
@@ -31,11 +30,9 @@ router = APIRouter(tags=["Translations"], route_class=DishkaRoute)
     "/comics/{comic_id}/translations",
     status_code=status.HTTP_201_CREATED,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": ComicByIDNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
         status.HTTP_409_CONFLICT: {
-            "model": TranslationAlreadyExistsError
-            | ImagesNotCreatedError
-            | ImagesAlreadyAttachedError,
+            "model": TranslationAlreadyExistsError | ImageNotFoundError | ImageAlreadyAttachedError,
         },
     },
 )
@@ -54,9 +51,9 @@ async def add_translation(
     "/comics/{comic_id}/translation-drafts",
     status_code=status.HTTP_201_CREATED,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": ComicByIDNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
         status.HTTP_409_CONFLICT: {
-            "model": ImagesNotCreatedError | ImagesAlreadyAttachedError,
+            "model": ImageNotFoundError | ImageAlreadyAttachedError,
         },
     },
 )
@@ -76,9 +73,9 @@ async def add_translation_draft(
     status_code=status.HTTP_200_OK,
     responses={
         status.HTTP_400_BAD_REQUEST: {"model": OriginalTranslationOperationForbiddenError},
-        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
         status.HTTP_409_CONFLICT: {
-            "model": ImagesNotCreatedError | ImagesAlreadyAttachedError,
+            "model": ImageNotFoundError | ImageAlreadyAttachedError,
         },
     },
 )
@@ -98,7 +95,7 @@ async def update_translation(
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
         status.HTTP_400_BAD_REQUEST: {"model": OriginalTranslationOperationForbiddenError},
-        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
     },
 )
 async def delete_translation(
@@ -113,7 +110,7 @@ async def delete_translation(
     "/translations/{translation_id}",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
     },
 )
 async def get_translation_by_id(
@@ -130,7 +127,7 @@ async def get_translation_by_id(
     "/translations/{translation_id}/raw_transcript",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
     },
 )
 async def get_translation_raw_transcript(
@@ -147,7 +144,7 @@ async def get_translation_raw_transcript(
     "/translations/{translation_id}/publish",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": TranslationByIDNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
     },
 )
 async def publish_draft(
@@ -162,7 +159,7 @@ async def publish_draft(
     "/comics/{comic_id}/translations/{language}",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": TranslationByLanguageNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": TranslationNotFoundError},
     },
 )
 async def get_translation_by_language(
@@ -180,7 +177,7 @@ async def get_translation_by_language(
     "/comics/{comic_id}/translations",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": ComicByIDNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
     },
 )
 async def get_comic_translations(
@@ -197,7 +194,7 @@ async def get_comic_translations(
     "/comics/{comic_id}/translation-drafts",
     status_code=status.HTTP_200_OK,
     responses={
-        status.HTTP_404_NOT_FOUND: {"model": ComicByIDNotFoundError},
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
     },
 )
 async def get_comic_translation_drafts(

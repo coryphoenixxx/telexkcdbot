@@ -13,13 +13,13 @@ from starlette.datastructures import UploadFile
 from yarl import URL
 
 from api.application.dtos.common import Dimensions, ImageObj
-from api.application.exceptions.image import (
+from api.core.configs.web import APIConfig
+from api.core.exceptions import (
     DownloadingImageError,
     RequestFileIsEmptyError,
     UnsupportedImageFormatError,
     UploadExceedSizeLimitError,
 )
-from api.core.configs.web import APIConfig
 
 logger = logging.getLogger(__name__)
 

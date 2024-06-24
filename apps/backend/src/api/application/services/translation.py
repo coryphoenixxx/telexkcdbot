@@ -1,38 +1,41 @@
 from api.application.dtos.common import Language
 from api.application.dtos.requests import TranslationRequestDTO
 from api.application.dtos.responses import TranslationResponseDTO
-from api.application.exceptions.translation import (
+from api.core.exceptions import (
     OriginalTranslationOperationForbiddenError,
 )
-from api.core.entities import ComicID, TranslationID
-from api.infrastructure.database.gateways import ComicGateway, TranslationGateway
-from api.infrastructure.database.uow import UnitOfWork
+from api.core.value_objects import ComicID, TranslationID
+from api.infrastructure.database.gateways import (
+    ComicGateway,
+    TranslationGateway,
+    TranslationImageGateway,
+)
+from api.infrastructure.database.transaction import TransactionManager
 
 
 class TranslationService:
     def __init__(
         self,
-        uow: UnitOfWork,
+        transaction: TransactionManager,
         translation_gateway: TranslationGateway,
         comic_gateway: ComicGateway,
+        translation_image_gateway: TranslationImageGateway,
     ) -> None:
-        self._uow = uow
+        self._transaction = transaction
         self._comic_gateway = comic_gateway
         self._translation_gateway = translation_gateway
+        self._translation_image_gateway = translation_image_gateway
 
-    async def add(
-        self,
-        comic_id: ComicID,
-        dto: TranslationRequestDTO,
-    ) -> TranslationResponseDTO:
+    async def add(self, comic_id: ComicID, dto: TranslationRequestDTO) -> TranslationResponseDTO:
         if dto.language == Language.EN:
             raise OriginalTranslationOperationForbiddenError
 
-        translation = await self._translation_gateway.add(comic_id, dto)
+        translation = await self._translation_gateway.create(comic_id, dto)
+        await self._translation_image_gateway.link(translation.id, dto.image_ids)
 
-        await self._uow.commit()
+        await self._transaction.commit()
 
-        return translation
+        return await self._translation_gateway.get_by_id(translation.id)
 
     async def update(
         self,
@@ -47,21 +50,22 @@ class TranslationService:
         if candidate.language == Language.EN:
             raise OriginalTranslationOperationForbiddenError
 
-        translation = await self._translation_gateway.update(translation_id=translation_id, dto=dto)
+        await self._translation_gateway.update(translation_id, dto)
 
-        await self._uow.commit()
+        await self._transaction.commit()
 
-        return translation
+        return await self._translation_gateway.get_by_id(translation_id)
 
     async def delete(self, translation_id: TranslationID) -> None:
-        translation = await self._translation_gateway.get_by_id(translation_id)
+        translation = await self._translation_gateway.get_by_id(
+            translation_id
+        )  # TODO: нужен отдельный check, is_original
 
         if translation.language == Language.EN:
             raise OriginalTranslationOperationForbiddenError
 
         await self._translation_gateway.delete(translation_id)
-
-        await self._uow.commit()
+        await self._transaction.commit()
 
     async def get_by_id(self, translation_id: TranslationID) -> TranslationResponseDTO:
         return await self._translation_gateway.get_by_id(translation_id)
@@ -104,4 +108,4 @@ class TranslationService:
                 new_draft_status=False,
             )
 
-            await self._uow.commit()
+            await self._transaction.commit()

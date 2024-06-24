@@ -1,3 +1,0 @@
-UNIQUE_COMIC_NUMBER_IF_NOT_EXTRA_CONSTRAINT = "uq_comic_number_if_not_extra"
-UNIQUE_COMIC_TITLE_IF_NOT_EXTRA_CONSTRAINT = "uq_comic_title_if_extra"
-UNIQUE_TRANSLATION_IF_NOT_DRAFT = "uq_translation_if_not_draft"

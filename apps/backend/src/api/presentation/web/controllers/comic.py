@@ -16,19 +16,15 @@ from api.application.dtos.common import (
     Tag,
     TagParam,
 )
-from api.application.exceptions.comic import (
-    ComicByIDNotFoundError,
-    ComicByIssueNumberNotFoundError,
-    ComicBySlugNotFoundError,
+from api.application.services.comic import ComicService
+from api.core.exceptions import (
+    ComicNotFoundError,
     ComicNumberAlreadyExistsError,
     ExtraComicTitleAlreadyExistsError,
+    ImageAlreadyAttachedError,
+    ImageNotFoundError,
 )
-from api.application.exceptions.translation import (
-    ImagesAlreadyAttachedError,
-    ImagesNotCreatedError,
-)
-from api.application.services.comic import ComicService
-from api.core.entities import ComicID, IssueNumber
+from api.core.value_objects import ComicID, IssueNumber
 from api.presentation.web.controllers.schemas.requests import ComicRequestSchema
 from api.presentation.web.controllers.schemas.responses import (
     ComicResponseSchema,
@@ -45,7 +41,7 @@ router = APIRouter(tags=["Comics"], route_class=DishkaRoute)
     status_code=status.HTTP_201_CREATED,
     responses={
         status.HTTP_400_BAD_REQUEST: {
-            "model": ImagesNotCreatedError | ImagesAlreadyAttachedError,
+            "model": ImageNotFoundError | ImageAlreadyAttachedError,
         },
         status.HTTP_409_CONFLICT: {
             "model": ComicNumberAlreadyExistsError | ExtraComicTitleAlreadyExistsError,
@@ -57,17 +53,15 @@ async def create_comic(
     *,
     service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    comic_resp_dto = await service.create(schema.to_dto())
-
-    return ComicResponseSchema.from_dto(comic_resp_dto)
+    return ComicResponseSchema.from_dto(dto=await service.create(schema.to_dto()))
 
 
 @router.put(
-    "/comics/{comic_id}",
+    "/comics/id:{comic_id}",
     status_code=status.HTTP_200_OK,
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "model": ComicByIDNotFoundError,
+            "model": ComicNotFoundError,
         },
         status.HTTP_409_CONFLICT: {
             "model": ComicNumberAlreadyExistsError,
@@ -80,9 +74,7 @@ async def update_comic(
     *,
     service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    comic_resp_dto = await service.update(comic_id, schema.to_dto())
-
-    return ComicResponseSchema.from_dto(comic_resp_dto)
+    return ComicResponseSchema.from_dto(dto=await service.update(comic_id, schema.to_dto()))
 
 
 @router.delete(
@@ -90,7 +82,7 @@ async def update_comic(
     status_code=status.HTTP_204_NO_CONTENT,
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "model": ComicByIDNotFoundError,
+            "model": ComicNotFoundError,
         },
     },
 )
@@ -107,7 +99,7 @@ async def delete_comic(
     status_code=status.HTTP_200_OK,
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "model": ComicByIDNotFoundError,
+            "model": ComicNotFoundError,
         },
     },
 )
@@ -116,9 +108,7 @@ async def get_comic_by_id(
     *,
     service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    comic_resp_dto = await service.get_by_id(comic_id)
-
-    return ComicResponseSchema.from_dto(dto=comic_resp_dto)
+    return ComicResponseSchema.from_dto(dto=await service.get_by_id(comic_id))
 
 
 @router.get(
@@ -126,7 +116,7 @@ async def get_comic_by_id(
     status_code=status.HTTP_200_OK,
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "model": ComicByIssueNumberNotFoundError,
+            "model": ComicNotFoundError,
         },
     },
 )
@@ -135,9 +125,7 @@ async def get_comic_by_issue_number(
     *,
     service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    comic_resp_dto = await service.get_by_issue_number(number)
-
-    return ComicResponseSchema.from_dto(dto=comic_resp_dto)
+    return ComicResponseSchema.from_dto(dto=await service.get_by_issue_number(number))
 
 
 @router.get(
@@ -145,7 +133,7 @@ async def get_comic_by_issue_number(
     status_code=status.HTTP_200_OK,
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "model": ComicBySlugNotFoundError,
+            "model": ComicNotFoundError,
         },
     },
 )
@@ -154,9 +142,7 @@ async def get_comic_by_slug(
     *,
     service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    comic_resp_dto = await service.get_by_slug(slug)
-
-    return ComicResponseSchema.from_dto(dto=comic_resp_dto)
+    return ComicResponseSchema.from_dto(dto=await service.get_by_slug(slug))
 
 
 @router.get(
@@ -164,13 +150,13 @@ async def get_comic_by_slug(
     status_code=status.HTTP_200_OK,
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "model": ComicByIDNotFoundError,
+            "model": ComicNotFoundError,
         },
     },
 )
 async def get_comic_with_translations_by_id(
     comic_id: ComicID,
-    languages: list[Language] = Query(default=None, alias="lg"),  # noqa: B008
+    languages: list[Language] = Query(default=None, alias="lg"),
     *,
     service: Depends[ComicService],
 ) -> ComicWTranslationsResponseSchema:
@@ -187,13 +173,13 @@ async def get_comic_with_translations_by_id(
     status_code=status.HTTP_200_OK,
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "model": ComicByIssueNumberNotFoundError,
+            "model": ComicNotFoundError,
         },
     },
 )
 async def get_comic_with_translations_by_issue_number(
     number: IssueNumber,
-    languages: list[Language] = Query(default=None, alias="lg"),  # noqa: B008
+    languages: list[Language] = Query(default=None, alias="lg"),
     *,
     service: Depends[ComicService],
 ) -> ComicWTranslationsResponseSchema:
@@ -210,13 +196,13 @@ async def get_comic_with_translations_by_issue_number(
     status_code=status.HTTP_200_OK,
     responses={
         status.HTTP_404_NOT_FOUND: {
-            "model": ComicBySlugNotFoundError,
+            "model": ComicNotFoundError,
         },
     },
 )
 async def get_comic_with_translations_by_slug(
     slug: str,
-    languages: list[Language] = Query(default=None, alias="lg"),  # noqa: B008
+    languages: list[Language] = Query(default=None, alias="lg"),
     *,
     service: Depends[ComicService],
 ) -> ComicWTranslationsResponseSchema:

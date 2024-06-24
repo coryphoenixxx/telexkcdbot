@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from api.application.dtos.common import Language
-from api.core.entities import ComicID, IssueNumber, TranslationID, TranslationImageID
+from api.core.value_objects import ComicID, IssueNumber, TranslationID, TranslationImageID
 
 if TYPE_CHECKING:
     from api.infrastructure.database.models import (
@@ -85,50 +85,41 @@ class ComicResponseDTO:
     tooltip: str
     images: list[TranslationImageProcessedResponseDTO]
 
+    translations: list[TranslationResponseDTO]
+
+    @staticmethod
+    def _separate_translations(
+        translations: list["TranslationModel"],
+    ) -> tuple["TranslationModel", list["TranslationModel"]]:
+        original_index = None
+
+        for idx, tr in enumerate(translations):
+            if tr.language == Language.EN:
+                original_index = idx
+
+        original = translations.pop(original_index)
+
+        return original, translations
+
     @classmethod
     def from_model(cls, model: "ComicModel") -> "ComicResponseDTO":
+        original, translations = cls._separate_translations(model.translations)
+
         return ComicResponseDTO(
             id=model.comic_id,
             number=model.number,
-            title=model.original.title,
-            translation_id=model.original.translation_id,
+            title=original.title,
+            translation_id=original.translation_id,
             publication_date=model.publication_date,
-            tooltip=model.original.tooltip,
-            xkcd_url=model.original.source_url,
+            tooltip=original.tooltip,
+            xkcd_url=original.source_url,
             explain_url=model.explain_url,
             click_url=model.click_url,
             is_interactive=model.is_interactive,
-            tags=[tag.name for tag in model.tags],
+            tags=sorted([tag.name for tag in model.tags]),  # TODO: sorted by db
             images=[
-                TranslationImageProcessedResponseDTO.from_model(img)
-                for img in model.original.images
+                TranslationImageProcessedResponseDTO.from_model(img) for img in original.images
             ],
-            has_translations=[tr.language for tr in model.translations],
-        )
-
-
-@dataclass(slots=True)
-class ComicResponseWTranslationsDTO(ComicResponseDTO):
-    translations: list[TranslationResponseDTO]
-
-    @classmethod
-    def from_model(cls, model: "ComicModel") -> "ComicResponseWTranslationsDTO":
-        return ComicResponseWTranslationsDTO(
-            id=model.comic_id,
-            number=model.number,
-            title=model.original.title,
-            translation_id=model.original.translation_id,
-            publication_date=model.publication_date,
-            tooltip=model.original.tooltip,
-            xkcd_url=model.original.source_url,
-            explain_url=model.explain_url,
-            click_url=model.click_url,
-            is_interactive=model.is_interactive,
-            tags=sorted([tag.name for tag in model.tags]),
-            images=[
-                TranslationImageProcessedResponseDTO.from_model(img)
-                for img in model.original.images
-            ],
-            has_translations=[tr.language for tr in model.translations],
-            translations=[TranslationResponseDTO.from_model(t) for t in model.translations],
+            has_translations=[tr.language for tr in translations],
+            translations=[TranslationResponseDTO.from_model(t) for t in translations],
         )

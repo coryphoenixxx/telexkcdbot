@@ -6,11 +6,10 @@ from pydantic import BaseModel, HttpUrl
 from api.application.dtos.common import Language, Limit, Offset, TotalCount
 from api.application.dtos.responses import (
     ComicResponseDTO,
-    ComicResponseWTranslationsDTO,
     TranslationImageProcessedResponseDTO,
     TranslationResponseDTO,
 )
-from api.core.entities import ComicID, IssueNumber, TranslationID
+from api.core.value_objects import ComicID, IssueNumber, TranslationID
 
 
 class OKResponseSchema(BaseModel):
@@ -63,7 +62,7 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
     @classmethod
     def from_dto(
         cls,
-        dto: ComicResponseWTranslationsDTO,
+        dto: ComicResponseDTO,
         filter_languages: list[Language] | None = None,
     ) -> "ComicWTranslationsResponseSchema":
         return ComicWTranslationsResponseSchema(
