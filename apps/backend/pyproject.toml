@@ -87,8 +87,12 @@ pythonopath = [".venv/bin"]
 
 
 [tool.ruff]
-lint.select = ["ALL"]
-lint.ignore = [
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
     "ANN101",
     "ANN102",
     "ANN401",
@@ -109,6 +113,7 @@ lint.ignore = [
     "EM101",
     "EM102",
     "EXE002",
+    "ISC001",
     "N999",
     "PLR0913",
     "TD002",
@@ -119,23 +124,7 @@ lint.ignore = [
     "RUF003",
     "TCH003",
 ]
-lint.fixable = ["ALL"]
-lint.unfixable = []
-show-fixes = true
-exclude = []
-lint.per-file-ignores = { }
-line-length = 100
-lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
-target-version = "py312"
-
-[tool.ruff.lint.mccabe]
-max-complexity = 10
-
-
-[tool.black]
-line-length = 100
-target-version = ['py312']
-
+fixable = ["ALL"]
 
 [tool.mypy]
 python_version = "3.12"
