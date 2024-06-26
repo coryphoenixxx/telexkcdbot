@@ -18,16 +18,17 @@ from api.application.services import (
 from api.core.configs.bot import BotConfig
 from api.core.configs.web import APIConfig
 from api.infrastructure.database.config import DbConfig
-from api.infrastructure.database.gateways import (
-    ComicGateway,
-    TranslationGateway,
-    TranslationImageGateway,
-)
 from api.infrastructure.database.main import (
     check_db_connection,
     create_db_engine,
     create_db_session_factory,
 )
+from api.infrastructure.database.repositories import (
+    ComicRepo,
+    TranslationImageRepo,
+    TranslationRepo,
+)
+from api.infrastructure.database.repositories.tag import TagRepo
 from api.infrastructure.database.transaction import TransactionManager
 from api.infrastructure.image_saver import ImageSaveHelper
 from api.presentation.web.upload_reader import UploadImageHandler
@@ -96,18 +97,18 @@ class BrokerProvider(Provider):
     @provide(scope=Scope.APP)
     async def broker(self) -> AsyncIterable[NatsBroker]:
         broker = NatsBroker()
-
         await broker.start()
         yield broker
         await broker.close()
 
 
-class GatewaysProvider(Provider):
+class RepositoriesProvider(Provider):
     scope = Scope.REQUEST
 
-    comic_gateway = provide(ComicGateway)
-    translation_gateway = provide(TranslationGateway)
-    translation_image_gateway = provide(TranslationImageGateway)
+    comic_repo = provide(ComicRepo)
+    translation_repo = provide(TranslationRepo)
+    translation_image_repo = provide(TranslationImageRepo)
+    tag_repo = provide(TagRepo)
 
 
 class ServicesProvider(Provider):

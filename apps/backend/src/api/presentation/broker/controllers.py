@@ -25,7 +25,7 @@ async def process_image(
     *,
     logger: Logger,
     service: Depends[TranslationImageService],
-):
+) -> None:
     original_abs_path = msg.original_abs_path
 
     try:

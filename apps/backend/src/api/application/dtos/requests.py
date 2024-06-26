@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime as dt
 
-from api.application.dtos.common import Language, Tag
+from api.application.dtos.common import Language, TagName
 from api.core.value_objects import IssueNumber, TranslationImageID
 
 
@@ -28,7 +28,7 @@ class ComicRequestDTO:
     explain_url: str | None
     click_url: str | None
     is_interactive: bool
-    tags: list[Tag]
+    tags: list[TagName]
     image_ids: list[TranslationImageID]
 
     @property

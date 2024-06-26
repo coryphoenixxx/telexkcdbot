@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from typing import NoReturn
 
 from shared.my_types import Order
-from sqlalchemy import delete, false, func, select, true
+from sqlalchemy import delete, false, func, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import joinedload, selectinload
@@ -25,8 +25,7 @@ from api.core.exceptions import (
     ExtraComicTitleAlreadyExistsError,
 )
 from api.core.value_objects import ComicID, IssueNumber
-from api.infrastructure.database.exceptions import GatewayError
-from api.infrastructure.database.gateways.base import BaseGateway
+from api.infrastructure.database.exceptions import RepoError
 from api.infrastructure.database.models import (
     UNIQUE_COMIC_NUMBER_IF_NOT_EXTRA_CONSTRAINT,
     UNIQUE_COMIC_TITLE_IF_NOT_EXTRA_CONSTRAINT,
@@ -34,10 +33,11 @@ from api.infrastructure.database.models import (
     TagModel,
     TranslationModel,
 )
+from api.infrastructure.database.repositories.base import BaseRepo
 from api.infrastructure.slugger import slugify
 
 
-class ComicGateway(BaseGateway):
+class ComicRepo(BaseRepo):
     @property
     def default_load_options(self) -> Sequence[ORMOption]:
         return (
@@ -48,38 +48,40 @@ class ComicGateway(BaseGateway):
         )
 
     async def create_base(self, dto: ComicRequestDTO) -> ComicID:
-        comic = ComicModel(
-            number=dto.number,
-            slug=self._build_slug(dto.number, dto.title),
-            publication_date=dto.publication_date,
-            explain_url=dto.explain_url,
-            click_url=dto.click_url,
-            is_interactive=dto.is_interactive,
-            tags=await self._create_tags(dto.tags),
-        )
-
-        self._session.add(comic)
-
         try:
-            await self._session.flush()
+            comic_id = await self._session.scalar(
+                insert(ComicModel)
+                .values(
+                    number=dto.number,
+                    slug=self._build_slug(dto.number, dto.title),
+                    publication_date=dto.publication_date,
+                    explain_url=dto.explain_url,
+                    click_url=dto.click_url,
+                    is_interactive=dto.is_interactive,
+                )
+                .returning(ComicModel.comic_id)
+            )
         except IntegrityError as err:
             self._handle_db_error(err)
         else:
-            return comic.comic_id
+            return comic_id
 
     async def update_base(self, comic_id: ComicID, dto: ComicRequestDTO) -> None:
-        comic = await self._get_by_id(comic_id, options=(joinedload(ComicModel.tags),))
-
-        comic.number = dto.number
-        comic.slug = self._build_slug(dto.number, dto.title)
-        comic.publication_date = dto.publication_date
-        comic.explain_url = dto.explain_url
-        comic.click_url = dto.click_url
-        comic.is_interactive = dto.is_interactive
-        comic.tags = await self._create_tags(dto.tags)
+        stmt = (
+            update(ComicModel)
+            .where(ComicModel.comic_id == comic_id)
+            .values(
+                number=dto.number,
+                slug=self._build_slug(dto.number, dto.title),
+                publication_date=dto.publication_date,
+                explain_url=dto.explain_url,
+                click_url=dto.click_url,
+                is_interactive=dto.is_interactive,
+            )
+        )
 
         try:
-            await self._session.flush()
+            await self._session.execute(stmt)
         except IntegrityError as err:
             self._handle_db_error(err)
 
@@ -188,22 +190,6 @@ class ComicGateway(BaseGateway):
 
         return [TranslationResponseDTO.from_model(model) for model in translations]
 
-    async def _create_tags(self, tag_names: list[str]) -> list[TagModel]:
-        if not tag_names:
-            return []
-
-        stmt = (
-            insert(TagModel)
-            .values([{"name": name} for name in tag_names])
-            .on_conflict_do_nothing(constraint="uq_tags_name")
-        )
-
-        await self._session.execute(stmt)
-
-        stmt = select(TagModel).where(TagModel.name.in_(tag_names))
-
-        return list((await self._session.scalars(stmt)).all())
-
     async def _get_by_id(
         self,
         comic_id: ComicID,
@@ -234,4 +220,4 @@ class ComicGateway(BaseGateway):
         if UNIQUE_COMIC_TITLE_IF_NOT_EXTRA_CONSTRAINT in cause:
             raise ExtraComicTitleAlreadyExistsError
 
-        raise GatewayError from err
+        raise RepoError from err

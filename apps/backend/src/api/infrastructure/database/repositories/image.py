@@ -9,11 +9,11 @@ from api.application.dtos.responses import (
 )
 from api.core.exceptions import ImageAlreadyAttachedError, ImageNotFoundError
 from api.core.value_objects import TranslationID, TranslationImageID
-from api.infrastructure.database.gateways.base import BaseGateway
 from api.infrastructure.database.models import TranslationImageModel
+from api.infrastructure.database.repositories.base import BaseRepo
 
 
-class TranslationImageGateway(BaseGateway):
+class TranslationImageRepo(BaseRepo):
     async def create(self, original_rel_path: Path) -> TranslationImageOrphanResponseDTO:
         stmt = (
             insert(TranslationImageModel)
@@ -62,6 +62,7 @@ class TranslationImageGateway(BaseGateway):
             return
 
         image_ids = sorted(set(image_ids))
+
         db_images = (
             await self._session.scalars(
                 select(TranslationImageModel)
@@ -73,7 +74,7 @@ class TranslationImageGateway(BaseGateway):
         ).all()
 
         db_image_ids = {image.image_id for image in db_images}
-        for img_id in sorted(image_ids):
+        for img_id in image_ids:
             if img_id not in db_image_ids:
                 raise ImageNotFoundError(img_id)
 

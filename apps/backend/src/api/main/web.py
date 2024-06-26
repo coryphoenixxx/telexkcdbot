@@ -11,8 +11,8 @@ from api.core.di.providers import (
     BrokerProvider,
     ConfigsProvider,
     DbProvider,
-    GatewaysProvider,
     HelpersProvider,
+    RepositoriesProvider,
     ServicesProvider,
 )
 from api.presentation.web.middlewares import register_middlewares
@@ -30,7 +30,7 @@ def create_app() -> FastAPI:
         ConfigsProvider(),
         DbProvider(),
         HelpersProvider(),
-        GatewaysProvider(),
+        RepositoriesProvider(),
         ServicesProvider(),
         BrokerProvider(),
     )

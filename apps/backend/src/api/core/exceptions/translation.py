@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from api.application.dtos.common import Language
-from api.core.value_objects import ComicID, TranslationID, TranslationImageID
+from api.core.value_objects import TranslationID, TranslationImageID
 
 from .base import (
     BaseBadRequestError,
@@ -41,17 +40,11 @@ class ImageAlreadyAttachedError(BaseBadRequestError):
 
 @dataclass
 class TranslationAlreadyExistsError(BaseConflictError):
-    comic_id: ComicID
-    language: Language
     message: str = "A comic already has a translation into this language."
 
     @property
     def detail(self) -> str | dict[str, Any]:
-        return {
-            "message": self.message,
-            "comic_id": self.comic_id,
-            "language": self.language,
-        }
+        return {"message": self.message}
 
 
 @dataclass

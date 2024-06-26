@@ -113,6 +113,7 @@ ignore = [
     "EM101",
     "EM102",
     "EXE002",
+    "FBT",
     "ISC001",
     "N999",
     "PLR0913",
@@ -125,6 +126,13 @@ ignore = [
     "TCH003",
 ]
 fixable = ["ALL"]
+
+[tool.ruff.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Depends", "fastapi.params.Depends",
+    "fastapi.Query", "fastapi.params.Query"
+]
+
 
 [tool.mypy]
 python_version = "3.12"

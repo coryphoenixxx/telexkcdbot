@@ -16,8 +16,8 @@ from api.core.configs.bot import BotAppConfig, BotConfig, BotRunMode, WebhookCon
 from api.core.di.providers import (
     ConfigsProvider,
     DbProvider,
-    GatewaysProvider,
     HelpersProvider,
+    RepositoriesProvider,
     ServicesProvider,
 )
 from api.presentation.tg_bot.controllers.comic import router as comic_router
@@ -87,7 +87,7 @@ def main() -> None:
         ConfigsProvider(),
         DbProvider(),
         HelpersProvider(),
-        GatewaysProvider(),
+        RepositoriesProvider(),
         ServicesProvider(),
     )
 

@@ -4,7 +4,7 @@ from pydantic import BaseModel, HttpUrl, SecretStr
 from pydantic.types import SecretType
 from shared.utils import cast_or_none
 
-from api.application.dtos.common import Language, Tag
+from api.application.dtos.common import Language, TagName
 from api.application.dtos.requests import ComicRequestDTO, TranslationRequestDTO
 from api.core.value_objects import IssueNumber, TranslationImageID
 
@@ -19,7 +19,7 @@ class ComicRequestSchema(BaseModel):
     explain_url: HttpUrl
     click_url: HttpUrl | None
     is_interactive: bool
-    tags: list[Tag]
+    tags: list[TagName]
     image_ids: list[TranslationImageID]
 
     def to_dto(self) -> ComicRequestDTO:

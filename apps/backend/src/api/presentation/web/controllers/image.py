@@ -48,7 +48,7 @@ async def upload_image(
     title: constr(min_length=1, strip_whitespace=True),
     number: Annotated[int | None, Query(ge=1)] = None,
     language: Language = Language.EN,
-    is_draft: bool = False,  # noqa: FBT001, FBT002
+    is_draft: bool = False,
     image_file: Annotated[UploadFile, File(...)] = None,
     image_url: HttpUrl | None = None,
     *,

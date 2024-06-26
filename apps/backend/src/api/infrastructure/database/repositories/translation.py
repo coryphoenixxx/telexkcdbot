@@ -3,7 +3,8 @@ from collections.abc import Sequence
 from html import unescape
 from typing import NoReturn
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, select, update
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.interfaces import ORMOption
@@ -17,11 +18,11 @@ from api.core.exceptions import (
     TranslationNotFoundError,
 )
 from api.core.value_objects import ComicID, TranslationID
-from api.infrastructure.database.gateways.base import BaseGateway
 from api.infrastructure.database.models import (
     UNIQUE_TRANSLATION_IF_NOT_DRAFT_CONSTRAINT,
     TranslationModel,
 )
+from api.infrastructure.database.repositories.base import BaseRepo
 
 SQUARE_BRACKETS_PATTERN = re.compile(r"\[.*?]")
 HTML_TAG_PATTERN = re.compile(r"<.*?>")
@@ -52,57 +53,65 @@ def build_searchable_text(title: str, raw_transcript: str, is_draft: bool = Fals
     return (title.lower() + " :: " + normalized.strip().lower())[:3800]
 
 
-class TranslationGateway(BaseGateway):
+class TranslationRepo(BaseRepo):
     async def create(
         self,
         comic_id: ComicID,
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
-        translation = TranslationModel(
-            comic_id=comic_id,
-            title=dto.title,
-            language=dto.language,
-            tooltip=dto.tooltip,
-            raw_transcript=dto.raw_transcript,
-            translator_comment=dto.translator_comment,
-            images=[],
-            source_url=dto.source_url,
-            is_draft=dto.is_draft,
-            searchable_text=build_searchable_text(dto.title, dto.raw_transcript, dto.is_draft),
+        stmt = (
+            insert(TranslationModel)
+            .values(
+                comic_id=comic_id,
+                title=dto.title,
+                language=dto.language,
+                tooltip=dto.tooltip,
+                raw_transcript=dto.raw_transcript,
+                translator_comment=dto.translator_comment,
+                source_url=dto.source_url,
+                is_draft=dto.is_draft,
+                searchable_text=build_searchable_text(
+                    dto.title,
+                    dto.raw_transcript,
+                    dto.is_draft,
+                ),
+            )
+            .returning(TranslationModel.translation_id)
         )
 
-        self._session.add(translation)
-
         try:
-            await self._session.flush()
+            translation_id = await self._session.scalar(stmt)
         except IntegrityError as err:
-            self._handle_db_error(err, comic_id, dto)
+            self._handle_db_error(err)
         else:
-            return TranslationResponseDTO.from_model(model=translation)
+            return TranslationResponseDTO.from_model(model=await self._get_by_id(translation_id))
 
     async def update(
         self,
         translation_id: TranslationID,
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
-        translation = await self._get_by_id(translation_id)
-
-        comic_id = translation.comic_id
-
-        translation.title = dto.title
-        translation.language = dto.language
-        translation.tooltip = dto.tooltip
-        translation.raw_transcript = dto.raw_transcript
-        translation.translator_comment = dto.translator_comment
-        translation.source_url = dto.source_url
-        translation.searchable_text = build_searchable_text(dto.title, dto.raw_transcript)
+        stmt = (
+            update(TranslationModel)
+            .where(TranslationModel.translation_id == translation_id)
+            .values(
+                title=dto.title,
+                language=dto.language,
+                tooltip=dto.tooltip,
+                raw_transcript=dto.raw_transcript,
+                translator_comment=dto.translator_comment,
+                source_url=dto.source_url,
+                searchable_text=build_searchable_text(dto.title, dto.raw_transcript),
+            )
+            .returning(TranslationModel.translation_id)
+        )
 
         try:
-            await self._session.flush()
+            translation_id = await self._session.scalar(stmt)
         except IntegrityError as err:
-            self._handle_db_error(err, comic_id, dto)
+            self._handle_db_error(err)
         else:
-            return TranslationResponseDTO.from_model(model=translation)
+            return TranslationResponseDTO.from_model(model=await self._get_by_id(translation_id))
 
     async def update_original(
         self,
@@ -162,16 +171,11 @@ class TranslationGateway(BaseGateway):
 
         return translation
 
-    def _handle_db_error(
-        self,
-        err: DBAPIError,
-        comic_id: ComicID,
-        dto: TranslationRequestDTO,
-    ) -> NoReturn:
+    def _handle_db_error(self, err: DBAPIError) -> NoReturn:
         cause = str(err.__cause__)
 
         if UNIQUE_TRANSLATION_IF_NOT_DRAFT_CONSTRAINT in cause:
-            raise TranslationAlreadyExistsError(comic_id, dto.language)
+            raise TranslationAlreadyExistsError
         if "fk_translations_comic_id_comics" in cause:
             raise ComicNotFoundError
 

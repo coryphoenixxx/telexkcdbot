@@ -13,7 +13,7 @@ from api.application.dtos.common import (
     Language,
     Limit,
     Offset,
-    Tag,
+    TagName,
     TagParam,
 )
 from api.application.services.comic import ComicService
@@ -219,10 +219,10 @@ async def get_comics(
     q: str = Query(min_length=1, max_length=50, default=None),
     page_size: int | None = Query(None, alias="psize"),
     page_num: int | None = Query(None, alias="pnum"),
-    date_from: datetime.date | None = Query(None),  # noqa: B008
-    date_to: datetime.date | None = Query(None),  # noqa: B008
+    date_from: datetime.date | None = Query(None),
+    date_to: datetime.date | None = Query(None),
     order: Order = Order.ASC,
-    tags: list[Tag] = Query(None, alias="tag"),  # noqa: B008
+    tags: list[TagName] = Query(None, alias="tag"),
     tag_param: TagParam | None = None,
     *,
     service: Depends[ComicService],

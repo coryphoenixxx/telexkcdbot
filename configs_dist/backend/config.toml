@@ -14,12 +14,6 @@ password = "password"
 echo = false
 pool_size = 40
 
-[gunicorn]
-wsgi_app = "api.main.web:create_app()"
-bind = "0.0.0.0:8000"
-workers = 5
-worker_class = "uvicorn.workers.UvicornWorker"
-
 [bot]
 token = ""
 admin_id = 1234567890

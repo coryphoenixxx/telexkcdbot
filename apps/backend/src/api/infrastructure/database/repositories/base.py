@@ -9,7 +9,7 @@ from api.infrastructure.database.models import BaseModel
 Model = TypeVar("Model", bound=BaseModel)
 
 
-class BaseGateway:
+class BaseRepo:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 

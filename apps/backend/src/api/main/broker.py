@@ -7,8 +7,8 @@ from faststream.nats import NatsBroker
 from api.core.di.providers import (
     ConfigsProvider,
     DbProvider,
-    GatewaysProvider,
     HelpersProvider,
+    RepositoriesProvider,
     ServicesProvider,
 )
 from api.presentation.broker.controllers import router
@@ -30,7 +30,7 @@ def create_app() -> FastStream:
             ConfigsProvider(),
             DbProvider(),
             HelpersProvider(),
-            GatewaysProvider(),
+            RepositoriesProvider(),
             ServicesProvider(),
             FastStreamProvider(),
         ),

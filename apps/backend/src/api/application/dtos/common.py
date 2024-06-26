@@ -9,9 +9,11 @@ from typing import Annotated, NewType
 from annotated_types import Ge, Len, MaxLen, MinLen
 from shared.my_types import ImageFormat, Order
 
+from api.core.value_objects import TagID
+
 TotalCount = NewType("TotalCount", Annotated[int, Ge(0)])
 Alpha2LangCode = NewType("Alpha2LangCode", Annotated[str, Len(2)])
-Tag = NewType("Tag", Annotated[str, MinLen(2), MaxLen(50)])
+TagName = NewType("TagName", Annotated[str, MinLen(2), MaxLen(50)])
 
 
 class LanguageEnum(StrEnum):
@@ -66,7 +68,7 @@ class ComicFilterParams:
     offset: Offset | None = None
     date_range: DateRange | None = None
     order: Order | None = None
-    tags: list[Tag] | None = None
+    tags: list[TagName] | None = None
     tag_param: TagParam | None = None
 
 
@@ -89,3 +91,9 @@ class ImageObj:
     path: Path
     fmt: ImageFormat
     dimensions: Dimensions
+
+
+@dataclass
+class TagDTO:
+    id: TagID
+    name: TagName
