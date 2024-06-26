@@ -15,13 +15,21 @@ class TagRepo(BaseRepo):
         if not names:
             return
 
-        await self._session.execute(
-            insert(TagModel)
-            .values([{"name": name} for name in names])
-            .on_conflict_do_nothing(constraint="uq_tags_name")
-        )
-
         tags = (await self._session.scalars(select(TagModel).where(TagModel.name.in_(names)))).all()
+
+        db_tag_names = {tag.name for tag in tags}
+        new_tag_names = {name for name in names if name not in db_tag_names}
+
+        if new_tag_names:
+            await self._session.execute(
+                insert(TagModel)
+                .values([{"name": name} for name in new_tag_names])
+                .on_conflict_do_nothing(constraint="uq_tags_name")
+            )
+
+            tags = (
+                await self._session.scalars(select(TagModel).where(TagModel.name.in_(names)))
+            ).all()
 
         comic = await self._get_model_by_id(
             ComicModel, comic_id, options=(joinedload(ComicModel.tags),)
