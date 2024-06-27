@@ -8,7 +8,7 @@ import aiofiles.os as aos
 
 from api.application.dtos.common import ImageObj, TranslationImageMeta
 from api.core.configs.web import APIConfig
-from api.infrastructure.slugger import slugify
+from api.core.utils import slugify
 
 
 class ImageSaveHelper:

@@ -3,12 +3,13 @@ from datetime import datetime as dt
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from api.application.dtos.common import Language
-from api.core.value_objects import ComicID, IssueNumber, TranslationID, TranslationImageID
+from api.application.dtos.common import Language, TagName
+from api.core.value_objects import ComicID, IssueNumber, TagID, TranslationID, TranslationImageID
 
 if TYPE_CHECKING:
     from api.infrastructure.database.models import (
         ComicModel,
+        TagModel,
         TranslationImageModel,
         TranslationModel,
     )
@@ -69,6 +70,21 @@ class TranslationResponseDTO:
 
 
 @dataclass(slots=True)
+class TagResponseDTO:
+    id: TagID
+    name: TagName
+    is_blacklisted: bool
+
+    @classmethod
+    def from_model(cls, model: "TagModel") -> "TagResponseDTO":
+        return TagResponseDTO(
+            id=model.tag_id,
+            name=model.name,
+            is_blacklisted=model.is_blacklisted,
+        )
+
+
+@dataclass(slots=True)
 class ComicResponseDTO:
     id: ComicID
     number: IssueNumber | None
@@ -76,7 +92,7 @@ class ComicResponseDTO:
     explain_url: str | None
     click_url: str | None
     is_interactive: bool
-    tags: list[str]
+    tags: list[TagResponseDTO]
     has_translations: list[Language]
 
     translation_id: TranslationID
@@ -116,7 +132,7 @@ class ComicResponseDTO:
             explain_url=model.explain_url,
             click_url=model.click_url,
             is_interactive=model.is_interactive,
-            tags=sorted([tag.name for tag in model.tags]),  # TODO: sorted by db
+            tags=[TagResponseDTO.from_model(tag) for tag in model.tags],
             images=[
                 TranslationImageProcessedResponseDTO.from_model(img) for img in original.images
             ],

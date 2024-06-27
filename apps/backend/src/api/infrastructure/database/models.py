@@ -128,7 +128,9 @@ class TagModel(BaseModel):
 
     tag_id: Mapped[int] = mapped_column(primary_key=True)
 
-    name: Mapped[str] = mapped_column(unique=True)
+    name: Mapped[str]
+    slug: Mapped[str] = mapped_column(unique=True)
+    is_blacklisted: Mapped[bool] = mapped_column(default=False)
 
     comics: Mapped[list["ComicModel"]] = relationship(
         back_populates="tags",
@@ -147,7 +149,7 @@ class ComicModel(BaseModel, TimestampMixin):
 
     comic_id: Mapped[int] = mapped_column(primary_key=True)
     number: Mapped[int | None] = mapped_column(SmallInteger)
-    slug: Mapped[str]
+    slug: Mapped[str | None]
     publication_date: Mapped[date]
     explain_url: Mapped[str | None]
     click_url: Mapped[str | None]
@@ -157,6 +159,7 @@ class ComicModel(BaseModel, TimestampMixin):
         back_populates="comics",
         secondary="comic_tag_association",
         cascade="all, delete",
+        order_by="TagModel.name.asc()",
     )
 
     translations: Mapped[list["TranslationModel"]] = relationship(

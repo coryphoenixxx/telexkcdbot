@@ -15,6 +15,7 @@ from api.application.services import (
     TranslationImageService,
     TranslationService,
 )
+from api.application.services.tag import TagService
 from api.core.configs.bot import BotConfig
 from api.core.configs.web import APIConfig
 from api.infrastructure.database.config import DbConfig
@@ -117,3 +118,4 @@ class ServicesProvider(Provider):
     comic_service = provide(ComicService)
     translation_service = provide(TranslationService)
     translation_image_service = provide(TranslationImageService)
+    tag_service = provide(TagService)

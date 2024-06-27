@@ -23,7 +23,7 @@ def upgrade() -> None:
         "comics",
         sa.Column("comic_id", sa.Integer(), nullable=False),
         sa.Column("number", sa.SmallInteger(), nullable=True),
-        sa.Column("slug", sa.String(), nullable=False),
+        sa.Column("slug", sa.String(), nullable=True),
         sa.Column("publication_date", sa.Date(), nullable=False),
         sa.Column("explain_url", sa.String(), nullable=True),
         sa.Column("click_url", sa.String(), nullable=True),
@@ -61,7 +61,6 @@ def upgrade() -> None:
         sa.Column("tag_id", sa.Integer(), nullable=False),
         sa.Column("name", sa.String(), nullable=False),
         sa.PrimaryKeyConstraint("tag_id", name=op.f("pk_tags")),
-        sa.UniqueConstraint("name", name=op.f("uq_tags_name")),
     )
     op.create_table(
         "comic_tag_association",

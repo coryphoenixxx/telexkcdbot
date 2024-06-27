@@ -1,11 +1,12 @@
 from collections.abc import Sequence
+from enum import StrEnum, auto
 from typing import NoReturn
 
 from shared.my_types import Order
 from sqlalchemy import delete, false, func, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError, IntegrityError
-from sqlalchemy.orm import joinedload, selectinload
+from sqlalchemy.orm import contains_eager, joinedload, selectinload
 from sqlalchemy.orm.interfaces import ORMOption
 
 from api.application.dtos.common import (
@@ -24,6 +25,7 @@ from api.core.exceptions import (
     ComicNumberAlreadyExistsError,
     ExtraComicTitleAlreadyExistsError,
 )
+from api.core.utils import slugify
 from api.core.value_objects import ComicID, IssueNumber
 from api.infrastructure.database.exceptions import RepoError
 from api.infrastructure.database.models import (
@@ -34,7 +36,12 @@ from api.infrastructure.database.models import (
     TranslationModel,
 )
 from api.infrastructure.database.repositories.base import BaseRepo
-from api.infrastructure.slugger import slugify
+
+
+class ComicGetByCriteria(StrEnum):
+    ID = auto()
+    NUMBER = auto()
+    SLUG = auto()
 
 
 class ComicRepo(BaseRepo):
@@ -42,7 +49,7 @@ class ComicRepo(BaseRepo):
     def default_load_options(self) -> Sequence[ORMOption]:
         return (
             joinedload(ComicModel.tags),
-            joinedload(ComicModel.translations).options(
+            selectinload(ComicModel.translations).options(
                 joinedload(TranslationModel.images),
             ),
         )
@@ -89,27 +96,60 @@ class ComicRepo(BaseRepo):
         await self._session.execute(delete(ComicModel).where(ComicModel.comic_id == comic_id))
 
     async def get_by_id(self, comic_id: ComicID) -> ComicResponseDTO:
-        return ComicResponseDTO.from_model(model=await self._get_by_id(comic_id))
+        return await self._get_by(
+            criteria=ComicGetByCriteria.ID,
+            value=comic_id,
+        )
 
     async def get_by_issue_number(self, number: IssueNumber) -> ComicResponseDTO:
+        return await self._get_by(
+            criteria=ComicGetByCriteria.NUMBER,
+            value=number,
+        )
+
+    async def get_by_slug(self, slug: str) -> ComicResponseDTO:
+        return await self._get_by(
+            criteria=ComicGetByCriteria.SLUG,
+            value=slug,
+        )
+
+    async def _get_by(
+        self,
+        criteria: ComicGetByCriteria,
+        value: ComicID | IssueNumber | str,
+    ) -> ComicResponseDTO:
+        match criteria:
+            case criteria.ID:
+                where_clause = ComicModel.comic_id == value
+            case criteria.NUMBER:
+                where_clause = ComicModel.number == value
+            case criteria.SLUG:
+                where_clause = ComicModel.slug == value
+            case _:
+                raise RepoError
+
         stmt = (
             select(ComicModel)
-            .where(ComicModel.number == number)
-            .options(*self.default_load_options)
+            .outerjoin(ComicModel.tags)
+            .join(ComicModel.translations)
+            .options(
+                contains_eager(ComicModel.tags),
+                contains_eager(ComicModel.translations).options(
+                    joinedload(TranslationModel.images),
+                ),
+            )
+            .where(
+                where_clause,
+                TranslationModel.is_draft == false(),
+            )
         )
 
         comic = (await self._session.scalars(stmt)).unique().one_or_none()
+
         if not comic:
             raise ComicNotFoundError
 
-        return ComicResponseDTO.from_model(comic)
-
-    async def get_by_slug(self, slug: str) -> ComicResponseDTO:
-        stmt = select(ComicModel).where(ComicModel.slug == slug).options(*self.default_load_options)
-
-        comic = (await self._session.scalars(stmt)).unique().one_or_none()
-        if not comic:
-            raise ComicNotFoundError
+        comic.tags = [tag for tag in comic.tags if not tag.is_blacklisted]
 
         return ComicResponseDTO.from_model(comic)
 
@@ -190,27 +230,8 @@ class ComicRepo(BaseRepo):
 
         return [TranslationResponseDTO.from_model(model) for model in translations]
 
-    async def _get_by_id(
-        self,
-        comic_id: ComicID,
-        options: Sequence[ORMOption] | None = None,
-    ) -> ComicModel:
-        if options is None:
-            options = self.default_load_options
-
-        comic = await self._get_model_by_id(ComicModel, comic_id, options=options)
-
-        if not comic:
-            raise ComicNotFoundError
-
-        return comic
-
-    def _build_slug(self, number: int | None, en_title: str) -> str:
-        slug = slugify(en_title)
-
-        if number:
-            return f"{number}-{slug}"
-        return slug
+    def _build_slug(self, number: int | None, en_title: str) -> str | None:
+        return slugify(en_title) if number is None else None
 
     def _handle_db_error(self, err: DBAPIError) -> NoReturn:
         cause = str(err.__cause__)

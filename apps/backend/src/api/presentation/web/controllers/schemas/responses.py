@@ -1,15 +1,19 @@
 import datetime as dt
 from collections.abc import Mapping
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, HttpUrl
 
 from api.application.dtos.common import Language, Limit, Offset, TotalCount
-from api.application.dtos.responses import (
-    ComicResponseDTO,
-    TranslationImageProcessedResponseDTO,
-    TranslationResponseDTO,
-)
-from api.core.value_objects import ComicID, IssueNumber, TranslationID
+from api.core.value_objects import ComicID, IssueNumber, TagID, TranslationID
+
+if TYPE_CHECKING:
+    from api.application.dtos.responses import (
+        ComicResponseDTO,
+        TagResponseDTO,
+        TranslationImageProcessedResponseDTO,
+        TranslationResponseDTO,
+    )
 
 
 class OKResponseSchema(BaseModel):
@@ -22,23 +26,44 @@ class PaginationSchema(BaseModel):
     offset: Offset | None
 
 
+class TagResponseSchema(BaseModel):
+    id: TagID
+    name: str
+
+    @classmethod
+    def from_dto(cls, dto: "TagResponseDTO") -> "TagResponseSchema":
+        return TagResponseSchema(id=dto.id, name=dto.name)
+
+
+class TagResponseWBlacklistStatusSchema(TagResponseSchema):
+    is_blacklisted: bool
+
+    @classmethod
+    def from_dto(cls, dto: "TagResponseDTO") -> "TagResponseWBlacklistStatusSchema":
+        return TagResponseWBlacklistStatusSchema(
+            id=dto.id,
+            name=dto.name,
+            is_blacklisted=dto.is_blacklisted,
+        )
+
+
 class ComicResponseSchema(BaseModel):
     id: ComicID
     number: IssueNumber | None
+    title: str
     publication_date: dt.date
     explain_url: HttpUrl | None
     click_url: HttpUrl | None
     is_interactive: bool
-    tags: list[str]
-    translation_id: TranslationID  # For transcript getting
+    tags: list[TagResponseSchema]
+    translation_id: TranslationID
     xkcd_url: HttpUrl
-    title: str
     tooltip: str
     images: list["TranslationImageProcessedResponseSchema"]
     has_translations: list[Language]
 
     @classmethod
-    def from_dto(cls, dto: ComicResponseDTO) -> "ComicResponseSchema":
+    def from_dto(cls, dto: "ComicResponseDTO") -> "ComicResponseSchema":
         return ComicResponseSchema(
             id=dto.id,
             number=dto.number,
@@ -50,7 +75,7 @@ class ComicResponseSchema(BaseModel):
             explain_url=dto.explain_url,
             click_url=dto.click_url,
             is_interactive=dto.is_interactive,
-            tags=dto.tags,
+            tags=[TagResponseSchema.from_dto(dto) for dto in dto.tags],
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
             has_translations=dto.has_translations,
         )
@@ -62,7 +87,7 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
     @classmethod
     def from_dto(
         cls,
-        dto: ComicResponseDTO,
+        dto: "ComicResponseDTO",
         filter_languages: list[Language] | None = None,
     ) -> "ComicWTranslationsResponseSchema":
         return ComicWTranslationsResponseSchema(
@@ -76,7 +101,7 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
             explain_url=dto.explain_url,
             click_url=dto.click_url,
             is_interactive=dto.is_interactive,
-            tags=dto.tags,
+            tags=[TagResponseSchema.from_dto(dto) for dto in dto.tags],
             images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
             has_translations=dto.has_translations,
             translations=_prepare_and_filter(dto.translations, filter_languages),
@@ -100,7 +125,7 @@ class TranslationResponseSchema(BaseModel):
     @classmethod
     def from_dto(
         cls,
-        dto: TranslationResponseDTO,
+        dto: "TranslationResponseDTO",
     ) -> Mapping[Language, "TranslationResponseSchema"]:
         return {
             dto.language: TranslationResponseSchema(
@@ -118,7 +143,7 @@ class TranslationResponseSchema(BaseModel):
 
 
 def _prepare_and_filter(
-    translations: list[TranslationResponseDTO],
+    translations: list["TranslationResponseDTO"],
     filter_languages: list[Language] | None = None,
 ) -> Mapping[Language, TranslationResponseSchema]:
     translation_map = {}
@@ -142,7 +167,7 @@ class TranslationImageProcessedResponseSchema(TranslationImageOrphanResponseSche
     @classmethod
     def from_dto(
         cls,
-        dto: TranslationImageProcessedResponseDTO,
+        dto: "TranslationImageProcessedResponseDTO",
     ) -> "TranslationImageProcessedResponseSchema":
         return TranslationImageProcessedResponseSchema(
             id=dto.id,
@@ -159,7 +184,7 @@ class TranslationWLanguageResponseSchema(TranslationResponseSchema):
     @classmethod
     def from_dto(
         cls,
-        dto: TranslationResponseDTO,
+        dto: "TranslationResponseDTO",
     ) -> "TranslationWLanguageResponseSchema":
         return TranslationWLanguageResponseSchema(
             id=dto.id,
@@ -179,7 +204,7 @@ class TranslationWDraftStatusSchema(TranslationWLanguageResponseSchema):
     @classmethod
     def from_dto(
         cls,
-        dto: TranslationResponseDTO,
+        dto: "TranslationResponseDTO",
     ) -> "TranslationWDraftStatusSchema":
         return TranslationWDraftStatusSchema(
             id=dto.id,
