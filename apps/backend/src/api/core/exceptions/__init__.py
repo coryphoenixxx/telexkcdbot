@@ -6,12 +6,12 @@ from .comic import (
     ExtraComicTitleAlreadyExistsError,
 )
 from .image import (
-    DownloadingImageError,
-    RequestFileIsEmptyError,
+    DownloadError,
+    FileIsEmptyError,
+    FileSizeLimitExceededError,
     UnsupportedImageFormatError,
-    UploadedImageError,
-    UploadedImageTypeConflictError,
-    UploadExceedSizeLimitError,
+    UploadedImageConflictError,
+    UploadedImageIsNotExistsError,
 )
 from .translation import (
     ImageAlreadyAttachedError,

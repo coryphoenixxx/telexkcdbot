@@ -6,7 +6,7 @@ from shared.utils import cast_or_none
 
 from api.application.dtos.common import Language, TagName
 from api.application.dtos.requests import ComicRequestDTO, TranslationRequestDTO
-from api.core.value_objects import IssueNumber, TranslationImageID
+from api.core.value_objects import IssueNumber, TempImageID
 
 
 class ComicRequestSchema(BaseModel):
@@ -20,7 +20,7 @@ class ComicRequestSchema(BaseModel):
     click_url: HttpUrl | None
     is_interactive: bool
     tags: list[TagName]
-    image_ids: list[TranslationImageID]
+    image_id: TempImageID | None
 
     def to_dto(self) -> ComicRequestDTO:
         return ComicRequestDTO(
@@ -34,7 +34,7 @@ class ComicRequestSchema(BaseModel):
             click_url=cast_or_none(str, self.click_url),
             is_interactive=self.is_interactive,
             tags=self.tags,
-            image_ids=self.image_ids,
+            image_id=self.image_id,
         )
 
 
@@ -44,7 +44,7 @@ class TranslationRequestSchema(BaseModel):
     tooltip: str
     raw_transcript: str
     translator_comment: str
-    image_ids: list[TranslationImageID]
+    image_ids: list[TempImageID]
     source_url: HttpUrl | None
 
     def to_dto(self) -> TranslationRequestDTO:

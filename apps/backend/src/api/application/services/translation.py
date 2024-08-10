@@ -31,7 +31,7 @@ class TranslationService:
             raise OriginalTranslationOperationForbiddenError
 
         translation = await self._translation_repo.create(comic_id, dto)
-        await self._translation_image_repo.link(translation.id, dto.image_ids)
+        await self._translation_image_repo.attach_image(translation.id, dto.image_ids)
 
         await self._transaction.commit()
 

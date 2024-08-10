@@ -5,6 +5,7 @@ from faststream import FastStream
 from faststream.nats import NatsBroker
 
 from api.core.di.providers import (
+    BrokerProvider,
     ConfigsProvider,
     DbProvider,
     HelpersProvider,
@@ -32,6 +33,7 @@ def create_app() -> FastStream:
             HelpersProvider(),
             RepositoriesProvider(),
             ServicesProvider(),
+            BrokerProvider(),
             FastStreamProvider(),
         ),
         app,

@@ -1,11 +1,12 @@
 from pathlib import Path
 
-from api.application.dtos.common import ImageObj, TranslationImageMeta
-from api.application.dtos.responses import TranslationImageOrphanResponseDTO
+from faststream.nats import NatsBroker
+
+from api.application.dtos import TranslationImageResponseDTO
 from api.core.value_objects import TranslationImageID
 from api.infrastructure.database.repositories import TranslationImageRepo
 from api.infrastructure.database.transaction import TransactionManager
-from api.infrastructure.image_saver import ImageSaveHelper
+from api.infrastructure.filesystem.image_file_manager import ImageFileManager
 
 
 class TranslationImageService:
@@ -13,24 +14,13 @@ class TranslationImageService:
         self,
         repo: TranslationImageRepo,
         transaction: TransactionManager,
-        image_saver: ImageSaveHelper,
+        image_file_manager: ImageFileManager,
+        broker: NatsBroker,
     ) -> None:
         self._repo = repo
         self._transaction = transaction
-        self._image_saver = image_saver
-
-    async def create(
-        self,
-        metadata: TranslationImageMeta,
-        image: ImageObj | None = None,
-    ) -> tuple[Path, TranslationImageOrphanResponseDTO]:
-        original_abs_path, original_rel_path = await self._image_saver.save(metadata, image)
-
-        image_dto = await self._repo.create(original_rel_path)
-
-        await self._transaction.commit()
-
-        return original_abs_path, image_dto
+        self._image_file_manager = image_file_manager
+        self._broker = broker
 
     async def update(
         self,
@@ -40,7 +30,10 @@ class TranslationImageService:
     ) -> None:
         await self._repo.update(
             image_id=image_id,
-            converted_rel_path=self._image_saver.cut_rel_path(converted_abs_path),
-            thumbnail_rel_path=self._image_saver.cut_rel_path(thumbnail_abs_path),
+            converted_rel_path=self._image_file_manager.abs_to_rel(converted_abs_path),
+            thumbnail_rel_path=self._image_file_manager.abs_to_rel(thumbnail_abs_path),
         )
         await self._transaction.commit()
+
+    async def get_by_id(self, image_id: TranslationImageID) -> TranslationImageResponseDTO:
+        return await self._repo.get_by_id(image_id)

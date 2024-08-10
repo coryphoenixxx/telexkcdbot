@@ -53,7 +53,7 @@ class TranslationImageModel(BaseModel, TimestampMixin):
     converted_rel_path: Mapped[str | None]
     thumbnail_rel_path: Mapped[str | None]
 
-    translation: Mapped["TranslationModel"] = relationship(back_populates="images")
+    translation: Mapped["TranslationModel"] = relationship(back_populates="image")
 
     def __str__(self) -> str:
         return (
@@ -78,7 +78,10 @@ class TranslationModel(BaseModel, TimestampMixin):
     source_url: Mapped[str | None]
     is_draft: Mapped[bool] = mapped_column(default=False)
 
-    images: Mapped[list["TranslationImageModel"]] = relationship(back_populates="translation")
+    image: Mapped[TranslationImageModel | None] = relationship(
+        back_populates="translation",
+        single_parent=True,
+    )
 
     searchable_text: Mapped[str] = mapped_column(Text)
 

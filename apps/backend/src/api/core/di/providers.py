@@ -4,6 +4,7 @@ from dishka import Provider, Scope, provide
 from faststream.nats import NatsBroker
 from shared.config_loader import load_config
 from shared.http_client import AsyncHttpClient
+from shared.my_types import ImageFormat
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -15,6 +16,7 @@ from api.application.services import (
     TranslationImageService,
     TranslationService,
 )
+from api.application.services.converter import Converter
 from api.application.services.tag import TagService
 from api.core.configs.bot import BotConfig
 from api.core.configs.web import APIConfig
@@ -31,8 +33,9 @@ from api.infrastructure.database.repositories import (
 )
 from api.infrastructure.database.repositories.tag import TagRepo
 from api.infrastructure.database.transaction import TransactionManager
-from api.infrastructure.image_saver import ImageSaveHelper
-from api.presentation.web.upload_reader import UploadImageHandler
+from api.infrastructure.filesystem.image_file_manager import ImageFileManager
+from api.presentation.broker.image_processor import ImageProcessor
+from api.presentation.web.upload_image_manager import Downloader, ImageValidator, UploadImageManager
 
 
 class ConfigsProvider(Provider):
@@ -83,15 +86,49 @@ class HelpersProvider(Provider):
         async with AsyncHttpClient() as client:
             yield client
 
-    @provide(scope=Scope.REQUEST)
-    def upload_image_handler(
-        self,
-        config: APIConfig,
-        http_client: AsyncHttpClient,
-    ) -> UploadImageHandler:
-        return UploadImageHandler(config, http_client)
+    @provide(scope=Scope.APP)
+    async def image_file_manager(self, config: APIConfig) -> ImageFileManager:
+        return ImageFileManager(
+            temp_dir=config.tmp_dir,
+            static_dir=config.static_dir,
+            size_limit=config.upload_max_size,
+            chunk_size=1024 * 64,
+        )
 
-    image_save_helper = provide(ImageSaveHelper, scope=Scope.REQUEST)
+    @provide(scope=Scope.APP)
+    async def downloader(
+        self,
+        http_client: AsyncHttpClient,
+        file_manager: ImageFileManager,
+    ) -> Downloader:
+        return Downloader(
+            http_client=http_client,
+            file_manager=file_manager,
+            timeout=30.0,
+            attempts=3,
+            interval=1,
+        )
+
+    @provide(scope=Scope.APP)
+    def image_validator(self) -> ImageValidator:
+        return ImageValidator(supported_formats=tuple(ImageFormat))
+
+    @provide(scope=Scope.APP)
+    def upload_image_manager(
+        self,
+        file_manager: ImageFileManager,
+        downloader: Downloader,
+        validator: ImageValidator,
+    ) -> UploadImageManager:
+        return UploadImageManager(file_manager, downloader, validator)
+
+    @provide(scope=Scope.APP)
+    def image_processor(self) -> ImageProcessor:
+        return ImageProcessor()
+
+    @provide(scope=Scope.APP)
+    def converter(self, broker: NatsBroker) -> Converter:
+        return Converter(broker)
 
 
 class BrokerProvider(Provider):

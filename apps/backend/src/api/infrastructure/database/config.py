@@ -10,4 +10,4 @@ class DbConfig:
     dbname: str
     echo: bool
     pool_size: int
-    driver: str = "psycopg"
+    driver: str = "asyncpg"

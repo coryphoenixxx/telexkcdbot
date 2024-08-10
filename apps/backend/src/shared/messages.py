@@ -6,7 +6,6 @@ from pydantic import BaseModel
 
 class ImageProcessInMessage(BaseModel):
     image_id: TranslationImageID
-    original_abs_path: Path
 
 
 class ImageProcessOutMessage(BaseModel):

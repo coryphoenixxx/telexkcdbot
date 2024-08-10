@@ -4,6 +4,6 @@ from .requests import ComicRequestDTO, TranslationRequestDTO
 from .responses import (
     ComicResponseDTO,
     TranslationImageOrphanResponseDTO,
-    TranslationImageProcessedResponseDTO,
+    TranslationImageResponseDTO,
     TranslationResponseDTO,
 )

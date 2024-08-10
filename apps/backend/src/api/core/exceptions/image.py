@@ -6,7 +6,7 @@ from .base import BaseAppError, BaseBadRequestError
 
 @dataclass
 class UnsupportedImageFormatError(BaseAppError):
-    invalid_format: str | None
+    format: str | None
     supported_formats: tuple[str]
     message: str = "Unsupported image format."
 
@@ -14,13 +14,13 @@ class UnsupportedImageFormatError(BaseAppError):
     def detail(self) -> str | dict[str, Any]:
         return {
             "message": self.message,
-            "format": self.invalid_format,
+            "format": self.format,
             "supported_formats": self.supported_formats,
         }
 
 
 @dataclass
-class UploadExceedSizeLimitError(BaseAppError):
+class FileSizeLimitExceededError(BaseAppError):
     upload_max_size: int
     message: str = "The uploaded image exceeds the size limit."
 
@@ -33,7 +33,7 @@ class UploadExceedSizeLimitError(BaseAppError):
 
 
 @dataclass
-class RequestFileIsEmptyError(BaseBadRequestError):
+class FileIsEmptyError(BaseBadRequestError):
     message: str = "Request file is empty."
 
     @property
@@ -44,7 +44,7 @@ class RequestFileIsEmptyError(BaseBadRequestError):
 
 
 @dataclass
-class UploadedImageTypeConflictError(BaseBadRequestError):
+class UploadedImageConflictError(BaseBadRequestError):
     message: str = "Either an image url or an image file, not both."
 
     @property
@@ -55,7 +55,7 @@ class UploadedImageTypeConflictError(BaseBadRequestError):
 
 
 @dataclass
-class UploadedImageError(BaseBadRequestError):
+class UploadedImageIsNotExistsError(BaseBadRequestError):
     message: str = "Either an image url or an image file must be."
 
     @property
@@ -66,7 +66,7 @@ class UploadedImageError(BaseBadRequestError):
 
 
 @dataclass
-class DownloadingImageError(BaseBadRequestError):
+class DownloadError(BaseBadRequestError):
     url: str
     message: str = "Couldn't download the image from this URL."
 

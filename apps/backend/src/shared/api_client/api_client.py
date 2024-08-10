@@ -190,7 +190,6 @@ class APIClient:
         date_from: str | None = None,
         date_to: str | None = None,
     ) -> dict:
-        # TODO: Set limits
         url = self._base_url / "comics"
 
         params = self._build_params(

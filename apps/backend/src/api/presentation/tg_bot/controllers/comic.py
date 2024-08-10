@@ -17,7 +17,7 @@ from api.presentation.tg_bot.filters import ComicNumberFilter
 from api.presentation.tg_bot.keyboards.navigation import build_navigation_keyboard
 from api.presentation.web.controllers.schemas import (
     ComicResponseSchema,
-    TranslationImageProcessedResponseSchema,
+    TranslationImageResponseSchema,
 )
 
 router = Router()
@@ -46,7 +46,7 @@ def build_caption(comic: ComicResponseSchema) -> str:
 
 def build_image_url(
     webhook_url: str,
-    comic_images: list[TranslationImageProcessedResponseSchema],
+    comic_images: list[TranslationImageResponseSchema],
 ) -> str:
     return webhook_url + "/static/" + comic_images[0].converted
 
@@ -94,7 +94,7 @@ async def get_comic_by_number_handler(
 
     comic = ComicResponseSchema.from_dto(dto=dto)
 
-    image_url = build_image_url(webhook_url=config.webhook.url, comic_images=comic.images)
+    image_url = build_image_url(webhook_url=config.webhook.url, comic_images=comic.image)
 
     answer = await msg.answer_photo(
         photo=image_storage.get_image(image_url),
@@ -124,7 +124,7 @@ async def navigation(
 
     comic = ComicResponseSchema.from_dto(dto=await service.get_by_issue_number(next_number))
 
-    image_url = build_image_url(webhook_url=config.webhook.url, comic_images=comic.images)
+    image_url = build_image_url(webhook_url=config.webhook.url, comic_images=comic.image)
 
     answer = await callback.message.edit_media(
         media=InputMediaPhoto(

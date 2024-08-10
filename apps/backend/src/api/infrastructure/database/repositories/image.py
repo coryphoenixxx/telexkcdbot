@@ -1,11 +1,12 @@
 from pathlib import Path
 
 from shared.utils import cast_or_none
-from sqlalchemy import select, update
+from sqlalchemy import update
 from sqlalchemy.dialects.postgresql import insert
 
 from api.application.dtos.responses import (
     TranslationImageOrphanResponseDTO,
+    TranslationImageResponseDTO,
 )
 from api.core.exceptions import ImageAlreadyAttachedError, ImageNotFoundError
 from api.core.value_objects import TranslationID, TranslationImageID
@@ -53,35 +54,30 @@ class TranslationImageRepo(BaseRepo):
 
         return TranslationImageID(image_id)
 
-    async def link(
+    async def attach_image(
         self,
         translation_id: TranslationID,
-        image_ids: list[TranslationImageID],
+        image_id: TranslationImageID | None,
     ) -> None:
-        if not image_ids:
+        if not image_id:
             return
 
-        image_ids = sorted(set(image_ids))
+        db_image = await self._get_model_by_id(TranslationImageModel, image_id)
 
-        db_images = (
-            await self._session.scalars(
-                select(TranslationImageModel)
-                .where(
-                    TranslationImageModel.image_id.in_(image_ids),
-                )
-                .order_by(TranslationImageModel.image_id)
+        if not db_image:
+            raise ImageNotFoundError(image_id)
+
+        owner_id = db_image.translation_id
+        if owner_id:
+            raise ImageAlreadyAttachedError(
+                image_id=TranslationImageID(db_image.image_id),
+                translation_id=TranslationID(owner_id),
             )
-        ).all()
 
-        db_image_ids = {image.image_id for image in db_images}
-        for img_id in image_ids:
-            if img_id not in db_image_ids:
-                raise ImageNotFoundError(img_id)
+        db_image.translation_id = translation_id
 
-        for img in db_images:
-            owner_id = img.translation_id
-            if owner_id and owner_id != translation_id:
-                raise ImageAlreadyAttachedError(img.image_id, owner_id)
-
-        for img in db_images:
-            img.translation_id = translation_id
+    async def get_by_id(self, image_id: TranslationImageID) -> TranslationImageResponseDTO | None:
+        image = await self._get_model_by_id(TranslationImageModel, image_id)
+        if image:
+            return TranslationImageResponseDTO.from_model(image)
+        return None

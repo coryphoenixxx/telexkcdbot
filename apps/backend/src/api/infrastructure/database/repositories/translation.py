@@ -119,7 +119,8 @@ class TranslationRepo(BaseRepo):
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
         stmt = select(TranslationModel.translation_id).where(
-            TranslationModel.comic_id == comic_id, TranslationModel.language == Language.EN
+            TranslationModel.comic_id == comic_id,
+            TranslationModel.language == Language.EN,
         )
         translation_id = await self._session.scalar(stmt)
 
@@ -162,7 +163,7 @@ class TranslationRepo(BaseRepo):
         options: Sequence[ORMOption] | None = None,
     ) -> TranslationModel:
         if options is None:
-            options = (joinedload(TranslationModel.images),)
+            options = (joinedload(TranslationModel.image),)
 
         translation = await self._get_model_by_id(TranslationModel, translation_id, options=options)
 

@@ -1,10 +1,11 @@
 from shared.my_types import Order
 
-from api.application.dtos.common import ComicFilterParams, Limit, TotalCount
+from api.application.dtos.common import ComicFilterParams, Language, Limit, TotalCount
 from api.application.dtos.requests import ComicRequestDTO
 from api.application.dtos.responses import (
     ComicResponseDTO,
 )
+from api.application.services.converter import Converter
 from api.core.value_objects import ComicID, IssueNumber
 from api.infrastructure.database.repositories import (
     ComicRepo,
@@ -13,6 +14,7 @@ from api.infrastructure.database.repositories import (
 )
 from api.infrastructure.database.repositories.tag import TagRepo
 from api.infrastructure.database.transaction import TransactionManager
+from api.infrastructure.filesystem.image_file_manager import ImageFileManager
 
 
 class ComicService:
@@ -23,27 +25,49 @@ class ComicService:
         translation_repo: TranslationRepo,
         translation_image_repo: TranslationImageRepo,
         tag_repo: TagRepo,
+        image_file_manager: ImageFileManager,
+        converter: Converter,
     ) -> None:
         self._transaction = transaction
         self._comic_repo = comic_repo
         self._translation_repo = translation_repo
         self._translation_image_repo = translation_image_repo
         self._tag_repo = tag_repo
+        self._image_file_manager = image_file_manager
+        self._converter = converter
 
     async def create(self, dto: ComicRequestDTO) -> ComicResponseDTO:
         comic_id = await self._comic_repo.create_base(dto)
-        translation = await self._translation_repo.create(comic_id, dto.original)
-        await self._translation_image_repo.link(translation.id, dto.image_ids)
         await self._tag_repo.create_many(comic_id, dto.tags)
+        translation = await self._translation_repo.create(comic_id, dto.original)
 
-        await self._transaction.commit()
+        image_rel_path = None
+        try:
+            if dto.image_id:
+                image_rel_path = await self._image_file_manager.save(
+                    number=dto.number,
+                    title=dto.title,
+                    language=Language.EN,
+                    is_draft=False,
+                    temp_image_id=dto.image_id,
+                )
+                image_dto = await self._translation_image_repo.create(image_rel_path)
 
-        return await self._comic_repo.get_by_id(comic_id)
+                await self._translation_image_repo.attach_image(translation.id, image_dto.id)
+                await self._converter.convert(image_dto.id)
+
+            await self._transaction.commit()
+        except Exception as err:
+            if image_rel_path:
+                self._image_file_manager.delete(image_rel_path)
+            raise err
+        else:
+            return await self._comic_repo.get_by_id(comic_id)
 
     async def update(self, comic_id: ComicID, dto: ComicRequestDTO) -> ComicResponseDTO:
         await self._comic_repo.update_base(comic_id, dto)
         translation = await self._translation_repo.update_original(comic_id, dto.original)
-        await self._translation_image_repo.link(translation.id, dto.image_ids)
+        await self._translation_image_repo.attach_image(translation.id, dto.image_id)
         await self._tag_repo.create_many(comic_id, dto.tags)
 
         await self._transaction.commit()

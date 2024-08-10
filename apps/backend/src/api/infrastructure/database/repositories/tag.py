@@ -36,7 +36,7 @@ class TagRepo(BaseRepo):
 
         temp_tag_objs = [TempTag(name) for name in sorted(set(tag_names))]
 
-        stmt = select(TagModel).where(TagModel.slug.in_((t.slug for t in temp_tag_objs)))
+        stmt = select(TagModel).where(TagModel.slug.in_(t.slug for t in temp_tag_objs))
 
         db_tags = (await self._session.scalars(stmt)).all()
 

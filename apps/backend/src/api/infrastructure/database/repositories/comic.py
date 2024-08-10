@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from enum import StrEnum, auto
 from typing import NoReturn
 
@@ -7,7 +6,6 @@ from sqlalchemy import delete, false, func, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import contains_eager, joinedload, selectinload
-from sqlalchemy.orm.interfaces import ORMOption
 
 from api.application.dtos.common import (
     ComicFilterParams,
@@ -45,15 +43,6 @@ class ComicGetByCriteria(StrEnum):
 
 
 class ComicRepo(BaseRepo):
-    @property
-    def default_load_options(self) -> Sequence[ORMOption]:
-        return (
-            joinedload(ComicModel.tags),
-            selectinload(ComicModel.translations).options(
-                joinedload(TranslationModel.images),
-            ),
-        )
-
     async def create_base(self, dto: ComicRequestDTO) -> ComicID:
         try:
             comic_id = await self._session.scalar(
@@ -135,7 +124,7 @@ class ComicRepo(BaseRepo):
             .options(
                 contains_eager(ComicModel.tags),
                 contains_eager(ComicModel.translations).options(
-                    joinedload(TranslationModel.images),
+                    joinedload(TranslationModel.image),
                 ),
             )
             .where(
@@ -189,7 +178,7 @@ class ComicRepo(BaseRepo):
             .options(
                 selectinload(ComicModel.tags),
                 selectinload(ComicModel.translations).options(
-                    joinedload(TranslationModel.images),
+                    joinedload(TranslationModel.image),
                 ),
             )
         )
@@ -208,7 +197,7 @@ class ComicRepo(BaseRepo):
                 TranslationModel.is_draft == false(),
                 TranslationModel.language != Language.EN,
             )
-            .options(joinedload(TranslationModel.images))
+            .options(joinedload(TranslationModel.image))
         )
 
         translations = (await self._session.scalars(stmt)).unique().all()
@@ -223,7 +212,7 @@ class ComicRepo(BaseRepo):
                 TranslationModel.is_draft == true(),
                 TranslationModel.language != Language.EN,
             )
-            .options(joinedload(TranslationModel.images))
+            .options(joinedload(TranslationModel.image))
         )
 
         translations = (await self._session.scalars(stmt)).unique().all()

@@ -10,9 +10,9 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from api.core.exceptions import (
+    FileSizeLimitExceededError,
     InvalidCredentialsError,
     UnsupportedImageFormatError,
-    UploadExceedSizeLimitError,
 )
 from api.core.exceptions.base import (
     BaseAppError,
@@ -29,7 +29,7 @@ ERROR_TO_STATUS_MAP = MappingProxyType(
         InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
         BaseNotFoundError: status.HTTP_404_NOT_FOUND,
         BaseConflictError: status.HTTP_409_CONFLICT,
-        UploadExceedSizeLimitError: status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        FileSizeLimitExceededError: status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
         UnsupportedImageFormatError: status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
     },
 )

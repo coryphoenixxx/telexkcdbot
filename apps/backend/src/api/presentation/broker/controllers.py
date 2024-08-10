@@ -1,11 +1,10 @@
 from dishka import FromDishka as Depends
-from faststream import Logger
 from faststream.nats import JStream, NatsRouter
-from PIL import Image
+from api.infrastructure.filesystem.image_file_manager import ImageFileManager
 from shared.messages import ImageProcessInMessage
 
 from api.application.services import TranslationImageService
-from api.presentation.broker.image_processor import convert_to_webp, create_thumbnail, is_animation
+from api.presentation.broker.image_processor import ImageProcessor
 
 router = NatsRouter()
 
@@ -15,7 +14,7 @@ router = NatsRouter()
     queue="process_images_in_queue",
     stream=JStream(
         name="process_images_in_stream",
-        max_age=600,
+        max_age=600,  # TODO: опираться на размер очереди
     ),
     pull_sub=True,
     durable="image_processor",
@@ -23,28 +22,16 @@ router = NatsRouter()
 async def process_image(
     msg: ImageProcessInMessage,
     *,
-    logger: Logger,
     service: Depends[TranslationImageService],
+    image_processor: Depends[ImageProcessor],
+    file_manager: Depends[ImageFileManager],
 ) -> None:
-    original_abs_path = msg.original_abs_path
+    image_dto = await service.get_by_id(msg.image_id)
+    image_abs_path = file_manager.rel_to_abs(image_dto.original_rel_path)
+    converted, thumbnail = image_processor.process(original_abs_path=image_abs_path)
 
-    try:
-        img_obj = Image.open(original_abs_path)
-    except FileNotFoundError:
-        logger.error(f"Image file not found: {original_abs_path}")
-    else:
-        try:
-            converted_abs_path = None
-
-            if not is_animation(img_obj):
-                converted_abs_path = convert_to_webp(img_obj, original_abs_path)
-
-            thumbnail_abs_path = create_thumbnail(img_obj, converted_abs_path or original_abs_path)
-        except Exception as err:
-            logger.exception(err, extra={"path": original_abs_path})
-        else:
-            await service.update(
-                image_id=msg.image_id,
-                converted_abs_path=converted_abs_path,
-                thumbnail_abs_path=thumbnail_abs_path,
-            )
+    await service.update(
+        image_id=msg.image_id,
+        converted_abs_path=converted,
+        thumbnail_abs_path=thumbnail,
+    )

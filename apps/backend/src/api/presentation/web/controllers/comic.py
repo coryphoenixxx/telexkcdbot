@@ -16,7 +16,7 @@ from api.application.dtos.common import (
     TagName,
     TagParam,
 )
-from api.application.services.comic import ComicService
+from api.application.services import ComicService
 from api.core.exceptions import (
     ComicNotFoundError,
     ComicNumberAlreadyExistsError,
@@ -51,9 +51,9 @@ router = APIRouter(tags=["Comics"], route_class=DishkaRoute)
 async def create_comic(
     schema: ComicRequestSchema,
     *,
-    service: Depends[ComicService],
+    comic_service: Depends[ComicService],
 ) -> ComicResponseSchema:
-    return ComicResponseSchema.from_dto(dto=await service.create(schema.to_dto()))
+    return ComicResponseSchema.from_dto(dto=await comic_service.create(schema.to_dto()))
 
 
 @router.put(

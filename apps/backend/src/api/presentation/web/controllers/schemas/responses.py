@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from api.application.dtos.responses import (
         ComicResponseDTO,
         TagResponseDTO,
-        TranslationImageProcessedResponseDTO,
+        TranslationImageResponseDTO,
         TranslationResponseDTO,
     )
 
@@ -59,7 +59,7 @@ class ComicResponseSchema(BaseModel):
     translation_id: TranslationID
     xkcd_url: HttpUrl
     tooltip: str
-    images: list["TranslationImageProcessedResponseSchema"]
+    image: "TranslationImageResponseSchema | None"
     has_translations: list[Language]
 
     @classmethod
@@ -76,7 +76,7 @@ class ComicResponseSchema(BaseModel):
             click_url=dto.click_url,
             is_interactive=dto.is_interactive,
             tags=[TagResponseSchema.from_dto(dto) for dto in dto.tags],
-            images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
+            image=TranslationImageResponseSchema.from_dto(dto.image),
             has_translations=dto.has_translations,
         )
 
@@ -102,7 +102,7 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
             click_url=dto.click_url,
             is_interactive=dto.is_interactive,
             tags=[TagResponseSchema.from_dto(dto) for dto in dto.tags],
-            images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
+            image=[TranslationImageResponseSchema.from_dto(img) for img in dto.image],
             has_translations=dto.has_translations,
             translations=_prepare_and_filter(dto.translations, filter_languages),
         )
@@ -120,7 +120,7 @@ class TranslationResponseSchema(BaseModel):
     tooltip: str
     translator_comment: str
     source_url: HttpUrl | None
-    images: list["TranslationImageProcessedResponseSchema"]
+    images: list["TranslationImageResponseSchema"]
 
     @classmethod
     def from_dto(
@@ -135,9 +135,7 @@ class TranslationResponseSchema(BaseModel):
                 tooltip=dto.tooltip,
                 translator_comment=dto.translator_comment,
                 source_url=dto.source_url,
-                images=[
-                    TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images
-                ],
+                images=[TranslationImageResponseSchema.from_dto(img) for img in dto.image],
             ),
         }
 
@@ -154,28 +152,27 @@ def _prepare_and_filter(
     return translation_map
 
 
-class TranslationImageOrphanResponseSchema(BaseModel):
+class TranslationImageResponseSchema(BaseModel):
     id: int
-    original: str
-
-
-class TranslationImageProcessedResponseSchema(TranslationImageOrphanResponseSchema):
     translation_id: int
+    original: str
     converted: str | None
     thumbnail: str | None
 
     @classmethod
     def from_dto(
         cls,
-        dto: "TranslationImageProcessedResponseDTO",
-    ) -> "TranslationImageProcessedResponseSchema":
-        return TranslationImageProcessedResponseSchema(
-            id=dto.id,
-            translation_id=dto.translation_id,
-            original=dto.original_rel_path,
-            converted=dto.converted_rel_path,
-            thumbnail=dto.thumbnail_rel_path,
-        )
+        dto: "TranslationImageResponseDTO | None",
+    ) -> "TranslationImageResponseSchema | None":
+        if dto:
+            return TranslationImageResponseSchema(
+                id=dto.id,
+                translation_id=dto.translation_id,
+                original=str(dto.original_rel_path),
+                converted=str(dto.converted_rel_path),
+                thumbnail=str(dto.thumbnail_rel_path),
+            )
+        return None
 
 
 class TranslationWLanguageResponseSchema(TranslationResponseSchema):
@@ -194,7 +191,7 @@ class TranslationWLanguageResponseSchema(TranslationResponseSchema):
             tooltip=dto.tooltip,
             translator_comment=dto.translator_comment,
             source_url=dto.source_url,
-            images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
+            images=[TranslationImageResponseSchema.from_dto(img) for img in dto.image],
         )
 
 
@@ -214,6 +211,6 @@ class TranslationWDraftStatusSchema(TranslationWLanguageResponseSchema):
             tooltip=dto.tooltip,
             translator_comment=dto.translator_comment,
             source_url=dto.source_url,
-            images=[TranslationImageProcessedResponseSchema.from_dto(img) for img in dto.images],
+            images=[TranslationImageResponseSchema.from_dto(img) for img in dto.image],
             is_draft=dto.is_draft,
         )
