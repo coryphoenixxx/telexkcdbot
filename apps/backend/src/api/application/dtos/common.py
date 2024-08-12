@@ -72,14 +72,6 @@ class ComicFilterParams:
     tag_param: TagParam | None = None
 
 
-@dataclass(slots=True)
-class TranslationImageMeta:
-    number: int | None
-    title: str
-    language: Alpha2LangCode
-    is_draft: bool
-
-
 @dataclass
 class Dimensions:
     width: int

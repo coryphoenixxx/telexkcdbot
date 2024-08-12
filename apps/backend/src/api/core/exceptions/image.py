@@ -5,6 +5,17 @@ from .base import BaseAppError, BaseBadRequestError
 
 
 @dataclass
+class UploadedImageReadError(BaseBadRequestError):
+    message: str = "The file is not an image or is corrupted."
+
+    @property
+    def detail(self) -> str | dict[str, Any]:
+        return {
+            "message": self.message,
+        }
+
+
+@dataclass
 class UnsupportedImageFormatError(BaseAppError):
     format: str | None
     supported_formats: tuple[str]
@@ -21,42 +32,20 @@ class UnsupportedImageFormatError(BaseAppError):
 
 @dataclass
 class FileSizeLimitExceededError(BaseAppError):
-    upload_max_size: int
+    size_limit: int
     message: str = "The uploaded image exceeds the size limit."
 
     @property
     def detail(self) -> str | dict[str, Any]:
         return {
             "message": self.message,
-            "upload_max_size": self.upload_max_size,
+            "upload_max_size": self.size_limit,
         }
 
 
 @dataclass
-class FileIsEmptyError(BaseBadRequestError):
-    message: str = "Request file is empty."
-
-    @property
-    def detail(self) -> str | dict[str, Any]:
-        return {
-            "message": self.message,
-        }
-
-
-@dataclass
-class UploadedImageConflictError(BaseBadRequestError):
-    message: str = "Either an image url or an image file, not both."
-
-    @property
-    def detail(self) -> str | dict[str, Any]:
-        return {
-            "message": self.message,
-        }
-
-
-@dataclass
-class UploadedImageIsNotExistsError(BaseBadRequestError):
-    message: str = "Either an image url or an image file must be."
+class UploadImageIsNotExistsError(BaseBadRequestError):
+    message: str = "The upload image is empty."
 
     @property
     def detail(self) -> str | dict[str, Any]:

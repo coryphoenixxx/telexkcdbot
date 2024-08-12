@@ -1,9 +1,9 @@
 from dishka import FromDishka as Depends
 from faststream.nats import JStream, NatsRouter
-from api.infrastructure.filesystem.image_file_manager import ImageFileManager
 from shared.messages import ImageProcessInMessage
 
 from api.application.services import TranslationImageService
+from api.infrastructure.filesystem.image_file_manager import ImageFileManager
 from api.presentation.broker.image_processor import ImageProcessor
 
 router = NatsRouter()

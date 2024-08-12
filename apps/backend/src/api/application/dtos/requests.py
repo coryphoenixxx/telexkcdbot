@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime as dt
 
 from api.application.dtos.common import Language, TagName
-from api.core.value_objects import IssueNumber, TempImageID
+from api.core.value_objects import IssueNumber, TempImageUUID
 
 
 @dataclass(slots=True)
@@ -13,7 +13,7 @@ class TranslationRequestDTO:
     raw_transcript: str
     translator_comment: str
     source_url: str | None
-    image_id: TempImageID
+    image_id: TempImageUUID
     is_draft: bool
 
 
@@ -29,7 +29,7 @@ class ComicRequestDTO:
     click_url: str | None
     is_interactive: bool
     tags: list[TagName]
-    image_id: TempImageID
+    image_id: TempImageUUID
 
     @property
     def original(self) -> TranslationRequestDTO:

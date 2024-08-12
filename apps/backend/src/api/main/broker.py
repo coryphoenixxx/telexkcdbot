@@ -4,7 +4,7 @@ from dishka.integrations.faststream import setup_dishka as setup_ioc
 from faststream import FastStream
 from faststream.nats import NatsBroker
 
-from api.core.di.providers import (
+from api.main.ioc import (
     BrokerProvider,
     ConfigsProvider,
     DbProvider,

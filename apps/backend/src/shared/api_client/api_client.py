@@ -107,7 +107,7 @@ class APIClient:
             url=url,
             params=params,
             data={
-                "image_file": Path(image_path).open("rb") if image_path else ""  # noqa: ASYNC101
+                "image_file": Path(image_path).open("rb") if image_path else ""
             },
         ) as response:
             if response.status != HTTPStatusCodes.HTTP_201_CREATED:

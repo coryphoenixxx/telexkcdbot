@@ -44,7 +44,7 @@ class ComicService:
         image_rel_path = None
         try:
             if dto.image_id:
-                image_rel_path = await self._image_file_manager.save(
+                image_rel_path = await self._image_file_manager.persist(
                     number=dto.number,
                     title=dto.title,
                     language=Language.EN,
@@ -54,7 +54,7 @@ class ComicService:
                 image_dto = await self._translation_image_repo.create(image_rel_path)
 
                 await self._translation_image_repo.attach_image(translation.id, image_dto.id)
-                await self._converter.convert(image_dto.id)
+                await self._converter.convert(image_dto.id)  # TODO: move lower
 
             await self._transaction.commit()
         except Exception as err:

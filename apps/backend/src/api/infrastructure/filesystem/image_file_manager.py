@@ -1,77 +1,55 @@
 import logging
 import shutil
+from dataclasses import dataclass
 from pathlib import Path
 from uuid import uuid4
 
-import aiofiles
 import imagesize
 from aiofiles import os as aos
-from aiohttp import StreamReader
 from filetype import filetype
+from PIL import Image
 from shared.my_types import ImageFormat
-from starlette.datastructures import UploadFile
 
-from api.application.dtos.common import Dimensions, ImageObj, Language, TranslationImageMeta
-from api.core.exceptions import FileIsEmptyError, FileSizeLimitExceededError
+from api.application.dtos.common import Dimensions, ImageObj, Language
 from api.core.utils import slugify
-from api.core.value_objects import IssueNumber, TempImageID
+from api.core.value_objects import IssueNumber, TempImageUUID
+from api.infrastructure.filesystem.temp_file_manager import TempFileManager
+
+
+@dataclass(slots=True)
+class TranslationImageMeta:
+    number: int | None
+    title: str
+    language: Language
+    is_draft: bool
 
 
 class ImageFileManager:
     def __init__(
         self,
-        temp_dir: Path,
         static_dir: Path,
-        size_limit: int,
-        chunk_size: int,
+        temp_file_manager: TempFileManager,
     ) -> None:
-        self._temp_dir = temp_dir
         self._static_dir = static_dir
-        self._size_limit = size_limit
-        self._chunk_size = chunk_size
+        self._temp_file_manager = temp_file_manager
 
-    async def read_to_temp(
-        self,
-        image_file_obj: StreamReader | UploadFile,
-        output_filename: str,
-    ) -> Path:
-        await aos.makedirs(self._temp_dir, exist_ok=True)
-
-        async with aiofiles.open(self._temp_dir / output_filename, "wb") as f:
-            file_size = 0
-
-            while chunk := await image_file_obj.read(self._chunk_size):
-                file_size += len(chunk)
-
-                if file_size > self._size_limit:
-                    raise FileSizeLimitExceededError(upload_max_size=self._size_limit)
-
-                await f.write(chunk)
-
-            if file_size == 0:
-                raise FileIsEmptyError
-
-        return Path(f.name)
-
-    async def remove_temp_by_id(self, temp_image_id: TempImageID) -> None:
-        path = self._temp_dir / str(temp_image_id)
-        if path.exists():
-            await aos.remove(path)
-
-    async def save(
+    async def persist(
         self,
         number: IssueNumber,
         title: str,
         language: Language,
         is_draft: bool,
-        temp_image_id: TempImageID,
+        temp_image_id: TempImageUUID,
     ) -> Path:
-        temp_image_path = self.get_temp_path_by_id(temp_image_id)
+        temp_image_path = self._temp_file_manager.get_abs_path_by_name(str(temp_image_id))
+
+        if not temp_image_path:
+            raise FileNotFoundError  # TODO: Handle properly
 
         image = ImageObj(
             path=temp_image_path,
             fmt=ImageFormat(filetype.guess_extension(temp_image_path)),
-            dimensions=Dimensions(*imagesize.get(temp_image_path)),
+            dimensions=self._get_dimensions(temp_image_path),
         )
 
         rel_path = self._build_rel_path(
@@ -99,10 +77,13 @@ class ImageFileManager:
             return path.relative_to(self._static_dir)
         return None
 
-    def get_temp_path_by_id(self, temp_image_id: TempImageID) -> Path | None:
-        path = self._temp_dir / str(temp_image_id)
-        if path.exists():
-            return path
+    def _get_dimensions(self, path: Path) -> Dimensions:
+        w, h = imagesize.get(path)
+        if w != -1 and h != -1:
+            return Dimensions(width=w, height=h)
+
+        image = Image.open(path)
+        return Dimensions(width=image.width, height=image.height)
 
     def _build_rel_path(self, image: ImageObj, meta: TranslationImageMeta) -> Path:
         slug = slugify(meta.title)

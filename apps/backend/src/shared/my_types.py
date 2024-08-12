@@ -6,6 +6,7 @@ class ImageFormat(StrEnum):
     JPG = "jpg"
     WEBP = "webp"
     GIF = "gif"
+    AVIF = "avif"
 
 
 class Order(StrEnum):

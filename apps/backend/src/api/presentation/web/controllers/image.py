@@ -1,32 +1,26 @@
 from dishka import FromDishka as Depends
 from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, UploadFile
-from pydantic import HttpUrl
 from starlette import status
 
 from api.core.exceptions import (
-    DownloadError,
-    FileIsEmptyError,
     FileSizeLimitExceededError,
     UnsupportedImageFormatError,
-    UploadedImageConflictError,
-    UploadedImageIsNotExistsError,
+    UploadImageIsNotExistsError,
 )
-from api.core.value_objects import TempImageID
+from api.core.exceptions.image import UploadedImageReadError
+from api.core.value_objects import TempImageUUID
 from api.presentation.web.upload_image_manager import UploadImageManager
 
 router = APIRouter(tags=["Images"], route_class=DishkaRoute)
 
 
 @router.post(
-    "/translations/upload_image",
+    "/upload_image",
     status_code=status.HTTP_201_CREATED,
     responses={
         status.HTTP_400_BAD_REQUEST: {
-            "model": FileIsEmptyError
-            | UploadedImageIsNotExistsError
-            | DownloadError
-            | UploadedImageConflictError,
+            "model": UploadImageIsNotExistsError | UploadedImageReadError
         },
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: {
             "model": FileSizeLimitExceededError,
@@ -38,8 +32,7 @@ router = APIRouter(tags=["Images"], route_class=DishkaRoute)
 )
 async def upload_image(
     image_file: UploadFile | None = None,
-    image_url: HttpUrl | None = None,
     *,
-    upload_reader: Depends[UploadImageManager],
-) -> TempImageID:
-    return await upload_reader.read(image_file, image_url)
+    upload_image_manager: Depends[UploadImageManager],
+) -> TempImageUUID:
+    return await upload_image_manager.read_to_temp(image_file)

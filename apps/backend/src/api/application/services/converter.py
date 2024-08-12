@@ -8,7 +8,7 @@ class Converter:
     def __init__(self, broker: NatsBroker) -> None:
         self._broker = broker
 
-    async def convert(self, image_id: TranslationImageID):
+    async def convert(self, image_id: TranslationImageID | None) -> None:
         await self._broker.publish(
             message=ImageProcessInMessage(image_id=image_id),
             subject="internal.api.images.process.in",

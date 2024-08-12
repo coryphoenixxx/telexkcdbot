@@ -7,7 +7,7 @@ from dishka.integrations.fastapi import setup_dishka as setup_ioc
 from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 
-from api.core.di.providers import (
+from api.main.ioc import (
     BrokerProvider,
     ConfigsProvider,
     DbProvider,
@@ -56,5 +56,5 @@ if __name__ == "__main__":
         "api.main.web:create_app",
         factory=True,
         reload=True,
-        reload_delay=1,
+        reload_delay=2,
     )

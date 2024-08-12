@@ -13,7 +13,7 @@ from dishka.integrations.aiogram import setup_dishka
 from shared.config_loader import load_config
 
 from api.core.configs.bot import BotAppConfig, BotConfig, BotRunMode, WebhookConfig
-from api.core.di.providers import (
+from api.main.ioc import (
     ConfigsProvider,
     DbProvider,
     HelpersProvider,

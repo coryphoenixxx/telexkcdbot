@@ -7,11 +7,10 @@ from .comic import (
 )
 from .image import (
     DownloadError,
-    FileIsEmptyError,
     FileSizeLimitExceededError,
     UnsupportedImageFormatError,
-    UploadedImageConflictError,
-    UploadedImageIsNotExistsError,
+    UploadedImageReadError,
+    UploadImageIsNotExistsError,
 )
 from .translation import (
     ImageAlreadyAttachedError,
