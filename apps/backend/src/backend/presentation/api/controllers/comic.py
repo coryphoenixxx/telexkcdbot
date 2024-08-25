@@ -1,0 +1,225 @@
+import datetime
+from typing import Annotated
+
+from annotated_types import MaxLen, MinLen
+from dishka import FromDishka
+from dishka.integrations.fastapi import DishkaRoute
+from fastapi import APIRouter
+from fastapi.params import Query
+from starlette import status
+
+from backend.application.services import ComicDeleteService, ComicReadService, ComicWriteService
+from backend.core.value_objects import ComicID, IssueNumber, Language, TagName
+from backend.infrastructure.database.dtos import (
+    ComicFilterParams,
+    DateRange,
+    Limit,
+    Offset,
+    Order,
+    TagParam,
+)
+from backend.infrastructure.database.repositories.comic import (
+    ComicNotFoundError,
+    ComicNumberAlreadyExistsError,
+    ExtraComicTitleAlreadyExistsError,
+)
+from backend.infrastructure.filesystem.translation_image_file_manager import TempImageNotFoundError
+from backend.presentation.api.controllers.schemas.requests import ComicRequestSchema
+from backend.presentation.api.controllers.schemas.responses import (
+    ComicResponseSchema,
+    ComicsWMetadata,
+    ComicWTranslationsResponseSchema,
+    PaginationSchema,
+)
+
+router = APIRouter(tags=["Comics"], route_class=DishkaRoute)
+
+
+@router.post(
+    "/comics",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": TempImageNotFoundError},
+        status.HTTP_409_CONFLICT: {
+            "model": ComicNumberAlreadyExistsError | ExtraComicTitleAlreadyExistsError
+        },
+    },
+)
+async def create_comic(
+    schema: ComicRequestSchema,
+    *,
+    service: FromDishka[ComicWriteService],
+) -> ComicResponseSchema:
+    return ComicResponseSchema.from_dto(await service.create(schema.to_dto()))
+
+
+@router.put(
+    "/comics/id:{comic_id}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
+        status.HTTP_409_CONFLICT: {"model": ComicNumberAlreadyExistsError},
+    },
+)
+async def update_comic(
+    comic_id: int,
+    schema: ComicRequestSchema,
+    *,
+    service: FromDishka[ComicWriteService],
+) -> ComicResponseSchema:
+    return ComicResponseSchema.from_dto(await service.update(ComicID(comic_id), schema.to_dto()))
+
+
+@router.delete(
+    "/comics/{comic_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
+    },
+)
+async def delete_comic(
+    comic_id: int,
+    *,
+    service: FromDishka[ComicDeleteService],
+) -> None:
+    await service.delete(comic_id=ComicID(comic_id))
+
+
+@router.get(
+    "/comics/id:{comic_id}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
+    },
+)
+async def get_comic_by_id(
+    comic_id: int,
+    *,
+    service: FromDishka[ComicReadService],
+) -> ComicResponseSchema:
+    return ComicResponseSchema.from_dto(dto=await service.get_by_id(ComicID(comic_id)))
+
+
+@router.get(
+    "/comics/{number:int}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
+    },
+)
+async def get_comic_by_issue_number(
+    number: int,
+    *,
+    service: FromDishka[ComicReadService],
+) -> ComicResponseSchema:
+    return ComicResponseSchema.from_dto(dto=await service.get_by_issue_number(IssueNumber(number)))
+
+
+@router.get(
+    "/comics/{slug:str}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
+    },
+)
+async def get_comic_by_slug(
+    slug: str,
+    *,
+    service: FromDishka[ComicReadService],
+) -> ComicResponseSchema:
+    return ComicResponseSchema.from_dto(dto=await service.get_by_slug(slug))
+
+
+@router.get(
+    "/comics-with-translations/id:{comic_id}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
+    },
+)
+async def get_comic_with_translations_by_id(
+    comic_id: int,
+    languages: list[Language] = Query(default=None, alias="lg"),
+    *,
+    service: FromDishka[ComicReadService],
+) -> ComicWTranslationsResponseSchema:
+    return ComicWTranslationsResponseSchema.from_dto(
+        dto=await service.get_by_id(ComicID(comic_id)),
+        filter_languages=languages,
+    )
+
+
+@router.get(
+    "/comics-with-translations/{number:int}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
+    },
+)
+async def get_comic_with_translations_by_issue_number(
+    number: int,
+    languages: list[Language] = Query(default=None, alias="lg"),
+    *,
+    service: FromDishka[ComicReadService],
+) -> ComicWTranslationsResponseSchema:
+    return ComicWTranslationsResponseSchema.from_dto(
+        dto=await service.get_by_issue_number(IssueNumber(number)),
+        filter_languages=languages,
+    )
+
+
+@router.get(
+    "/comics-with-translations/{slug:str}",
+    status_code=status.HTTP_200_OK,
+    responses={
+        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
+    },
+)
+async def get_comic_with_translations_by_slug(
+    slug: str,
+    languages: list[Language] = Query(default=None, alias="lg"),
+    *,
+    service: FromDishka[ComicReadService],
+) -> ComicWTranslationsResponseSchema:
+    return ComicWTranslationsResponseSchema.from_dto(
+        dto=await service.get_by_slug(slug),
+        filter_languages=languages,
+    )
+
+
+@router.get("/comics", status_code=status.HTTP_200_OK)
+async def get_comics(
+    q: str = Query(min_length=1, max_length=50, default=None),
+    page_size: int | None = Query(None, alias="psize"),
+    page_num: int | None = Query(None, alias="pnum"),
+    date_from: datetime.date | None = Query(None),
+    date_to: datetime.date | None = Query(None),
+    order: Order = Order.ASC,
+    tags: list[Annotated[str, MinLen(2), MaxLen(50)]] = Query(None, alias="tag"),
+    tag_param: TagParam | None = None,
+    *,
+    service: FromDishka[ComicReadService],
+) -> ComicsWMetadata:
+    limit = Limit(page_size) if page_num else None
+    offset = Offset(limit * (page_num - 1)) if limit and page_num else None
+
+    total, comic_resp_dtos = await service.get_list(
+        ComicFilterParams(
+            q=q,
+            limit=limit,
+            offset=offset,
+            order=order,
+            date_range=DateRange(start=date_from, end=date_to),
+            tags=[TagName(tag) for tag in tags] if tags else [],
+            tag_param=tag_param,
+        ),
+    )
+
+    return ComicsWMetadata(
+        meta=PaginationSchema(
+            total=total,
+            limit=limit,
+            offset=offset,
+        ),
+        data=[ComicResponseSchema.from_dto(dto=dto) for dto in comic_resp_dtos],
+    )
