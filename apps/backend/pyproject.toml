@@ -13,6 +13,7 @@ packages = [
 
 [tool.poetry.scripts]
 api = "backend.main.api:main"
+tg_bot = "backend.main.tg_bot:main"
 cli = "backend.main.cli:main"
 
 
