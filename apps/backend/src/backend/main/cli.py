@@ -10,10 +10,11 @@ from backend.main.ioc.providers import (
     ConfigsProvider,
     DatabaseProvider,
     FileManagersProvider,
+    HTTPProviders,
     RepositoriesProvider,
     ScrapersProvider,
     TagServiceProvider,
-    TranslationImageServiceProvider, HTTPProviders,
+    TranslationImageServiceProvider,
 )
 from backend.presentation.cli.commands.extract_and_upload_prescraped_translations import (
     extract_and_upload_prescraped_translations_command,

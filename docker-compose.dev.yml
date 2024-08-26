@@ -21,12 +21,12 @@ services:
     restart: unless-stopped
     networks:
       - backend
-#    healthcheck:
-#      test: curl -fsSL http://localhost:8000/api/healthcheck
-#      interval: 10s
-#      timeout: 60s
-#      retries: 5
-#      start_period: 10s
+  #    healthcheck:
+  #      test: curl -fsSL http://localhost:8000/api/healthcheck
+  #      interval: 10s
+  #      timeout: 60s
+  #      retries: 5
+  #      start_period: 10s
 
   tg_bot:
     container_name: app.tg_bot
@@ -70,14 +70,14 @@ services:
   postgres:
     container_name: app.postgres
     image: groonga/pgroonga:3.2.2-alpine-16-slim
-#    command: -c config_file=/etc/postgresql.conf
+    #    command: -c config_file=/etc/postgresql.conf
     environment:
       POSTGRES_USER: "admin"
       POSTGRES_PASSWORD: "password"
       POSTGRES_DB: "appdb"
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-#      - ./.configs/postgresql.conf:/etc/postgresql.conf
+      #      - ./.configs/postgresql.conf:/etc/postgresql.conf
       - pg-data:/var/lib/postgresql/data
     healthcheck:
       test: pg_isready -U admin -d appdb
@@ -103,7 +103,29 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    restart: on-failure
+    restart: no
+    networks:
+      - backend
+
+  prepopulation:
+    container_name: app.prepopulation
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    environment:
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.toml
+    volumes:
+      - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
+      - ./static:/app/static
+      - ./.tmp:/app/.tmp
+    command: bash -c "poetry run cli scrape_and_upload_origin --end=200 && 
+                      poetry run cli scrape_and_upload_translations &&
+                      poetry run cli extract_and_upload_prescraped_translations"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: no
     networks:
       - backend
 
@@ -119,9 +141,9 @@ services:
 
 
 volumes:
-  pg-data: {}
-  tmp-dir: {}
-  static-dir: {}
+  pg-data: { }
+  tmp-dir: { }
+  static-dir: { }
 
 networks:
   backend:

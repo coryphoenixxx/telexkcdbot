@@ -9,6 +9,7 @@ from backend.application.dtos import TranslationRequestDTO, TranslationResponseD
 from backend.application.services.comic import ComicReadService, ComicWriteService
 from backend.core.value_objects import ComicID, Language
 from backend.infrastructure.downloader import Downloader
+from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import (
     XkcdDEScraper,
     XkcdESScraper,
@@ -16,7 +17,6 @@ from backend.infrastructure.xkcd.scrapers import (
     XkcdRUScraper,
     XkcdZHScraper,
 )
-from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationScrapedData
 from backend.infrastructure.xkcd.utils import run_concurrently
 from backend.presentation.cli.common import (
