@@ -4,7 +4,7 @@ services:
     container_name: app.api
     build:
       context: .
-      dockerfile: ./build/api/Dockerfile
+      dockerfile: build/Dockerfile
     environment:
       PYTHONPATH: .:./apps/backend/src
       CONFIG_PATH: /app/.configs/backend/config.toml
@@ -19,8 +19,32 @@ services:
     restart: unless-stopped
     networks:
       - backend
-    links:
-      - postgres
+    healthcheck:
+      test: curl -fsSL http://localhost:8000/api/healthcheck
+      interval: 10s
+      timeout: 60s
+      retries: 5
+      start_period: 10s
+
+  tg_bot:
+    container_name: app.tg_bot
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    environment:
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.toml
+    volumes:
+      - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
+    command: poetry run tg_bot
+    ports:
+      - 5000:5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
 
 
   postgres:
@@ -37,10 +61,10 @@ services:
       - pg-data:/var/lib/postgresql/data
     healthcheck:
       test: pg_isready -U admin -d appdb
-      interval: 1s
-      timeout: 1s
-      start_period: 5s
+      interval: 5s
+      timeout: 60s
       retries: 10
+      start_period: 10s
     restart: unless-stopped
     networks:
       - backend
