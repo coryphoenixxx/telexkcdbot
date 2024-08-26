@@ -69,6 +69,24 @@ services:
     networks:
       - backend
 
+  migrations:
+    container_name: app.migrations
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    environment:
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.toml
+    volumes:
+      - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
+    command: poetry run alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - backend
+
 
 volumes:
   pg-data: {}
