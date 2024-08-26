@@ -100,6 +100,8 @@ async def scrape_and_upload_origin_command(
 
     limits = LimitParams(start, end, chunk_size, delay)
 
+    # TODO: handle case when database is not empty
+
     with base_progress:
         origin_with_explain_data = await scrape_origin_with_explain_data(
             origin_scraper=origin_scraper,

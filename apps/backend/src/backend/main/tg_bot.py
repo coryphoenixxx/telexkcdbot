@@ -30,14 +30,14 @@ logger = logging.getLogger(__name__)
 
 async def on_startup(bot: Bot, admin_id: int) -> None:
     message = "Bot successfully started."
-    await bot.send_message(chat_id=admin_id, text=message)
+    # await bot.send_message(chat_id=admin_id, text=message)
     logger.info(message)
 
 
 async def on_shutdown(bot: Bot, admin_id: int, ioc: AsyncContainer) -> None:
     message = "Bot is stopping..."
     logger.info(message)
-    await bot.send_message(chat_id=admin_id, text=message)
+    # await bot.send_message(chat_id=admin_id, text=message)
     await bot.session.close()
     await ioc.close()
 
