@@ -84,12 +84,7 @@ class DatabaseProvider(Provider):
             yield uow
 
 
-class HelpersProvider(Provider):
-    @provide(scope=Scope.APP)
-    async def async_http_client(self) -> AsyncIterable[AsyncHttpClient]:
-        async with AsyncHttpClient() as client:
-            yield client
-
+class FileManagersProvider(Provider):
     @provide(scope=Scope.APP)
     async def temp_file_manager(self, config: APIConfig) -> TempFileManager:
         return TempFileManager(
@@ -110,20 +105,6 @@ class HelpersProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
-    async def downloader(
-        self,
-        http_client: AsyncHttpClient,
-        temp_file_manager: TempFileManager,
-    ) -> Downloader:
-        return Downloader(
-            http_client=http_client,
-            temp_file_manager=temp_file_manager,
-            timeout=30.0,
-            attempts=3,
-            interval=1,
-        )
-
-    @provide(scope=Scope.APP)
     def upload_image_manager(
         self,
         temp_file_manager: TempFileManager,
@@ -131,19 +112,6 @@ class HelpersProvider(Provider):
         return UploadImageManager(temp_file_manager, tuple(ImageFormat))
 
     image_converter = provide(ImageConverter, scope=Scope.APP)
-
-
-class ScrapersProvider(Provider):
-    scope = Scope.APP
-
-    xkcd_origin_scraper = provide(XkcdOriginScraper)
-    xkcd_explain_scraper = provide(XkcdExplainScraper)
-
-    xkcd_ru_scraper = provide(XkcdRUScraper)
-    xkcd_de_scraper = provide(XkcdDEScraper)
-    xkcd_es_scraper = provide(XkcdESScraper)
-    xkcd_fr_scraper = provide(XkcdFRScraper)
-    xkcd_zh_scraper = provide(XkcdZHScraper)
 
 
 class BrokerProvider(Provider):
@@ -185,3 +153,37 @@ class TranslationImageServiceProvider(Provider):
 
 class TagServiceProvider(Provider):
     tag_service = provide(TagService, scope=Scope.REQUEST)
+
+
+class HTTPProviders(Provider):
+    @provide(scope=Scope.APP)
+    async def async_http_client(self) -> AsyncIterable[AsyncHttpClient]:
+        async with AsyncHttpClient() as client:
+            yield client
+
+    @provide(scope=Scope.APP)
+    async def downloader(
+        self,
+        http_client: AsyncHttpClient,
+        temp_file_manager: TempFileManager,
+    ) -> Downloader:
+        return Downloader(
+            http_client=http_client,
+            temp_file_manager=temp_file_manager,
+            timeout=30.0,
+            attempts=3,
+            interval=1,
+        )
+
+
+class ScrapersProvider(Provider):
+    scope = Scope.APP
+
+    xkcd_origin_scraper = provide(XkcdOriginScraper)
+    xkcd_explain_scraper = provide(XkcdExplainScraper)
+
+    xkcd_ru_scraper = provide(XkcdRUScraper)
+    xkcd_de_scraper = provide(XkcdDEScraper)
+    xkcd_es_scraper = provide(XkcdESScraper)
+    xkcd_fr_scraper = provide(XkcdFRScraper)
+    xkcd_zh_scraper = provide(XkcdZHScraper)

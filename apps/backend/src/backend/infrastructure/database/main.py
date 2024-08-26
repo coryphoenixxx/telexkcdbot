@@ -10,15 +10,17 @@ from backend.infrastructure.database.config import DbConfig
 
 
 def create_db_engine(config: DbConfig) -> AsyncEngine:
-    return create_async_engine(
-        url=URL.create(
+    db_url = URL.create(
             drivername=f"postgresql+{config.driver}",
             username=config.user,
             password=config.password,
             host=config.host,
             port=config.port,
             database=config.dbname,
-        ),
+    )
+
+    return create_async_engine(
+        url=db_url,
         echo=config.echo,
         echo_pool=config.echo,
         pool_size=config.pool_size,

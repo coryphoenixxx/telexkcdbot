@@ -9,7 +9,7 @@ from backend.core.value_objects import IssueNumber, TagName
 from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.utils import cast_or_none
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers.base import XkcdExplainScraper, XkcdOriginScraper
+from backend.infrastructure.xkcd.scrapers import XkcdExplainScraper, XkcdOriginScraper
 from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdOriginWithExplainScrapedData
 from backend.infrastructure.xkcd.utils import run_concurrently
 from backend.presentation.cli.common import async_command, base_progress, positive_number_callback

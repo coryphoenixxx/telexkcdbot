@@ -1,74 +1,55 @@
 services:
 
-  bot:
-    container_name: telexkcdbot-bot (deprecated)
-    build: bot
-    ports:
-      - ${BOT_PORT}:${BOT_PORT}
-    depends_on:
-      db:
-        condition: service_healthy
-      api:
-        condition: service_started
-    env_file:
-      - bot/.env
-    restart: unless-stopped
-    profiles:
-      - core
-      - bot (deprecated)
-      - base
-
   api:
-    container_name: telexkcdbot-api
-    build: api
-    #    extra_hosts:
-    #      - "host.docker.internal:host-gateway"
-    env_file:
-      - api/.env
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - ${API_PORT}:${API_PORT}
-    healthcheck:
-      test: curl -f http://api:{API_PORT} || exit 1
-      interval: 1s
-      timeout: 1s
-      start_period: 10s
-      retries: 10
-    restart: unless-stopped
-    profiles:
-      - core
-      - api
-      - base
-
-  db:
-    container_name: telexkcdbot-postgres
-    image: onjin/alpine-postgres:13.0
+    container_name: app.api
+    build:
+      context: .
+      dockerfile: ./build/api/Dockerfile
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASS}
-      POSTGRES_DB: ${DB_NAME}
-      PGPORT: ${DB_PORT}
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.toml
+    volumes:
+      - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
+    command: poetry run api
+    ports:
+      - 8000:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+    links:
+      - postgres
+
+
+  postgres:
+    container_name: app.postgres
+    image: groonga/pgroonga:3.2.2-alpine-16-slim
+#    command: -c config_file=/etc/postgresql.conf
+    environment:
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_DB: "appdb"
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      - .:/var/lib/postgresql/data
-      - ./postgresql.conf:/var/lib/postgresql/data/pgdata/postgresql.conf
-    ports:
-      - ${DB_PORT}:${DB_PORT}
+#      - ./.configs/postgresql.conf:/etc/postgresql.conf
+      - pg-data:/var/lib/postgresql/data
     healthcheck:
-      test: pg_isready -U ${DB_USER} -d ${DB_NAME}
+      test: pg_isready -U admin -d appdb
       interval: 1s
       timeout: 1s
-      start_period: 10s
+      start_period: 5s
       retries: 10
     restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 1GB
-    profiles:
-      - core
-      - api
-      - db
+    networks:
+      - backend
+
+
+volumes:
+  pg-data: {}
+
+networks:
+  backend:
+    driver: bridge
+    name: backend

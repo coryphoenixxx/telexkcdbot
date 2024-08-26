@@ -8,13 +8,15 @@ from fastapi import FastAPI
 from fastapi.responses import ORJSONResponse
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.main import check_db_connection
+from backend.main.configs.api import APIConfig
 from backend.main.ioc.providers import (
     BrokerProvider,
     ComicServicesProvider,
     ConfigsProvider,
     DatabaseProvider,
-    HelpersProvider,
+    FileManagersProvider,
     RepositoriesProvider,
     TagServiceProvider,
     TranslationImageServiceProvider,
@@ -35,7 +37,7 @@ def create_app() -> FastAPI:
     container = make_async_container(
         ConfigsProvider(),
         DatabaseProvider(),
-        HelpersProvider(),
+        FileManagersProvider(),
         BrokerProvider(),
         RepositoriesProvider(),
         ComicServicesProvider(),
@@ -57,10 +59,15 @@ def create_app() -> FastAPI:
     return app
 
 
-if __name__ == "__main__":
+def main():
+    config = load_config(APIConfig, scope="api")
     uvicorn.run(
         "backend.main.api:create_app",
         factory=True,
-        reload=True,
-        reload_delay=3,
+        host=config.host,
+        port=config.port,
     )
+
+
+if __name__ == "__main__":
+    main()

@@ -1,30 +1,24 @@
-FROM python:3.11-alpine
+FROM python:3.12-slim AS exchange-poetry
 
-ENV PIP_ROOT_USER_ACTION=ignore                 \
-    PIP_DISABLE_PIP_VERSION_CHECK=on            \
-    POETRY_VIRTUALENVS_IN_PROJECT=1             \
-    POETRY_NO_INTERACTION=1                     \
-    POETRY_VIRTUALENVS_OPTIONS_NO_PIP=1         \
-    POETRY_VIRTUALENVS_OPTIONS_NO_SETUPTOOLS=1  \
-    POETRY_VIRTUALENVS_PATH=.venv               \
-    POETRY_CACHE_DIR=/tmp/poetry_cache          \
-    PYTHONUNBUFFERED=1                          \
-    PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-RUN pip install --no-cache-dir poetry==1.8.1
+WORKDIR /apps
 
-WORKDIR /app
-
-COPY apps/backend/pyproject.toml apps/backend/poetry.lock README.md ./
+RUN pip3 install --no-cache-dir poetry
 
 
-RUN poetry install --no-ansi -vvv --only api --no-root && rm -rf $POETRY_CACHE_DIR
+FROM exchange-poetry AS exchange-base
 
-COPY apps/backend/src/api /app/src/api
-COPY apps/backend/src/shared /app/src/shared
+COPY apps/backend/pyproject.toml pyproject.toml
 
-RUN poetry install --only api
+RUN poetry install --no-root --only main
 
-WORKDIR /app/src/api
 
-CMD poetry run gunicorn
+
+FROM exchange-base AS exchange-main
+
+COPY apps/backend /app/backend
+
+WORKDIR /app/backend
+
+RUN poetry install --only main

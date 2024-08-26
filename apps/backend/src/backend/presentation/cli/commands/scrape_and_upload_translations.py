@@ -9,7 +9,7 @@ from backend.application.dtos import TranslationRequestDTO, TranslationResponseD
 from backend.application.services.comic import ComicReadService, ComicWriteService
 from backend.core.value_objects import ComicID, Language
 from backend.infrastructure.downloader import Downloader
-from backend.infrastructure.xkcd import (
+from backend.infrastructure.xkcd.scrapers import (
     XkcdDEScraper,
     XkcdESScraper,
     XkcdFRScraper,

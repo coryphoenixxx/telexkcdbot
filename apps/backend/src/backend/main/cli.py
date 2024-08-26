@@ -9,11 +9,11 @@ from backend.main.ioc.providers import (
     ComicServicesProvider,
     ConfigsProvider,
     DatabaseProvider,
-    HelpersProvider,
+    FileManagersProvider,
     RepositoriesProvider,
     ScrapersProvider,
     TagServiceProvider,
-    TranslationImageServiceProvider,
+    TranslationImageServiceProvider, HTTPProviders,
 )
 from backend.presentation.cli.commands.extract_and_upload_prescraped_translations import (
     extract_and_upload_prescraped_translations_command,
@@ -34,7 +34,8 @@ def main(context: click.Context) -> None:
     container = make_async_container(
         ConfigsProvider(),
         DatabaseProvider(),
-        HelpersProvider(),
+        FileManagersProvider(),
+        HTTPProviders(),
         ScrapersProvider(),
         ComicServicesProvider(),
         TranslationImageServiceProvider(),

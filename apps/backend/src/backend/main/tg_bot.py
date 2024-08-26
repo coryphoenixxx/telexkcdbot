@@ -18,7 +18,7 @@ from backend.main.ioc.providers import (
     ComicServicesProvider,
     ConfigsProvider,
     DatabaseProvider,
-    HelpersProvider,
+    FileManagersProvider,
     RepositoriesProvider,
     TranslationImageServiceProvider,
 )
@@ -86,7 +86,7 @@ def main() -> None:
     ioc = make_async_container(
         ConfigsProvider(),
         DatabaseProvider(),
-        HelpersProvider(),
+        FileManagersProvider(),
         RepositoriesProvider(),
         ComicServicesProvider(),
         TranslationImageServiceProvider(),

@@ -8,7 +8,7 @@ from backend.infrastructure.broker.controllers import router
 from backend.main.ioc.providers import (
     ConfigsProvider,
     DatabaseProvider,
-    HelpersProvider,
+    FileManagersProvider,
     RepositoriesProvider,
     TranslationImageServiceProvider,
 )
@@ -29,7 +29,7 @@ def create_app() -> FastStream:
         make_async_container(
             ConfigsProvider(),
             DatabaseProvider(),
-            HelpersProvider(),
+            FileManagersProvider(),
             RepositoriesProvider(),
             TranslationImageServiceProvider(),
             FastStreamProvider(),
