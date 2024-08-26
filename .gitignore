@@ -149,4 +149,4 @@ static
 /apps/frontend/node_modules/
 /.configs/
 /apps/frontend/
-/prescraped_translations.zip
+/apps/backend/src/backend/infrastructure/assets/prescraped_translations.zip
