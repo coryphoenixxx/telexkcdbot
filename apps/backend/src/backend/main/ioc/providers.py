@@ -14,6 +14,7 @@ from backend.application.services import (
 )
 from backend.application.services.comic import ComicDeleteService, ComicReadService
 from backend.application.services.tag import TagService
+from backend.infrastructure.broker.config import BrokerConfig
 from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.config import DbConfig
 from backend.infrastructure.database.main import (
@@ -57,6 +58,10 @@ class ConfigsProvider(Provider):
     @provide(scope=Scope.APP)
     def bot_config(self) -> BotConfig:
         return load_config(BotConfig, scope="bot")
+
+    @provide(scope=Scope.APP)
+    def broker_config(self) -> BrokerConfig:
+        return load_config(BrokerConfig, scope="nats")
 
 
 class DatabaseProvider(Provider):
@@ -116,8 +121,8 @@ class FileManagersProvider(Provider):
 
 class BrokerProvider(Provider):
     @provide(scope=Scope.APP)
-    async def broker(self) -> AsyncIterable[NatsBroker]:
-        broker = NatsBroker()
+    async def broker(self, config: BrokerConfig) -> AsyncIterable[NatsBroker]:
+        broker = NatsBroker(config.url)
         await broker.start()
         yield broker
         await broker.close()
