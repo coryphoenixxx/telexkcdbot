@@ -10,6 +10,8 @@ services:
       CONFIG_PATH: /app/.configs/backend/config.toml
     volumes:
       - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
+      - ./static:/app/static
+      - ./.tmp:/app/.tmp
     command: poetry run api
     ports:
       - 8000:8000
@@ -19,12 +21,12 @@ services:
     restart: unless-stopped
     networks:
       - backend
-    healthcheck:
-      test: curl -fsSL http://localhost:8000/api/healthcheck
-      interval: 10s
-      timeout: 60s
-      retries: 5
-      start_period: 10s
+#    healthcheck:
+#      test: curl -fsSL http://localhost:8000/api/healthcheck
+#      interval: 10s
+#      timeout: 60s
+#      retries: 5
+#      start_period: 10s
 
   tg_bot:
     container_name: app.tg_bot
@@ -46,6 +48,24 @@ services:
     networks:
       - backend
 
+  worker:
+    container_name: app.worker
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    environment:
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.toml
+    volumes:
+      - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
+      - ./static:/app/static
+    command: poetry run faststream run --factory backend.main.broker:create_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
 
   postgres:
     container_name: app.postgres
@@ -87,9 +107,21 @@ services:
     networks:
       - backend
 
+  nats:
+    container_name: app.nats
+    image: nats:2.10.18
+    restart: unless-stopped
+    ports:
+      - 4222:4222
+    command: '-js'
+    networks:
+      - backend
+
 
 volumes:
   pg-data: {}
+  tmp-dir: {}
+  static-dir: {}
 
 networks:
   backend:
