@@ -110,7 +110,7 @@ async def copy_image_and_upload_coro(
 
 @click.command()
 @click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
-@click.option("--delay", type=float, default=0.01, callback=positive_number_callback)
+@click.option("--delay", type=float, default=0.5, callback=positive_number_callback)
 @click.pass_context
 @async_command
 async def extract_and_upload_prescraped_translations_command(
@@ -140,7 +140,7 @@ async def extract_and_upload_prescraped_translations_command(
         delay=delay,
     )
 
-    with base_progress, TemporaryDirectory(dir="") as temp_dir:
+    with base_progress, TemporaryDirectory() as temp_dir:
         with importlib.resources.path("assets", "prescraped_translations.zip") as path:
             try:
                 prescraped_translations = extract_prescraped_translations(

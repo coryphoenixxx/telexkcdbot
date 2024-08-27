@@ -1,7 +1,5 @@
 from dataclasses import dataclass
 
-from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
-
 from backend.application.dtos import (
     ComicRequestDTO,
     ComicResponseDTO,
@@ -12,7 +10,8 @@ from backend.application.dtos import (
 )
 from backend.core.exceptions.base import BaseAppError
 from backend.core.value_objects import ComicID, IssueNumber, Language, TranslationID
-from backend.infrastructure.broker.messages import ImageProcessInMessage
+from backend.infrastructure.broker.messages import ConvertImageMessage
+from backend.infrastructure.broker.publisher_contrainer import PublisherContainer
 from backend.infrastructure.database.dtos import ComicFilterParams, Limit, Order, TotalCount
 from backend.infrastructure.database.repositories import (
     ComicRepo,
@@ -47,10 +46,9 @@ class ComicWriteService:
     translation_image_repo: TranslationImageRepo
     tag_repo: TagRepo
     image_file_manager: TranslationImageFileManager
-    publisher: AsyncAPIPublisher
+    publisher: PublisherContainer
 
     async def create(self, dto: ComicRequestDTO) -> ComicResponseDTO:
-
         comic_id = await self.comic_repo.create_base(dto)
         await self.tag_repo.create_many(comic_id, dto.tags)
         translation = await self.translation_repo.create(comic_id, dto.original)
@@ -142,7 +140,10 @@ class ComicWriteService:
                 temp_image_id=dto.temp_image_id,
                 number=number,
                 title=dto.title,
+                language=dto.language,
+                is_draft=dto.is_draft,
             )
+
             image_dto = await self.translation_image_repo.create(
                 dto=TranslationImageRequestDTO(
                     translation_id=translation_id,
@@ -154,7 +155,7 @@ class ComicWriteService:
 
     async def _convert(self, image_dto: TranslationImageResponseDTO | None) -> None:
         if image_dto:
-            await self.publisher.publish(message=ImageProcessInMessage(image_id=image_dto.id))
+            await self.publisher.publish(ConvertImageMessage(image_id=image_dto.id))
 
 
 @dataclass(slots=True, eq=False, frozen=True)

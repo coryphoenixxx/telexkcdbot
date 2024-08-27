@@ -5,12 +5,12 @@ import uvloop
 from dishka import make_async_container
 
 from backend.main.ioc.providers import (
-    BrokerProvider,
     ComicServicesProvider,
     ConfigsProvider,
     DatabaseProvider,
     FileManagersProvider,
     HTTPProviders,
+    NatsProvider,
     RepositoriesProvider,
     ScrapersProvider,
     TagServiceProvider,
@@ -42,7 +42,7 @@ def main(context: click.Context) -> None:
         TranslationImageServiceProvider(),
         TagServiceProvider(),
         RepositoriesProvider(),
-        BrokerProvider(),
+        NatsProvider(),
     )
 
     context.meta["container"] = container

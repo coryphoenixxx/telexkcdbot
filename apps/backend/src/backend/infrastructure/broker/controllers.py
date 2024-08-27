@@ -3,23 +3,23 @@ from faststream.nats import JStream, NatsRouter
 
 from backend.application.services import TranslationImageService
 from backend.core.value_objects import TranslationImageID
-from backend.infrastructure.broker.messages import ImageProcessInMessage
+from backend.infrastructure.broker.messages import ConvertImageMessage
 
 router = NatsRouter()
 
 
 @router.subscriber(
-    subject="internal.api.images.process.in",
-    queue="process_images_in_queue",
+    subject="images.convert",
+    queue="convert_image_queue",
     stream=JStream(
-        name="process_images_in_stream",
+        name="stream_name",
         max_age=600,
     ),
     pull_sub=True,
-    durable="image_processor",
+    durable="durable_name",
 )
 async def process_image(
-    msg: ImageProcessInMessage,
+    msg: ConvertImageMessage,
     *,
     service: FromDishka[TranslationImageService]
 ) -> None:

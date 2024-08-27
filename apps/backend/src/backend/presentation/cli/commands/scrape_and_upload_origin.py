@@ -80,7 +80,7 @@ async def download_image_and_upload_coro(
 @click.option("--start", type=int, default=1, callback=positive_number_callback)
 @click.option("--end", type=int, callback=positive_number_callback)
 @click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
-@click.option("--delay", type=float, default=0.01, callback=positive_number_callback)
+@click.option("--delay", type=float, default=0.5, callback=positive_number_callback)
 @click.pass_context
 @async_command
 async def scrape_and_upload_origin_command(

@@ -4,7 +4,7 @@ from dishka.integrations.faststream import setup_dishka as setup_ioc
 from faststream import FastStream
 from faststream.nats import NatsBroker
 
-from backend.infrastructure.broker.config import BrokerConfig
+from backend.infrastructure.broker.config import NatsConfig
 from backend.infrastructure.broker.controllers import router
 from backend.infrastructure.config_loader import load_config
 from backend.main.ioc.providers import (
@@ -21,7 +21,7 @@ def register_routers(broker: NatsBroker) -> None:
 
 
 def create_app() -> FastStream:
-    config = load_config(BrokerConfig, scope="nats")
+    config = load_config(NatsConfig, scope="nats")
 
     broker = NatsBroker(config.url)
 

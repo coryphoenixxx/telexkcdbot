@@ -2,7 +2,6 @@ from collections.abc import AsyncIterable
 
 from dishka import Provider, Scope, provide
 from faststream.nats import NatsBroker
-from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -14,7 +13,10 @@ from backend.application.services import (
 )
 from backend.application.services.comic import ComicDeleteService, ComicReadService
 from backend.application.services.tag import TagService
-from backend.infrastructure.broker.config import BrokerConfig
+from backend.infrastructure.broker.config import NatsConfig
+from backend.infrastructure.broker.publisher_contrainer import (
+    PublisherContainer,
+)
 from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.config import DbConfig
 from backend.infrastructure.database.main import (
@@ -48,31 +50,31 @@ from backend.presentation.api.upload_image_manager import UploadImageManager
 
 class ConfigsProvider(Provider):
     @provide(scope=Scope.APP)
-    def db_config(self) -> DbConfig:
+    def provide_db_config(self) -> DbConfig:
         return load_config(DbConfig, scope="db")
 
     @provide(scope=Scope.APP)
-    def api_config(self) -> APIConfig:
+    def provide_api_config(self) -> APIConfig:
         return load_config(APIConfig, scope="api")
 
     @provide(scope=Scope.APP)
-    def bot_config(self) -> BotConfig:
+    def provide_bot_config(self) -> BotConfig:
         return load_config(BotConfig, scope="bot")
 
     @provide(scope=Scope.APP)
-    def broker_config(self) -> BrokerConfig:
-        return load_config(BrokerConfig, scope="nats")
+    def provide_broker_config(self) -> NatsConfig:
+        return load_config(NatsConfig, scope="nats")
 
 
 class DatabaseProvider(Provider):
     @provide(scope=Scope.APP)
-    async def db_engine(self, config: DbConfig) -> AsyncIterable[AsyncEngine]:
+    async def provide_db_engine(self, config: DbConfig) -> AsyncIterable[AsyncEngine]:
         engine = create_db_engine(config)
         yield engine
         await engine.dispose()
 
     @provide(scope=Scope.REQUEST)
-    async def db_session(
+    async def provide_db_session(
         self,
         engine: AsyncEngine,
     ) -> AsyncIterable[AsyncSession]:
@@ -84,14 +86,14 @@ class DatabaseProvider(Provider):
             yield session
 
     @provide(scope=Scope.REQUEST)
-    async def uow(self, session: AsyncSession) -> AsyncIterable[TransactionManager]:
+    async def provide_uow(self, session: AsyncSession) -> AsyncIterable[TransactionManager]:
         async with TransactionManager(session) as uow:
             yield uow
 
 
 class FileManagersProvider(Provider):
     @provide(scope=Scope.APP)
-    async def temp_file_manager(self, config: APIConfig) -> TempFileManager:
+    async def provide_temp_file_manager(self, config: APIConfig) -> TempFileManager:
         return TempFileManager(
             temp_dir=config.tmp_dir,
             size_limit=config.upload_max_size,
@@ -99,7 +101,7 @@ class FileManagersProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
-    async def image_file_manager(
+    async def provide_image_file_manager(
         self,
         config: APIConfig,
         temp_file_manager: TempFileManager,
@@ -110,7 +112,7 @@ class FileManagersProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
-    def upload_image_manager(
+    def provide_upload_image_manager(
         self,
         temp_file_manager: TempFileManager,
     ) -> UploadImageManager:
@@ -119,20 +121,17 @@ class FileManagersProvider(Provider):
     image_converter = provide(ImageConverter, scope=Scope.APP)
 
 
-class BrokerProvider(Provider):
+class NatsProvider(Provider):
     @provide(scope=Scope.APP)
-    async def broker(self, config: BrokerConfig) -> AsyncIterable[NatsBroker]:
+    async def provide_broker(self, config: NatsConfig) -> AsyncIterable[NatsBroker]:
         broker = NatsBroker(config.url)
         await broker.start()
         yield broker
         await broker.close()
 
     @provide(scope=Scope.APP)
-    async def converter_publisher(self, broker: NatsBroker) -> AsyncAPIPublisher:
-        return broker.publisher(
-            subject="internal.api.images.process.in",
-            stream="process_images_in_stream",
-        )
+    async def provide_publisher_container(self, broker: NatsBroker) -> PublisherContainer:
+        return PublisherContainer(broker)
 
 
 class RepositoriesProvider(Provider):
@@ -162,12 +161,12 @@ class TagServiceProvider(Provider):
 
 class HTTPProviders(Provider):
     @provide(scope=Scope.APP)
-    async def async_http_client(self) -> AsyncIterable[AsyncHttpClient]:
+    async def provide_async_http_client(self) -> AsyncIterable[AsyncHttpClient]:
         async with AsyncHttpClient() as client:
             yield client
 
     @provide(scope=Scope.APP)
-    async def downloader(
+    async def provide_downloader(
         self,
         http_client: AsyncHttpClient,
         temp_file_manager: TempFileManager,

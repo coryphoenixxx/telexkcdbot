@@ -12,11 +12,11 @@ from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.main import check_db_connection
 from backend.main.configs.api import APIConfig
 from backend.main.ioc.providers import (
-    BrokerProvider,
     ComicServicesProvider,
     ConfigsProvider,
     DatabaseProvider,
     FileManagersProvider,
+    NatsProvider,
     RepositoriesProvider,
     TagServiceProvider,
     TranslationImageServiceProvider,
@@ -38,7 +38,7 @@ def create_app() -> FastAPI:
         ConfigsProvider(),
         DatabaseProvider(),
         FileManagersProvider(),
-        BrokerProvider(),
+        NatsProvider(),
         RepositoriesProvider(),
         ComicServicesProvider(),
         TranslationImageServiceProvider(),
