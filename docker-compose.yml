@@ -2,14 +2,17 @@ services:
 
   api:
     container_name: app.api
+    profiles:
+      - core
+    user: ${UID}:${GID}
     build:
       context: .
       dockerfile: build/Dockerfile
     environment:
       PYTHONPATH: .:./apps/backend/src
-      CONFIG_PATH: /app/.configs/backend/config.toml
+      CONFIG_PATH: /app/.configs/backend/config.prod.toml
     volumes:
-      - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
+      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
       - ./static:/app/static
       - ./.tmp:/app/.tmp
     command: poetry run api
@@ -18,6 +21,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      worker:
+        condition: service_started
     restart: unless-stopped
     networks:
       - backend
@@ -30,14 +35,16 @@ services:
 
   tg_bot:
     container_name: app.tg_bot
+    profiles:
+      - core
     build:
       context: .
       dockerfile: build/Dockerfile
     environment:
       PYTHONPATH: .:./apps/backend/src
-      CONFIG_PATH: /app/.configs/backend/config.toml
+      CONFIG_PATH: /app/.configs/backend/config.prod.toml
     volumes:
-      - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
+      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
     command: poetry run tg_bot
     ports:
       - 5000:5000
@@ -48,29 +55,71 @@ services:
     networks:
       - backend
 
-  worker:
-    container_name: app.worker
+  prepopulation:
+    container_name: app.prepopulation
+    profiles:
+      - prepopulation
+    user: ${UID}:${GID}
     build:
       context: .
       dockerfile: build/Dockerfile
     environment:
       PYTHONPATH: .:./apps/backend/src
-      CONFIG_PATH: /app/.configs/backend/config.toml
+      CONFIG_PATH: /app/.configs/backend/config.prod.toml
     volumes:
-      - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
+      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
       - ./static:/app/static
-    command: poetry run faststream run --factory backend.main.broker:create_app
+      - ./.tmp:/app/.tmp
+    command: bash -c "poetry run cli scrape_and_upload_origin &&
+                      poetry run cli scrape_and_upload_translations &&
+                      poetry run cli extract_and_upload_prescraped_translations"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    restart: no
+    networks:
+      - backend
+
+  worker:
+#    container_name: app.worker
+    profiles:
+      - core
+      - prepopulation
+    user: ${UID}:${GID}
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    environment:
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.prod.toml
+    volumes:
+      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
+      - ./static:/app/static
+    command: poetry run faststream run --factory backend.main.worker:create_app --log-level error
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
     networks:
       - backend
+    deploy:
+      mode: replicated
+      replicas: 2
 
   postgres:
     container_name: app.postgres
-    image: groonga/pgroonga:3.2.2-alpine-16-slim
+    profiles:
+      - core
+      - migrations
+      - prepopulation
+    image: groonga/pgroonga:3.2.2-alpine-16
     #    command: -c config_file=/etc/postgresql.conf
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
     environment:
       POSTGRES_USER: "admin"
       POSTGRES_PASSWORD: "password"
@@ -84,53 +133,37 @@ services:
       interval: 5s
       timeout: 60s
       retries: 10
-      start_period: 10s
+      start_period: 5s
     restart: unless-stopped
     networks:
       - backend
 
   migrations:
     container_name: app.migrations
+    profiles:
+      - core
+      - migrations
     build:
       context: .
       dockerfile: build/Dockerfile
     environment:
       PYTHONPATH: .:./apps/backend/src
-      CONFIG_PATH: /app/.configs/backend/config.toml
+      CONFIG_PATH: /app/.configs/backend/config.prod.toml
     volumes:
-      - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
+      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
     command: poetry run alembic upgrade head
     depends_on:
       postgres:
         condition: service_healthy
-    restart: no
-    networks:
-      - backend
-
-  prepopulation:
-    container_name: app.prepopulation
-    build:
-      context: .
-      dockerfile: build/Dockerfile
-    environment:
-      PYTHONPATH: .:./apps/backend/src
-      CONFIG_PATH: /app/.configs/backend/config.toml
-    volumes:
-      - ./.configs/backend/config.toml:/app/.configs/backend/config.toml:ro
-      - ./static:/app/static
-      - ./.tmp:/app/.tmp
-    command: bash -c "poetry run cli scrape_and_upload_origin --end=200 && 
-                      poetry run cli scrape_and_upload_translations &&
-                      poetry run cli extract_and_upload_prescraped_translations"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: no
+    restart: on-failure
     networks:
       - backend
 
   nats:
     container_name: app.nats
+    profiles:
+      - core
+      - prepopulation
     image: nats:2.10.18
     restart: unless-stopped
     ports:

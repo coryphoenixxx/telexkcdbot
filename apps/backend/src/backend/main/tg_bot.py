@@ -14,11 +14,11 @@ from dishka.integrations.aiogram import setup_dishka
 from backend.infrastructure.config_loader import load_config
 from backend.main.configs.bot import BotAppConfig, BotConfig, BotRunMode, WebhookConfig
 from backend.main.ioc.providers import (
-    BrokerProvider,
     ComicServicesProvider,
     ConfigsProvider,
     DatabaseProvider,
     FileManagersProvider,
+    NatsProvider,
     RepositoriesProvider,
     TranslationImageServiceProvider,
 )
@@ -90,7 +90,7 @@ def main() -> None:
         RepositoriesProvider(),
         ComicServicesProvider(),
         TranslationImageServiceProvider(),
-        BrokerProvider(),
+        NatsProvider(),
     )
 
     config = load_config(BotConfig, scope="bot")

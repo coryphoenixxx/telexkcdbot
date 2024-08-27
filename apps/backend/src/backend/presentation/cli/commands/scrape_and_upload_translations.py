@@ -65,7 +65,7 @@ async def download_image_and_upload_coro(
 
 @click.command()
 @click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
-@click.option("--delay", type=float, default=0.01, callback=positive_number_callback)
+@click.option("--delay", type=float, default=0.5, callback=positive_number_callback)
 @click.pass_context
 @async_command
 async def scrape_and_upload_translations_command(
