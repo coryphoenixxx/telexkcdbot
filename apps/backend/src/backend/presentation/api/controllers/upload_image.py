@@ -3,14 +3,14 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, UploadFile
 from starlette import status
 
-from backend.presentation.api.controllers.schemas import TempImageSchema
-from backend.presentation.api.upload_image_manager import (
+from backend.infrastructure.upload_image_manager import (
     UnsupportedImageFormatError,
     UploadedImageReadError,
     UploadImageIsEmptyError,
     UploadImageManager,
     UploadImageSizeExceededLimitError,
 )
+from backend.presentation.api.controllers.schemas import TempImageSchema
 
 router = APIRouter(tags=["Images"], route_class=DishkaRoute)
 
@@ -35,4 +35,7 @@ async def upload_image(
     *,
     upload_image_manager: FromDishka[UploadImageManager],
 ) -> TempImageSchema:
-    return TempImageSchema(temp_image_id=await upload_image_manager.read_to_temp(image_file))
+    if image_file is None or image_file.filename is None:
+        raise UploadImageIsEmptyError
+
+    return TempImageSchema(temp_image_id=await upload_image_manager.read_from_stream(image_file))

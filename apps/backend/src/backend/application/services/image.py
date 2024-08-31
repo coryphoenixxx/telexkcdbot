@@ -25,8 +25,9 @@ class TranslationImageService:
 
         try:
             converted_abs_path = self.converter.convert_to_webp(image_abs_path)
+        except ImageConversionError as err:
+            logger.warning(err.message)
+        else:
             converted_rel_path = self.file_manager.abs_to_rel(converted_abs_path)
             await self.repo.update_converted(image_id, converted_rel_path)
             await self.transaction.commit()
-        except ImageConversionError as err:
-            logger.exception(err.message)

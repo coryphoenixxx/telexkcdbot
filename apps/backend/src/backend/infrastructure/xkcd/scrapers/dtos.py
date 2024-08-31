@@ -7,7 +7,7 @@ from yarl import URL
 
 # TODO: pydatic.dataclass
 @dataclass(kw_only=True)
-class XkcdOriginScrapedData:
+class XkcdOriginalScrapedData:
     number: int
     publication_date: dt.date
     xkcd_url: URL
@@ -27,7 +27,10 @@ class XkcdExplanationScrapedBaseData:
 
 
 @dataclass(kw_only=True)
-class XkcdOriginWithExplainScrapedData(XkcdOriginScrapedData, XkcdExplanationScrapedBaseData): ...
+class XkcdOriginalWithExplainScrapedData(
+    XkcdOriginalScrapedData,
+    XkcdExplanationScrapedBaseData,
+): ...
 
 
 @dataclass(kw_only=True)

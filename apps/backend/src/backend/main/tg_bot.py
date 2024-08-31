@@ -18,7 +18,7 @@ from backend.main.ioc.providers import (
     ConfigsProvider,
     DatabaseProvider,
     FileManagersProvider,
-    NatsProvider,
+    PublisherContainerProvider,
     RepositoriesProvider,
     TranslationImageServiceProvider,
 )
@@ -28,16 +28,14 @@ from backend.presentation.tg_bot.controllers.start import router as start_router
 logger = logging.getLogger(__name__)
 
 
-async def on_startup(bot: Bot, admin_id: int) -> None:
+async def on_startup() -> None:
     message = "Bot successfully started."
-    # await bot.send_message(chat_id=admin_id, text=message)
     logger.info(message)
 
 
-async def on_shutdown(bot: Bot, admin_id: int, ioc: AsyncContainer) -> None:
+async def on_shutdown(bot: Bot, ioc: AsyncContainer) -> None:
     message = "Bot is stopping..."
     logger.info(message)
-    # await bot.send_message(chat_id=admin_id, text=message)
     await bot.session.close()
     await ioc.close()
 
@@ -88,9 +86,9 @@ def main() -> None:
         DatabaseProvider(),
         FileManagersProvider(),
         RepositoriesProvider(),
+        PublisherContainerProvider(),
         ComicServicesProvider(),
         TranslationImageServiceProvider(),
-        NatsProvider(),
     )
 
     config = load_config(BotConfig, scope="bot")
@@ -103,8 +101,8 @@ def main() -> None:
     dp = Dispatcher(storage=MemoryStorage())
     dp.include_router(start_router)
     dp.include_router(comic_router)
-    dp.startup.register(partial(on_startup, admin_id=config.admin_id))
-    dp.shutdown.register(partial(on_shutdown, admin_id=config.admin_id, ioc=ioc))
+    dp.startup.register(partial(on_startup))
+    dp.shutdown.register(partial(on_shutdown, ioc=ioc))
 
     setup_dishka(container=ioc, router=dp, auto_inject=True)
 

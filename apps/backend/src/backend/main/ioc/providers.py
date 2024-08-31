@@ -1,7 +1,7 @@
 from collections.abc import AsyncIterable
 
 from dishka import Provider, Scope, provide
-from faststream.nats import NatsBroker
+from faststream.nats import JStream, NatsBroker
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -34,18 +34,18 @@ from backend.infrastructure.filesystem import TempFileManager, TranslationImageF
 from backend.infrastructure.filesystem.dtos import ImageFormat
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.image_converter import ImageConverter
+from backend.infrastructure.upload_image_manager import UploadImageManager
 from backend.infrastructure.xkcd.scrapers import (
     XkcdDEScraper,
     XkcdESScraper,
     XkcdExplainScraper,
     XkcdFRScraper,
-    XkcdOriginScraper,
+    XkcdOriginalScraper,
     XkcdRUScraper,
     XkcdZHScraper,
 )
 from backend.main.configs.api import APIConfig
 from backend.main.configs.bot import BotConfig
-from backend.presentation.api.upload_image_manager import UploadImageManager
 
 
 class ConfigsProvider(Provider):
@@ -97,7 +97,6 @@ class FileManagersProvider(Provider):
         return TempFileManager(
             temp_dir=config.tmp_dir,
             size_limit=config.upload_max_size,
-            chunk_size=1024 * 64,
         )
 
     @provide(scope=Scope.APP)
@@ -121,17 +120,25 @@ class FileManagersProvider(Provider):
     image_converter = provide(ImageConverter, scope=Scope.APP)
 
 
-class NatsProvider(Provider):
+class PublisherContainerProvider(Provider):
     @provide(scope=Scope.APP)
-    async def provide_broker(self, config: NatsConfig) -> AsyncIterable[NatsBroker]:
+    async def provide_publisher_container(
+        self,
+        config: NatsConfig,
+    ) -> AsyncIterable[PublisherContainer]:
         broker = NatsBroker(config.url)
-        await broker.start()
-        yield broker
-        await broker.close()
 
-    @provide(scope=Scope.APP)
-    async def provide_publisher_container(self, broker: NatsBroker) -> PublisherContainer:
-        return PublisherContainer(broker)
+        stream = JStream(name="stream_name", max_age=60 * 60, declare=True)
+
+        converter_publisher = broker.publisher(subject="images.convert", stream=stream)
+        new_comic_publisher = broker.publisher(subject="comics.new", stream=stream)
+
+        broker.setup_publisher(converter_publisher)
+        broker.setup_publisher(new_comic_publisher)
+
+        await broker.start()
+        yield PublisherContainer(converter_publisher, new_comic_publisher)
+        await broker.close()
 
 
 class RepositoriesProvider(Provider):
@@ -174,16 +181,16 @@ class HTTPProviders(Provider):
         return Downloader(
             http_client=http_client,
             temp_file_manager=temp_file_manager,
-            timeout=30.0,
-            attempts=3,
-            interval=1,
+            timeout=60.0,
+            attempts=5,
+            interval=3,
         )
 
 
 class ScrapersProvider(Provider):
     scope = Scope.APP
 
-    xkcd_origin_scraper = provide(XkcdOriginScraper)
+    xkcd_original_scraper = provide(XkcdOriginalScraper)
     xkcd_explain_scraper = provide(XkcdExplainScraper)
 
     xkcd_ru_scraper = provide(XkcdRUScraper)

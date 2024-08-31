@@ -60,7 +60,7 @@ class XkcdExplainScraper(BaseScraper):
             delay=limits.delay,
             pbar=CustomProgressBar(
                 progress,
-                f"Explanation data scraping...\n\\[{self._BASE_URL}]",
+                f"Explanation data scraping... \\[{self._BASE_URL}]",
                 len(numbers),
             ),
         )

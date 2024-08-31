@@ -26,7 +26,7 @@ from backend.infrastructure.database.repositories.translation import (
     TranslationNotFoundError,
 )
 from backend.infrastructure.filesystem.translation_image_file_manager import TempImageNotFoundError
-from backend.presentation.api.upload_image_manager import (
+from backend.infrastructure.upload_image_manager import (
     UnsupportedImageFormatError,
     UploadedImageReadError,
     UploadImageIsEmptyError,

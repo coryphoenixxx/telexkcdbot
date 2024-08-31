@@ -64,7 +64,7 @@ class XkcdRUScraper(BaseScraper):
             delay=limits.delay,
             pbar=CustomProgressBar(
                 progress,
-                f"Russian translations scraping...\n\\[{self._BASE_URL}]",
+                f"Russian translations scraping... \\[{self._BASE_URL}]",
                 len(filtered_numbers),
             ),
         )

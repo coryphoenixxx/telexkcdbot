@@ -10,7 +10,7 @@ from backend.main.ioc.providers import (
     DatabaseProvider,
     FileManagersProvider,
     HTTPProviders,
-    NatsProvider,
+    PublisherContainerProvider,
     RepositoriesProvider,
     ScrapersProvider,
     TagServiceProvider,
@@ -19,8 +19,8 @@ from backend.main.ioc.providers import (
 from backend.presentation.cli.commands.extract_and_upload_prescraped_translations import (
     extract_and_upload_prescraped_translations_command,
 )
-from backend.presentation.cli.commands.scrape_and_upload_origin import (
-    scrape_and_upload_origin_command,
+from backend.presentation.cli.commands.scrape_and_upload_original import (
+    scrape_and_upload_original_command,
 )
 from backend.presentation.cli.commands.scrape_and_upload_translations import (
     scrape_and_upload_translations_command,
@@ -42,15 +42,15 @@ def main(context: click.Context) -> None:
         TranslationImageServiceProvider(),
         TagServiceProvider(),
         RepositoriesProvider(),
-        NatsProvider(),
+        PublisherContainerProvider(),
     )
 
     context.meta["container"] = container
 
 
 main.add_command(
-    scrape_and_upload_origin_command,
-    name="scrape_and_upload_origin",
+    scrape_and_upload_original_command,
+    name="scrape_and_upload_original",
 )
 main.add_command(
     scrape_and_upload_translations_command,

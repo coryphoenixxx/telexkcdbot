@@ -70,13 +70,14 @@ services:
       - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
       - ./static:/app/static
       - ./.tmp:/app/.tmp
-    command: bash -c "poetry run cli scrape_and_upload_origin &&
+    command: bash -c "poetry run cli scrape_and_upload_original &&
                       poetry run cli scrape_and_upload_translations &&
                       poetry run cli extract_and_upload_prescraped_translations"
+    tty: true
     depends_on:
       postgres:
         condition: service_healthy
-      worker:
+      nats:
         condition: service_started
     restart: no
     networks:
@@ -86,7 +87,6 @@ services:
 #    container_name: app.worker
     profiles:
       - core
-      - prepopulation
     user: ${UID}:${GID}
     build:
       context: .
@@ -97,6 +97,7 @@ services:
     volumes:
       - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
       - ./static:/app/static
+      - ./.tmp:/app/.tmp
     command: poetry run faststream run --factory backend.main.worker:create_app --log-level error
     depends_on:
       postgres:
@@ -141,7 +142,6 @@ services:
   migrations:
     container_name: app.migrations
     profiles:
-      - core
       - migrations
     build:
       context: .

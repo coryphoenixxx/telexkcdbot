@@ -1,24 +1,24 @@
+from dataclasses import dataclass
 from functools import singledispatchmethod
 
-from faststream.nats import NatsBroker
+from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
 
 from backend.infrastructure.broker.messages import ConvertImageMessage, NewComicMessage
 
 
+@dataclass(slots=True, eq=False)
 class PublisherContainer:
-    def __init__(self, broker: NatsBroker):
-        self._broker = broker
-        self._converter_publisher = broker.publisher(subject="images.convert", stream="stream_name")
-        self._new_comic_publisher = broker.publisher(subject="comics.new", stream="stream_name")
+    converter_publisher: AsyncAPIPublisher
+    new_comic_publisher: AsyncAPIPublisher
 
     @singledispatchmethod
-    async def publish(self, msg):
+    async def publish(self, msg, **kwargs):
         raise NotImplementedError
 
     @publish.register
-    async def _(self, msg: ConvertImageMessage) -> None:
-        await self._converter_publisher.publish(msg)
+    async def _(self, msg: ConvertImageMessage, **kwargs) -> None:
+        await self.converter_publisher.publish(msg, **kwargs)
 
     @publish.register
-    async def _(self, msg: NewComicMessage) -> None:
-        await self._new_comic_publisher.publish(msg)
+    async def _(self, msg: NewComicMessage, **kwargs) -> None:
+        await self.new_comic_publisher.publish(msg, **kwargs)
