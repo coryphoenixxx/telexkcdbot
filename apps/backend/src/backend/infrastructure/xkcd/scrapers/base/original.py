@@ -12,7 +12,7 @@ from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import BaseScraper
 from backend.infrastructure.xkcd.scrapers.dtos import (
     LimitParams,
-    XkcdOriginScrapedData,
+    XkcdOriginalScrapedData,
 )
 from backend.infrastructure.xkcd.scrapers.exceptions import ScraperError
 from backend.infrastructure.xkcd.utils import run_concurrently
@@ -25,7 +25,7 @@ X2_IMAGE_URL_PATTERN = re.compile(r"//(.*?) 2x")
 IMAGE_URL_PATTERN = re.compile(r"https://imgs.xkcd.com/comics/(.*?).(jpg|jpeg|png|webp|gif)")
 
 
-class XkcdOriginScraper(BaseScraper):
+class XkcdOriginalScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.com/")
 
     def __init__(self, client: AsyncHttpClient) -> None:
@@ -40,14 +40,14 @@ class XkcdOriginScraper(BaseScraper):
 
         return self._cached_latest_number
 
-    async def fetch_one(self, number: int) -> XkcdOriginScrapedData | None:
+    async def fetch_one(self, number: int) -> XkcdOriginalScrapedData | None:
         if number > await self.fetch_latest_number() or number <= 0:
             return None
 
         url = self._BASE_URL / f"{number!s}/"
 
         if number == HTTPStatusCodes.NOT_FOUND_404:
-            data = XkcdOriginScrapedData(
+            data = XkcdOriginalScrapedData(
                 number=404,
                 xkcd_url=url,
                 title="404: Not Found",
@@ -60,7 +60,7 @@ class XkcdOriginScraper(BaseScraper):
             try:
                 click_url, large_image_page_url = self._process_link(json_data["link"])
 
-                data = XkcdOriginScrapedData(
+                data = XkcdOriginalScrapedData(
                     number=json_data["num"],
                     xkcd_url=url,
                     title=self._process_title(json_data["title"]),
@@ -87,7 +87,7 @@ class XkcdOriginScraper(BaseScraper):
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdOriginScrapedData]:
+    ) -> list[XkcdOriginalScrapedData]:
         numbers = list(range(limits.start, limits.end + 1))
 
         return await run_concurrently(
@@ -97,7 +97,7 @@ class XkcdOriginScraper(BaseScraper):
             delay=limits.delay,
             pbar=CustomProgressBar(
                 progress,
-                f"Origin data scraping...\n\\[{self._BASE_URL}]",
+                f"Origin data scraping... \\[{self._BASE_URL}]",
                 len(numbers),
             ),
         )

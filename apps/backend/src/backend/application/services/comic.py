@@ -192,15 +192,16 @@ class ComicReadService:
     async def get_by_slug(self, slug: str) -> ComicResponseDTO:
         return await self.comic_repo.get_by(slug)
 
-    async def get_latest_issue_number(self) -> IssueNumber:
-        return (
-            await self.comic_repo.get_list(
-                filter_params=ComicFilterParams(
-                    limit=Limit(1),
-                    order=Order.DESC,
-                )
+    async def get_latest_issue_number(self) -> IssueNumber | None:
+        _, comics = await self.comic_repo.get_list(
+            filter_params=ComicFilterParams(
+                limit=Limit(1),
+                order=Order.DESC,
             )
-        )[1][0].number
+        )
+
+        if comics:
+            return comics[0].number
 
     async def get_list(
         self,

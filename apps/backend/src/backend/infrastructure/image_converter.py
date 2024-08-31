@@ -12,11 +12,12 @@ warnings.simplefilter("ignore", Image.DecompressionBombWarning)
 
 @dataclass(frozen=True, eq=False, slots=True)
 class ImageConversionError(Exception):
+    path: Path
     reason: str
 
     @property
     def message(self) -> str:
-        return f"The image was not converted. Reason: `{self.reason}`"
+        return f"The image (path={self.path}) was not converted. Reason: `{self.reason}`"
 
 
 class ImageConverter:
@@ -27,16 +28,16 @@ class ImageConverter:
         fmt = ImageFormat(path.suffix[1:])
 
         if fmt == ImageFormat.WEBP:
-            raise ImageConversionError("It looks like the image is already converted.")
+            raise ImageConversionError(path, "It looks like the image is already converted.")
 
         with Image.open(path) as image:
             image.load()
 
             if self._has_invalid_side_sizes(image):
-                raise ImageConversionError("The image is too large.")
+                raise ImageConversionError(path, "The image is too large.")
 
             if self._is_animation(image):
-                raise ImageConversionError("The image is an animation.")
+                raise ImageConversionError(path, "The image is an animation.")
 
             new_path = path.with_name(path.stem + "_converted").with_suffix(".webp")
 

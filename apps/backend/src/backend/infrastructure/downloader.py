@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 from aiohttp import ClientPayloadError
 from yarl import URL
@@ -37,7 +38,7 @@ class Downloader:
         self._attempts = attempts
         self._interval = interval
 
-    async def download(self, url: URL | str) -> TempFileID:
+    async def download(self, url: URL | str) -> Path:
         try:
             temp_image_id = await asyncio.wait_for(
                 fut=self._download_job(url),
@@ -46,14 +47,17 @@ class Downloader:
         except TimeoutError:
             logger.exception("Couldn't download %s after %s seconds.", url, self._timeout)
         else:
-            return temp_image_id
+            return self._temp_file_manager.get_abs_path_by_id(temp_image_id)
 
     async def _download_job(self, url: URL | str) -> TempFileID | None:
         for _ in range(self._attempts):
             try:
                 async with self._http_client.safe_get(url=url) as response:
                     if response.status == HTTPStatusCodes.OK_200:
-                        return await self._temp_file_manager.read_from_stream(response.content)
+                        return await self._temp_file_manager.read_from_stream(
+                            stream=response.content,
+                            chunk_size=1024 * 64,
+                        )
             except (TimeoutError, ClientPayloadError):
                 await asyncio.sleep(self._interval)
                 continue

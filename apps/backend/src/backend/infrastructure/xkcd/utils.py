@@ -28,10 +28,7 @@ async def run_concurrently(
 ) -> list:
     results = []
 
-    for chunk in chunked(
-        seq=data,
-        n=chunk_size,
-    ):
+    for chunk in chunked(seq=data, n=chunk_size):
         try:
             async with asyncio.TaskGroup() as tg:
                 tasks = [tg.create_task(coro(value, **kwargs)) for value in chunk]

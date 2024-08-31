@@ -9,6 +9,7 @@ from backend.application.dtos import TranslationRequestDTO, TranslationResponseD
 from backend.application.services.comic import ComicReadService, ComicWriteService
 from backend.core.value_objects import ComicID, Language
 from backend.infrastructure.downloader import Downloader
+from backend.infrastructure.upload_image_manager import UploadImageManager
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import (
     XkcdDEScraper,
@@ -41,10 +42,14 @@ def flatten(matrix: list[list["T"]]) -> list["T"]:
 async def download_image_and_upload_coro(
     data: XkcdTranslationScrapedData,
     number_comic_id_map: dict[int, int],
-    downloader: Downloader,
     container: AsyncContainer,
 ) -> TranslationResponseDTO:
-    temp_image_id = await downloader.download(data.image_url) if data.image_url else None
+    temp_image_id = None
+    if data.image_url:
+        downloader = await container.get(Downloader)
+        upload_image_manager = await container.get(UploadImageManager)
+        temp_image_path = await downloader.download(data.image_url)
+        temp_image_id = upload_image_manager.read_from_file(temp_image_path)
 
     async with container() as request_container:
         service: ComicWriteService = await request_container.get(ComicWriteService)
@@ -95,15 +100,16 @@ async def scrape_and_upload_translations_command(
         delay=delay,
     )
 
-    ru_scraper = await container.get(XkcdRUScraper)
-    de_scraper = await container.get(XkcdDEScraper)
-    es_scraper = await container.get(XkcdESScraper)
-    zh_scraper = await container.get(XkcdZHScraper)
-    fr_scraper = await container.get(XkcdFRScraper)
-
     with base_progress:
         scraped_translations = []
-        for scraper in (ru_scraper, de_scraper, es_scraper, zh_scraper, fr_scraper):
+        for scraper_type in (
+            XkcdRUScraper,
+            XkcdDEScraper,
+            XkcdESScraper,
+            XkcdZHScraper,
+            XkcdFRScraper,
+        ):
+            scraper = await container.get(scraper_type)
             scraped_translations.extend(await scraper.fetch_many(limits, base_progress))
 
         random.shuffle(scraped_translations)  # reduce DDOS when downloading images
@@ -119,6 +125,5 @@ async def scrape_and_upload_translations_command(
                 len(scraped_translations),
             ),
             number_comic_id_map=number_comic_id_map,
-            downloader=await container.get(Downloader),
             container=container,
         )

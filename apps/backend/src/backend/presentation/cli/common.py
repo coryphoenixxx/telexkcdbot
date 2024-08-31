@@ -31,3 +31,6 @@ def async_command(f: Callable[..., Any]) -> Callable[..., Any]:
 
 
 class DatabaseIsEmptyError(Exception): ...
+
+
+class DatabaseIsNotEmptyError(Exception): ...

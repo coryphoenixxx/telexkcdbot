@@ -1,6 +1,6 @@
 from .base.base import BaseScraper
 from .base.explain import XkcdExplainScraper
-from .base.origin import XkcdOriginScraper
+from .base.original import XkcdOriginalScraper
 from .translations.DE import XkcdDEScraper
 from .translations.ES import XkcdESScraper
 from .translations.FR import XkcdFRScraper
@@ -9,7 +9,7 @@ from .translations.ZH import XkcdZHScraper
 
 __all__ = [
     "BaseScraper",
-    "XkcdOriginScraper",
+    "XkcdOriginalScraper",
     "XkcdExplainScraper",
     "XkcdDEScraper",
     "XkcdESScraper",

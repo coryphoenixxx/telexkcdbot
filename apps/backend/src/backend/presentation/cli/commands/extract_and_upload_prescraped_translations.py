@@ -14,7 +14,7 @@ from yarl import URL
 from backend.application.dtos import TranslationRequestDTO, TranslationResponseDTO
 from backend.application.services.comic import ComicReadService, ComicWriteService
 from backend.core.value_objects import ComicID, Language
-from backend.infrastructure.filesystem import TempFileManager
+from backend.infrastructure.upload_image_manager import UploadImageManager
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationZippedData
 from backend.infrastructure.xkcd.utils import run_concurrently
@@ -86,10 +86,13 @@ def extract_prescraped_translations(
 async def copy_image_and_upload_coro(
     data: XkcdTranslationZippedData,
     number_comic_id_map: dict[int, int],
-    temp_file_manager: TempFileManager,
     container: AsyncContainer,
 ) -> TranslationResponseDTO:
-    temp_image_id = temp_file_manager.copy(data.image_path)
+    upload_image_manager = await container.get(UploadImageManager)
+
+    temp_image_id = None
+    if data.image_path:
+        temp_image_id = upload_image_manager.read_from_file(data.image_path)
 
     async with container() as request_container:
         service: ComicWriteService = await request_container.get(ComicWriteService)
@@ -165,6 +168,5 @@ async def extract_and_upload_prescraped_translations_command(
                 len(prescraped_translations),
             ),
             number_comic_id_map=number_comic_id_map,
-            temp_file_manager=await container.get(TempFileManager),
             container=container,
         )

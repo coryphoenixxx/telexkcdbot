@@ -57,7 +57,7 @@ class XkcdFRScraper(BaseScraper):
             delay=limits.delay,
             pbar=CustomProgressBar(
                 progress,
-                f"French translations scraping...\n\\[{self._BASE_URL}]",
+                f"French translations scraping... \\[{self._BASE_URL}]",
             ),
         )
 

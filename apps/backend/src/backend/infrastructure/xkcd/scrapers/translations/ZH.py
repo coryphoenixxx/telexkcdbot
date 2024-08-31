@@ -57,7 +57,7 @@ class XkcdZHScraper(BaseScraper):
             delay=limits.delay,
             pbar=CustomProgressBar(
                 progress,
-                f"Chinese translations scraping...\n\\[{self._BASE_URL}]",
+                f"Chinese translations scraping... \\[{self._BASE_URL}]",
                 len(links),
             ),
         )

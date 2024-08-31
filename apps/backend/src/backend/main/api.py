@@ -16,7 +16,7 @@ from backend.main.ioc.providers import (
     ConfigsProvider,
     DatabaseProvider,
     FileManagersProvider,
-    NatsProvider,
+    PublisherContainerProvider,
     RepositoriesProvider,
     TagServiceProvider,
     TranslationImageServiceProvider,
@@ -38,7 +38,7 @@ def create_app() -> FastAPI:
         ConfigsProvider(),
         DatabaseProvider(),
         FileManagersProvider(),
-        NatsProvider(),
+        PublisherContainerProvider(),
         RepositoriesProvider(),
         ComicServicesProvider(),
         TranslationImageServiceProvider(),
@@ -59,7 +59,7 @@ def create_app() -> FastAPI:
     return app
 
 
-def main():
+def main() -> None:
     config = load_config(APIConfig, scope="api")
     uvicorn.run(
         "backend.main.api:create_app",
