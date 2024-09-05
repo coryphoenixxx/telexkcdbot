@@ -1,0 +1,184 @@
+services:
+
+  api:
+    container_name: app.api
+    profiles:
+      - core
+    user: ${UID}:${GID}
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    environment:
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.prod.toml
+    volumes:
+      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
+      - ./static:/app/static
+      - ./.tmp:/app/.tmp
+    command: poetry run api
+    ports:
+      - 8000:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - backend
+  #    healthcheck:
+  #      test: curl -fsSL http://localhost:8000/api/healthcheck
+  #      interval: 10s
+  #      timeout: 60s
+  #      retries: 5
+  #      start_period: 10s
+
+  tg_bot:
+    container_name: app.tg_bot
+    profiles:
+      - core
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    environment:
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.prod.toml
+    volumes:
+      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
+    command: poetry run tg_bot
+    ports:
+      - 5000:5000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+
+  prepopulation:
+    container_name: app.prepopulation
+    profiles:
+      - prepopulation
+    user: ${UID}:${GID}
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    environment:
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.prod.toml
+    volumes:
+      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
+      - ./static:/app/static
+      - ./.tmp:/app/.tmp
+    command: bash -c "poetry run cli scrape_and_upload_original &&
+                      poetry run cli scrape_and_upload_translations &&
+                      poetry run cli extract_and_upload_prescraped_translations"
+    tty: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      nats:
+        condition: service_started
+    restart: no
+    networks:
+      - backend
+
+  worker:
+#    container_name: app.worker
+    profiles:
+      - core
+    user: ${UID}:${GID}
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    environment:
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.prod.toml
+    volumes:
+      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
+      - ./static:/app/static
+      - ./.tmp:/app/.tmp
+    command: poetry run faststream run --factory backend.main.worker:create_app --log-level error
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - backend
+    deploy:
+      mode: replicated
+      replicas: 2
+
+  postgres:
+    container_name: app.postgres
+    profiles:
+      - core
+      - migrations
+      - prepopulation
+    image: groonga/pgroonga:3.2.2-alpine-16
+    #    command: -c config_file=/etc/postgresql.conf
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=200"
+    environment:
+      POSTGRES_USER: "admin"
+      POSTGRES_PASSWORD: "password"
+      POSTGRES_DB: "appdb"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      #      - ./.configs/postgresql.conf:/etc/postgresql.conf
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U admin -d appdb
+      interval: 5s
+      timeout: 60s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+    networks:
+      - backend
+
+  migrations:
+    container_name: app.migrations
+    profiles:
+      - migrations
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+    environment:
+      PYTHONPATH: .:./apps/backend/src
+      CONFIG_PATH: /app/.configs/backend/config.prod.toml
+    volumes:
+      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
+    command: poetry run alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - backend
+
+  nats:
+    container_name: app.nats
+    profiles:
+      - core
+      - prepopulation
+    image: nats:2.10.18
+    restart: unless-stopped
+    ports:
+      - 4222:4222
+    command: '-js'
+    networks:
+      - backend
+
+
+volumes:
+  pg-data: { }
+  tmp-dir: { }
+  static-dir: { }
+
+networks:
+  backend:
+    driver: bridge
+    name: backend

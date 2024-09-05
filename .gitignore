@@ -10,7 +10,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
 dist/
 downloads/
@@ -140,25 +139,14 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-.gitignore
-.idea/.gitignore
-.idea/inspectionProfiles/
-.idea/misc.xml
-.idea/modules.xml
-.idea/tele_xkcd_bot.iml
-.idea/vcs.xml
-actions.log
-databases/users.db
-errors.log
-redis/
-.idea/dataSources.local.xml
-.idea/dataSources.xml
-.idea/dataSources/
-.idea/dictionaries/
-.idea/sqldialects.xml
-.idea/workspace.xml
-/.idea/csv-plugin.xml
-/TODO.py
-/mypy.cfg
-/.idea/mypy.xml
-/.idea/telexkcdbot.iml
+.idea
+docker-compose.prod.yml
+pgdata
+postgresql.conf
+static
+.tmp
+/apps/frontend/.vscode/
+/apps/frontend/node_modules/
+/.configs/
+/apps/frontend/
+/apps/backend/src/backend/infrastructure/assets/prescraped_translations.zip

@@ -1,0 +1,11 @@
+.venv
+.tmp
+static
+.idea
+.dockerignore
+pgdata
+.pre-commit-config.yaml
+build
+.git
+LICENSE
+postgresql.conf

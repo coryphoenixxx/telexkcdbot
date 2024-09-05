@@ -1,0 +1,125 @@
+[tool.poetry]
+name = "telexkcdbot"
+version = "0.1.0"
+description = "telexkcdbot"
+authors = ["coryphoenixxx <coryphoenixxx@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/coryphoenixxx/telexkcdbot"
+packages = [
+    { include = "backend", from = "src" },
+    { include = "assets", from = "src/backend/infrastructure" },
+]
+
+
+[tool.poetry.scripts]
+api = "backend.main.api:main"
+tg_bot = "backend.main.tg_bot:main"
+cli = "backend.main.cli:main"
+
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+
+[tool.poetry.group.main.dependencies]
+adaptix = "^3.0.0b7"
+aiodns = "^3.1.1"
+aiofiles = "^23.2.1"
+aiogram = "^3.10.0"
+aiohttp = "^3.9"
+aiohttp-retry = "^2.8.3"
+alembic = "^1.13.0"
+argon2-cffi = "^23.1.0"
+asyncpg = "^0.29.0"
+beautifulsoup4 = "^4.12.2"
+dishka = "^1.2.0"
+fastapi = "^0.112"
+faststream = { extras = ["nats"], version = "^0.5" }
+faust-cchardet = "^2.1.19"
+filetype = "^1.2.0"
+httptools = "^0.6.1"
+imagesize = "^1.4.1"
+lxml = "^5.1.0"
+orjson = "3.10.6"
+pillow = "^10.1.0"
+pillow-avif-plugin = "^1.4.6"
+python-multipart = "^0.0.9"
+python-slugify = "^8.0.1"
+rich = "^13.7.0"
+sqlalchemy = "^2.0.32"
+uvicorn = { extras = ["standard"], version = "^0.30" }
+uvloop = "^0.20.0"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.0.0"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.10.0"
+pre-commit = "^3.3"
+ruff = "^0.6"
+vulture = "^2.11"
+
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = ["-s", "-v"]
+pythonopath = [".venv/bin"]
+
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN101",
+    "ANN102",
+    "ANN401",
+    "ANN003",
+    "COM812",
+    "D100",
+    "D101",
+    "D102",
+    "D103",
+    "D104",
+    "D105",
+    "D106",
+    "D107",
+    "D203",
+    "D212",
+    "D400",
+    "D415",
+    "EM101",
+    "EM102",
+    "EXE002",
+    "FBT",
+    "ISC001",
+    "N999",
+    "PLR0913",
+    "TD002",
+    "TD003",
+    "TRY003",
+    "RUF001",
+    "RUF002",
+    "RUF003",
+    "TCH003",
+]
+fixable = ["ALL"]
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = [
+    "fastapi.Depends", "fastapi.params.Depends",
+    "fastapi.Query", "fastapi.params.Query"
+]
+
+
+[tool.mypy]
+python_version = "3.12"
+pretty = true
+strict = true
+install_types = true
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
