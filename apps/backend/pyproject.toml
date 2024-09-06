@@ -52,18 +52,20 @@ uvloop = "^0.20.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.0.0"
+pytest-asyncio = "^0.24.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.10.0"
 pre-commit = "^3.3"
 ruff = "^0.6"
 vulture = "^2.11"
+memray = "^1.13.4"
 
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 addopts = ["-s", "-v"]
-pythonopath = [".venv/bin"]
+pythonpath = [".venv/bin"]
 
 
 [tool.ruff]

@@ -83,7 +83,7 @@ class TranslationImageFileManager:
         await aos.makedirs(abs_path.parent, exist_ok=True)
 
         try:
-            Path(image.path).chmod(0o644)
+            Path(image.path).chmod(0o644)  # TODO: remove?
             shutil.move(image.path, abs_path)
         except FileNotFoundError as err:
             logging.exception("%s: %s", err.strerror, image.path)

@@ -11,7 +11,7 @@ router = NatsRouter()
 @router.subscriber(
     subject="images.convert",
     queue="convert_image_queue",
-    stream=JStream(name="stream_name", declare=False),
+    stream=JStream(name="stream_name", max_age=60 * 60, declare=True),
     pull_sub=True,
     durable="durable_name",
 )

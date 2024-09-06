@@ -97,7 +97,7 @@ class XkcdOriginalScraper(BaseScraper):
             delay=limits.delay,
             pbar=CustomProgressBar(
                 progress,
-                f"Origin data scraping... \\[{self._BASE_URL}]",
+                f"Original data scraping... \\[{self._BASE_URL}]",
                 len(numbers),
             ),
         )

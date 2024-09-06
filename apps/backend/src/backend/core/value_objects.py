@@ -64,7 +64,11 @@ class LanguageEnum(StrEnum):
 
 
 def _build_language_type() -> EnumType:
-    with importlib.resources.open_text("assets", "language_data.json") as f:
+    with (
+        importlib.resources.files("assets")
+        .joinpath("language_data.json")
+        .open("r", encoding="utf-8") as f
+    ):
         langs = json.load(f)
 
     return LanguageEnum(

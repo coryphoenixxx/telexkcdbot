@@ -133,7 +133,7 @@ async def scrape_and_upload_original_command(
             delay=limits.delay,
             pbar=CustomProgressBar(
                 base_progress,
-                "Origin data uploading...",
+                "Original data uploading...",
                 len(original_with_explain_data),
             ),
             container=container,
