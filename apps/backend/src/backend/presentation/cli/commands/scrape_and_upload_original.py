@@ -5,7 +5,6 @@ from rich.progress import Progress
 from backend.application.dtos import ComicRequestDTO, ComicResponseDTO
 from backend.application.services import ComicReadService, ComicWriteService
 from backend.core.value_objects import IssueNumber, TagName
-from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.upload_image_manager import UploadImageManager
 from backend.infrastructure.utils import cast_or_none
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
@@ -48,7 +47,7 @@ async def scrape_original_with_explain_data(
                 tooltip=original_data.tooltip,
                 click_url=original_data.click_url,
                 is_interactive=original_data.is_interactive,
-                image_url=original_data.image_url,
+                image_path=original_data.image_path,
                 explain_url=explain_data.explain_url if explain_data else None,
                 tags=explain_data.tags if explain_data else [],
                 raw_transcript=explain_data.raw_transcript if explain_data else "",
@@ -63,11 +62,9 @@ async def download_image_and_upload_coro(
     container: AsyncContainer,
 ) -> ComicResponseDTO:
     temp_image_id = None
-    if data.image_url:
-        downloader = await container.get(Downloader)
+    if data.image_path:
         upload_image_manager = await container.get(UploadImageManager)
-        temp_image_path = await downloader.download(data.image_url)
-        temp_image_id = upload_image_manager.read_from_file(temp_image_path)
+        temp_image_id = upload_image_manager.read_from_file(data.image_path)
 
     async with container() as request_container:
         service: ComicWriteService = await request_container.get(ComicWriteService)

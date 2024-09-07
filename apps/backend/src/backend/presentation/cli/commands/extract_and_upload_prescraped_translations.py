@@ -14,9 +14,10 @@ from yarl import URL
 from backend.application.dtos import TranslationRequestDTO, TranslationResponseDTO
 from backend.application.services.comic import ComicReadService, ComicWriteService
 from backend.core.value_objects import ComicID, Language
+from backend.infrastructure.database.dtos import ComicFilterParams
 from backend.infrastructure.upload_image_manager import UploadImageManager
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationZippedData
+from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationScrapedData
 from backend.infrastructure.xkcd.utils import run_concurrently
 from backend.presentation.cli.common import (
     DatabaseIsEmptyError,
@@ -33,7 +34,7 @@ def extract_prescraped_translations(
     extract_to: Path,
     limits: LimitParams,
     pbar: CustomProgressBar | None,
-) -> list[XkcdTranslationZippedData]:
+) -> list[XkcdTranslationScrapedData]:
     translations = []
 
     with ZipFile(zip_path, "r") as zf:
@@ -64,7 +65,7 @@ def extract_prescraped_translations(
                 source_url = row["source_url"]
 
                 translations.append(
-                    XkcdTranslationZippedData(
+                    XkcdTranslationScrapedData(
                         number=number,
                         source_url=URL(source_url) if source_url else None,
                         title=row["title"],
@@ -84,14 +85,13 @@ def extract_prescraped_translations(
 
 
 async def copy_image_and_upload_coro(
-    data: XkcdTranslationZippedData,
+    data: XkcdTranslationScrapedData,
     number_comic_id_map: dict[int, int],
     container: AsyncContainer,
 ) -> TranslationResponseDTO:
-    upload_image_manager = await container.get(UploadImageManager)
-
     temp_image_id = None
     if data.image_path:
+        upload_image_manager = await container.get(UploadImageManager)
         temp_image_id = upload_image_manager.read_from_file(data.image_path)
 
     async with container() as request_container:
@@ -127,7 +127,7 @@ async def extract_and_upload_prescraped_translations_command(
 
     async with container() as request_container:
         service: ComicReadService = await request_container.get(ComicReadService)
-        _, comics = await service.get_list()
+        _, comics = await service.get_list(query_params=ComicFilterParams())
         for comic in comics:
             number_comic_id_map[comic.number] = comic.id
 

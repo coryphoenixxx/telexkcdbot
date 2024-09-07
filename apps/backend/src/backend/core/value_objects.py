@@ -35,10 +35,16 @@ TempFileID = NewType("TempFileID", UUID)
 class TagName(str):
     __slots__ = ()
 
+    MIN_LENGTH = 2
+    MAX_LENGTH = 50
+
     def __new__(cls, value: str) -> "TagName":
         length = len(value)
-        if length < 2 or length > 50:
-            raise ValueError(f"Invalid tag length. (name=`{value}`)")
+        if not (cls.MIN_LENGTH <= length <= cls.MAX_LENGTH):
+            raise ValueError(
+                f"Tag name length must be between {cls.MIN_LENGTH} and {cls.MAX_LENGTH} "
+                f"characters. (Given: `{value}`)"
+            )
         return super().__new__(cls, value)
 
 

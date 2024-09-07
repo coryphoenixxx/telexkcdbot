@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup, Tag
 from rich.progress import Progress
 from yarl import URL
 
+from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import BaseScraper
@@ -20,8 +21,8 @@ class XkcdRUScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.ru/")
     _NUM_LIST_URL = _BASE_URL / "num"
 
-    def __init__(self, client: AsyncHttpClient) -> None:
-        super().__init__(client=client)
+    def __init__(self, client: AsyncHttpClient, downloader: Downloader) -> None:
+        super().__init__(client=client, downloader=downloader)
 
     async def get_all_nums(self) -> list[int]:
         soup = await self._get_soup(self._NUM_LIST_URL)
@@ -38,7 +39,7 @@ class XkcdRUScraper(BaseScraper):
                 source_url=url,
                 title=self._extract_title(soup),
                 tooltip=self._extract_tooltip(soup),
-                image_url=self._extract_image_url(soup),
+                image_path=await self._downloader.download(url=self._extract_image_url(soup)),
                 raw_transcript=self._extract_transcript(soup),
                 translator_comment=self._extract_comment(soup),
                 language="RU",

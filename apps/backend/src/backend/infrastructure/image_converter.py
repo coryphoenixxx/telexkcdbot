@@ -18,7 +18,7 @@ class ImageConversionError(Exception):
 
     @property
     def message(self) -> str:
-        return f"The image (path={self.path}) was not converted. Reason: `{self.reason}`"
+        return f"The image (path={self.path.name}) was not converted. Reason: `{self.reason}`"
 
 
 class ImageConverter:

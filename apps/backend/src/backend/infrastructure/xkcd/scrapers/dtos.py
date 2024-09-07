@@ -15,7 +15,7 @@ class XkcdOriginalScrapedData:
     tooltip: str = ""
     click_url: URL | None = None
     is_interactive: bool = False
-    image_url: URL | None = None
+    image_path: Path | None = None
 
 
 @dataclass(kw_only=True)
@@ -34,7 +34,7 @@ class XkcdOriginalWithExplainScrapedData(
 
 
 @dataclass(kw_only=True)
-class XkcdTranslationDataBase:
+class XkcdTranslationScrapedData:
     number: int
     source_url: URL | None
     title: str
@@ -42,16 +42,7 @@ class XkcdTranslationDataBase:
     tooltip: str = ""
     raw_transcript: str = ""
     translator_comment: str = ""
-
-
-@dataclass(kw_only=True)
-class XkcdTranslationScrapedData(XkcdTranslationDataBase):
-    image_url: URL | None
-
-
-@dataclass(kw_only=True)
-class XkcdTranslationZippedData(XkcdTranslationDataBase):
-    image_path: Path
+    image_path: Path | None
 
 
 @dataclass(slots=True)

@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from rich.progress import Progress
 from yarl import URL
 
+from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import BaseScraper
@@ -16,8 +17,8 @@ from backend.infrastructure.xkcd.utils import run_concurrently
 class XkcdZHScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.in")
 
-    def __init__(self, client: AsyncHttpClient) -> None:
-        super().__init__(client=client)
+    def __init__(self, client: AsyncHttpClient, downloader: Downloader) -> None:
+        super().__init__(client=client, downloader=downloader)
 
     async def fetch_one(self, url: URL) -> XkcdTranslationScrapedData:
         soup = await self._get_soup(url)
@@ -30,7 +31,7 @@ class XkcdZHScraper(BaseScraper):
                 source_url=url,
                 title=self._extract_title(soup),
                 tooltip=tooltip,
-                image_url=self._extract_image_url(soup),
+                image_path=await self._downloader.download(url=self._extract_image_url(soup)),
                 translator_comment=translator_comment,
                 language="ZH",
             )

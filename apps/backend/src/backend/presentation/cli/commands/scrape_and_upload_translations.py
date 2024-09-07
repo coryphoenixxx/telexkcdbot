@@ -8,7 +8,7 @@ from dishka import AsyncContainer
 from backend.application.dtos import TranslationRequestDTO, TranslationResponseDTO
 from backend.application.services.comic import ComicReadService, ComicWriteService
 from backend.core.value_objects import ComicID, Language
-from backend.infrastructure.downloader import Downloader
+from backend.infrastructure.database.dtos import ComicFilterParams
 from backend.infrastructure.upload_image_manager import UploadImageManager
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import (
@@ -45,11 +45,9 @@ async def download_image_and_upload_coro(
     container: AsyncContainer,
 ) -> TranslationResponseDTO:
     temp_image_id = None
-    if data.image_url:
-        downloader = await container.get(Downloader)
+    if data.image_path:
         upload_image_manager = await container.get(UploadImageManager)
-        temp_image_path = await downloader.download(data.image_url)
-        temp_image_id = upload_image_manager.read_from_file(temp_image_path)
+        temp_image_id = upload_image_manager.read_from_file(data.image_path)
 
     async with container() as request_container:
         service: ComicWriteService = await request_container.get(ComicWriteService)
@@ -84,7 +82,7 @@ async def scrape_and_upload_translations_command(
 
     async with container() as request_container:
         service: ComicReadService = await request_container.get(ComicReadService)
-        _, comics = await service.get_list()
+        _, comics = await service.get_list(query_params=ComicFilterParams())
         for comic in comics:
             number_comic_id_map[comic.number] = comic.id
 

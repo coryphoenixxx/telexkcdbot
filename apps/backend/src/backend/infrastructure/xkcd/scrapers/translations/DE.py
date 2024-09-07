@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from rich.progress import Progress
 from yarl import URL
 
+from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.http_client.dtos import HTTPStatusCodes
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
@@ -16,8 +17,8 @@ from backend.infrastructure.xkcd.utils import run_concurrently
 class XkcdDEScraper(BaseScraper):
     _BASE_URL = URL("https://xkcde.dapete.net/")
 
-    def __init__(self, client: AsyncHttpClient) -> None:
-        super().__init__(client=client)
+    def __init__(self, client: AsyncHttpClient, downloader: Downloader) -> None:
+        super().__init__(client=client, downloader=downloader)
 
     async def fetch_latest_number(self) -> int:
         soup = await self._get_soup(self._BASE_URL)
@@ -47,7 +48,7 @@ class XkcdDEScraper(BaseScraper):
                 source_url=url,
                 title=self._extract_title(soup),
                 tooltip=self._extract_tooltip(soup),
-                image_url=await self._extract_image_url(soup),
+                image_path=await self._downloader.download(url=await self._extract_image_url(soup)),
                 translator_comment=self._extract_comment(soup),
                 language="DE",
             )
@@ -86,9 +87,7 @@ class XkcdDEScraper(BaseScraper):
         return soup.find("figcaption").text
 
     async def _extract_image_url(self, soup: BeautifulSoup) -> URL:
-        large_version_block = soup.find("div", {"id": "large_version"})
-
-        if large_version_block:
+        if large_version_block := soup.find("div", {"id": "large_version"}):
             large_image_page_url = large_version_block.find("a").get("href")
             soup = await self._get_soup(self._BASE_URL / large_image_page_url[1:])
             image_rel_path = soup.find("img").get("src")

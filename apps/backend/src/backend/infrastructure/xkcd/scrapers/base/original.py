@@ -6,6 +6,7 @@ from datetime import datetime as dt
 from rich.progress import Progress
 from yarl import URL
 
+from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.http_client.dtos import HTTPStatusCodes
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
@@ -28,8 +29,8 @@ IMAGE_URL_PATTERN = re.compile(r"https://imgs.xkcd.com/comics/(.*?).(jpg|jpeg|pn
 class XkcdOriginalScraper(BaseScraper):
     _BASE_URL = URL("https://xkcd.com/")
 
-    def __init__(self, client: AsyncHttpClient) -> None:
-        super().__init__(client=client)
+    def __init__(self, client: AsyncHttpClient, downloader: Downloader) -> None:
+        super().__init__(client=client, downloader=downloader)
         self._cached_latest_number = None
 
     async def fetch_latest_number(self) -> int:
@@ -60,6 +61,12 @@ class XkcdOriginalScraper(BaseScraper):
             try:
                 click_url, large_image_page_url = self._process_link(json_data["link"])
 
+                image_url = (
+                        await self._fetch_large_image_url(large_image_page_url)
+                        or await self._fetch_2x_image_url(url)
+                        or self._process_image_url(json_data["img"])
+                )
+
                 data = XkcdOriginalScrapedData(
                     number=json_data["num"],
                     xkcd_url=url,
@@ -71,11 +78,7 @@ class XkcdOriginalScraper(BaseScraper):
                     ),
                     click_url=click_url,
                     tooltip=json_data["alt"],
-                    image_url=(
-                        await self._fetch_large_image_url(large_image_page_url)
-                        or await self._fetch_2x_image_url(url)
-                        or self._process_image_url(json_data["img"])
-                    ),
+                    image_path=await self._downloader.download(image_url) if image_url else None,
                     is_interactive=bool(json_data.get("extra_parts")),
                 )
             except Exception as err:
@@ -112,27 +115,19 @@ class XkcdOriginalScraper(BaseScraper):
 
         soup = await self._get_soup(url)
 
-        img_tag = soup.find("img")
-        if img_tag:
-            large_image_url = img_tag.get("src")
-            if large_image_url:
+        if img_tag := soup.find("img"):
+            if large_image_url := img_tag.get("src"):
                 return URL(large_image_url)
         return None
 
     async def _fetch_2x_image_url(self, xkcd_url: URL) -> URL | None:
-        x2_image_url = None
-
         soup = await self._get_soup(xkcd_url)
 
-        img_tags = soup.css.select("div#comic img")
-        if img_tags:
-            srcset = img_tags[0].get("srcset")
-            if srcset:
-                match = X2_IMAGE_URL_PATTERN.search(srcset)
-                if match:
-                    x2_image_url = URL("https://" + match.group(1).strip())
-
-        return x2_image_url
+        if img_tags := soup.css.select("div#comic img"):
+            if srcset := img_tags[0].get("srcset"):
+                if match := X2_IMAGE_URL_PATTERN.search(srcset):
+                    return URL("https://" + match.group(1).strip())
+        return None
 
     def _process_title(self, title: str) -> str:
         # №259, №472

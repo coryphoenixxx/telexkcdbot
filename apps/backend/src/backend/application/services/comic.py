@@ -202,10 +202,11 @@ class ComicReadService:
 
         if comics:
             return comics[0].number
+        return None
 
     async def get_list(
         self,
-        query_params: ComicFilterParams = ComicFilterParams(),
+        query_params: ComicFilterParams,
     ) -> tuple[TotalCount, list[ComicResponseDTO]]:
         return await self.comic_repo.get_list(query_params)
 
