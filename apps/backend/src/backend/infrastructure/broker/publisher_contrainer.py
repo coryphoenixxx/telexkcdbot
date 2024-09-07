@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from functools import singledispatchmethod
+from typing import Any, NoReturn
 
 from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
 
@@ -12,7 +13,7 @@ class PublisherContainer:
     new_comic_publisher: AsyncAPIPublisher
 
     @singledispatchmethod
-    async def publish(self, msg, **kwargs):
+    async def publish(self, msg: Any, **kwargs) -> NoReturn:
         raise NotImplementedError
 
     @publish.register

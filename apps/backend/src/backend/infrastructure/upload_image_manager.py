@@ -90,7 +90,7 @@ class UploadImageManager:
 
     def _validate_format(self, path: Path) -> None:
         try:
-            Image.open(path).close()
+            with Image.open(path): ...
         except (UnidentifiedImageError, OSError):
             raise UploadedImageReadError from None
 

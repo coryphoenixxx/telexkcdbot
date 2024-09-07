@@ -181,9 +181,6 @@ class HTTPProviders(Provider):
         return Downloader(
             http_client=http_client,
             temp_file_manager=temp_file_manager,
-            timeout=60.0,
-            attempts=5,
-            interval=3,
         )
 
 

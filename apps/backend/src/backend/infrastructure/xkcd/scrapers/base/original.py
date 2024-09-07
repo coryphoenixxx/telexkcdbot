@@ -149,16 +149,14 @@ class XkcdOriginalScraper(BaseScraper):
             if "large" in link.path:
                 large_image_page_url = link
             elif "980/huge" in link.path:
-                large_image_page_url = "https://imgs.xkcd.com/comics/money_huge.png"
+                large_image_page_url = URL("https://imgs.xkcd.com/comics/money_huge.png")
             elif link.scheme:
                 click_url = link
 
         return click_url, large_image_page_url
 
     def _process_image_url(self, url: str) -> URL | None:
-        if IMAGE_URL_PATTERN.match(url):
-            return URL(url)
-        return None
+        return URL(url) if IMAGE_URL_PATTERN.match(url) else None
 
     def _build_date(self, y: str, m: str, d: str) -> dt.date:
         return dt.strptime(f"{int(y)}-{int(m):02d}-{int(d):02d}", "%Y-%m-%d")  # noqa: DTZ007

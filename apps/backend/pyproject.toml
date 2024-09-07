@@ -96,6 +96,7 @@ ignore = [
     "EM102",
     "EXE002",
     "FBT",
+    "FIX002",
     "ISC001",
     "N999",
     "PLR0913",
@@ -114,6 +115,9 @@ extend-immutable-calls = [
     "fastapi.Depends", "fastapi.params.Depends",
     "fastapi.Query", "fastapi.params.Query"
 ]
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/**/*.py" = ["S101",]
 
 
 [tool.mypy]

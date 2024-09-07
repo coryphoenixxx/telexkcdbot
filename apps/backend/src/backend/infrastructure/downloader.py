@@ -14,13 +14,15 @@ from backend.infrastructure.http_client.dtos import HTTPStatusCodes
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass(slots=True)
 class DownloadError(Exception):
     url: str
+    attempts: int
+    interval: float
 
     @property
     def message(self) -> str:
-        return f"Couldn't download the image from {self.url}"
+        return f"Couldn't download the file from {self.url}"
 
 
 class Downloader:
@@ -28,37 +30,30 @@ class Downloader:
         self,
         http_client: AsyncHttpClient,
         temp_file_manager: TempFileManager,
-        timeout: float,
-        attempts: int,
-        interval: int,
+        attempts: int = 3,
+        interval: float = 0.5,
+        chunk_size: int = 64 * 1024,
     ) -> None:
         self._http_client = http_client
         self._temp_file_manager = temp_file_manager
-        self._timeout = timeout
         self._attempts = attempts
         self._interval = interval
+        self._chunk_size = chunk_size
 
-    async def download(self, url: URL | str) -> Path:
-        try:
-            temp_image_id = await asyncio.wait_for(
-                fut=self._download_job(url),
-                timeout=self._timeout,
-            )
-        except TimeoutError:
-            logger.exception("Couldn't download %s after %s seconds.", url, self._timeout)
-        else:
-            return self._temp_file_manager.get_abs_path_by_id(temp_image_id)
-
-    async def _download_job(self, url: URL | str) -> TempFileID | None:
+    async def download(self, url: URL) -> Path:
         for _ in range(self._attempts):
-            try:
-                async with self._http_client.safe_get(url=url) as response:
-                    if response.status == HTTPStatusCodes.OK_200:
-                        return await self._temp_file_manager.read_from_stream(
-                            stream=response.content,
-                            chunk_size=1024 * 64,
-                        )
-            except (TimeoutError, ClientPayloadError):
-                await asyncio.sleep(self._interval)
-                continue
-        raise DownloadError(str(url))
+            if temp_file_id := await self._download_attempt(url):
+                return self._temp_file_manager.get_abs_path_by_id(temp_file_id)
+            await asyncio.sleep(self._interval)
+        raise DownloadError(str(url), self._attempts, self._interval)
+
+    async def _download_attempt(self, url: URL) -> TempFileID | None:
+        try:
+            async with self._http_client.safe_get(url=url) as response:
+                if response.status == HTTPStatusCodes.OK_200:
+                    return await self._temp_file_manager.read_from_stream(
+                        stream=response.content,
+                        chunk_size=self._chunk_size,
+                    )
+        except (TimeoutError, ClientPayloadError):
+            return None

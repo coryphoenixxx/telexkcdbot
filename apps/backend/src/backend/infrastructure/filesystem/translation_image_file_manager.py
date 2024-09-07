@@ -22,7 +22,7 @@ class TempImageNotFoundError(BaseAppError):
 
     @property
     def message(self) -> str:
-        return f"An temp image (id=`{self.temp_image_id}`) not found."
+        return f"A temp image (id=`{self.temp_image_id}`) not found."
 
 
 @dataclass(frozen=True, slots=True)
@@ -83,7 +83,6 @@ class TranslationImageFileManager:
         await aos.makedirs(abs_path.parent, exist_ok=True)
 
         try:
-            Path(image.path).chmod(0o644)  # TODO: remove?
             shutil.move(image.path, abs_path)
         except FileNotFoundError as err:
             logging.exception("%s: %s", err.strerror, image.path)
