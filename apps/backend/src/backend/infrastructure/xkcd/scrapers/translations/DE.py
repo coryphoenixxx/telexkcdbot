@@ -1,3 +1,5 @@
+# mypy: disable-error-code="union-attr"
+
 import re
 
 from bs4 import BeautifulSoup
@@ -10,7 +12,7 @@ from backend.infrastructure.http_client.dtos import HTTPStatusCodes
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import BaseScraper
 from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationScrapedData
-from backend.infrastructure.xkcd.scrapers.exceptions import ScraperError
+from backend.infrastructure.xkcd.scrapers.exceptions import ExtractError, ScrapeError
 from backend.infrastructure.xkcd.utils import run_concurrently
 
 
@@ -24,13 +26,10 @@ class XkcdDEScraper(BaseScraper):
         soup = await self._get_soup(self._BASE_URL)
 
         xkcd_link = soup.find("p", {"class": "center"}).find("a").get("href")
-
-        return int(
-            re.match(
-                pattern=re.compile(r".*.xkcd.com/(.*)/"),
-                string=xkcd_link,
-            ).group(1),
-        )
+        if xkcd_link:
+            match = re.match(pattern=re.compile(r".*.xkcd.com/(.*)/"), string=str(xkcd_link))
+            return int(match.group(1))
+        raise ScrapeError(self._BASE_URL)
 
     async def fetch_one(self, number: int) -> XkcdTranslationScrapedData | None:
         if number == HTTPStatusCodes.NOT_FOUND_404:
@@ -53,9 +52,9 @@ class XkcdDEScraper(BaseScraper):
                 language="DE",
             )
         except Exception as err:
-            raise ScraperError(url) from err
-
-        return translation
+            raise ScrapeError(url) from err
+        else:
+            return translation
 
     async def fetch_many(
         self,
@@ -87,14 +86,18 @@ class XkcdDEScraper(BaseScraper):
         return soup.find("figcaption").text
 
     async def _extract_image_url(self, soup: BeautifulSoup) -> URL:
+        image_rel_path = None
+
         if large_version_block := soup.find("div", {"id": "large_version"}):
-            large_image_page_url = large_version_block.find("a").get("href")
-            soup = await self._get_soup(self._BASE_URL / large_image_page_url[1:])
-            image_rel_path = soup.find("img").get("src")
+            if large_image_page_url := large_version_block.find("a").get("href"):
+                soup = await self._get_soup(self._BASE_URL / str(large_image_page_url)[1:])
+                image_rel_path = soup.find("img").get("src")
         else:
             image_rel_path = soup.find("figure", {"id": "comic"}).find("img").get("src")
 
-        return self._BASE_URL / image_rel_path[1:]
+        if image_rel_path:
+            return self._BASE_URL / str(image_rel_path)[1:]
+        raise ExtractError
 
     def _extract_comment(self, soup: BeautifulSoup) -> str:
         comment = ""

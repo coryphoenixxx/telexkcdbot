@@ -1,5 +1,5 @@
+import datetime as dt
 from dataclasses import dataclass
-from datetime import datetime as dt
 from pathlib import Path
 from typing import TypedDict
 
@@ -14,7 +14,7 @@ class TranslationRequestDTO:
     raw_transcript: str
     translator_comment: str
     source_url: str | None
-    temp_image_id: TempFileID
+    temp_image_id: TempFileID | None
     is_draft: bool
 
 
@@ -54,5 +54,5 @@ class ComicRequestDTO:
 
 
 class TagUpdateDTO(TypedDict, total=False):
-    name: str
+    name: TagName
     is_blacklisted: bool

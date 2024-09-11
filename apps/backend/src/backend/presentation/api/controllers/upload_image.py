@@ -20,7 +20,7 @@ router = APIRouter(tags=["Images"], route_class=DishkaRoute)
     status_code=status.HTTP_201_CREATED,
     responses={
         status.HTTP_400_BAD_REQUEST: {
-            "model": UploadImageIsEmptyError | UploadedImageReadError
+            "model": UploadImageIsEmptyError | UploadedImageReadError,
         },
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: {
             "model": UploadImageSizeExceededLimitError,

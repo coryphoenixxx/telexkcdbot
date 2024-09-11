@@ -55,7 +55,7 @@ pytest = "^8.0.0"
 pytest-asyncio = "^0.24.0"
 
 [tool.poetry.group.dev.dependencies]
-mypy = "^1.10.0"
+mypy = "^1.11.2"
 pre-commit = "^3.3"
 ruff = "^0.6"
 vulture = "^2.11"
@@ -64,7 +64,7 @@ memray = "^1.13.4"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = ["-s", "-v"]
+addopts = ["-s", "-v", "-x"]
 pythonpath = [".venv/bin"]
 
 
@@ -99,6 +99,7 @@ ignore = [
     "FIX002",
     "ISC001",
     "N999",
+    "PGH003",
     "PLR0913",
     "TD002",
     "TD003",
@@ -106,6 +107,7 @@ ignore = [
     "RUF001",
     "RUF002",
     "RUF003",
+    "SIM102",
     "TCH003",
 ]
 fixable = ["ALL"]
@@ -117,7 +119,7 @@ extend-immutable-calls = [
 ]
 
 [tool.ruff.lint.extend-per-file-ignores]
-"tests/**/*.py" = ["S101",]
+"tests/**/*.py" = ["S101", ]
 
 
 [tool.mypy]
@@ -125,6 +127,9 @@ python_version = "3.12"
 pretty = true
 strict = true
 install_types = true
+ignore_missing_imports = true
+warn_unused_ignores = false
+python_executable = ".venv/bin/python3.12"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

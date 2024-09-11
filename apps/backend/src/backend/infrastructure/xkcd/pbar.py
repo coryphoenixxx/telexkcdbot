@@ -16,9 +16,10 @@ class CustomProgressBar:
         self._progress.stop_task(self._task_id)
 
         if not self._total:
-            col: MofNCompleteColumn = self._progress.columns[-2]
+            column = self._progress.columns[-2]
 
-            for task in self._progress.tasks:
-                if task.id == self._task_id:
-                    task.total = self._counter
-                    col.render(task)
+            if isinstance(column, MofNCompleteColumn):
+                for task in self._progress.tasks:
+                    if task.id == self._task_id:
+                        task.total = self._counter
+                        column.render(task)

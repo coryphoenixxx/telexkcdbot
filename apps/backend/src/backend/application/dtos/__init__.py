@@ -1,9 +1,23 @@
-# ruff: noqa: F401
-
-from .requests import ComicRequestDTO, TranslationImageRequestDTO, TranslationRequestDTO
+from .requests import (
+    ComicRequestDTO,
+    TagUpdateDTO,
+    TranslationImageRequestDTO,
+    TranslationRequestDTO,
+)
 from .responses import (
     ComicResponseDTO,
     TagResponseDTO,
     TranslationImageResponseDTO,
     TranslationResponseDTO,
 )
+
+__all__ = [
+    "TranslationRequestDTO",
+    "TranslationImageRequestDTO",
+    "ComicRequestDTO",
+    "TagUpdateDTO",
+    "TranslationImageResponseDTO",
+    "TranslationResponseDTO",
+    "TagResponseDTO",
+    "ComicResponseDTO",
+]

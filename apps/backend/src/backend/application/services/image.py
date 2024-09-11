@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
 
+from backend.core.exceptions.base import BaseAppError
 from backend.core.value_objects import TranslationImageID
 from backend.infrastructure.database.repositories import TranslationImageRepo
 from backend.infrastructure.database.transaction import TransactionManager
@@ -12,6 +13,15 @@ from backend.infrastructure.image_converter import ImageConversionError, ImageCo
 logger = logging.getLogger(__name__)
 
 
+@dataclass(slots=True, eq=False)
+class TranslationImageNotFoundError(BaseAppError):
+    image_id: TranslationImageID
+
+    @property
+    def message(self) -> str:
+        return f"Translation image (id={self.image_id.value}) not found."
+
+
 @dataclass(slots=True, eq=False, frozen=True)
 class TranslationImageService:
     repo: TranslationImageRepo
@@ -21,6 +31,10 @@ class TranslationImageService:
 
     async def convert_and_update(self, image_id: TranslationImageID) -> None:
         image_dto = await self.repo.get_by_id(image_id)
+
+        if image_dto is None:
+            raise TranslationImageNotFoundError(image_id)
+
         image_abs_path = self.file_manager.rel_to_abs(image_dto.original)
 
         try:

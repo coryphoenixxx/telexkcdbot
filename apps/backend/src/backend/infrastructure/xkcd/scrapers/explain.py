@@ -1,16 +1,19 @@
+# mypy: disable-error-code="union-attr"
+
 import importlib.resources
 import logging
 import re
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from rich.progress import Progress
 from yarl import URL
 
+from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers import BaseScraper
-from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdExplanationScrapedBaseData
-from backend.infrastructure.xkcd.scrapers.exceptions import ScraperError
+from backend.infrastructure.xkcd.scrapers.base import BaseScraper
+from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdExplanationScrapedData
+from backend.infrastructure.xkcd.scrapers.exceptions import ExtractError, ScrapeError
 from backend.infrastructure.xkcd.utils import run_concurrently
 
 logger = logging.getLogger(__name__)
@@ -22,12 +25,12 @@ TRANSCRIPT_TEXT_MAX_LENGTH = 25_000
 class XkcdExplainScraper(BaseScraper):
     _BASE_URL = URL("https://explainxkcd.com/")
 
-    def __init__(self, client: AsyncHttpClient) -> None:
-        super().__init__(client=client)
+    def __init__(self, client: AsyncHttpClient, downloader: Downloader) -> None:
+        super().__init__(client=client, downloader=downloader)
         self._bad_tags = self._load_bad_tags()
         self._cached_latest_number = None
 
-    async def fetch_one(self, number: int) -> XkcdExplanationScrapedBaseData | None:
+    async def fetch_one(self, number: int) -> XkcdExplanationScrapedData | None:
         url = self._BASE_URL / f"wiki/index.php/{number}"
         soup = await self._get_soup(url)
 
@@ -35,22 +38,22 @@ class XkcdExplainScraper(BaseScraper):
             return None
 
         try:
-            data = XkcdExplanationScrapedBaseData(
+            explanation_data = XkcdExplanationScrapedData(
                 number=number,
                 explain_url=self._extract_real_url(soup),
                 tags=self._extract_tags(soup),
                 raw_transcript=self._extract_transcript_html(soup),
             )
         except Exception as err:
-            raise ScraperError(url) from err
-
-        return data
+            raise ScrapeError(url) from err
+        else:
+            return explanation_data
 
     async def fetch_many(
         self,
         limits: LimitParams,
         progress: Progress,
-    ) -> list[XkcdExplanationScrapedBaseData]:
+    ) -> list[XkcdExplanationScrapedData]:
         numbers = list(range(limits.start, limits.end + 1))
 
         return await run_concurrently(
@@ -64,20 +67,6 @@ class XkcdExplainScraper(BaseScraper):
                 len(numbers),
             ),
         )
-
-    async def fetch_extra_urls(self) -> list[URL]:
-        url = self._BASE_URL / "wiki/index.php/Category:Extra_comics"
-        soup = await self._get_soup(url)
-
-        li_tags = soup.find(id="mw-pages").find("div", {"class": "mw-content-ltr"}).find_all("a")
-
-        urls = []
-        for tag in li_tags:
-            rel_url = tag.get("href")
-            if rel_url:
-                urls.append(self._BASE_URL / rel_url[1:])
-
-        return urls
 
     async def fetch_recently_updated_numbers(self, days: int = 1, limit: int = 500) -> list[int]:
         url = (
@@ -103,14 +92,14 @@ class XkcdExplainScraper(BaseScraper):
         return list(numbers)
 
     def _extract_real_url(self, soup: BeautifulSoup) -> URL:
-        rel_url = soup.find(id="ca-nstab-main").find("a")["href"][1:]
-        return self._BASE_URL.joinpath(rel_url, encoded=True)
+        if rel_url := soup.find(id="ca-nstab-main").find("a").get("href"):
+            return self._BASE_URL.joinpath(str(rel_url)[1:], encoded=True)
+        raise ExtractError
 
     def _extract_tags(self, soup: BeautifulSoup) -> list[str]:
         tags = set()
 
-        li_tags = soup.find(id="mw-normal-catlinks").find_all("li")
-        if li_tags:
+        if li_tags := soup.find(id="mw-normal-catlinks").find_all("li"):
             tag_lower_set = set()
             for tag in [li.text for li in li_tags]:
                 tag_lower = tag.lower()
@@ -124,33 +113,28 @@ class XkcdExplainScraper(BaseScraper):
     def _extract_transcript_html(self, soup: BeautifulSoup) -> str:
         transcript_html = ""
 
-        transcript_tag = soup.find(id="Transcript")
-
-        if transcript_tag:
-            transcript_header = transcript_tag.parent
-            if transcript_header:
-                temp, length = "", 0
+        if transcript_tag := soup.find(id="Transcript"):
+            if transcript_header := transcript_tag.parent:
+                buffer, length = "", 0
                 for tag in transcript_header.find_next_siblings():
-                    tag_name = tag.name
+                    if isinstance(tag, Tag):
+                        if tag.get("id") == "Discussion" or tag.name in ("h1", "h2"):
+                            break
+                        if tag.name == "table" and "transcript is incomplete" in tag.get_text():
+                            continue
 
-                    if tag.get("id") == "Discussion" or tag_name in ("h1", "h2"):
-                        break
+                        tag_as_text = str(tag)
+                        length += len(tag_as_text)
 
-                    if tag_name == "table" and "transcript is incomplete" in tag.get_text():
-                        continue
+                        if length > TRANSCRIPT_TEXT_MAX_LENGTH:  # №2131
+                            buffer = ""
+                            break
 
-                    tag_as_text = str(tag)
-                    length += len(tag_as_text)
+                        buffer += tag_as_text
 
-                    if length > TRANSCRIPT_TEXT_MAX_LENGTH:
-                        temp = ""
-                        break
+                transcript_html = buffer
 
-                    temp += tag_as_text
-
-                transcript_html = temp
-
-        return transcript_html
+        return transcript_html.replace("<p><br/></p>", "")
 
     def _load_bad_tags(self) -> set[str]:
         bad_tags = set()

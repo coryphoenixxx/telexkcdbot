@@ -1,3 +1,5 @@
+# type: ignore
+
 """EXPERIMENT"""
 
 import time

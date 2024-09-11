@@ -21,6 +21,10 @@ class BaseRepo:
         model: type[Model],
         id_: int,
         *,
-        options: Sequence[ORMOption] | None = None,
-    ) -> Model:
-        return await self._session.get(model, id_, options=options)
+        options: ORMOption | Sequence[ORMOption] | None = None,
+    ) -> Model | None:
+        return await self._session.get(
+            model,
+            id_,
+            options=(options,) if isinstance(options, ORMOption) else options,
+        )

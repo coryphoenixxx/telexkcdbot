@@ -55,5 +55,6 @@ class Downloader:
                         stream=response.content,
                         chunk_size=self._chunk_size,
                     )
+                return None
         except (TimeoutError, ClientPayloadError):
             return None

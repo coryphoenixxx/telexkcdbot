@@ -1,3 +1,5 @@
+# mypy: disable-error-code="union-attr"
+
 import asyncio
 from collections.abc import Iterable
 
@@ -10,7 +12,7 @@ from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import BaseScraper
 from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationScrapedData
-from backend.infrastructure.xkcd.scrapers.exceptions import ScraperError
+from backend.infrastructure.xkcd.scrapers.exceptions import ExtractError, ScrapeError
 from backend.infrastructure.xkcd.utils import run_concurrently
 
 
@@ -26,7 +28,7 @@ class XkcdZHScraper(BaseScraper):
         try:
             tooltip, translator_comment = self._extract_tooltip_and_translator_comment(soup)
 
-            data = XkcdTranslationScrapedData(
+            translation_data = XkcdTranslationScrapedData(
                 number=self._extract_number_from_url(url),
                 source_url=url,
                 title=self._extract_title(soup),
@@ -36,9 +38,9 @@ class XkcdZHScraper(BaseScraper):
                 language="ZH",
             )
         except Exception as err:
-            raise ScraperError(url=url) from err
-
-        return data
+            raise ScrapeError(url=url) from err
+        else:
+            return translation_data
 
     async def fetch_many(
         self,
@@ -116,5 +118,7 @@ class XkcdZHScraper(BaseScraper):
         return tooltip.strip(), translator_comment.strip()
 
     def _extract_image_url(self, soup: BeautifulSoup) -> URL:
-        image_url_rel_path = soup.find("div", {"class": "comic-body"}).find("img").get("src")[1:]
-        return self._BASE_URL / image_url_rel_path
+        image_url_rel_path = soup.find("div", {"class": "comic-body"}).find("img").get("src")
+        if image_url_rel_path:
+            return self._BASE_URL / str(image_url_rel_path)[1:]
+        raise ExtractError

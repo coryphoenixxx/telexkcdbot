@@ -13,13 +13,13 @@ class PublisherContainer:
     new_comic_publisher: AsyncAPIPublisher
 
     @singledispatchmethod
-    async def publish(self, msg: Any, **kwargs) -> NoReturn:
+    async def publish(self, msg: Any, **kwargs: Any) -> NoReturn:
         raise NotImplementedError
 
-    @publish.register
-    async def _(self, msg: ConvertImageMessage, **kwargs) -> None:
+    @publish.register  # type: ignore[arg-type]
+    async def _(self, msg: ConvertImageMessage, **kwargs: Any) -> None:
         await self.converter_publisher.publish(msg, **kwargs)
 
-    @publish.register
-    async def _(self, msg: NewComicMessage, **kwargs) -> None:
+    @publish.register  # type: ignore[arg-type]
+    async def _(self, msg: NewComicMessage, **kwargs: Any) -> None:
         await self.new_comic_publisher.publish(msg, **kwargs)

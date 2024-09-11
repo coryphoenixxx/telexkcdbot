@@ -129,7 +129,7 @@ class ComicWriteService:
 
     async def _create_image(
         self,
-        number: IssueNumber,
+        number: IssueNumber | None,
         dto: TranslationRequestDTO,
         translation_id: TranslationID,
     ) -> TranslationImageResponseDTO | None:
@@ -155,7 +155,7 @@ class ComicWriteService:
 
     async def _convert(self, image_dto: TranslationImageResponseDTO | None) -> None:
         if image_dto:
-            await self.publisher.publish(ConvertImageMessage(image_id=image_dto.id))
+            await self.publisher.publish(ConvertImageMessage(image_id=image_dto.id.value))
 
 
 @dataclass(slots=True, eq=False, frozen=True)

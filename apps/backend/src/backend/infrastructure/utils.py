@@ -8,7 +8,7 @@ T = TypeVar("T")
 
 def cast_or_none(cast_to: type["T"], value: Any) -> T | None:
     if value:
-        return cast_to(value)
+        return cast_to(value)  # type: ignore[call-arg]
     return None
 
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def slugify(
     string: str,
     separator: str = "-",
-    replacements: tuple[tuple[str, str]] = (
+    replacements: tuple[tuple[str, str], ...] = (
         ("+", " plus "),
         ("%", " pct "),
     ),

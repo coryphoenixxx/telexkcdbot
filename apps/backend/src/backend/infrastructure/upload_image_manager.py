@@ -90,9 +90,10 @@ class UploadImageManager:
 
     def _validate_format(self, path: Path) -> None:
         try:
-            with Image.open(path): ...
+            with Image.open(path) as img:
+                img.verify()
         except (UnidentifiedImageError, OSError):
             raise UploadedImageReadError from None
 
-        if image_format := filetype.guess_extension(path) not in self._supported_formats:
+        if (image_format := filetype.guess_extension(path)) not in self._supported_formats:
             raise UnsupportedImageFormatError(image_format, self._supported_formats)

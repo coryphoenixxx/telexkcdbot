@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from html import unescape
 from typing import NoReturn
 
-from sqlalchemy import delete, false, select, update
+from sqlalchemy import and_, delete, false, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import joinedload
@@ -29,15 +29,17 @@ class TranslationAlreadyExistsError(BaseAppError):
 
 @dataclass(slots=True, eq=False)
 class TranslationNotFoundError(BaseAppError):
-    value: int | Language
+    value: TranslationID | Language
 
     @property
     def message(self) -> str:
         match self.value:
             case TranslationID():
-                return f"Translation (id={self.value}) not found."
+                return f"Translation (id={self.value.value}) not found."
             case Language():
                 return f"Translation (lang={self.value}) not found."
+            case _:
+                raise ValueError("Invalid type.")
 
 
 SQUARE_BRACKETS_PATTERN = re.compile(r"\[.*?]")
@@ -75,7 +77,7 @@ class TranslationRepo(BaseRepo):
         stmt = (
             insert(TranslationModel)
             .values(
-                comic_id=comic_id,
+                comic_id=comic_id.value,
                 title=dto.title,
                 language=dto.language,
                 tooltip=dto.tooltip,
@@ -97,10 +99,14 @@ class TranslationRepo(BaseRepo):
 
         try:
             translation_id = await self._session.scalar(stmt)
+            if translation_id is None:
+                raise RepoError
         except IntegrityError as err:
             self._handle_db_error(comic_id, dto, err)
         else:
-            return TranslationResponseDTO.from_model(model=await self._get_by_id(translation_id))
+            return TranslationResponseDTO.from_model(
+                model=await self._get_by_id(TranslationID(translation_id))
+            )
 
     async def update(
         self,
@@ -109,7 +115,7 @@ class TranslationRepo(BaseRepo):
     ) -> TranslationResponseDTO:
         stmt = (
             update(TranslationModel)
-            .where(TranslationModel.translation_id == translation_id)
+            .where(and_(TranslationModel.translation_id == translation_id.value))
             .values(
                 title=dto.title,
                 language=dto.language,
@@ -130,11 +136,15 @@ class TranslationRepo(BaseRepo):
         )
 
         try:
-            translation_id = await self._session.scalar(stmt)
+            db_translation_id = await self._session.scalar(stmt)
+            if db_translation_id is None:
+                raise RepoError
         except IntegrityError as err:
             self._handle_db_error(None, dto, err)
         else:
-            return TranslationResponseDTO.from_model(model=await self._get_by_id(translation_id))
+            return TranslationResponseDTO.from_model(
+                model=await self._get_by_id(TranslationID(db_translation_id))
+            )
 
     async def update_original(
         self,
@@ -142,12 +152,15 @@ class TranslationRepo(BaseRepo):
         dto: TranslationRequestDTO,
     ) -> TranslationResponseDTO:
         stmt = select(TranslationModel.translation_id).where(
-            TranslationModel.comic_id == comic_id,
+            and_(TranslationModel.comic_id == comic_id.value),
             TranslationModel.language == Language.EN,
         )
         translation_id = await self._session.scalar(stmt)
 
-        return await self.update(translation_id, dto)
+        if translation_id is None:
+            raise RepoError
+
+        return await self.update(TranslationID(translation_id), dto)
 
     async def update_draft_status(
         self,
@@ -159,7 +172,9 @@ class TranslationRepo(BaseRepo):
         await self._session.flush()
 
     async def delete(self, translation_id: TranslationID) -> None:
-        stmt = delete(TranslationModel).where(TranslationModel.translation_id == translation_id)
+        stmt = delete(TranslationModel).where(
+            and_(TranslationModel.translation_id == translation_id.value)
+        )
         await self._session.execute(stmt)
 
     async def get_by_id(self, translation_id: TranslationID) -> TranslationResponseDTO:
@@ -174,9 +189,11 @@ class TranslationRepo(BaseRepo):
             select(TranslationModel)
             .options(joinedload(TranslationModel.image))
             .where(
-                TranslationModel.comic_id == comic_id,
-                TranslationModel.language == language,
-                TranslationModel.is_draft == false(),
+                and_(
+                    TranslationModel.comic_id == comic_id.value,
+                    TranslationModel.language == language,
+                    TranslationModel.is_draft == false(),
+                ),
             )
         )
 
@@ -194,7 +211,11 @@ class TranslationRepo(BaseRepo):
         if options is None:
             options = (joinedload(TranslationModel.image),)
 
-        translation = await self._get_model_by_id(TranslationModel, translation_id, options=options)
+        translation = await self._get_model_by_id(
+            TranslationModel,
+            translation_id.value,
+            options=options,
+        )
 
         if not translation:
             raise TranslationNotFoundError(translation_id)
@@ -211,7 +232,7 @@ class TranslationRepo(BaseRepo):
 
         if "uq_translation_if_not_draft" in cause:
             raise TranslationAlreadyExistsError(dto.language)
-        if "fk_translations_comic_id_comics" in cause:
+        if comic_id and "fk_translations_comic_id_comics" in cause:
             raise ComicNotFoundError(comic_id)
 
         raise RepoError from err

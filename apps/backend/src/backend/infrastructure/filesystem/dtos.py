@@ -9,7 +9,7 @@ class ImageFormat(StrEnum):
     AVIF = "avif"
 
     @classmethod
-    def _missing_(cls, value: str) -> None:
+    def _missing_(cls, value: object) -> "ImageFormat | None":
         if value == "jpeg":
             for member in cls:
                 if member.value == "jpg":

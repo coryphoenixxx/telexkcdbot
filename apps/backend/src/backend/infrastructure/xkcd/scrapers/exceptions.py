@@ -1,14 +1,16 @@
+from dataclasses import dataclass
+
 from yarl import URL
 
 
-class ScraperError(Exception):
-    def __init__(self, url: URL | str) -> None:
-        super().__init__()
-        self._message = f"Failed to scrape `{url}`."
+@dataclass(slots=True)
+class ExtractError(Exception): ...
+
+
+@dataclass(slots=True)
+class ScrapeError(Exception):
+    url: URL
 
     @property
     def message(self) -> str:
-        return self._message
-
-    def __str__(self) -> str:
-        return self.message
+        return f"Failed to scrape `{self.url}`."

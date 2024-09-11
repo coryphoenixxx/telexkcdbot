@@ -1,6 +1,6 @@
+import datetime as dt
 from copy import copy
 from dataclasses import dataclass
-from datetime import datetime as dt
 from pathlib import Path
 from typing import TYPE_CHECKING, Self
 
@@ -27,15 +27,15 @@ if TYPE_CHECKING:
 @dataclass(slots=True)
 class TranslationImageResponseDTO:
     id: TranslationImageID
-    translation_id: TranslationID
+    translation_id: TranslationID | None
     original: Path
     converted: Path | None
 
     @classmethod
     def from_model(cls, model: "TranslationImageModel") -> Self:
-        return TranslationImageResponseDTO(
+        return cls(
             id=TranslationImageID(model.image_id),
-            translation_id=TranslationID(model.translation_id),
+            translation_id=TranslationID(model.translation_id) if model.translation_id else None,
             original=Path(model.original),
             converted=cast_or_none(Path, model.converted),
         )
@@ -56,10 +56,10 @@ class TranslationResponseDTO:
 
     @classmethod
     def from_model(cls, model: "TranslationModel") -> Self:
-        return TranslationResponseDTO(
+        return cls(
             id=TranslationID(model.translation_id),
             comic_id=ComicID(model.comic_id),
-            language=model.language,
+            language=Language(model.language),
             title=model.title,
             tooltip=model.tooltip,
             raw_transcript=model.raw_transcript,
@@ -78,7 +78,7 @@ class TagResponseDTO:
 
     @classmethod
     def from_model(cls, model: "TagModel") -> Self:
-        return TagResponseDTO(
+        return cls(
             id=TagID(model.tag_id),
             name=TagName(model.name),
             is_blacklisted=model.is_blacklisted,
@@ -108,23 +108,19 @@ class ComicResponseDTO:
     def _separate_translations(
         translations: list["TranslationModel"],
     ) -> tuple["TranslationModel", list["TranslationModel"]]:
-        original_index = None
-
         for idx, tr in enumerate(translations):
             if tr.language == Language.EN:
-                original_index = idx
-
-        original = translations.pop(original_index)
-
-        return original, translations
+                original = translations.pop(idx)
+                return original, translations
+        raise ValueError("Comic model hasn't english translations.")
 
     @classmethod
     def from_model(cls, model: "ComicModel") -> Self:
         original, translations = cls._separate_translations(copy(model.translations))
 
-        return ComicResponseDTO(
+        return cls(
             id=ComicID(model.comic_id),
-            number=model.number,
+            number=IssueNumber(model.number) if model.number else None,
             title=original.title,
             translation_id=TranslationID(original.translation_id),
             publication_date=model.publication_date,
@@ -137,6 +133,6 @@ class ComicResponseDTO:
             image=(
                 TranslationImageResponseDTO.from_model(original.image) if original.image else None
             ),
-            has_translations=[tr.language for tr in translations],
+            has_translations=[Language(tr.language) for tr in translations],
             translations=[TranslationResponseDTO.from_model(t) for t in translations],
         )

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from functools import singledispatchmethod
 from typing import NoReturn
 
-from sqlalchemy import BinaryExpression, and_, delete, false, func, select, update
+from sqlalchemy import ColumnElement, and_, delete, false, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import contains_eager, joinedload, selectinload
@@ -24,15 +24,15 @@ ComicGetByType = ComicID | IssueNumber | str
 
 @dataclass(slots=True, eq=False)
 class ComicNotFoundError(BaseAppError):
-    value: int | str
+    value: ComicID | IssueNumber | str
 
     @property
     def message(self) -> str:
         match self.value:
             case ComicID():
-                return f"A comic (id={self.value}) not found."
+                return f"A comic (id={self.value.value}) not found."
             case IssueNumber():
-                return f"A comic (number={self.value}) not found."
+                return f"A comic (number={self.value.value}) not found."
             case str():
                 return f"A comic (slug=`{self.value}`) not found."
             case _:
@@ -41,11 +41,11 @@ class ComicNotFoundError(BaseAppError):
 
 @dataclass(slots=True, eq=False)
 class ComicNumberAlreadyExistsError(BaseAppError):
-    number: int
+    number: IssueNumber
 
     @property
     def message(self) -> str:
-        return f"A comic with this issue number ({self.number}) already exists."
+        return f"A comic with this issue number ({self.number.value}) already exists."
 
 
 @dataclass(slots=True, eq=False)
@@ -63,7 +63,7 @@ class ComicRepo(BaseRepo):
             comic_id = await self._session.scalar(
                 insert(ComicModel)
                 .values(
-                    number=dto.number,
+                    number=dto.number.value if dto.number else None,
                     slug=self._build_slug(dto.number, dto.title),
                     publication_date=dto.publication_date,
                     explain_url=dto.explain_url,
@@ -75,14 +75,16 @@ class ComicRepo(BaseRepo):
         except IntegrityError as err:
             self._handle_db_error(dto, err)
         else:
-            return ComicID(comic_id)
+            if comic_id:
+                return ComicID(comic_id)
+            raise RepoError
 
     async def update_base(self, comic_id: ComicID, dto: ComicRequestDTO) -> None:
         stmt = (
             update(ComicModel)
-            .where(ComicModel.comic_id == comic_id)
+            .where(and_(ComicModel.comic_id == comic_id.value))
             .values(
-                number=dto.number,
+                number=dto.number.value if dto.number else None,
                 slug=self._build_slug(dto.number, dto.title),
                 publication_date=dto.publication_date,
                 explain_url=dto.explain_url,
@@ -97,28 +99,30 @@ class ComicRepo(BaseRepo):
             self._handle_db_error(dto, err)
 
     async def delete(self, comic_id: ComicID) -> None:
-        await self._session.execute(delete(ComicModel).where(ComicModel.comic_id == comic_id))
+        await self._session.execute(
+            delete(ComicModel).where(and_(ComicModel.comic_id == comic_id.value))
+        )
 
     @singledispatchmethod
     async def get_by(self) -> NoReturn:
         raise NotImplementedError
 
-    @get_by.register
+    @get_by.register  # type: ignore[arg-type]
     async def _(self, value: ComicID) -> ComicResponseDTO:
-        return await self._get_by(value, and_(ComicModel.comic_id == value))
+        return await self._get_by(value, and_(ComicModel.comic_id == value.value))
 
-    @get_by.register
+    @get_by.register  # type: ignore[arg-type]
     async def _(self, value: IssueNumber) -> ComicResponseDTO:
-        return await self._get_by(value, and_(ComicModel.number == value))
+        return await self._get_by(value, and_(ComicModel.number == value.value))
 
-    @get_by.register
+    @get_by.register  # type: ignore[arg-type]
     async def _(self, value: str) -> ComicResponseDTO:
         return await self._get_by(value, and_(ComicModel.slug == value))
 
     async def _get_by(
         self,
         value: ComicGetByType,
-        where_clause: BinaryExpression[bool],
+        where_clause: ColumnElement[bool],
     ) -> ComicResponseDTO:
         stmt = (
             select(ComicModel)
@@ -190,10 +194,10 @@ class ComicRepo(BaseRepo):
         if result := (await self._session.execute(stmt)).unique().all():
             total, comics = result[0][1], [r[0] for r in result]
 
-        return total, [ComicResponseDTO.from_model(comic) for comic in comics]
+        return TotalCount(total), [ComicResponseDTO.from_model(comic) for comic in comics]
 
     async def get_issue_number_by_id(self, comic_id: ComicID) -> IssueNumber | None:
-        comic = await self._get_model_by_id(ComicModel, comic_id)
+        comic = await self._get_model_by_id(ComicModel, comic_id.value)
 
         if not comic:
             raise ComicNotFoundError(comic_id)
@@ -206,7 +210,7 @@ class ComicRepo(BaseRepo):
         stmt = (
             select(TranslationModel)
             .where(
-                TranslationModel.comic_id == comic_id,
+                and_(TranslationModel.comic_id == comic_id.value),
                 TranslationModel.is_draft == false(),
                 TranslationModel.language != Language.EN,
             )
@@ -217,13 +221,13 @@ class ComicRepo(BaseRepo):
 
         return [TranslationResponseDTO.from_model(model) for model in translations]
 
-    def _build_slug(self, number: int | None, en_title: str) -> str | None:
+    def _build_slug(self, number: IssueNumber | None, en_title: str) -> str | None:
         return slugify(en_title) if number is None else None
 
     def _handle_db_error(self, dto: ComicRequestDTO, err: DBAPIError) -> NoReturn:
         cause = str(err.__cause__)
 
-        if "uq_comic_number_if_not_extra" in cause:
+        if dto.number and "uq_comic_number_if_not_extra" in cause:
             raise ComicNumberAlreadyExistsError(dto.number)
         if "uq_comic_title_if_extra" in cause:
             raise ExtraComicTitleAlreadyExistsError(dto.title)

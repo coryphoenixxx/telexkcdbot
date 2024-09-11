@@ -76,14 +76,10 @@ class TempFileManager:
 
     async def remove_by_id(self, temp_file_id: TempFileID) -> None:
         path = self._temp_dir / str(temp_file_id)
-        if path.exists():
-            await aos.remove(path)
+        await aos.remove(path)
 
-    def get_abs_path_by_id(self, temp_file_id: TempFileID) -> Path | None:
-        path = self._temp_dir / str(temp_file_id)
-        if path.exists():
-            return path
-        return None
+    def get_abs_path_by_id(self, temp_file_id: TempFileID) -> Path:
+        return self._temp_dir / str(temp_file_id)
 
     def _generate_id(self) -> TempFileID:
         return TempFileID(uuid4())

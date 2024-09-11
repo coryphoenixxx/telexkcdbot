@@ -1,6 +1,8 @@
+# mypy: disable-error-code="union-attr"
+
 import re
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup, NavigableString, Tag
 from rich.progress import Progress
 from yarl import URL
 
@@ -9,7 +11,7 @@ from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import BaseScraper
 from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationScrapedData
-from backend.infrastructure.xkcd.scrapers.exceptions import ScraperError
+from backend.infrastructure.xkcd.scrapers.exceptions import ExtractError, ScrapeError
 from backend.infrastructure.xkcd.utils import run_concurrently
 
 DIV_CONTENT_PATTERN = re.compile(r"<div.*?>(.*?)</div>", flags=re.DOTALL)
@@ -34,7 +36,7 @@ class XkcdRUScraper(BaseScraper):
         soup = await self._get_soup(url)
 
         try:
-            data = XkcdTranslationScrapedData(
+            translation_data = XkcdTranslationScrapedData(
                 number=number,
                 source_url=url,
                 title=self._extract_title(soup),
@@ -45,9 +47,9 @@ class XkcdRUScraper(BaseScraper):
                 language="RU",
             )
         except Exception as err:
-            raise ScraperError(url) from err
-
-        return data
+            raise ScrapeError(url) from err
+        else:
+            return translation_data
 
     async def fetch_many(
         self,
@@ -88,35 +90,35 @@ class XkcdRUScraper(BaseScraper):
             if "large" in src:
                 image_url = src
 
-        return URL(image_url)
+        if image_url:
+            return URL(str(image_url))
+        raise ExtractError
 
     def _extract_transcript(self, soup: BeautifulSoup) -> str:
-        transcript_block = soup.find("div", {"class": "transcription"})
-        return self._extract_tag_content(
-            tag=transcript_block,
-            pattern=DIV_CONTENT_PATTERN,
-        )
+        if transcript_block := soup.find("div", {"class": "transcription"}):
+            return self._extract_tag_content(
+                tag=transcript_block,
+                pattern=DIV_CONTENT_PATTERN,
+            )
+        return ""
 
     def _extract_comment(self, soup: BeautifulSoup) -> str:
-        comment_block = soup.find("div", {"class": "comment"})
-
-        return self._extract_tag_content(
-            tag=comment_block,
-            pattern=DIV_CONTENT_PATTERN,
-        )
-
-    def _extract_tag_content(self, tag: Tag, pattern: str | re.Pattern[str]) -> str:
-        content = ""
-        if tag:
-            match = re.match(
-                pattern=pattern,
-                string=str(tag),
+        if comment_block := soup.find("div", {"class": "comment"}):
+            return self._extract_tag_content(
+                tag=comment_block,
+                pattern=DIV_CONTENT_PATTERN,
             )
-            if match:
-                content = re.sub(
-                    pattern=REPEATED_BR_TAG_PATTERN,
-                    repl="",
-                    string=match.group(1),
-                )
+        return ""
 
-        return content.strip()
+    def _extract_tag_content(
+        self,
+        tag: Tag | NavigableString,
+        pattern: str | re.Pattern[str],
+    ) -> str:
+        if tag and (match := re.match(pattern=pattern, string=str(tag))):
+            return re.sub(
+                pattern=REPEATED_BR_TAG_PATTERN,
+                repl="",
+                string=match.group(1),
+            ).strip()
+        return ""

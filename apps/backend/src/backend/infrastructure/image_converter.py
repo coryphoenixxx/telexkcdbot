@@ -2,7 +2,7 @@ import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
-import pillow_avif  # noqa: F401
+import pillow_avif  # type: ignore[import-untyped] # noqa: F401
 from PIL import Image, ImageSequence
 from PIL.Image import Image as ImageObj
 
@@ -18,10 +18,11 @@ class ImageConversionError(Exception):
 
     @property
     def message(self) -> str:
-        return f"The image (path={self.path.name}) was not converted. Reason: `{self.reason}`"
+        return f"The image (name={self.path.name}) was not converted. Reason: `{self.reason}`"
 
 
 class ImageConverter:
+    MAX_IMAGE_PIXELS: int = int(1024 * 1024 * 1024 // 4 // 3)
     MAX_WEBP_SIDE_SIZE = 16383
 
     def convert_to_webp(self, original: Path) -> Path:
@@ -55,7 +56,7 @@ class ImageConverter:
     def _has_too_large_side_sizes(self, image: ImageObj) -> bool:
         return any(
             [
-                (image.height * image.width) > Image.MAX_IMAGE_PIXELS,
+                (image.height * image.width) > self.MAX_IMAGE_PIXELS,
                 image.width > self.MAX_WEBP_SIDE_SIZE,
                 image.height > self.MAX_WEBP_SIDE_SIZE,
             ]

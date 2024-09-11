@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -26,7 +26,7 @@ from backend.presentation.api.routers import register_routers
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> Generator[None, None, None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     engine = await app.state.dishka_container.get(AsyncEngine)
     await check_db_connection(engine)
     yield

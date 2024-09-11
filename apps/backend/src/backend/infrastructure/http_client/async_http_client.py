@@ -1,10 +1,11 @@
 import asyncio
 import datetime as dt
 import json
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Iterable
 from contextlib import asynccontextmanager
 from dataclasses import asdict, is_dataclass
 from functools import partial
+from http.client import InvalidURL
 from types import TracebackType
 from typing import Any
 
@@ -23,7 +24,7 @@ from yarl import URL
 
 class JsonEncoder(json.JSONEncoder):
     def default(self, value: Any) -> Any:
-        if is_dataclass(value):
+        if is_dataclass(value) and not isinstance(value, type):
             return asdict(value)
         if isinstance(value, URL | dt.date):
             return str(value)
@@ -40,7 +41,7 @@ class AsyncHttpClient:
         timeout: int = 60,
         attempts: int = 5,
         start_timeout: float = 1,
-        exceptions: tuple[type[Exception]] | None = (
+        exceptions: Iterable[type[Exception]] = (
             TimeoutError,
             ServerConnectionError,
             ConnectionError,
@@ -51,7 +52,7 @@ class AsyncHttpClient:
         self._attempts = attempts
         self._start_timeout = start_timeout
         self._exceptions = exceptions
-        self._clients_cache = {}
+        self._clients_cache: dict[tuple[str, tuple[int, ...] | None], RetryClient] = {}
 
     async def __aenter__(self) -> "AsyncHttpClient":
         return self
@@ -68,8 +69,8 @@ class AsyncHttpClient:
     async def safe_get(
         self,
         url: URL,
-        retry_statuses: tuple[int] | None = (429, 500, 503),
-        **kwargs,
+        retry_statuses: tuple[int, ...] | None = (429, 500, 503),
+        **kwargs: Any,
     ) -> AsyncGenerator[ClientResponse, None]:
         async with self.safe_request(
             method="GET",
@@ -84,32 +85,34 @@ class AsyncHttpClient:
         self,
         method: str,
         url: URL,
-        retry_statuses: tuple[int] | None,
-        **kwargs,
+        retry_statuses: tuple[int, ...] | None,
+        **kwargs: Any,
     ) -> AsyncGenerator[ClientResponse, None]:
-        client: RetryClient = self._get_retry_client(url, retry_statuses)
+        if url.host is None:
+            raise InvalidURL(f"Invalid url ({url}).")
+        client: RetryClient = self._get_retry_client(url.host, retry_statuses)
 
         async with self._throttler, client.request(method=method, url=url, **kwargs) as response:
             yield response
 
     def _get_retry_client(
         self,
-        url: URL,
-        retry_statuses: tuple[int] | None,
+        host: str,
+        retry_statuses: tuple[int, ...] | None,
     ) -> RetryClient:
-        if client := self._clients_cache.get((url.host, retry_statuses)):
+        if client := self._clients_cache.get((host, retry_statuses)):
             return client
         client = self._create_retry_client(retry_statuses)
-        self._clients_cache[(url.host, retry_statuses)] = client
+        self._clients_cache[(host, retry_statuses)] = client
         return client
 
-    def _create_retry_client(self, retry_statuses: tuple[int] | None) -> RetryClient:
+    def _create_retry_client(self, retry_statuses: tuple[int, ...] | None) -> RetryClient:
         return RetryClient(
             raise_for_status=False,
             retry_options=ExponentialRetry(
                 attempts=self._attempts,
                 start_timeout=self._start_timeout,
-                exceptions=self._exceptions,
+                exceptions=set(self._exceptions),
                 retry_all_server_errors=False,
                 statuses=set(retry_statuses) if retry_statuses else None,
             ),

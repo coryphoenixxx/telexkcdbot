@@ -51,10 +51,7 @@ class TranslationImageModel(BaseModel, TimestampMixin):
     translation: Mapped["TranslationModel"] = relationship(back_populates="image")
 
     def __str__(self) -> str:
-        return (
-            f"{self.__class__.__name__}"
-            f"(id={self.image_id}, original_rel_path={self.original})"
-        )
+        return f"{self.__class__.__name__}(id={self.image_id}, original_rel_path={self.original})"
 
     def __repr__(self) -> str:
         return str(self)

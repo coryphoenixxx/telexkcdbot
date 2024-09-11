@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from starlette import status
 from starlette.responses import RedirectResponse
 
-from backend.presentation.api.controllers.schemas.responses import OKResponseSchema
+from backend.presentation.api.controllers.schemas import OKResponseSchema
 
 router = APIRouter(prefix="")
 
