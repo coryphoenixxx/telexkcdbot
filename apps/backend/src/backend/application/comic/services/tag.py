@@ -1,16 +1,16 @@
 from dataclasses import dataclass
 
-from backend.application.dtos import TagResponseDTO, TagUpdateDTO
+from backend.application.comic.dtos import TagResponseDTO, TagUpdateDTO
+from backend.application.comic.interfaces import TagRepoInterface
+from backend.application.common.interfaces import TransactionManagerInterface
+from backend.application.utils import slugify
 from backend.core.value_objects import TagID
-from backend.infrastructure.database.repositories.tag import TagRepo
-from backend.infrastructure.database.transaction import TransactionManager
-from backend.infrastructure.utils import slugify
 
 
-@dataclass(slots=True, eq=False, frozen=True)
+@dataclass(slots=True)
 class TagService:
-    transaction: TransactionManager
-    repo: TagRepo
+    transaction: TransactionManagerInterface
+    repo: TagRepoInterface
 
     async def update(
         self,

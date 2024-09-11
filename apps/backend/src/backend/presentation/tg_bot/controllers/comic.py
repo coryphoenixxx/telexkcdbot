@@ -12,7 +12,7 @@ from aiogram.types import (
 from aiogram.utils.markdown import hbold, hlink
 from dishka import FromDishka
 
-from backend.application.services.comic import ComicReadService
+from backend.application.comic.services import ComicReadService
 from backend.core.value_objects import IssueNumber
 from backend.main.configs.bot import BotConfig
 from backend.presentation.api.controllers.schemas import (

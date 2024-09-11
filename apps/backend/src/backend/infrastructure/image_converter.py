@@ -1,29 +1,23 @@
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
+from typing import ClassVar
 
 import pillow_avif  # type: ignore[import-untyped] # noqa: F401
 from PIL import Image, ImageSequence
 from PIL.Image import Image as ImageObj
 
-from backend.infrastructure.filesystem.dtos import ImageFormat
+from backend.application.comic.exceptions.translation_image import ImageConversionError
+from backend.application.comic.interfaces.image_converter import ImageConverterInterface
+from backend.application.common.dtos import ImageFormat
 
 warnings.simplefilter("ignore", Image.DecompressionBombWarning)
 
 
-@dataclass(frozen=True, eq=False, slots=True)
-class ImageConversionError(Exception):
-    path: Path
-    reason: str
-
-    @property
-    def message(self) -> str:
-        return f"The image (name={self.path.name}) was not converted. Reason: `{self.reason}`"
-
-
-class ImageConverter:
-    MAX_IMAGE_PIXELS: int = int(1024 * 1024 * 1024 // 4 // 3)
-    MAX_WEBP_SIDE_SIZE = 16383
+@dataclass(slots=True)
+class ImageConverter(ImageConverterInterface):
+    MAX_IMAGE_PIXELS: ClassVar[int] = int(1024 * 1024 * 1024 // 4 // 3)
+    MAX_WEBP_SIDE_SIZE: ClassVar[int] = 16383
 
     def convert_to_webp(self, original: Path) -> Path:
         with Image.open(original) as image:

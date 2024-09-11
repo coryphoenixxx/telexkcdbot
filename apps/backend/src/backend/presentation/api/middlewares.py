@@ -10,23 +10,20 @@ from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-from backend.application.services.comic import (
-    OriginalTranslationOperationForbiddenError,
-    TranslationIsAlreadyPublishedError,
-)
-from backend.core.exceptions.base import BaseAppError
-from backend.infrastructure.database.repositories.comic import (
+from backend.application.comic.exceptions import (
     ComicNotFoundError,
     ComicNumberAlreadyExistsError,
     ExtraComicTitleAlreadyExistsError,
-)
-from backend.infrastructure.database.repositories.tag import TagNameUniqueError, TagNotFoundError
-from backend.infrastructure.database.repositories.translation import (
+    OriginalTranslationOperationForbiddenError,
+    TagNameUniqueError,
+    TagNotFoundError,
+    TempImageNotFoundError,
     TranslationAlreadyExistsError,
+    TranslationIsAlreadyPublishedError,
     TranslationNotFoundError,
 )
-from backend.infrastructure.filesystem.translation_image_file_manager import TempImageNotFoundError
-from backend.infrastructure.upload_image_manager import (
+from backend.application.common.exceptions import BaseAppError
+from backend.application.upload.exceptions import (
     UnsupportedImageFormatError,
     UploadedImageReadError,
     UploadImageIsEmptyError,
@@ -36,7 +33,7 @@ from backend.infrastructure.upload_image_manager import (
 logger = logging.getLogger(__name__)
 
 
-@dataclass(slots=True, eq=False)
+@dataclass(slots=True)
 class AppErrorIsNotRegisteredError(Exception):
     err_name: str
 

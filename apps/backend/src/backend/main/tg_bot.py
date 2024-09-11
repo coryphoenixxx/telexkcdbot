@@ -20,7 +20,7 @@ from backend.main.ioc.providers import (
     ConfigsProvider,
     DatabaseProvider,
     FileManagersProvider,
-    PublisherContainerProvider,
+    PublisherRouterProvider,
     RepositoriesProvider,
     TranslationImageServiceProvider,
 )
@@ -88,7 +88,7 @@ def main() -> None:
         DatabaseProvider(),
         FileManagersProvider(),
         RepositoriesProvider(),
-        PublisherContainerProvider(),
+        PublisherRouterProvider(),
         ComicServicesProvider(),
         TranslationImageServiceProvider(),
     )

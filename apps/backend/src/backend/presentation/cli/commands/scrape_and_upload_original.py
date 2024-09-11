@@ -4,13 +4,16 @@ import click
 from dishka import AsyncContainer
 from rich.progress import Progress
 
-from backend.application.dtos import ComicRequestDTO, ComicResponseDTO
-from backend.application.services import ComicReadService, ComicWriteService
+from backend.application.comic.dtos import ComicRequestDTO, ComicResponseDTO
+from backend.application.comic.services import ComicReadService, ComicWriteService
+from backend.application.upload.upload_image_manager import UploadImageManager
+from backend.application.utils import cast_or_none
 from backend.core.value_objects import IssueNumber, TagName
-from backend.infrastructure.upload_image_manager import UploadImageManager
-from backend.infrastructure.utils import cast_or_none
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers import XkcdExplainScraper, XkcdOriginalScraper
+from backend.infrastructure.xkcd.scrapers import (
+    XkcdExplainScraper,
+    XkcdOriginalScraper,
+)
 from backend.infrastructure.xkcd.scrapers.dtos import (
     LimitParams,
     XkcdOriginalWithExplainScrapedData,

@@ -4,11 +4,15 @@ from typing import Any, NoReturn
 
 from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
 
-from backend.infrastructure.broker.messages import ConvertImageMessage, NewComicMessage
+from backend.application.common.interfaces import (
+    ConvertImageMessage,
+    NewComicMessage,
+    PublisherRouterInterface,
+)
 
 
-@dataclass(slots=True, eq=False)
-class PublisherContainer:
+@dataclass(slots=True)
+class PublisherRouter(PublisherRouterInterface):
     converter_publisher: AsyncAPIPublisher
     new_comic_publisher: AsyncAPIPublisher
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from backend.application.dtos import (
+from backend.application.comic.dtos import (
     ComicRequestDTO,
     ComicResponseDTO,
     TranslationImageRequestDTO,
@@ -8,51 +8,42 @@ from backend.application.dtos import (
     TranslationRequestDTO,
     TranslationResponseDTO,
 )
-from backend.core.exceptions.base import BaseAppError
-from backend.core.value_objects import ComicID, IssueNumber, Language, TranslationID
-from backend.infrastructure.broker.messages import ConvertImageMessage
-from backend.infrastructure.broker.publisher_contrainer import PublisherContainer
-from backend.infrastructure.database.dtos import ComicFilterParams, Limit, Order, TotalCount
-from backend.infrastructure.database.repositories import (
-    ComicRepo,
-    TagRepo,
-    TranslationImageRepo,
-    TranslationRepo,
+from backend.application.comic.exceptions import (
+    OriginalTranslationOperationForbiddenError,
+    TranslationIsAlreadyPublishedError,
+    TranslationNotFoundError,
 )
-from backend.infrastructure.database.repositories.translation import TranslationNotFoundError
-from backend.infrastructure.database.transaction import TransactionManager
-from backend.infrastructure.filesystem import TranslationImageFileManager
+from backend.application.comic.interfaces import (
+    ComicRepoInterface,
+    TagRepoInterface,
+    TranslationImageRepoInterface,
+    TranslationRepoInterface,
+)
+from backend.application.common.interfaces import (
+    ConvertImageMessage,
+    PublisherRouterInterface,
+    TransactionManagerInterface,
+    TranslationImageFileManagerInterface,
+)
+from backend.application.common.pagination import ComicFilterParams, Limit, Order, TotalCount
+from backend.core.value_objects import ComicID, IssueNumber, Language, TranslationID
 
 
-@dataclass(slots=True, eq=False)
-class OriginalTranslationOperationForbiddenError(BaseAppError):
-    @property
-    def message(self) -> str:
-        return "Operations on English translation are forbidden."
-
-
-@dataclass(slots=True, eq=False)
-class TranslationIsAlreadyPublishedError(BaseAppError):
-    @property
-    def message(self) -> str:
-        return "The translation has already been published."
-
-
-@dataclass(slots=True, eq=False, frozen=True)
+@dataclass(slots=True)
 class ComicWriteService:
-    transaction: TransactionManager
-    comic_repo: ComicRepo
-    translation_repo: TranslationRepo
-    translation_image_repo: TranslationImageRepo
-    tag_repo: TagRepo
-    image_file_manager: TranslationImageFileManager
-    publisher: PublisherContainer
+    transaction: TransactionManagerInterface
+    comic_repo: ComicRepoInterface
+    translation_repo: TranslationRepoInterface
+    translation_image_repo: TranslationImageRepoInterface
+    tag_repo: TagRepoInterface
+    image_file_manager: TranslationImageFileManagerInterface
+    publisher: PublisherRouterInterface
 
     async def create(self, dto: ComicRequestDTO) -> ComicResponseDTO:
-        comic_id = await self.comic_repo.create_base(dto)
+        comic_id = await self.comic_repo.create(dto)
         await self.tag_repo.create_many(comic_id, dto.tags)
         translation = await self.translation_repo.create(comic_id, dto.original)
-        image_dto = await self._create_image(dto.number, dto.original, translation.id)
+        image_dto = await self._create_image(translation.id, dto.number, dto.original)
 
         await self.transaction.commit()
 
@@ -61,10 +52,10 @@ class ComicWriteService:
         return await self.comic_repo.get_by(comic_id)
 
     async def update(self, comic_id: ComicID, dto: ComicRequestDTO) -> ComicResponseDTO:
-        await self.comic_repo.update_base(comic_id, dto)
+        await self.comic_repo.update(comic_id, dto)
         await self.tag_repo.create_many(comic_id, dto.tags)
         translation = await self.translation_repo.update_original(comic_id, dto.original)
-        image_dto = await self._create_image(dto.number, dto.original, translation.id)
+        image_dto = await self._create_image(translation.id, dto.number, dto.original)
 
         await self.transaction.commit()
 
@@ -82,7 +73,7 @@ class ComicWriteService:
 
         translation = await self.translation_repo.create(comic_id, dto)
         number = await self.comic_repo.get_issue_number_by_id(comic_id)
-        image_dto = await self._create_image(number, dto, translation.id)
+        image_dto = await self._create_image(translation.id, number, dto)
 
         await self.transaction.commit()
 
@@ -104,7 +95,7 @@ class ComicWriteService:
 
         translation = await self.translation_repo.update(translation_id, dto)
         number = await self.comic_repo.get_issue_number_by_id(translation.comic_id)
-        image_dto = await self._create_image(number, dto, translation.id)
+        image_dto = await self._create_image(translation.id, number, dto)
 
         await self.transaction.commit()
 
@@ -129,14 +120,14 @@ class ComicWriteService:
 
     async def _create_image(
         self,
+        translation_id: TranslationID,
         number: IssueNumber | None,
         dto: TranslationRequestDTO,
-        translation_id: TranslationID,
     ) -> TranslationImageResponseDTO | None:
         image_dto = None
 
         if dto.temp_image_id:
-            image_rel_path = await self.image_file_manager.save(
+            image_rel_path = await self.image_file_manager.persist(
                 temp_image_id=dto.temp_image_id,
                 number=number,
                 title=dto.title,
@@ -158,11 +149,11 @@ class ComicWriteService:
             await self.publisher.publish(ConvertImageMessage(image_id=image_dto.id.value))
 
 
-@dataclass(slots=True, eq=False, frozen=True)
+@dataclass(slots=True)
 class ComicDeleteService:
-    transaction: TransactionManager
-    comic_repo: ComicRepo
-    translation_repo: TranslationRepo
+    transaction: TransactionManagerInterface
+    comic_repo: ComicRepoInterface
+    translation_repo: TranslationRepoInterface
 
     async def delete(self, comic_id: ComicID) -> None:
         await self.comic_repo.delete(comic_id)
@@ -178,10 +169,10 @@ class ComicDeleteService:
         await self.transaction.commit()
 
 
-@dataclass(slots=True, eq=False, frozen=True)
+@dataclass(slots=True)
 class ComicReadService:
-    comic_repo: ComicRepo
-    translation_repo: TranslationRepo
+    comic_repo: ComicRepoInterface
+    translation_repo: TranslationRepoInterface
 
     async def get_by_id(self, comic_id: ComicID) -> ComicResponseDTO:
         return await self.comic_repo.get_by(comic_id)

@@ -1,9 +1,9 @@
 from dishka import FromDishka
 from faststream.nats import JStream, NatsRouter
 
-from backend.application.services import TranslationImageService
+from backend.application.comic.services import TranslationImageService
+from backend.application.common.interfaces import ConvertImageMessage
 from backend.core.value_objects import TranslationImageID
-from backend.infrastructure.broker.messages import ConvertImageMessage
 
 router = NatsRouter()
 

@@ -1,11 +1,11 @@
 from .comic import ComicDeleteService, ComicReadService, ComicWriteService
-from .image import TranslationImageService
 from .tag import TagService
+from .translation_image import TranslationImageService
 
 __all__ = [
-    "ComicDeleteService",
-    "ComicReadService",
     "ComicWriteService",
+    "ComicReadService",
+    "ComicDeleteService",
     "TranslationImageService",
     "TagService",
 ]

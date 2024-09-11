@@ -7,30 +7,13 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import joinedload
 
-from backend.application.dtos import TagResponseDTO
-from backend.core.exceptions.base import BaseAppError
+from backend.application.comic.dtos import TagResponseDTO
+from backend.application.comic.exceptions import TagNameUniqueError, TagNotFoundError
+from backend.application.comic.interfaces import TagRepoInterface
+from backend.application.utils import slugify
 from backend.core.value_objects import ComicID, TagID, TagName
 from backend.infrastructure.database.models import ComicModel, TagModel
-from backend.infrastructure.database.repositories.base import BaseRepo, RepoError
-from backend.infrastructure.utils import slugify
-
-
-@dataclass(slots=True, eq=False)
-class TagNotFoundError(BaseAppError):
-    tag_id: int
-
-    @property
-    def message(self) -> str:
-        return f"A tag (id={self.tag_id}) not found."
-
-
-@dataclass(slots=True, eq=False)
-class TagNameUniqueError(BaseAppError):
-    name: str
-
-    @property
-    def message(self) -> str:
-        return f"A tag name ({self.name}) already exists."
+from backend.infrastructure.database.repositories import BaseRepo, RepoError
 
 
 @dataclass(slots=True)
@@ -42,7 +25,7 @@ class TempTag:
         self.slug = slugify(self.name)
 
 
-class TagRepo(BaseRepo):
+class TagRepo(BaseRepo, TagRepoInterface):
     async def create_many(
         self,
         comic_id: ComicID,
@@ -78,7 +61,7 @@ class TagRepo(BaseRepo):
         if comic:
             comic.tags = list(db_tags)
 
-        return [TagResponseDTO.from_model(tag) for tag in db_tags]
+        return [tag.to_dto() for tag in db_tags]
 
     async def update(self, tag_id: TagID, data: dict[str, Any]) -> TagResponseDTO:
         if data:
@@ -88,13 +71,16 @@ class TagRepo(BaseRepo):
             except IntegrityError as err:
                 self._handle_db_error(data["name"], err)
 
-        return TagResponseDTO.from_model(await self._get_by_id(tag_id))
+        tag = await self._get_by_id(tag_id)
+
+        return tag.to_dto()
 
     async def delete(self, tag_id: TagID) -> None:
         await self._session.execute(delete(TagModel).where(and_(TagModel.tag_id == tag_id.value)))
 
     async def get_by_id(self, tag_id: TagID) -> TagResponseDTO:
-        return TagResponseDTO.from_model(await self._get_by_id(tag_id))
+        tag = await self._get_by_id(tag_id)
+        return tag.to_dto()
 
     async def _get_by_id(self, tag_id: TagID) -> TagModel:
         tag = await self._get_model_by_id(TagModel, tag_id.value)

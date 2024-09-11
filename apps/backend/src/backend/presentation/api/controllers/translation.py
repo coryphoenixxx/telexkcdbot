@@ -3,18 +3,20 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter
 from starlette import status
 
-from backend.application.services import ComicDeleteService, ComicReadService, ComicWriteService
-from backend.application.services.comic import (
+from backend.application.comic.exceptions import (
+    ComicNotFoundError,
     OriginalTranslationOperationForbiddenError,
-    TranslationIsAlreadyPublishedError,
-)
-from backend.core.value_objects import ComicID, Language, TranslationID
-from backend.infrastructure.database.repositories.comic import ComicNotFoundError
-from backend.infrastructure.database.repositories.translation import (
+    TempImageNotFoundError,
     TranslationAlreadyExistsError,
+    TranslationIsAlreadyPublishedError,
     TranslationNotFoundError,
 )
-from backend.infrastructure.filesystem.translation_image_file_manager import TempImageNotFoundError
+from backend.application.comic.services.comic import (
+    ComicDeleteService,
+    ComicReadService,
+    ComicWriteService,
+)
+from backend.core.value_objects import ComicID, Language, TranslationID
 from backend.presentation.api.controllers.schemas import (
     TranslationDraftRequestSchema,
     TranslationRequestSchema,

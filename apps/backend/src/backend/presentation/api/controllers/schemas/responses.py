@@ -4,15 +4,15 @@ from typing import TYPE_CHECKING, Self
 
 from pydantic import BaseModel, HttpUrl, PositiveInt
 
+from backend.application.common.pagination import TotalCount
+from backend.application.utils import cast_or_none
 from backend.core.value_objects import (
     Language,
     TempFileID,
 )
-from backend.infrastructure.database.dtos import TotalCount
-from backend.infrastructure.utils import cast_or_none
 
 if TYPE_CHECKING:
-    from backend.application.dtos import (
+    from backend.application.comic.dtos import (
         ComicResponseDTO,
         TagResponseDTO,
         TranslationImageResponseDTO,

@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-@dataclass
+@dataclass(slots=True)
 class LoadConfigError(Exception):
     message: str
 

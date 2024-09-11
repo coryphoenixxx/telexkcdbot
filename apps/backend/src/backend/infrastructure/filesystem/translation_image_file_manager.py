@@ -1,4 +1,3 @@
-import logging
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -9,36 +8,27 @@ from aiofiles import os as aos
 from filetype import filetype
 from PIL import Image
 
-from backend.core.exceptions.base import BaseAppError
+from backend.application.common.dtos import ImageFormat
+from backend.application.common.interfaces.file_storages import TranslationImageFileManagerInterface
+from backend.application.utils import slugify
 from backend.core.value_objects import IssueNumber, Language, TempFileID
-from backend.infrastructure.filesystem.dtos import ImageFormat
 from backend.infrastructure.filesystem.temp_file_manager import TempFileManager
-from backend.infrastructure.utils import slugify
 
 
 @dataclass(slots=True)
-class TempImageNotFoundError(BaseAppError):
-    temp_image_id: str
-
-    @property
-    def message(self) -> str:
-        return f"A temp image (id=`{self.temp_image_id}`) not found."
-
-
-@dataclass(frozen=True, slots=True)
 class Dimensions:
     width: int
     height: int
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class ImageObj:
     path: Path
     fmt: ImageFormat
     dimensions: Dimensions
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class TranslationImageMeta:
     number: IssueNumber | None
     title: str
@@ -46,27 +36,20 @@ class TranslationImageMeta:
     is_draft: bool
 
 
-class TranslationImageFileManager:
-    def __init__(
-        self,
-        static_dir: Path,
-        temp_file_manager: TempFileManager,
-    ) -> None:
-        self._static_dir = static_dir
-        self._temp_file_manager = temp_file_manager
+@dataclass(slots=True)
+class TranslationImageFileManager(TranslationImageFileManagerInterface):
+    static_dir: Path
+    temp_file_manager: TempFileManager
 
-    async def save(
+    async def persist(
         self,
         temp_image_id: TempFileID,
         number: IssueNumber | None,
         title: str,
-        language: Language = Language.EN,
-        is_draft: bool = False,
+        language: Language,
+        is_draft: bool,
     ) -> Path:
-        temp_image_path = self._temp_file_manager.get_abs_path_by_id(temp_image_id)
-
-        if not temp_image_path:
-            raise TempImageNotFoundError(str(temp_image_id))
+        temp_image_path = self.temp_file_manager.get_abs_path_by_id(temp_image_id)
 
         image = ImageObj(
             path=temp_image_path,
@@ -82,26 +65,21 @@ class TranslationImageFileManager:
 
         await aos.makedirs(abs_path.parent, exist_ok=True)
 
-        try:
-            shutil.move(image.path, abs_path)
-        except FileNotFoundError as err:
-            logging.exception("%s: %s", err.strerror, image.path)
-            raise
+        shutil.move(image.path, abs_path)
 
         return image_rel_path
 
     def rel_to_abs(self, path: Path) -> Path:
-        return self._static_dir / path
+        return self.static_dir / path
 
-    def abs_to_rel(self, path: Path | None) -> Path | None:
-        if path:
-            return path.relative_to(self._static_dir)
-        return None
+    def abs_to_rel(self, path: Path) -> Path:
+        return path.relative_to(self.static_dir)
 
     def _get_dimensions(self, path: Path) -> Dimensions:
         w, h = imagesize.get(path)
         if w != -1 and h != -1:
             return Dimensions(width=w, height=h)
+
         # avif
         with Image.open(path) as image:
             return Dimensions(width=image.width, height=image.height)
@@ -126,8 +104,3 @@ class TranslationImageFileManager:
                 raise ValueError("Invalid translation image path metadata.")
 
         return Path("images/comics/") / path
-
-    def delete(self, path: Path) -> None:
-        abs_path = self.rel_to_abs(path)
-        if abs_path.exists():
-            Path.unlink(abs_path)

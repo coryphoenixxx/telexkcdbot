@@ -7,10 +7,10 @@ import re
 from rich.progress import Progress
 from yarl import URL
 
+from backend.application.utils import cast_or_none
 from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.http_client import AsyncHttpClient
-from backend.infrastructure.http_client.dtos import HTTPStatusCodes
-from backend.infrastructure.utils import cast_or_none
+from backend.infrastructure.http_client.http_codes import HTTPStatusCodes
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import BaseScraper
 from backend.infrastructure.xkcd.scrapers.dtos import (

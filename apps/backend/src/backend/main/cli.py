@@ -10,7 +10,7 @@ from backend.main.ioc.providers import (
     DatabaseProvider,
     FileManagersProvider,
     HTTPProviders,
-    PublisherContainerProvider,
+    PublisherRouterProvider,
     RepositoriesProvider,
     ScrapersProvider,
     TagServiceProvider,
@@ -42,7 +42,7 @@ def main(context: click.Context) -> None:
         TranslationImageServiceProvider(),
         TagServiceProvider(),
         RepositoriesProvider(),
-        PublisherContainerProvider(),
+        PublisherRouterProvider(),
     )
 
     context.meta["container"] = container

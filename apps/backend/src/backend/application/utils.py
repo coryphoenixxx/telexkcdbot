@@ -3,6 +3,8 @@ from typing import Any, TypeVar
 
 from slugify import slugify as base_slugify
 
+logger = logging.getLogger(__name__)
+
 T = TypeVar("T")
 
 
@@ -10,9 +12,6 @@ def cast_or_none(cast_to: type["T"], value: Any) -> T | None:
     if value:
         return cast_to(value)  # type: ignore[call-arg]
     return None
-
-
-logger = logging.getLogger(__name__)
 
 
 def slugify(

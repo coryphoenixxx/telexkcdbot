@@ -7,15 +7,14 @@ from annotated_types import Ge
 
 from backend.core.value_objects import TagName
 
+TotalCount = NewType("TotalCount", Annotated[int, Ge(0)])
+Limit = NewType("Limit", Annotated[int, Ge(0)])
+Offset = NewType("Offset", Annotated[int, Ge(0)])
+
 
 class Order(StrEnum):
     ASC = "asc"
     DESC = "desc"
-
-
-TotalCount = NewType("TotalCount", Annotated[int, Ge(0)])
-Limit = NewType("Limit", Annotated[int, Ge(0)])
-Offset = NewType("Offset", Annotated[int, Ge(0)])
 
 
 class TagParam(StrEnum):

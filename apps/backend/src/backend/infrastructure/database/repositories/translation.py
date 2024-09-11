@@ -1,6 +1,5 @@
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
 from html import unescape
 from typing import NoReturn
 
@@ -10,37 +9,16 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.interfaces import ORMOption
 
-from backend.application.dtos import TranslationRequestDTO, TranslationResponseDTO
-from backend.core.exceptions.base import BaseAppError
+from backend.application.comic.dtos import TranslationRequestDTO, TranslationResponseDTO
+from backend.application.comic.exceptions import (
+    ComicNotFoundError,
+    TranslationAlreadyExistsError,
+    TranslationNotFoundError,
+)
+from backend.application.comic.interfaces import TranslationRepoInterface
 from backend.core.value_objects import ComicID, Language, TranslationID
 from backend.infrastructure.database.models import TranslationModel
-from backend.infrastructure.database.repositories.base import BaseRepo, RepoError
-from backend.infrastructure.database.repositories.comic import ComicNotFoundError
-
-
-@dataclass(slots=True, eq=False)
-class TranslationAlreadyExistsError(BaseAppError):
-    language: Language
-
-    @property
-    def message(self) -> str:
-        return f"A comic already has a translation into this language ({self.language})."
-
-
-@dataclass(slots=True, eq=False)
-class TranslationNotFoundError(BaseAppError):
-    value: TranslationID | Language
-
-    @property
-    def message(self) -> str:
-        match self.value:
-            case TranslationID():
-                return f"Translation (id={self.value.value}) not found."
-            case Language():
-                return f"Translation (lang={self.value}) not found."
-            case _:
-                raise ValueError("Invalid type.")
-
+from backend.infrastructure.database.repositories import BaseRepo, RepoError
 
 SQUARE_BRACKETS_PATTERN = re.compile(r"\[.*?]")
 HTML_TAG_PATTERN = re.compile(r"<.*?>")
@@ -68,7 +46,7 @@ def build_searchable_text(title: str, raw_transcript: str) -> str:
     return (title.lower() + " :: " + normalized.strip().lower())[:3800]
 
 
-class TranslationRepo(BaseRepo):
+class TranslationRepo(BaseRepo, TranslationRepoInterface):
     async def create(
         self,
         comic_id: ComicID,
@@ -104,9 +82,8 @@ class TranslationRepo(BaseRepo):
         except IntegrityError as err:
             self._handle_db_error(comic_id, dto, err)
         else:
-            return TranslationResponseDTO.from_model(
-                model=await self._get_by_id(TranslationID(translation_id))
-            )
+            translation = await self._get_by_id(TranslationID(translation_id))
+            return translation.to_dto()
 
     async def update(
         self,
@@ -142,9 +119,8 @@ class TranslationRepo(BaseRepo):
         except IntegrityError as err:
             self._handle_db_error(None, dto, err)
         else:
-            return TranslationResponseDTO.from_model(
-                model=await self._get_by_id(TranslationID(db_translation_id))
-            )
+            translation = await self._get_by_id(TranslationID(db_translation_id))
+            return translation.to_dto()
 
     async def update_original(
         self,
@@ -178,7 +154,8 @@ class TranslationRepo(BaseRepo):
         await self._session.execute(stmt)
 
     async def get_by_id(self, translation_id: TranslationID) -> TranslationResponseDTO:
-        return TranslationResponseDTO.from_model(model=await self._get_by_id(translation_id))
+        translation = await self._get_by_id(translation_id)
+        return translation.to_dto()
 
     async def get_by_language(
         self,
@@ -200,7 +177,7 @@ class TranslationRepo(BaseRepo):
         translation = (await self._session.scalars(stmt)).unique().one_or_none()
 
         if translation:
-            return TranslationResponseDTO.from_model(translation)
+            return translation.to_dto()
         return None
 
     async def _get_by_id(

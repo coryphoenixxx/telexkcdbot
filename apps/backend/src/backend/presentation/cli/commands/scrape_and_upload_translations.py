@@ -4,12 +4,12 @@ import random
 import click
 from dishka import AsyncContainer
 
-from backend.application.dtos import TranslationRequestDTO, TranslationResponseDTO
-from backend.application.services.comic import ComicReadService, ComicWriteService
+from backend.application.comic.dtos import TranslationRequestDTO, TranslationResponseDTO
+from backend.application.comic.services import ComicReadService, ComicWriteService
+from backend.application.common.pagination import ComicFilterParams
+from backend.application.upload.upload_image_manager import UploadImageManager
+from backend.application.utils import cast_or_none
 from backend.core.value_objects import ComicID, Language
-from backend.infrastructure.database.dtos import ComicFilterParams
-from backend.infrastructure.upload_image_manager import UploadImageManager
-from backend.infrastructure.utils import cast_or_none
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 from backend.infrastructure.xkcd.scrapers import (
     XkcdDEScraper,

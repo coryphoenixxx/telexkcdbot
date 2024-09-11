@@ -8,9 +8,18 @@ from fastapi import APIRouter, Query
 from pydantic import PositiveInt
 from starlette import status
 
-from backend.application.services import ComicDeleteService, ComicReadService, ComicWriteService
-from backend.core.value_objects import ComicID, IssueNumber, Language, TagName
-from backend.infrastructure.database.dtos import (
+from backend.application.comic.exceptions import (
+    ComicNotFoundError,
+    ComicNumberAlreadyExistsError,
+    ExtraComicTitleAlreadyExistsError,
+    TempImageNotFoundError,
+)
+from backend.application.comic.services.comic import (
+    ComicDeleteService,
+    ComicReadService,
+    ComicWriteService,
+)
+from backend.application.common.pagination import (
     ComicFilterParams,
     DateRange,
     Limit,
@@ -18,12 +27,7 @@ from backend.infrastructure.database.dtos import (
     Order,
     TagParam,
 )
-from backend.infrastructure.database.repositories.comic import (
-    ComicNotFoundError,
-    ComicNumberAlreadyExistsError,
-    ExtraComicTitleAlreadyExistsError,
-)
-from backend.infrastructure.filesystem.translation_image_file_manager import TempImageNotFoundError
+from backend.core.value_objects import ComicID, IssueNumber, Language, TagName
 from backend.presentation.api.controllers.schemas import (
     ComicRequestSchema,
     ComicResponseSchema,

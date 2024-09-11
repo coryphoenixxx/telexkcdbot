@@ -3,12 +3,14 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, UploadFile
 from starlette import status
 
-from backend.infrastructure.upload_image_manager import (
+from backend.application.upload.exceptions import (
     UnsupportedImageFormatError,
     UploadedImageReadError,
     UploadImageIsEmptyError,
-    UploadImageManager,
     UploadImageSizeExceededLimitError,
+)
+from backend.application.upload.upload_image_manager import (
+    UploadImageManager,
 )
 from backend.presentation.api.controllers.schemas import TempImageSchema
 
