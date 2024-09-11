@@ -5,10 +5,9 @@ from uuid import UUID
 from annotated_types import MaxLen, MinLen
 from pydantic import BaseModel, HttpUrl, PositiveInt
 
-from backend.application.dtos import ComicRequestDTO, TranslationRequestDTO
-from backend.application.services.tag import TagUpdateDTO
+from backend.application.comic.dtos import ComicRequestDTO, TagUpdateDTO, TranslationRequestDTO
+from backend.application.utils import cast_or_none
 from backend.core.value_objects import IssueNumber, Language, TagName, TempFileID
-from backend.infrastructure.utils import cast_or_none
 
 
 class ComicRequestSchema(BaseModel):
@@ -22,7 +21,7 @@ class ComicRequestSchema(BaseModel):
     click_url: HttpUrl | None
     is_interactive: bool
     tags: list[Annotated[str, MinLen(2), MaxLen(50)]]
-    temp_image_id: UUID
+    temp_image_id: UUID | None
 
     def to_dto(self) -> ComicRequestDTO:
         return ComicRequestDTO(
@@ -36,7 +35,7 @@ class ComicRequestSchema(BaseModel):
             click_url=cast_or_none(str, self.click_url),
             is_interactive=self.is_interactive,
             tags=[TagName(tag) for tag in self.tags],
-            temp_image_id=TempFileID(self.temp_image_id),
+            temp_image_id=cast_or_none(TempFileID, self.temp_image_id),
         )
 
 
@@ -47,7 +46,7 @@ class TranslationRequestSchema(BaseModel):
     raw_transcript: str
     translator_comment: str
     source_url: HttpUrl | None
-    temp_image_id: UUID
+    temp_image_id: UUID | None
 
     def to_dto(self) -> TranslationRequestDTO:
         return TranslationRequestDTO(
@@ -57,7 +56,7 @@ class TranslationRequestSchema(BaseModel):
             raw_transcript=self.raw_transcript,
             translator_comment=self.translator_comment,
             source_url=cast_or_none(str, self.source_url),
-            temp_image_id=TempFileID(self.temp_image_id),
+            temp_image_id=cast_or_none(TempFileID, self.temp_image_id),
             is_draft=False,
         )
 
@@ -70,13 +69,13 @@ class TranslationDraftRequestSchema(TranslationRequestSchema):
 
 
 class TagUpdateQuerySchema(BaseModel):
-    name: Annotated[str, MinLen(2), MaxLen(50)] | None = None
+    name: str | None = None
     is_blacklisted: bool | None = None
 
     def to_dto(self) -> TagUpdateDTO:
-        dto = TagUpdateDTO(**self.model_dump(exclude_none=True))
+        dumped = self.model_dump(exclude_none=True)
 
-        if hasattr(TagUpdateQuerySchema, "name"):
-            dto.name = TagName(dto.name)
+        if name := dumped.get("name"):
+            dumped.update(name=TagName(name))
 
-        return dto
+        return TagUpdateDTO(**dumped)  # type: ignore[typeddict-item, no-any-return]

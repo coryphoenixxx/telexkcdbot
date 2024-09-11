@@ -1,10 +1,7 @@
 from yarl import URL
 
 
-class AsyncHttpClientError(Exception): ...
-
-
-class HttpRequestError(AsyncHttpClientError):
+class HttpRequestError(Exception):
     def __init__(self, url: URL | str, reason: str, method: str = "GET") -> None:
         super().__init__()
         self._message = f"{method} request to `{url}` failed, reason: `{reason}`"

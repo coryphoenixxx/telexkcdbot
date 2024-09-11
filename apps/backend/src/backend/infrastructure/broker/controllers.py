@@ -1,9 +1,9 @@
 from dishka import FromDishka
 from faststream.nats import JStream, NatsRouter
 
-from backend.application.services import TranslationImageService
+from backend.application.comic.services import TranslationImageService
+from backend.application.common.interfaces import ConvertImageMessage
 from backend.core.value_objects import TranslationImageID
-from backend.infrastructure.broker.messages import ConvertImageMessage
 
 router = NatsRouter()
 
@@ -11,7 +11,7 @@ router = NatsRouter()
 @router.subscriber(
     subject="images.convert",
     queue="convert_image_queue",
-    stream=JStream(name="stream_name", declare=False),
+    stream=JStream(name="stream_name", max_age=60 * 60, declare=True),
     pull_sub=True,
     durable="durable_name",
 )

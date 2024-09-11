@@ -1,3 +1,5 @@
+import asyncio
+
 from dishka import make_async_container
 from dishka.integrations.faststream import FastStreamProvider
 from dishka.integrations.faststream import setup_dishka as setup_ioc
@@ -22,7 +24,6 @@ def register_routers(broker: NatsBroker) -> None:
 
 def create_app() -> FastStream:
     config = load_config(NatsConfig, scope="nats")
-
     broker = NatsBroker(config.url)
 
     register_routers(broker)
@@ -43,3 +44,8 @@ def create_app() -> FastStream:
     )
 
     return app
+
+
+if __name__ == "__main__":
+    app = create_app()
+    asyncio.run(app.run())

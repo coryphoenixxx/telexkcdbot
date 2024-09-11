@@ -1,3 +1,5 @@
+# type: ignore
+
 from random import randint
 
 from aiogram import F, Router
@@ -10,7 +12,7 @@ from aiogram.types import (
 from aiogram.utils.markdown import hbold, hlink
 from dishka import FromDishka
 
-from backend.application.services.comic import ComicReadService
+from backend.application.comic.services import ComicReadService
 from backend.core.value_objects import IssueNumber
 from backend.main.configs.bot import BotConfig
 from backend.presentation.api.controllers.schemas import (
@@ -55,14 +57,14 @@ def calc_next_number(data: str, cur_pos: IssueNumber, latest: IssueNumber) -> Is
         case "nav_first":
             next_number = 1
         case "nav_prev":
-            next_number = cur_pos - 1
+            next_number = cur_pos.value - 1
             if next_number <= 0:
                 next_number = latest
         case "nav_random":
-            next_number = randint(1, latest)  # noqa: S311
+            next_number = randint(1, latest.value)  # noqa: S311
         case "nav_next":
-            next_number = cur_pos + 1
-            if next_number > latest:
+            next_number = cur_pos.value + 1
+            if next_number > latest.value:
                 next_number = 1
         case "nav_last":
             next_number = latest

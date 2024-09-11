@@ -1,27 +1,39 @@
 from collections.abc import AsyncIterable
 
-from dishka import Provider, Scope, provide
+from dishka import Provider, Scope, alias, provide
 from faststream.nats import JStream, NatsBroker
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
 )
 
-from backend.application.services import (
+from backend.application.comic.interfaces import (
+    ComicRepoInterface,
+    ImageConverterInterface,
+    TagRepoInterface,
+    TempFileManagerInterface,
+    TranslationImageFileManagerInterface,
+    TranslationImageRepoInterface,
+    TranslationRepoInterface,
+)
+from backend.application.comic.services import (
+    ComicDeleteService,
+    ComicReadService,
     ComicWriteService,
+    TagService,
     TranslationImageService,
 )
-from backend.application.services.comic import ComicDeleteService, ComicReadService
-from backend.application.services.tag import TagService
-from backend.infrastructure.broker.config import NatsConfig
-from backend.infrastructure.broker.publisher_contrainer import (
-    PublisherContainer,
+from backend.application.common.dtos import ImageFormat
+from backend.application.common.interfaces import (
+    PublisherRouterInterface,
+    TransactionManagerInterface,
 )
+from backend.application.upload.upload_image_manager import UploadImageManager
+from backend.infrastructure.broker.config import NatsConfig
+from backend.infrastructure.broker.publisher_router import PublisherRouter
 from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.config import DbConfig
-from backend.infrastructure.database.main import (
-    create_db_engine,
-)
+from backend.infrastructure.database.main import create_db_engine
 from backend.infrastructure.database.repositories import (
     ComicRepo,
     TagRepo,
@@ -31,10 +43,8 @@ from backend.infrastructure.database.repositories import (
 from backend.infrastructure.database.transaction import TransactionManager
 from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.filesystem import TempFileManager, TranslationImageFileManager
-from backend.infrastructure.filesystem.dtos import ImageFormat
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.image_converter import ImageConverter
-from backend.infrastructure.upload_image_manager import UploadImageManager
 from backend.infrastructure.xkcd.scrapers import (
     XkcdDEScraper,
     XkcdESScraper,
@@ -86,21 +96,24 @@ class DatabaseProvider(Provider):
             yield session
 
     @provide(scope=Scope.REQUEST)
-    async def provide_uow(self, session: AsyncSession) -> AsyncIterable[TransactionManager]:
-        async with TransactionManager(session) as uow:
-            yield uow
+    async def provide_transaction(self, session: AsyncSession) -> AsyncIterable[TransactionManager]:
+        async with TransactionManager(session) as transaction:
+            yield transaction
+
+    transaction_interface = alias(source=TransactionManager, provides=TransactionManagerInterface)
 
 
 class FileManagersProvider(Provider):
     @provide(scope=Scope.APP)
     async def provide_temp_file_manager(self, config: APIConfig) -> TempFileManager:
+        config.temp_dir.mkdir(exist_ok=True)
         return TempFileManager(
-            temp_dir=config.tmp_dir,
+            temp_dir=config.temp_dir,
             size_limit=config.upload_max_size,
         )
 
     @provide(scope=Scope.APP)
-    async def provide_image_file_manager(
+    async def provide_translation_image_file_manager(
         self,
         config: APIConfig,
         temp_file_manager: TempFileManager,
@@ -119,13 +132,19 @@ class FileManagersProvider(Provider):
 
     image_converter = provide(ImageConverter, scope=Scope.APP)
 
+    image_converter_interface = alias(source=ImageConverter, provides=ImageConverterInterface)
+    temp_file_manager_interface = alias(source=TempFileManager, provides=TempFileManagerInterface)
+    translation_image_file_manager_interface = alias(
+        source=TranslationImageFileManager, provides=TranslationImageFileManagerInterface
+    )
 
-class PublisherContainerProvider(Provider):
+
+class PublisherRouterProvider(Provider):
     @provide(scope=Scope.APP)
-    async def provide_publisher_container(
+    async def provide_publisher_router(
         self,
         config: NatsConfig,
-    ) -> AsyncIterable[PublisherContainer]:
+    ) -> AsyncIterable[PublisherRouter]:
         broker = NatsBroker(config.url)
 
         stream = JStream(name="stream_name", max_age=60 * 60, declare=True)
@@ -137,8 +156,10 @@ class PublisherContainerProvider(Provider):
         broker.setup_publisher(new_comic_publisher)
 
         await broker.start()
-        yield PublisherContainer(converter_publisher, new_comic_publisher)
+        yield PublisherRouter(converter_publisher, new_comic_publisher)
         await broker.close()
+
+    publisher_router_interface = alias(source=PublisherRouter, provides=PublisherRouterInterface)
 
 
 class RepositoriesProvider(Provider):
@@ -148,6 +169,13 @@ class RepositoriesProvider(Provider):
     translation_repo = provide(TranslationRepo)
     translation_image_repo = provide(TranslationImageRepo)
     tag_repo = provide(TagRepo)
+
+    comic_repo_interface = alias(source=ComicRepo, provides=ComicRepoInterface)
+    translation_repo_interface = alias(source=TranslationRepo, provides=TranslationRepoInterface)
+    translation_image_repo_interface = alias(
+        source=TranslationImageRepo, provides=TranslationImageRepoInterface
+    )
+    tag_repo_interface = alias(source=TagRepo, provides=TagRepoInterface)
 
 
 class ComicServicesProvider(Provider):
@@ -181,9 +209,6 @@ class HTTPProviders(Provider):
         return Downloader(
             http_client=http_client,
             temp_file_manager=temp_file_manager,
-            timeout=60.0,
-            attempts=5,
-            interval=3,
         )
 
 

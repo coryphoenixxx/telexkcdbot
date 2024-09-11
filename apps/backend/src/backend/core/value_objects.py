@@ -1,17 +1,26 @@
 import importlib.resources
 import json
-from enum import EnumType, StrEnum
-from typing import Annotated, NewType
+from dataclasses import dataclass
+from enum import StrEnum
+from typing import ClassVar, NewType, TypeAlias
 from uuid import UUID
 
-from annotated_types import Len
+
+@dataclass(slots=True)
+class ValueObject:
+    def __post_init__(self) -> None:
+        self._validate()
+
+    def _validate(self) -> None: ...
 
 
-class PositiveInt(int):
-    def __new__(cls, value: int) -> int:
-        if value <= 0:
-            raise ValueError("Must be positive.")
-        return super().__new__(cls, value)
+@dataclass(slots=True)
+class PositiveInt(ValueObject):
+    value: int
+
+    def _validate(self) -> None:
+        if self.value <= 0:
+            raise ValueError("Must be positive integer.")
 
 
 class ComicID(PositiveInt): ...
@@ -32,45 +41,47 @@ class TranslationImageID(PositiveInt): ...
 TempFileID = NewType("TempFileID", UUID)
 
 
-class TagName(str):
-    __slots__ = ()
+@dataclass(slots=True)
+class TagName(ValueObject):
+    value: str
+    _min: ClassVar[int] = 2
+    _max: ClassVar[int] = 50
 
-    def __new__(cls, value: str) -> "TagName":
-        length = len(value)
-        if length < 2 or length > 50:
-            raise ValueError(f"Invalid tag length. (name=`{value}`)")
-        return super().__new__(cls, value)
-
-
-Alpha2LangCode = NewType("Alpha2LangCode", Annotated[str, Len(2)])
+    def _validate(self) -> None:
+        if not (self._min <= len(self.value) <= self._max):
+            raise ValueError(
+                f"Tag name length must be between {self._min} and {self._max} characters."
+            )
 
 
 class LanguageEnum(StrEnum):
-    def __new__(cls, code: Alpha2LangCode, name: str, native: str) -> str:
+    def __new__(cls, code: str, name: str, native: str) -> str:  # type: ignore[misc]
         member = str.__new__(cls, code)
         member._value_ = code
-        member._name = name  # noqa: SLF001
-        member._native = native  # noqa: SLF001
+        member._name = name  # type: ignore[attr-defined] # noqa: SLF001
+        member._native = native  # type: ignore[attr-defined] # noqa: SLF001
 
         return member
 
     @property
     def name(self) -> str:
-        return self._name
+        return self._name  # type: ignore[attr-defined, no-any-return]
 
     @property
     def native(self) -> str:
-        return self._native
+        return self._native  # type: ignore[attr-defined, no-any-return]
 
 
-def _build_language_type() -> EnumType:
-    with importlib.resources.open_text("assets", "language_data.json") as f:
-        langs = json.load(f)
+def _get_language_data() -> dict[str, tuple[str, str, str]]:
+    with (
+        importlib.resources.files("assets")
+        .joinpath("language_data.json")
+        .open("r", encoding="utf-8") as f
+    ):
+        return {
+            code.upper(): (code.upper(), name, native)
+            for code, name, native in sorted(json.load(f))
+        }
 
-    return LanguageEnum(
-        "Language",
-        {code.upper(): (code.upper(), name, native) for code, name, native in langs},
-    )
 
-
-Language = _build_language_type()
+Language: TypeAlias = LanguageEnum("Language", _get_language_data())  # type: ignore[valid-type, call-arg, arg-type]

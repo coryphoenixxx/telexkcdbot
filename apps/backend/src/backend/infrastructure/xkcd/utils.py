@@ -1,31 +1,31 @@
 import asyncio
-from collections.abc import Callable, Generator, Sequence
-from typing import TypeVar
+from collections.abc import Generator
+from typing import Any, TypeVar
 
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
 
 T = TypeVar("T")
 
 
-def chunked(seq: Sequence["T"], n: int) -> Generator[list["T"], None, None]:
+def chunked(seq: list["T"], n: int) -> Generator[list["T"], None, None]:
     for i in range(0, len(seq), n):
         yield seq[i : i + n]
 
 
-async def progress_watcher(tasks: list[asyncio.Task], pbar: CustomProgressBar | None) -> None:
+async def progress_watcher(tasks: list[asyncio.Task[Any]], pbar: CustomProgressBar) -> None:
     for t in asyncio.as_completed(tasks):
         if await t:
             pbar.advance()
 
 
-async def run_concurrently(
-    data: list,
-    coro: Callable,
+async def run_concurrently(  # TODO: redesign to class
+    data: list[Any],
+    coro: Any,
     chunk_size: int,
-    delay: int,
+    delay: float,
     pbar: CustomProgressBar | None,
-    **kwargs,
-) -> list:
+    **kwargs: Any,
+) -> list[Any]:
     results = []
 
     for chunk in chunked(seq=data, n=chunk_size):

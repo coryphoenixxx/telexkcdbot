@@ -3,11 +3,13 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, Depends
 from starlette import status
 
-from backend.application.services.tag import TagService
+from backend.application.comic.exceptions import TagNotFoundError
+from backend.application.comic.services.tag import TagService
 from backend.core.value_objects import TagID
-from backend.infrastructure.database.repositories.tag import TagNotFoundError
-from backend.presentation.api.controllers.schemas.requests import TagUpdateQuerySchema
-from backend.presentation.api.controllers.schemas.responses import TagResponseWBlacklistStatusSchema
+from backend.presentation.api.controllers.schemas import (
+    TagResponseWBlacklistStatusSchema,
+    TagUpdateQuerySchema,
+)
 
 router = APIRouter(tags=["Tags"], route_class=DishkaRoute)
 

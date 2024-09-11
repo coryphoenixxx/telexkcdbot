@@ -2,8 +2,10 @@ from types import TracebackType
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.application.common.interfaces import TransactionManagerInterface
 
-class TransactionManager:
+
+class TransactionManager(TransactionManagerInterface):
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 

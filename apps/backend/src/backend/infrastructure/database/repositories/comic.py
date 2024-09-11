@@ -1,69 +1,41 @@
-from dataclasses import dataclass
 from functools import singledispatchmethod
 from typing import NoReturn
 
-from sqlalchemy import BinaryExpression, and_, delete, false, func, select, update
+from sqlalchemy import ColumnElement, and_, delete, false, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import contains_eager, joinedload, selectinload
 
-from backend.application.dtos import ComicRequestDTO, ComicResponseDTO, TranslationResponseDTO
-from backend.core.exceptions.base import BaseAppError
+from backend.application.comic.dtos import ComicRequestDTO, ComicResponseDTO, TranslationResponseDTO
+from backend.application.comic.exceptions import (
+    ComicNotFoundError,
+    ComicNumberAlreadyExistsError,
+    ExtraComicTitleAlreadyExistsError,
+)
+from backend.application.comic.interfaces import ComicRepoInterface
+from backend.application.common.pagination import (
+    ComicFilterParams,
+    Order,
+    TagParam,
+    TotalCount,
+)
+from backend.application.utils import slugify
 from backend.core.value_objects import ComicID, IssueNumber, Language
-from backend.infrastructure.database.dtos import ComicFilterParams, Order, TagParam, TotalCount
 from backend.infrastructure.database.models import (
     ComicModel,
     TagModel,
     TranslationModel,
 )
 from backend.infrastructure.database.repositories.base import BaseRepo, RepoError
-from backend.infrastructure.utils import slugify
-
-ComicGetByType = ComicID | IssueNumber | str
 
 
-@dataclass(slots=True, eq=False)
-class ComicNotFoundError(BaseAppError):
-    value: int | str
-
-    @property
-    def message(self) -> str:
-        match self.value:
-            case ComicID():
-                return f"A comic (id={self.value}) not found."
-            case IssueNumber():
-                return f"A comic (number={self.value}) not found."
-            case str():
-                return f"A comic (slug=`{self.value}`) not found."
-            case _:
-                raise ValueError("Invalid type.")
-
-
-@dataclass(slots=True, eq=False)
-class ComicNumberAlreadyExistsError(BaseAppError):
-    number: int
-
-    @property
-    def message(self) -> str:
-        return f"A comic with this issue number ({self.number}) already exists."
-
-
-@dataclass(slots=True, eq=False)
-class ExtraComicTitleAlreadyExistsError(BaseAppError):
-    title: str
-
-    @property
-    def message(self) -> str:
-        return f"An extra comic with this title (`{self.title}`) already exists."
-
-
-class ComicRepo(BaseRepo):
-    async def create_base(self, dto: ComicRequestDTO) -> ComicID:
+class ComicRepo(BaseRepo, ComicRepoInterface):
+    async def create(self, dto: ComicRequestDTO) -> ComicID:
         try:
             comic_id = await self._session.scalar(
                 insert(ComicModel)
                 .values(
-                    number=dto.number,
+                    number=dto.number.value if dto.number else None,
                     slug=self._build_slug(dto.number, dto.title),
                     publication_date=dto.publication_date,
                     explain_url=dto.explain_url,
@@ -75,14 +47,16 @@ class ComicRepo(BaseRepo):
         except IntegrityError as err:
             self._handle_db_error(dto, err)
         else:
-            return ComicID(comic_id)
+            if comic_id:
+                return ComicID(comic_id)
+            raise RepoError
 
-    async def update_base(self, comic_id: ComicID, dto: ComicRequestDTO) -> None:
+    async def update(self, comic_id: ComicID, dto: ComicRequestDTO) -> None:
         stmt = (
             update(ComicModel)
-            .where(ComicModel.comic_id == comic_id)
+            .where(and_(ComicModel.comic_id == comic_id.value))
             .values(
-                number=dto.number,
+                number=dto.number.value if dto.number else None,
                 slug=self._build_slug(dto.number, dto.title),
                 publication_date=dto.publication_date,
                 explain_url=dto.explain_url,
@@ -97,28 +71,30 @@ class ComicRepo(BaseRepo):
             self._handle_db_error(dto, err)
 
     async def delete(self, comic_id: ComicID) -> None:
-        await self._session.execute(delete(ComicModel).where(ComicModel.comic_id == comic_id))
+        await self._session.execute(
+            delete(ComicModel).where(and_(ComicModel.comic_id == comic_id.value))
+        )
 
     @singledispatchmethod
     async def get_by(self) -> NoReturn:
         raise NotImplementedError
 
-    @get_by.register
+    @get_by.register  # type: ignore[arg-type]
     async def _(self, value: ComicID) -> ComicResponseDTO:
-        return await self._get_by(value, and_(ComicModel.comic_id == value))
+        return await self._get_by(value, and_(ComicModel.comic_id == value.value))
 
-    @get_by.register
+    @get_by.register  # type: ignore[arg-type]
     async def _(self, value: IssueNumber) -> ComicResponseDTO:
-        return await self._get_by(value, and_(ComicModel.number == value))
+        return await self._get_by(value, and_(ComicModel.number == value.value))
 
-    @get_by.register
+    @get_by.register  # type: ignore[arg-type]
     async def _(self, value: str) -> ComicResponseDTO:
         return await self._get_by(value, and_(ComicModel.slug == value))
 
     async def _get_by(
         self,
-        value: ComicGetByType,
-        where_clause: BinaryExpression[bool],
+        value: ComicID | IssueNumber | str,
+        where_clause: ColumnElement[bool],
     ) -> ComicResponseDTO:
         stmt = (
             select(ComicModel)
@@ -138,12 +114,12 @@ class ComicRepo(BaseRepo):
 
         comic = (await self._session.scalars(stmt)).unique().one_or_none()
 
-        if not comic:  # TODO: handle in application layer?
+        if not comic:
             raise ComicNotFoundError(value)
 
         comic.tags = [tag for tag in comic.tags if not tag.is_blacklisted]
 
-        return ComicResponseDTO.from_model(comic)
+        return comic.to_dto()
 
     async def get_list(
         self,
@@ -190,10 +166,10 @@ class ComicRepo(BaseRepo):
         if result := (await self._session.execute(stmt)).unique().all():
             total, comics = result[0][1], [r[0] for r in result]
 
-        return total, [ComicResponseDTO.from_model(comic) for comic in comics]
+        return TotalCount(total), [c.to_dto() for c in comics]
 
     async def get_issue_number_by_id(self, comic_id: ComicID) -> IssueNumber | None:
-        comic = await self._get_model_by_id(ComicModel, comic_id)
+        comic = await self._get_model_by_id(ComicModel, comic_id.value)
 
         if not comic:
             raise ComicNotFoundError(comic_id)
@@ -206,7 +182,7 @@ class ComicRepo(BaseRepo):
         stmt = (
             select(TranslationModel)
             .where(
-                TranslationModel.comic_id == comic_id,
+                and_(TranslationModel.comic_id == comic_id.value),
                 TranslationModel.is_draft == false(),
                 TranslationModel.language != Language.EN,
             )
@@ -215,15 +191,15 @@ class ComicRepo(BaseRepo):
 
         translations = (await self._session.scalars(stmt)).unique().all()
 
-        return [TranslationResponseDTO.from_model(model) for model in translations]
+        return [t.to_dto() for t in translations]
 
-    def _build_slug(self, number: int | None, en_title: str) -> str | None:
+    def _build_slug(self, number: IssueNumber | None, en_title: str) -> str | None:
         return slugify(en_title) if number is None else None
 
     def _handle_db_error(self, dto: ComicRequestDTO, err: DBAPIError) -> NoReturn:
         cause = str(err.__cause__)
 
-        if "uq_comic_number_if_not_extra" in cause:
+        if dto.number and "uq_comic_number_if_not_extra" in cause:
             raise ComicNumberAlreadyExistsError(dto.number)
         if "uq_comic_title_if_extra" in cause:
             raise ExtraComicTitleAlreadyExistsError(dto.title)

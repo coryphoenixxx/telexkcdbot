@@ -11,12 +11,12 @@ from backend.infrastructure.database.config import DbConfig
 
 def create_db_engine(config: DbConfig) -> AsyncEngine:
     db_url = URL.create(
-            drivername=f"postgresql+{config.driver}",
-            username=config.user,
-            password=config.password,
-            host=config.host,
-            port=config.port,
-            database=config.dbname,
+        drivername=f"postgresql+{config.driver}",
+        username=config.user,
+        password=config.password,
+        host=config.host,
+        port=config.port,
+        database=config.dbname,
     )
 
     return create_async_engine(
@@ -24,13 +24,8 @@ def create_db_engine(config: DbConfig) -> AsyncEngine:
         echo=config.echo,
         echo_pool=config.echo,
         pool_size=config.pool_size,
+        max_overflow=20,
     )
-
-    # TODO:
-    # max_overflow
-    # connect_args = {
-    #     "connect_timeout": 5,
-    # },
 
 
 async def check_db_connection(engine: AsyncEngine) -> None:

@@ -11,12 +11,14 @@ import click
 from dishka import AsyncContainer
 from yarl import URL
 
-from backend.application.dtos import TranslationRequestDTO, TranslationResponseDTO
-from backend.application.services.comic import ComicReadService, ComicWriteService
+from backend.application.comic.dtos import TranslationRequestDTO, TranslationResponseDTO
+from backend.application.comic.services import ComicReadService, ComicWriteService
+from backend.application.common.pagination import ComicFilterParams
+from backend.application.upload.upload_image_manager import UploadImageManager
+from backend.application.utils import cast_or_none
 from backend.core.value_objects import ComicID, Language
-from backend.infrastructure.upload_image_manager import UploadImageManager
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationZippedData
+from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationScrapedData
 from backend.infrastructure.xkcd.utils import run_concurrently
 from backend.presentation.cli.common import (
     DatabaseIsEmptyError,
@@ -33,7 +35,7 @@ def extract_prescraped_translations(
     extract_to: Path,
     limits: LimitParams,
     pbar: CustomProgressBar | None,
-) -> list[XkcdTranslationZippedData]:
+) -> list[XkcdTranslationScrapedData]:
     translations = []
 
     with ZipFile(zip_path, "r") as zf:
@@ -64,7 +66,7 @@ def extract_prescraped_translations(
                 source_url = row["source_url"]
 
                 translations.append(
-                    XkcdTranslationZippedData(
+                    XkcdTranslationScrapedData(
                         number=number,
                         source_url=URL(source_url) if source_url else None,
                         title=row["title"],
@@ -84,15 +86,12 @@ def extract_prescraped_translations(
 
 
 async def copy_image_and_upload_coro(
-    data: XkcdTranslationZippedData,
+    data: XkcdTranslationScrapedData,
     number_comic_id_map: dict[int, int],
     container: AsyncContainer,
 ) -> TranslationResponseDTO:
     upload_image_manager = await container.get(UploadImageManager)
-
-    temp_image_id = None
-    if data.image_path:
-        temp_image_id = upload_image_manager.read_from_file(data.image_path)
+    temp_image_id = upload_image_manager.read_from_file(data.image_path)
 
     async with container() as request_container:
         service: ComicWriteService = await request_container.get(ComicWriteService)
@@ -104,7 +103,7 @@ async def copy_image_and_upload_coro(
                 tooltip=data.tooltip,
                 raw_transcript=data.raw_transcript,
                 translator_comment=data.translator_comment,
-                source_url=str(data.source_url),
+                source_url=cast_or_none(str, data.source_url),
                 temp_image_id=temp_image_id,
                 is_draft=False,
             ),
@@ -113,7 +112,7 @@ async def copy_image_and_upload_coro(
 
 @click.command()
 @click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
-@click.option("--delay", type=float, default=0.5, callback=positive_number_callback)
+@click.option("--delay", type=float, default=0.1, callback=positive_number_callback)
 @click.pass_context
 @async_command
 async def extract_and_upload_prescraped_translations_command(
@@ -121,15 +120,16 @@ async def extract_and_upload_prescraped_translations_command(
     chunk_size: int,
     delay: int,
 ) -> None:
-    container = ctx.meta.get("container")
+    container = ctx.meta["container"]
 
     number_comic_id_map = {}
 
     async with container() as request_container:
         service: ComicReadService = await request_container.get(ComicReadService)
-        _, comics = await service.get_list()
+        _, comics = await service.get_list(query_params=ComicFilterParams())
         for comic in comics:
-            number_comic_id_map[comic.number] = comic.id
+            if comic.number:
+                number_comic_id_map[comic.number.value] = comic.id.value
 
         if not number_comic_id_map:
             raise DatabaseIsEmptyError("Looks like database is empty.")

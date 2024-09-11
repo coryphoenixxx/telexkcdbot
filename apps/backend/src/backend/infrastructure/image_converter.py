@@ -1,60 +1,56 @@
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
+from typing import ClassVar
 
+import pillow_avif  # type: ignore[import-untyped] # noqa: F401
 from PIL import Image, ImageSequence
 from PIL.Image import Image as ImageObj
 
-from backend.infrastructure.filesystem.dtos import ImageFormat
+from backend.application.comic.exceptions.translation_image import ImageConversionError
+from backend.application.comic.interfaces.image_converter import ImageConverterInterface
+from backend.application.common.dtos import ImageFormat
 
 warnings.simplefilter("ignore", Image.DecompressionBombWarning)
 
 
-@dataclass(frozen=True, eq=False, slots=True)
-class ImageConversionError(Exception):
-    path: Path
-    reason: str
+@dataclass(slots=True)
+class ImageConverter(ImageConverterInterface):
+    MAX_IMAGE_PIXELS: ClassVar[int] = int(1024 * 1024 * 1024 // 4 // 3)
+    MAX_WEBP_SIDE_SIZE: ClassVar[int] = 16383
 
-    @property
-    def message(self) -> str:
-        return f"The image (path={self.path}) was not converted. Reason: `{self.reason}`"
-
-
-class ImageConverter:
-    MAX_WEBP_SIDE_SIZE = 16383
-
-    def convert_to_webp(self, path: Path) -> Path:
-        path = Path(path)
-        fmt = ImageFormat(path.suffix[1:])
-
-        if fmt == ImageFormat.WEBP:
-            raise ImageConversionError(path, "It looks like the image is already converted.")
-
-        with Image.open(path) as image:
-            image.load()
-
-            if self._has_invalid_side_sizes(image):
-                raise ImageConversionError(path, "The image is too large.")
+    def convert_to_webp(self, original: Path) -> Path:
+        with Image.open(original) as image:
+            if self._has_too_large_side_sizes(image):
+                raise ImageConversionError(original, "The image is too large.")
 
             if self._is_animation(image):
-                raise ImageConversionError(path, "The image is an animation.")
+                raise ImageConversionError(original, "The image is an animation.")
 
-            new_path = path.with_name(path.stem + "_converted").with_suffix(".webp")
+            converted_path = original.with_name(original.stem + "_converted").with_suffix(".webp")
 
+            fmt = ImageFormat(original.suffix[1:])
             image.save(
-                fp=new_path,
+                fp=converted_path,
                 format="webp",
                 lossless=fmt == ImageFormat.PNG,
                 quality=85 if fmt != ImageFormat.PNG else 100,
                 optimize=True,
             )
 
-            return new_path
+        if converted_path.stat().st_size > original.stat().st_size:
+            converted_path.unlink()
+            raise ImageConversionError(
+                original,
+                "The converted image file size is larger than the original image file size.",
+            )
 
-    def _has_invalid_side_sizes(self, image: ImageObj) -> bool:
+        return converted_path
+
+    def _has_too_large_side_sizes(self, image: ImageObj) -> bool:
         return any(
             [
-                (image.height * image.width) > Image.MAX_IMAGE_PIXELS,
+                (image.height * image.width) > self.MAX_IMAGE_PIXELS,
                 image.width > self.MAX_WEBP_SIDE_SIZE,
                 image.height > self.MAX_WEBP_SIDE_SIZE,
             ]
@@ -66,5 +62,4 @@ class ImageConverter:
             if frames > 1:
                 break
             frames += 1
-
         return frames > 1

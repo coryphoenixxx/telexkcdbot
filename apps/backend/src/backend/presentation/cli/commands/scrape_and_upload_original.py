@@ -1,15 +1,19 @@
+from datetime import datetime as dt
+
 import click
 from dishka import AsyncContainer
 from rich.progress import Progress
 
-from backend.application.dtos import ComicRequestDTO, ComicResponseDTO
-from backend.application.services import ComicReadService, ComicWriteService
+from backend.application.comic.dtos import ComicRequestDTO, ComicResponseDTO
+from backend.application.comic.services import ComicReadService, ComicWriteService
+from backend.application.upload.upload_image_manager import UploadImageManager
+from backend.application.utils import cast_or_none
 from backend.core.value_objects import IssueNumber, TagName
-from backend.infrastructure.downloader import Downloader
-from backend.infrastructure.upload_image_manager import UploadImageManager
-from backend.infrastructure.utils import cast_or_none
 from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers import XkcdExplainScraper, XkcdOriginalScraper
+from backend.infrastructure.xkcd.scrapers import (
+    XkcdExplainScraper,
+    XkcdOriginalScraper,
+)
 from backend.infrastructure.xkcd.scrapers.dtos import (
     LimitParams,
     XkcdOriginalWithExplainScrapedData,
@@ -48,10 +52,10 @@ async def scrape_original_with_explain_data(
                 tooltip=original_data.tooltip,
                 click_url=original_data.click_url,
                 is_interactive=original_data.is_interactive,
-                image_url=original_data.image_url,
-                explain_url=explain_data.explain_url if explain_data else None,
-                tags=explain_data.tags if explain_data else [],
-                raw_transcript=explain_data.raw_transcript if explain_data else "",
+                image_path=original_data.image_path,
+                explain_url=explain_data.explain_url,
+                tags=explain_data.tags,
+                raw_transcript=explain_data.raw_transcript,
             )
         )
 
@@ -63,11 +67,9 @@ async def download_image_and_upload_coro(
     container: AsyncContainer,
 ) -> ComicResponseDTO:
     temp_image_id = None
-    if data.image_url:
-        downloader = await container.get(Downloader)
+    if data.image_path:
         upload_image_manager = await container.get(UploadImageManager)
-        temp_image_path = await downloader.download(data.image_url)
-        temp_image_id = upload_image_manager.read_from_file(temp_image_path)
+        temp_image_id = upload_image_manager.read_from_file(data.image_path)
 
     async with container() as request_container:
         service: ComicWriteService = await request_container.get(ComicWriteService)
@@ -75,7 +77,9 @@ async def download_image_and_upload_coro(
             dto=ComicRequestDTO(
                 number=IssueNumber(data.number),
                 title=data.title,
-                publication_date=data.publication_date,
+                publication_date=dt.strptime(  # noqa: DTZ007
+                    data.publication_date, "%Y-%m-%d"
+                ).date(),
                 tooltip=data.tooltip,
                 raw_transcript=data.raw_transcript,
                 xkcd_url=str(data.xkcd_url),
@@ -92,7 +96,7 @@ async def download_image_and_upload_coro(
 @click.option("--start", type=int, default=1, callback=positive_number_callback)
 @click.option("--end", type=int, callback=positive_number_callback)
 @click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
-@click.option("--delay", type=float, default=0.5, callback=positive_number_callback)
+@click.option("--delay", type=float, default=3, callback=positive_number_callback)
 @click.pass_context
 @async_command
 async def scrape_and_upload_original_command(
@@ -102,12 +106,11 @@ async def scrape_and_upload_original_command(
     chunk_size: int,
     delay: int,
 ) -> None:
-    container = ctx.meta.get("container")
+    container = ctx.meta["container"]
 
-    original_scraper = await container.get(XkcdOriginalScraper)
-    explain_scraper = await container.get(XkcdExplainScraper)
-
-    if not end:
+    original_scraper: XkcdOriginalScraper = await container.get(XkcdOriginalScraper)
+    explain_scraper: XkcdExplainScraper = await container.get(XkcdExplainScraper)
+    if end is None:
         end = await original_scraper.fetch_latest_number()
 
     limits = LimitParams(start, end, chunk_size, delay)
@@ -133,7 +136,7 @@ async def scrape_and_upload_original_command(
             delay=limits.delay,
             pbar=CustomProgressBar(
                 base_progress,
-                "Origin data uploading...",
+                "Original data uploading...",
                 len(original_with_explain_data),
             ),
             container=container,

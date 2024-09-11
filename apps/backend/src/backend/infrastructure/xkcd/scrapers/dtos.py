@@ -1,57 +1,51 @@
 from dataclasses import dataclass
-from datetime import datetime as dt
 from pathlib import Path
+from typing import Annotated
 
+from pydantic import BeforeValidator, HttpUrl
+from pydantic.dataclasses import dataclass as pddataclass
 from yarl import URL
 
+ExtHttpUrl = Annotated[HttpUrl | URL | str, BeforeValidator(func=lambda x: (HttpUrl(str(x))))]
 
-# TODO: pydatic.dataclass
-@dataclass(kw_only=True)
+
+@pddataclass(kw_only=True, config={"arbitrary_types_allowed": True, "strict": True})
 class XkcdOriginalScrapedData:
     number: int
-    publication_date: dt.date
-    xkcd_url: URL
+    publication_date: str
+    xkcd_url: ExtHttpUrl
     title: str
     tooltip: str = ""
-    click_url: URL | None = None
+    click_url: ExtHttpUrl | None = None
     is_interactive: bool = False
-    image_url: URL | None = None
+    image_path: Path | None = None
 
 
-@dataclass(kw_only=True)
-class XkcdExplanationScrapedBaseData:
+@pddataclass(kw_only=True, config={"arbitrary_types_allowed": True, "strict": True})
+class XkcdExplanationScrapedData:
     number: int
-    explain_url: URL
+    explain_url: ExtHttpUrl
     tags: list[str]
     raw_transcript: str
 
 
-@dataclass(kw_only=True)
+@pddataclass(kw_only=True, slots=True, config={"arbitrary_types_allowed": True, "strict": True})
 class XkcdOriginalWithExplainScrapedData(
     XkcdOriginalScrapedData,
-    XkcdExplanationScrapedBaseData,
+    XkcdExplanationScrapedData,
 ): ...
 
 
-@dataclass(kw_only=True)
-class XkcdTranslationDataBase:
+@pddataclass(kw_only=True, slots=True, config={"arbitrary_types_allowed": True, "strict": True})
+class XkcdTranslationScrapedData:
     number: int
-    source_url: URL | None
+    source_url: ExtHttpUrl | None
     title: str
     language: str
+    image_path: Path
     tooltip: str = ""
     raw_transcript: str = ""
     translator_comment: str = ""
-
-
-@dataclass(kw_only=True)
-class XkcdTranslationScrapedData(XkcdTranslationDataBase):
-    image_url: URL | None
-
-
-@dataclass(kw_only=True)
-class XkcdTranslationZippedData(XkcdTranslationDataBase):
-    image_path: Path
 
 
 @dataclass(slots=True)
@@ -59,4 +53,4 @@ class LimitParams:
     start: int
     end: int
     chunk_size: int
-    delay: int
+    delay: float

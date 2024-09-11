@@ -1,3 +1,5 @@
+# type: ignore
+
 """EXPERIMENT"""
 
 import time
@@ -14,23 +16,7 @@ from pydantic.types import SecretType
 from starlette import status
 from starlette.responses import Response
 
-from backend.core.exceptions.base import BaseAppError
-
-
-@dataclass(slots=True, eq=False)
-class UsernameAlreadyExistsError(BaseAppError):
-    username: str
-
-    @property
-    def message(self) -> str:
-        return f"User with this username ({self.username}) already exists."
-
-
-@dataclass(slots=True, eq=False)
-class InvalidCredentialsError(BaseAppError):
-    @property
-    def message(self) -> str:
-        return "Invalid credentials."
+from backend.application.user.exceptions import InvalidCredentialsError, UsernameAlreadyExistsError
 
 
 class UserRequestSchema(BaseModel):

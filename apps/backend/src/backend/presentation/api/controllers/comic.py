@@ -4,13 +4,22 @@ from typing import Annotated
 from annotated_types import MaxLen, MinLen
 from dishka import FromDishka
 from dishka.integrations.fastapi import DishkaRoute
-from fastapi import APIRouter
-from fastapi.params import Query
+from fastapi import APIRouter, Query
+from pydantic import PositiveInt
 from starlette import status
 
-from backend.application.services import ComicDeleteService, ComicReadService, ComicWriteService
-from backend.core.value_objects import ComicID, IssueNumber, Language, TagName
-from backend.infrastructure.database.dtos import (
+from backend.application.comic.exceptions import (
+    ComicNotFoundError,
+    ComicNumberAlreadyExistsError,
+    ExtraComicTitleAlreadyExistsError,
+    TempImageNotFoundError,
+)
+from backend.application.comic.services.comic import (
+    ComicDeleteService,
+    ComicReadService,
+    ComicWriteService,
+)
+from backend.application.common.pagination import (
     ComicFilterParams,
     DateRange,
     Limit,
@@ -18,14 +27,9 @@ from backend.infrastructure.database.dtos import (
     Order,
     TagParam,
 )
-from backend.infrastructure.database.repositories.comic import (
-    ComicNotFoundError,
-    ComicNumberAlreadyExistsError,
-    ExtraComicTitleAlreadyExistsError,
-)
-from backend.infrastructure.filesystem.translation_image_file_manager import TempImageNotFoundError
-from backend.presentation.api.controllers.schemas.requests import ComicRequestSchema
-from backend.presentation.api.controllers.schemas.responses import (
+from backend.core.value_objects import ComicID, IssueNumber, Language, TagName
+from backend.presentation.api.controllers.schemas import (
+    ComicRequestSchema,
     ComicResponseSchema,
     ComicsWMetadata,
     ComicWTranslationsResponseSchema,
@@ -190,8 +194,8 @@ async def get_comic_with_translations_by_slug(
 @router.get("/comics", status_code=status.HTTP_200_OK)
 async def get_comics(
     q: str = Query(min_length=1, max_length=50, default=None),
-    page_size: int | None = Query(None, alias="psize"),
-    page_num: int | None = Query(None, alias="pnum"),
+    page_size: PositiveInt | None = Query(None, alias="psize"),
+    page_num: PositiveInt | None = Query(None, alias="pnum"),
     date_from: datetime.date | None = Query(None),
     date_to: datetime.date | None = Query(None),
     order: Order = Order.ASC,
@@ -200,7 +204,7 @@ async def get_comics(
     *,
     service: FromDishka[ComicReadService],
 ) -> ComicsWMetadata:
-    limit = Limit(page_size) if page_num else None
+    limit = Limit(page_size) if page_size else None
     offset = Offset(limit * (page_num - 1)) if limit and page_num else None
 
     total, comic_resp_dtos = await service.get_list(
@@ -216,10 +220,6 @@ async def get_comics(
     )
 
     return ComicsWMetadata(
-        meta=PaginationSchema(
-            total=total,
-            limit=limit,
-            offset=offset,
-        ),
+        meta=PaginationSchema(total=total, limit=limit, offset=offset),
         data=[ComicResponseSchema.from_dto(dto=dto) for dto in comic_resp_dtos],
     )

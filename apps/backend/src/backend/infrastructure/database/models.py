@@ -1,4 +1,6 @@
+from copy import copy
 from datetime import date
+from pathlib import Path
 
 from sqlalchemy import (
     DateTime,
@@ -10,6 +12,23 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from backend.application.comic.dtos import (
+    ComicResponseDTO,
+    TagResponseDTO,
+    TranslationImageResponseDTO,
+    TranslationResponseDTO,
+)
+from backend.application.utils import cast_or_none
+from backend.core.value_objects import (
+    ComicID,
+    IssueNumber,
+    Language,
+    TagID,
+    TagName,
+    TranslationID,
+    TranslationImageID,
+)
 
 
 class BaseModel(DeclarativeBase):
@@ -51,13 +70,18 @@ class TranslationImageModel(BaseModel, TimestampMixin):
     translation: Mapped["TranslationModel"] = relationship(back_populates="image")
 
     def __str__(self) -> str:
-        return (
-            f"{self.__class__.__name__}"
-            f"(id={self.image_id}, original_rel_path={self.original})"
-        )
+        return f"{self.__class__.__name__}(id={self.image_id}, original_rel_path={self.original})"
 
     def __repr__(self) -> str:
         return str(self)
+
+    def to_dto(self) -> TranslationImageResponseDTO:
+        return TranslationImageResponseDTO(
+            id=TranslationImageID(self.image_id),
+            translation_id=TranslationID(self.translation_id) if self.translation_id else None,
+            original=Path(self.original),
+            converted=cast_or_none(Path, self.converted),
+        )
 
 
 class TranslationModel(BaseModel, TimestampMixin):
@@ -108,6 +132,20 @@ class TranslationModel(BaseModel, TimestampMixin):
         ),
     )
 
+    def to_dto(self) -> TranslationResponseDTO:
+        return TranslationResponseDTO(
+            id=TranslationID(self.translation_id),
+            comic_id=ComicID(self.comic_id),
+            language=Language(self.language),
+            title=self.title,
+            tooltip=self.tooltip,
+            raw_transcript=self.raw_transcript,
+            translator_comment=self.translator_comment,
+            image=self.image.to_dto() if self.image else None,
+            source_url=self.source_url,
+            is_draft=self.is_draft,
+        )
+
 
 class ComicTagAssociation(BaseModel):
     __tablename__ = "comic_tag_association"
@@ -141,6 +179,13 @@ class TagModel(BaseModel):
 
     def __repr__(self) -> str:
         return str(self)
+
+    def to_dto(self) -> TagResponseDTO:
+        return TagResponseDTO(
+            id=TagID(self.tag_id),
+            name=TagName(self.name),
+            is_blacklisted=self.is_blacklisted,
+        )
 
 
 class ComicModel(BaseModel, TimestampMixin):
@@ -189,3 +234,33 @@ class ComicModel(BaseModel, TimestampMixin):
             postgresql_where=(number.is_(None)),
         ),
     )
+
+    @staticmethod
+    def _separate_translations(
+        translations: list["TranslationModel"],
+    ) -> tuple["TranslationModel", list["TranslationModel"]]:
+        for idx, tr in enumerate(translations):
+            if tr.language == Language.EN:
+                original = translations.pop(idx)
+                return original, translations
+        raise ValueError("Comic model hasn't english translations.")
+
+    def to_dto(self) -> ComicResponseDTO:
+        original, translations = self._separate_translations(copy(self.translations))
+
+        return ComicResponseDTO(
+            id=ComicID(self.comic_id),
+            number=IssueNumber(self.number) if self.number else None,
+            title=original.title,
+            translation_id=TranslationID(original.translation_id),
+            publication_date=self.publication_date,
+            tooltip=original.tooltip,
+            xkcd_url=original.source_url,
+            explain_url=self.explain_url,
+            click_url=self.click_url,
+            is_interactive=self.is_interactive,
+            tags=[tag.to_dto() for tag in self.tags],
+            image=(original.image.to_dto() if original.image else None),
+            has_translations=[Language(tr.language) for tr in translations],
+            translations=[t.to_dto() for t in translations],
+        )
