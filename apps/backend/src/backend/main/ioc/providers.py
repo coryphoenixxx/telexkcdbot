@@ -1,3 +1,4 @@
+import importlib.resources
 from collections.abc import AsyncIterable
 
 from dishka import Provider, Scope, alias, provide
@@ -45,7 +46,7 @@ from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.filesystem import TempFileManager, TranslationImageFileManager
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.image_converter import ImageConverter
-from backend.infrastructure.xkcd.scrapers import (
+from backend.infrastructure.xkcd import (
     XkcdDEScraper,
     XkcdESScraper,
     XkcdExplainScraper,
@@ -54,8 +55,9 @@ from backend.infrastructure.xkcd.scrapers import (
     XkcdRUScraper,
     XkcdZHScraper,
 )
-from backend.main.configs.api import APIConfig
-from backend.main.configs.bot import BotConfig
+from backend.presentation.api.config import APIConfig
+from backend.presentation.cli.config import CLIConfig
+from backend.presentation.tg_bot.config import BotConfig
 
 
 class ConfigsProvider(Provider):
@@ -74,6 +76,10 @@ class ConfigsProvider(Provider):
     @provide(scope=Scope.APP)
     def provide_broker_config(self) -> NatsConfig:
         return load_config(NatsConfig, scope="nats")
+
+    @provide(scope=Scope.APP)
+    def provide_cli_config(self) -> CLIConfig:
+        return load_config(CLIConfig, scope="cli")
 
 
 class DatabaseProvider(Provider):
@@ -215,8 +221,14 @@ class HTTPProviders(Provider):
 class ScrapersProvider(Provider):
     scope = Scope.APP
 
+    @provide(scope=Scope.APP)
+    async def provide_xkcd_explain_scraper(self, client: AsyncHttpClient) -> XkcdExplainScraper:
+        with importlib.resources.open_text("assets", "bad_tags.txt") as f:
+            bad_tags = {line.lower() for line in f.read().splitlines() if line}
+
+        return XkcdExplainScraper(client, bad_tags)
+
     xkcd_original_scraper = provide(XkcdOriginalScraper)
-    xkcd_explain_scraper = provide(XkcdExplainScraper)
 
     xkcd_ru_scraper = provide(XkcdRUScraper)
     xkcd_de_scraper = provide(XkcdDEScraper)

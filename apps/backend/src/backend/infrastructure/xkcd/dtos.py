@@ -9,7 +9,7 @@ from yarl import URL
 ExtHttpUrl = Annotated[HttpUrl | URL | str, BeforeValidator(func=lambda x: (HttpUrl(str(x))))]
 
 
-@pddataclass(kw_only=True, config={"arbitrary_types_allowed": True, "strict": True})
+@pddataclass(slots=True, config={"arbitrary_types_allowed": True, "strict": True})
 class XkcdOriginalScrapedData:
     number: int
     publication_date: str
@@ -21,22 +21,15 @@ class XkcdOriginalScrapedData:
     image_path: Path | None = None
 
 
-@pddataclass(kw_only=True, config={"arbitrary_types_allowed": True, "strict": True})
-class XkcdExplanationScrapedData:
+@pddataclass(slots=True, config={"arbitrary_types_allowed": True, "strict": True})
+class XkcdExplainScrapedData:
     number: int
     explain_url: ExtHttpUrl
     tags: list[str]
     raw_transcript: str
 
 
-@pddataclass(kw_only=True, slots=True, config={"arbitrary_types_allowed": True, "strict": True})
-class XkcdOriginalWithExplainScrapedData(
-    XkcdOriginalScrapedData,
-    XkcdExplanationScrapedData,
-): ...
-
-
-@pddataclass(kw_only=True, slots=True, config={"arbitrary_types_allowed": True, "strict": True})
+@pddataclass(slots=True, config={"arbitrary_types_allowed": True, "strict": True})
 class XkcdTranslationScrapedData:
     number: int
     source_url: ExtHttpUrl | None

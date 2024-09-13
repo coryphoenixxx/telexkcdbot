@@ -140,7 +140,9 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
                 stmt = stmt.where(ComicModel.publication_date <= filter_params.date_range.end)
 
         if filter_params.tags:
-            stmt = stmt.outerjoin(ComicModel.tags).where(TagModel.name.in_(filter_params.tags))
+            stmt = stmt.outerjoin(ComicModel.tags).where(
+                TagModel.name.in_([t.value for t in filter_params.tags])
+            )
             if filter_params.tag_param == TagParam.AND and len(filter_params.tags) > 1:
                 stmt = stmt.group_by(ComicModel.comic_id).having(
                     func.count(TagModel.tag_id) == len(filter_params.tags),

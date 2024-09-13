@@ -34,7 +34,7 @@ asyncpg = "^0.29.0"
 beautifulsoup4 = "^4.12.2"
 dishka = "^1.2.0"
 fastapi = "^0.114"
-faststream = { extras = ["nats"], version = "^0.5" }
+faststream = {extras = ["cli", "nats"], version = "^0.5.23"}
 faust-cchardet = "^2.1.19"
 filetype = "^1.2.0"
 httptools = "^0.6.1"

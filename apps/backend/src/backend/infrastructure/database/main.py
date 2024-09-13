@@ -1,5 +1,3 @@
-import logging
-
 from sqlalchemy import URL, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -29,8 +27,5 @@ def create_db_engine(config: DbConfig) -> AsyncEngine:
 
 
 async def check_db_connection(engine: AsyncEngine) -> None:
-    try:
-        async with engine.connect() as conn:
-            await conn.execute(text("SELECT 1"))
-    except ConnectionError as e:
-        logging.fatal(f"Database connection failed! ERROR: {e.strerror}")
+    async with engine.connect() as conn:
+        await conn.execute(text("SELECT 1"))

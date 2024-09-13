@@ -13,8 +13,7 @@ services:
       CONFIG_PATH: /app/.configs/backend/config.prod.toml
     volumes:
       - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
-      - ./static:/app/static
-      - ./.tmp:/app/.tmp
+      - ./data:/app/data
     command: poetry run api
     ports:
       - 8000:8000
@@ -68,8 +67,7 @@ services:
       CONFIG_PATH: /app/.configs/backend/config.prod.toml
     volumes:
       - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
-      - ./static:/app/static
-      - ./.tmp:/app/.tmp
+      - ./data:/app/data
     command: bash -c "poetry run cli scrape_and_upload_original &&
                       poetry run cli scrape_and_upload_translations &&
                       poetry run cli extract_and_upload_prescraped_translations"
@@ -96,8 +94,7 @@ services:
       CONFIG_PATH: /app/.configs/backend/config.prod.toml
     volumes:
       - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
-      - ./static:/app/static
-      - ./.tmp:/app/.tmp
+      - ./data:/app/data
     command: poetry run faststream run --factory backend.main.worker:create_app --log-level error
     depends_on:
       postgres:

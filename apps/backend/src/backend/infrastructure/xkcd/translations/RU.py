@@ -1,38 +1,34 @@
 # mypy: disable-error-code="union-attr"
 
 import re
+from dataclasses import dataclass
 
 from bs4 import BeautifulSoup, NavigableString, Tag
-from rich.progress import Progress
 from yarl import URL
 
 from backend.infrastructure.downloader import Downloader
-from backend.infrastructure.http_client import AsyncHttpClient
-from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers import BaseScraper
-from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationScrapedData
-from backend.infrastructure.xkcd.scrapers.exceptions import ExtractError, ScrapeError
-from backend.infrastructure.xkcd.utils import run_concurrently
+from backend.infrastructure.xkcd import BaseScraper
+from backend.infrastructure.xkcd.dtos import XkcdTranslationScrapedData
+from backend.infrastructure.xkcd.exceptions import ExtractError, ScrapeError
 
 DIV_CONTENT_PATTERN = re.compile(r"<div.*?>(.*?)</div>", flags=re.DOTALL)
 
 REPEATED_BR_TAG_PATTERN = re.compile(r"(<br/>| )\1{2,}")
 
 
+@dataclass(slots=True)
 class XkcdRUScraper(BaseScraper):
-    _BASE_URL = URL("https://xkcd.ru/")
-    _NUM_LIST_URL = _BASE_URL / "num"
-
-    def __init__(self, client: AsyncHttpClient, downloader: Downloader) -> None:
-        super().__init__(client=client, downloader=downloader)
+    downloader: Downloader
+    BASE_URL = URL("https://xkcd.ru/")
+    NUM_LIST_URL = BASE_URL / "num"
 
     async def get_all_nums(self) -> list[int]:
-        soup = await self._get_soup(self._NUM_LIST_URL)
+        soup = await self._get_soup(self.NUM_LIST_URL)
 
         return self._extract_all_nums(soup)
 
     async def fetch_one(self, number: int) -> XkcdTranslationScrapedData:
-        url = self._BASE_URL / (str(number) + "/")
+        url = self.BASE_URL / (str(number) + "/")
         soup = await self._get_soup(url)
 
         try:
@@ -41,7 +37,7 @@ class XkcdRUScraper(BaseScraper):
                 source_url=url,
                 title=self._extract_title(soup),
                 tooltip=self._extract_tooltip(soup),
-                image_path=await self._downloader.download(url=self._extract_image_url(soup)),
+                image_path=await self.downloader.download(url=self._extract_image_url(soup)),
                 raw_transcript=self._extract_transcript(soup),
                 translator_comment=self._extract_comment(soup),
                 language="RU",
@@ -50,27 +46,6 @@ class XkcdRUScraper(BaseScraper):
             raise ScrapeError(url) from err
         else:
             return translation_data
-
-    async def fetch_many(
-        self,
-        limits: LimitParams,
-        progress: Progress,
-    ) -> list[XkcdTranslationScrapedData]:
-        all_nums = await self.get_all_nums()
-
-        filtered_numbers = [n for n in all_nums if limits.start <= n <= limits.end]
-
-        return await run_concurrently(
-            data=filtered_numbers,
-            coro=self.fetch_one,
-            chunk_size=limits.chunk_size,
-            delay=limits.delay,
-            pbar=CustomProgressBar(
-                progress,
-                f"Russian translations scraping... \\[{self._BASE_URL}]",
-                len(filtered_numbers),
-            ),
-        )
 
     def _extract_all_nums(self, soup: BeautifulSoup) -> list[int]:
         return [int(num.text) for num in soup.find_all("li", {"class": "real"})]

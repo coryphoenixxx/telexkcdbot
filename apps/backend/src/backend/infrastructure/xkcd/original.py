@@ -1,41 +1,29 @@
 # mypy: disable-error-code="union-attr"
-
 import html
-import logging
 import re
+from dataclasses import dataclass
 
-from rich.progress import Progress
 from yarl import URL
 
 from backend.application.utils import cast_or_none
 from backend.infrastructure.downloader import Downloader
-from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.http_client.http_codes import HTTPStatusCodes
-from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers import BaseScraper
-from backend.infrastructure.xkcd.scrapers.dtos import (
-    LimitParams,
-    XkcdOriginalScrapedData,
-)
-from backend.infrastructure.xkcd.scrapers.exceptions import ScrapeError
-from backend.infrastructure.xkcd.utils import run_concurrently
-
-logger = logging.getLogger(__name__)
-
+from backend.infrastructure.xkcd import BaseScraper
+from backend.infrastructure.xkcd.dtos import XkcdOriginalScrapedData
+from backend.infrastructure.xkcd.exceptions import ScrapeError
 
 HTML_TAG_PATTERN = re.compile(r"<.*?>")
 X2_IMAGE_URL_PATTERN = re.compile(r"//(.*?) 2x")
 IMAGE_URL_PATTERN = re.compile(r"https://imgs.xkcd.com/comics/(.*?).(jpg|jpeg|png|webp|gif)")
 
 
+@dataclass(slots=True)
 class XkcdOriginalScraper(BaseScraper):
-    _BASE_URL = URL("https://xkcd.com/")
-
-    def __init__(self, client: AsyncHttpClient, downloader: Downloader) -> None:
-        super().__init__(client=client, downloader=downloader)
+    BASE_URL = URL("https://xkcd.com/")
+    downloader: Downloader
 
     async def fetch_latest_number(self) -> int:
-        async with self._client.safe_get(url=self._BASE_URL / "info.0.json") as response:
+        async with self.client.safe_get(url=self.BASE_URL / "info.0.json") as response:
             json_data = await response.json()
             return int(json_data["num"])
 
@@ -43,7 +31,7 @@ class XkcdOriginalScraper(BaseScraper):
         if number > await self.fetch_latest_number() or number <= 0:
             return None
 
-        url = self._BASE_URL / f"{number!s}/"
+        url = self.BASE_URL / f"{number!s}/"
 
         if number == HTTPStatusCodes.NOT_FOUND_404:
             original_data = XkcdOriginalScrapedData(
@@ -53,7 +41,7 @@ class XkcdOriginalScraper(BaseScraper):
                 publication_date=self._build_date(y="2008", m="04", d="01"),
             )
         else:
-            async with self._client.safe_get(url / "info.0.json") as response:
+            async with self.client.safe_get(url / "info.0.json") as response:
                 json_data = await response.json()
 
             try:
@@ -76,32 +64,13 @@ class XkcdOriginalScraper(BaseScraper):
                     ),
                     click_url=cast_or_none(str, click_url),
                     tooltip=json_data["alt"],
-                    image_path=await self._downloader.download(image_url) if image_url else None,
+                    image_path=await self.downloader.download(image_url) if image_url else None,
                     is_interactive=bool(json_data.get("extra_parts")),
                 )
             except Exception as err:
                 raise ScrapeError(url) from err
 
         return original_data
-
-    async def fetch_many(
-        self,
-        limits: LimitParams,
-        progress: Progress,
-    ) -> list[XkcdOriginalScrapedData]:
-        numbers = list(range(limits.start, limits.end + 1))
-
-        return await run_concurrently(
-            data=numbers,
-            coro=self.fetch_one,
-            chunk_size=limits.chunk_size,
-            delay=limits.delay,
-            pbar=CustomProgressBar(
-                progress,
-                f"Original data scraping... \\[{self._BASE_URL}]",
-                len(numbers),
-            ),
-        )
 
     async def _fetch_large_image_url(self, url: URL | None) -> URL | None:
         # №657, №681, №802, №832, №850 ...

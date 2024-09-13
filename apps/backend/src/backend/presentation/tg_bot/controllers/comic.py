@@ -14,11 +14,11 @@ from dishka import FromDishka
 
 from backend.application.comic.services import ComicReadService
 from backend.core.value_objects import IssueNumber
-from backend.main.configs.bot import BotConfig
 from backend.presentation.api.controllers.schemas import (
     ComicResponseSchema,
     TranslationImageResponseSchema,
 )
+from backend.presentation.tg_bot.config import BotConfig
 from backend.presentation.tg_bot.filters import ComicNumberFilter
 from backend.presentation.tg_bot.keyboards.navigation import build_navigation_keyboard
 

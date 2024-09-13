@@ -14,7 +14,6 @@ from dishka import AsyncContainer, make_async_container
 from dishka.integrations.aiogram import setup_dishka
 
 from backend.infrastructure.config_loader import load_config
-from backend.main.configs.bot import BotAppConfig, BotConfig, BotRunMode, WebhookConfig
 from backend.main.ioc.providers import (
     ComicServicesProvider,
     ConfigsProvider,
@@ -24,6 +23,7 @@ from backend.main.ioc.providers import (
     RepositoriesProvider,
     TranslationImageServiceProvider,
 )
+from backend.presentation.tg_bot.config import BotAppConfig, BotConfig, BotRunMode, WebhookConfig
 from backend.presentation.tg_bot.controllers.comic import router as comic_router
 from backend.presentation.tg_bot.controllers.start import router as start_router
 

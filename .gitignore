@@ -140,13 +140,5 @@ dmypy.json
 cython_debug/
 
 .idea
-docker-compose.prod.yml
-pgdata
-postgresql.conf
-static
-.tmp
-/apps/frontend/.vscode/
-/apps/frontend/node_modules/
+data/
 /.configs/
-/apps/frontend/
-/apps/backend/src/backend/infrastructure/assets/prescraped_translations.zip

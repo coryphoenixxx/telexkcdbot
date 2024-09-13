@@ -29,7 +29,7 @@ from backend.presentation.cli.commands.scrape_and_upload_translations import (
 
 @click.group()
 @click.pass_context
-def main(context: click.Context) -> None:
+def main(ctx: click.Context) -> None:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
     container = make_async_container(
@@ -45,7 +45,7 @@ def main(context: click.Context) -> None:
         PublisherRouterProvider(),
     )
 
-    context.meta["container"] = container
+    ctx.meta["container"] = container
 
 
 main.add_command(

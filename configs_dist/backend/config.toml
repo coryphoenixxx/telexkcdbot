@@ -19,6 +19,9 @@ url = ""
 secret_token = ""
 path = "/bot/webhook"
 
+[cli]
+prescraped_dir = ""
+
 [db]
 host = "localhost"
 port = 5432

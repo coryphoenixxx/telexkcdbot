@@ -1,119 +1,84 @@
 import csv
 import errno
-import importlib.resources
-import logging
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from zipfile import ZipFile
 
 import click
-from dishka import AsyncContainer
 from yarl import URL
 
-from backend.application.comic.dtos import TranslationRequestDTO, TranslationResponseDTO
-from backend.application.comic.services import ComicReadService, ComicWriteService
-from backend.application.common.pagination import ComicFilterParams
-from backend.application.upload.upload_image_manager import UploadImageManager
-from backend.application.utils import cast_or_none
-from backend.core.value_objects import ComicID, Language
-from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationScrapedData
-from backend.infrastructure.xkcd.utils import run_concurrently
+from backend.core.value_objects import Language
+from backend.infrastructure.xkcd.dtos import XkcdTranslationScrapedData
 from backend.presentation.cli.common import (
-    DatabaseIsEmptyError,
     async_command,
-    base_progress,
-    positive_number_callback,
+    clean_up,
+    get_number_comic_id_map,
+    positive_number,
+    upload_one_translation,
 )
-
-logger = logging.getLogger(__name__)
+from backend.presentation.cli.config import CLIConfig
+from backend.presentation.cli.progress import ProgressChunkedRunner, base_progress
 
 
 def extract_prescraped_translations(
-    zip_path: Path,
+    prescraped_zip: Path,
     extract_to: Path,
-    limits: LimitParams,
-    pbar: CustomProgressBar | None,
+    filter_numbers: set[int],
 ) -> list[XkcdTranslationScrapedData]:
     translations = []
 
-    with ZipFile(zip_path, "r") as zf:
-        zf.extractall(extract_to)
+    if not prescraped_zip.exists():
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), prescraped_zip)
 
-    for lang_code_dirname in os.listdir(extract_to):
-        root = Path(extract_to) / lang_code_dirname
-        images_dir = root / "images"
+    with ZipFile(prescraped_zip, "r") as f:
+        f.extractall(extract_to)
 
-        number_image_path_map = {}
-        for image_name in os.listdir(images_dir):
-            abs_image_path = images_dir / image_name
+    for lang_code_dir in extract_to.iterdir():
+        Language(lang_code_dir.name)
+        images_dir = lang_code_dir / "images"
 
-            if not abs_image_path.exists():
-                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), abs_image_path)
+        number_image_path_map = {
+            int(image_path.stem): image_path for image_path in images_dir.iterdir()
+        }
 
-            number_image_path_map[int(image_name.split(".")[0])] = abs_image_path
+        csv_data_path = lang_code_dir / "data.csv"
+        if not csv_data_path.exists():
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), csv_data_path)
 
-        with Path(root / "data.csv").open() as data_file:
-            csv_reader = csv.DictReader(data_file)
+        with csv_data_path.open() as f:
+            csv_reader = csv.DictReader(f)
 
             for row in csv_reader:
-                number = int(row["number"])
+                number, title, tooltip, source_url = (
+                    int(row["number"]),
+                    row["title"],
+                    row["tooltip"],
+                    URL(url) if (url := row["source_url"]) else None,
+                )
 
-                if number < limits.start or number > limits.end:
+                if number not in filter_numbers:
                     continue
-
-                source_url = row["source_url"]
 
                 translations.append(
                     XkcdTranslationScrapedData(
                         number=number,
-                        source_url=URL(source_url) if source_url else None,
-                        title=row["title"],
-                        tooltip=row["tooltip"],
+                        source_url=source_url,
+                        title=title,
+                        tooltip=tooltip,
                         image_path=number_image_path_map[number],
-                        language=lang_code_dirname,
-                    ),
+                        language=lang_code_dir.name,
+                    )
                 )
-
-                if pbar:
-                    pbar.advance()
-
-    if pbar:
-        pbar.finish()
 
     return translations
 
 
-async def copy_image_and_upload_coro(
-    data: XkcdTranslationScrapedData,
-    number_comic_id_map: dict[int, int],
-    container: AsyncContainer,
-) -> TranslationResponseDTO:
-    upload_image_manager = await container.get(UploadImageManager)
-    temp_image_id = upload_image_manager.read_from_file(data.image_path)
-
-    async with container() as request_container:
-        service: ComicWriteService = await request_container.get(ComicWriteService)
-        return await service.add_translation(
-            comic_id=ComicID(number_comic_id_map[data.number]),
-            dto=TranslationRequestDTO(
-                language=Language(data.language),
-                title=data.title,
-                tooltip=data.tooltip,
-                raw_transcript=data.raw_transcript,
-                translator_comment=data.translator_comment,
-                source_url=cast_or_none(str, data.source_url),
-                temp_image_id=temp_image_id,
-                is_draft=False,
-            ),
-        )
-
-
 @click.command()
-@click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
-@click.option("--delay", type=float, default=0.1, callback=positive_number_callback)
+@click.option("--chunk_size", type=int, default=100, callback=positive_number)
+@click.option("--delay", type=float, default=0.1, callback=positive_number)
 @click.pass_context
+@clean_up
 @async_command
 async def extract_and_upload_prescraped_translations_command(
     ctx: click.Context,
@@ -122,51 +87,26 @@ async def extract_and_upload_prescraped_translations_command(
 ) -> None:
     container = ctx.meta["container"]
 
-    number_comic_id_map = {}
+    number_comic_id_map = await get_number_comic_id_map(container)
+    db_numbers = set(number_comic_id_map.keys())
 
-    async with container() as request_container:
-        service: ComicReadService = await request_container.get(ComicReadService)
-        _, comics = await service.get_list(query_params=ComicFilterParams())
-        for comic in comics:
-            if comic.number:
-                number_comic_id_map[comic.number.value] = comic.id.value
+    cli_config: CLIConfig = await container.get(CLIConfig)
 
-        if not number_comic_id_map:
-            raise DatabaseIsEmptyError("Looks like database is empty.")
+    with TemporaryDirectory() as temp_dir:
+        try:
+            prescraped_translations = extract_prescraped_translations(
+                prescraped_zip=cli_config.prescraped_dir / "prescraped_translations.zip",
+                extract_to=Path(temp_dir),
+                filter_numbers=db_numbers,
+            )
+        except FileNotFoundError as err:
+            raise click.FileError(filename=err.filename, hint="File not found.") from None
 
-    db_numbers = sorted(number_comic_id_map.keys())
-
-    limits = LimitParams(
-        start=db_numbers[0],
-        end=db_numbers[-1],
-        chunk_size=chunk_size,
-        delay=delay,
-    )
-
-    with base_progress, TemporaryDirectory() as temp_dir:
-        with importlib.resources.path("assets", "prescraped_translations.zip") as path:
-            try:
-                prescraped_translations = extract_prescraped_translations(
-                    zip_path=path,
-                    extract_to=Path(temp_dir),
-                    limits=limits,
-                    pbar=CustomProgressBar(base_progress, "Extracting prescraped translations..."),
-                )
-            except FileNotFoundError as err:
-                logger.warning(
-                    "File not found: %s. Skip prescraped translations extraction...", err.filename
-                )
-
-        await run_concurrently(
-            data=prescraped_translations,
-            coro=copy_image_and_upload_coro,
-            chunk_size=limits.chunk_size,
-            delay=limits.delay,
-            pbar=CustomProgressBar(
-                base_progress,
-                "Translations uploading...",
-                len(prescraped_translations),
-            ),
-            number_comic_id_map=number_comic_id_map,
-            container=container,
-        )
+        with base_progress:
+            await ProgressChunkedRunner(base_progress, chunk_size, delay).run(
+                desc="Prescraped translations uploading:",
+                coro=upload_one_translation,
+                data=prescraped_translations,
+                number_comic_id_map=number_comic_id_map,
+                container=container,
+            )

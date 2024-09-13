@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.main import check_db_connection
-from backend.main.configs.api import APIConfig
 from backend.main.ioc.providers import (
     ComicServicesProvider,
     ConfigsProvider,
@@ -21,6 +20,7 @@ from backend.main.ioc.providers import (
     TagServiceProvider,
     TranslationImageServiceProvider,
 )
+from backend.presentation.api.config import APIConfig
 from backend.presentation.api.middlewares import register_middlewares
 from backend.presentation.api.routers import register_routers
 
