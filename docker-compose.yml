@@ -16,7 +16,7 @@ services:
       - ./data:/app/data
     command: poetry run api
     ports:
-      - 8000:8000
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -46,7 +46,7 @@ services:
       - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
     command: poetry run tg_bot
     ports:
-      - 5000:5000
+      - "5000:5000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -161,10 +161,10 @@ services:
     profiles:
       - core
       - prepopulation
-    image: nats:2.10.18
+    image: nats:2.10.20
     restart: unless-stopped
     ports:
-      - 4222:4222
+      - "4222:4222"
     command: '-js'
     networks:
       - backend

@@ -34,7 +34,7 @@ asyncpg = "^0.29.0"
 beautifulsoup4 = "^4.12.2"
 dishka = "^1.2.0"
 fastapi = "^0.114"
-faststream = {extras = ["cli", "nats"], version = "^0.5.23"}
+faststream = { extras = ["cli", "nats"], version = "^0.5.23" }
 faust-cchardet = "^2.1.19"
 filetype = "^1.2.0"
 httptools = "^0.6.1"
@@ -53,6 +53,7 @@ uvloop = "^0.20.0"
 [tool.poetry.group.test.dependencies]
 pytest = "^8.0.0"
 pytest-asyncio = "^0.24.0"
+testcontainers = { extras = ["postgres", "nats"], version = "^4.8.1" }
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.11.2"
@@ -64,6 +65,7 @@ memray = "^1.13.4"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
 addopts = ["-s", "-v", "-x"]
 pythonpath = [".venv/bin"]
 
@@ -101,6 +103,7 @@ ignore = [
     "N999",
     "PGH003",
     "PLR0913",
+    "PT003",
     "TD002",
     "TD003",
     "TRY003",

@@ -10,4 +10,3 @@ class DbConfig:
     dbname: str
     echo: bool
     pool_size: int
-    driver: str = "asyncpg"

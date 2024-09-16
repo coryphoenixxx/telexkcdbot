@@ -22,8 +22,7 @@ def slugify(
         ("%", " pct "),
     ),
 ) -> str:
-    slug = base_slugify(string, separator=separator, replacements=replacements)
-    if not slug:
-        logger.error("Can't slugify words: %s", string)
+    if not (slug := base_slugify(string, separator=separator, replacements=replacements)):
+        logger.warning("Can't slugify words: %s", string)
         return string
     return slug

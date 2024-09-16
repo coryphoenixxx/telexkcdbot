@@ -1,5 +1,4 @@
 import asyncio
-import logging
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -11,9 +10,19 @@ from backend.infrastructure.filesystem import TempFileManager
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.http_client.http_codes import HTTPStatusCodes
 
-from .exceptions import DownloadError
 
-logger = logging.getLogger(__name__)
+@dataclass(slots=True)
+class DownloadError(Exception):
+    url: str
+    attempts: int
+    interval: float
+
+    @property
+    def message(self) -> str:
+        return (
+            f"Couldn't download the file "
+            f"(url={self.url}, attempts={self.attempts}, interval={self.interval})."
+        )
 
 
 @dataclass(slots=True)
@@ -21,7 +30,7 @@ class Downloader:
     http_client: AsyncHttpClient
     temp_file_manager: TempFileManager
     attempts: int = 3
-    interval: float = 0.5
+    interval: float = 0.1
     chunk_size: int = 64 * 1024
 
     async def download(self, url: URL) -> Path:

@@ -24,7 +24,7 @@ from backend.presentation.cli.common import (
     clean_up,
     positive_number,
 )
-from backend.presentation.cli.progress import ProgressChunkedRunner, base_progress
+from backend.presentation.cli.progress import ProgressChunkedRunner, progress_factory
 
 logger = getLogger(__name__)
 
@@ -111,8 +111,8 @@ async def scrape_and_upload_original_command(
     original_scraper: XkcdOriginalScraper = await container.get(XkcdOriginalScraper)
     explain_scraper: XkcdExplainScraper = await container.get(XkcdExplainScraper)
 
-    with base_progress:
-        runner = ProgressChunkedRunner(base_progress, chunk_size, delay)
+    with progress_factory() as progress:
+        runner = ProgressChunkedRunner(progress, chunk_size, delay)
 
         original_data_list = await runner.run(
             desc=f"Original data scraping ({original_scraper.BASE_URL}):",

@@ -11,13 +11,16 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.main import check_db_connection
 from backend.main.ioc.providers import (
+    APIConfigProvider,
+    BrokerConfigProvider,
     ComicServicesProvider,
-    ConfigsProvider,
-    DatabaseProvider,
+    DatabaseConfigProvider,
     FileManagersProvider,
+    FilesystemConfigProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
     TagServiceProvider,
+    TransactionManagerProvider,
     TranslationImageServiceProvider,
 )
 from backend.presentation.api.config import APIConfig
@@ -35,8 +38,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 def create_app() -> FastAPI:
     container = make_async_container(
-        ConfigsProvider(),
-        DatabaseProvider(),
+        DatabaseConfigProvider(),
+        FilesystemConfigProvider(),
+        BrokerConfigProvider(),
+        APIConfigProvider(),
+        TransactionManagerProvider(),
         FileManagersProvider(),
         PublisherRouterProvider(),
         RepositoriesProvider(),

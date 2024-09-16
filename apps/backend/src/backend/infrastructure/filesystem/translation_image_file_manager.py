@@ -49,7 +49,9 @@ class TranslationImageFileManager(TranslationImageFileManagerInterface):
         language: Language,
         is_draft: bool,
     ) -> Path:
-        temp_image_path = self.temp_file_manager.get_abs_path_by_id(temp_image_id)
+        temp_image_path = self.temp_file_manager.get_abs_path_by_id(
+            temp_image_id
+        )  # TODO: if not exists
 
         image = ImageObj(
             path=temp_image_path,

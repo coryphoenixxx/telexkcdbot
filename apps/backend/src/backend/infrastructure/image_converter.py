@@ -27,25 +27,25 @@ class ImageConverter(ImageConverterInterface):
             if self._is_animation(image):
                 raise ImageConversionError(original, "The image is an animation.")
 
-            converted_path = original.with_name(original.stem + "_converted").with_suffix(".webp")
+            converted = original.with_name(original.stem + "_converted").with_suffix(".webp")
 
             fmt = ImageFormat(original.suffix[1:])
             image.save(
-                fp=converted_path,
+                fp=converted,
                 format="webp",
                 lossless=fmt == ImageFormat.PNG,
                 quality=85 if fmt != ImageFormat.PNG else 100,
                 optimize=True,
             )
 
-        if converted_path.stat().st_size > original.stat().st_size:
-            converted_path.unlink()
+        if converted.stat().st_size > original.stat().st_size:
+            converted.unlink()
             raise ImageConversionError(
                 original,
                 "The converted image file size is larger than the original image file size.",
             )
 
-        return converted_path
+        return converted
 
     def _has_too_large_side_sizes(self, image: ImageObj) -> bool:
         return any(

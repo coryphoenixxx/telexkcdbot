@@ -17,7 +17,7 @@ from backend.presentation.cli.common import (
     positive_number,
     upload_one_translation,
 )
-from backend.presentation.cli.progress import ProgressChunkedRunner, base_progress
+from backend.presentation.cli.progress import ProgressChunkedRunner, progress_factory
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +38,9 @@ async def scrape_and_upload_translations_command(
     number_comic_id_map = await get_number_comic_id_map(container)
     db_numbers = set(number_comic_id_map.keys())
 
-    with base_progress:
+    with progress_factory() as progress:
         scraped_translations = []
-        runner = ProgressChunkedRunner(base_progress, chunk_size, delay)
+        runner = ProgressChunkedRunner(progress, chunk_size, delay)
 
         ru_scraper: XkcdRUScraper = await container.get(XkcdRUScraper)
         ru_translation_list = await runner.run(

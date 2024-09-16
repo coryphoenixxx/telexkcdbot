@@ -27,50 +27,45 @@ class XkcdOriginalScraper(BaseScraper):
             json_data = await response.json()
             return int(json_data["num"])
 
-    async def fetch_one(self, number: int) -> XkcdOriginalScrapedData | None:
-        if number > await self.fetch_latest_number() or number <= 0:
-            return None
-
+    async def fetch_one(self, number: int) -> XkcdOriginalScrapedData:
         url = self.BASE_URL / f"{number!s}/"
 
         if number == HTTPStatusCodes.NOT_FOUND_404:
-            original_data = XkcdOriginalScrapedData(
+            return XkcdOriginalScrapedData(
                 number=404,
                 xkcd_url=url,
                 title="404: Not Found",
                 publication_date=self._build_date(y="2008", m="04", d="01"),
             )
-        else:
+
+        try:
             async with self.client.safe_get(url / "info.0.json") as response:
                 json_data = await response.json()
 
-            try:
-                click_url, large_image_page_url = self._process_link(json_data["link"])
+            click_url, large_image_page_url = self._process_link(json_data["link"])
 
-                image_url = (
-                    await self._fetch_large_image_url(large_image_page_url)
-                    or await self._fetch_2x_image_url(url)
-                    or self._process_image_url(json_data["img"])
-                )
+            image_url = (
+                await self._fetch_large_image_url(large_image_page_url)
+                or await self._fetch_2x_image_url(url)
+                or self._process_image_url(json_data["img"])
+            )
 
-                original_data = XkcdOriginalScrapedData(
-                    number=json_data["num"],
-                    xkcd_url=url,
-                    title=self._process_title(json_data["title"]),
-                    publication_date=self._build_date(
-                        y=json_data["year"],
-                        m=json_data["month"],
-                        d=json_data["day"],
-                    ),
-                    click_url=cast_or_none(str, click_url),
-                    tooltip=json_data["alt"],
-                    image_path=await self.downloader.download(image_url) if image_url else None,
-                    is_interactive=bool(json_data.get("extra_parts")),
-                )
-            except Exception as err:
-                raise ScrapeError(url) from err
-
-        return original_data
+            return XkcdOriginalScrapedData(
+                number=json_data["num"],
+                xkcd_url=url,
+                title=self._process_title(json_data["title"]),
+                publication_date=self._build_date(
+                    y=json_data["year"],
+                    m=json_data["month"],
+                    d=json_data["day"],
+                ),
+                click_url=cast_or_none(str, click_url),
+                tooltip=json_data["alt"],
+                image_path=await self.downloader.download(image_url) if image_url else None,
+                is_interactive=bool(json_data.get("extra_parts")),
+            )
+        except Exception as err:
+            raise ScrapeError(url) from err
 
     async def _fetch_large_image_url(self, url: URL | None) -> URL | None:
         # №657, №681, №802, №832, №850 ...

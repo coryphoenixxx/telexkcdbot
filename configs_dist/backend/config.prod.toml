@@ -1,14 +1,12 @@
 [api]
 host = "0.0.0.0"
 port = 8000
-temp_dir = ""
-static_dir = ""
-upload_max_size = 10485760
+
 
 [bot]
 token = ""
 admin_id = 1234567890
-run_method = "POLLING"
+run_method = "WEBHOOK"
 
 [bot.app]
 host = "0.0.0.0"
@@ -16,20 +14,26 @@ port = 5000
 
 [bot.webhook]
 url = ""
-secret_token = ""
+secret_token = "secret"
 path = "/bot/webhook"
 
-[cli]
-prescraped_dir = ""
 
 [db]
-host = "localhost"
+host = "app.postgres"
 port = 5432
 dbname = "appdb"
 user = "admin"
 password = "password"
 echo = false
-pool_size = 40
+pool_size = 100
+
+
+[fs]
+temp_dir = "/app/data/temp"
+static_dir = "/app/data/static"
+prescraped_dir = "/app/data/prescraped"
+upload_max_size = 10485760
+
 
 [nats]
-url = "nats://localhost:4222"
+url = "nats://app.nats:4222"

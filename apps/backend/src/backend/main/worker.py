@@ -10,10 +10,12 @@ from backend.infrastructure.broker.config import NatsConfig
 from backend.infrastructure.broker.controllers import router
 from backend.infrastructure.config_loader import load_config
 from backend.main.ioc.providers import (
-    ConfigsProvider,
-    DatabaseProvider,
+    BrokerConfigProvider,
+    DatabaseConfigProvider,
     FileManagersProvider,
+    FilesystemConfigProvider,
     RepositoriesProvider,
+    TransactionManagerProvider,
     TranslationImageServiceProvider,
 )
 
@@ -32,8 +34,10 @@ def create_app() -> FastStream:
 
     setup_ioc(
         make_async_container(
-            ConfigsProvider(),
-            DatabaseProvider(),
+            DatabaseConfigProvider(),
+            FilesystemConfigProvider(),
+            BrokerConfigProvider(),
+            TransactionManagerProvider(),
             FileManagersProvider(),
             RepositoriesProvider(),
             TranslationImageServiceProvider(),

@@ -5,15 +5,18 @@ import uvloop
 from dishka import make_async_container
 
 from backend.main.ioc.providers import (
+    APIConfigProvider,
+    BrokerConfigProvider,
     ComicServicesProvider,
-    ConfigsProvider,
-    DatabaseProvider,
+    DatabaseConfigProvider,
     FileManagersProvider,
+    FilesystemConfigProvider,
     HTTPProviders,
     PublisherRouterProvider,
     RepositoriesProvider,
     ScrapersProvider,
     TagServiceProvider,
+    TransactionManagerProvider,
     TranslationImageServiceProvider,
 )
 from backend.presentation.cli.commands.extract_and_upload_prescraped_translations import (
@@ -33,15 +36,18 @@ def main(ctx: click.Context) -> None:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
     container = make_async_container(
-        ConfigsProvider(),
-        DatabaseProvider(),
+        DatabaseConfigProvider(),
+        BrokerConfigProvider(),
+        FilesystemConfigProvider(),
+        APIConfigProvider(),
+        TransactionManagerProvider(),
+        RepositoriesProvider(),
         FileManagersProvider(),
         HTTPProviders(),
         ScrapersProvider(),
         ComicServicesProvider(),
         TranslationImageServiceProvider(),
         TagServiceProvider(),
-        RepositoriesProvider(),
         PublisherRouterProvider(),
     )
 

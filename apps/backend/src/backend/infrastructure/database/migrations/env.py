@@ -1,11 +1,11 @@
 import asyncio
 
+import sqlalchemy
 from alembic import context
-from sqlalchemy import Connection
 
 from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.config import DbConfig
-from backend.infrastructure.database.main import create_db_engine
+from backend.infrastructure.database.main import build_postgres_url, create_db_engine
 from backend.infrastructure.database.models import BaseModel
 
 config = context.config
@@ -13,7 +13,7 @@ config = context.config
 target_metadata = BaseModel.metadata
 
 
-def do_run_migrations(connection: Connection) -> None:
+def do_run_migrations(connection: sqlalchemy.Connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
@@ -21,7 +21,14 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    engine = create_db_engine(config=load_config(DbConfig, scope="db"))
+    sqlalchemy_url = config.get_main_option("sqlalchemy.url")
+
+    if sqlalchemy_url is not None:
+        postgres_url = sqlalchemy.make_url(sqlalchemy_url)
+    else:
+        postgres_url = build_postgres_url(config=load_config(DbConfig, scope="db"))
+
+    engine = create_db_engine(db_url=postgres_url)
 
     async with engine.connect() as connection:
         await connection.run_sync(do_run_migrations)

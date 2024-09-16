@@ -9,6 +9,7 @@ import click
 from yarl import URL
 
 from backend.core.value_objects import Language
+from backend.infrastructure.filesystem.config import FilesystemConfig
 from backend.infrastructure.xkcd.dtos import XkcdTranslationScrapedData
 from backend.presentation.cli.common import (
     async_command,
@@ -17,8 +18,7 @@ from backend.presentation.cli.common import (
     positive_number,
     upload_one_translation,
 )
-from backend.presentation.cli.config import CLIConfig
-from backend.presentation.cli.progress import ProgressChunkedRunner, base_progress
+from backend.presentation.cli.progress import ProgressChunkedRunner, progress_factory
 
 
 def extract_prescraped_translations(
@@ -76,7 +76,7 @@ def extract_prescraped_translations(
 
 @click.command()
 @click.option("--chunk_size", type=int, default=100, callback=positive_number)
-@click.option("--delay", type=float, default=0.1, callback=positive_number)
+@click.option("--delay", type=float, default=0.001, callback=positive_number)
 @click.pass_context
 @clean_up
 @async_command
@@ -90,7 +90,7 @@ async def extract_and_upload_prescraped_translations_command(
     number_comic_id_map = await get_number_comic_id_map(container)
     db_numbers = set(number_comic_id_map.keys())
 
-    cli_config: CLIConfig = await container.get(CLIConfig)
+    cli_config: FilesystemConfig = await container.get(FilesystemConfig)
 
     with TemporaryDirectory() as temp_dir:
         try:
@@ -102,8 +102,8 @@ async def extract_and_upload_prescraped_translations_command(
         except FileNotFoundError as err:
             raise click.FileError(filename=err.filename, hint="File not found.") from None
 
-        with base_progress:
-            await ProgressChunkedRunner(base_progress, chunk_size, delay).run(
+        with progress_factory() as progress:
+            await ProgressChunkedRunner(progress, chunk_size, delay).run(
                 desc="Prescraped translations uploading:",
                 coro=upload_one_translation,
                 data=prescraped_translations,

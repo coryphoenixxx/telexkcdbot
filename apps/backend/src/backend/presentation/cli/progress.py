@@ -7,12 +7,19 @@ from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, T
 
 T = TypeVar("T")
 
-base_progress: Progress = Progress(
-    TextColumn("[progress.description]{task.description}"),
-    BarColumn(),
-    MofNCompleteColumn(),
-    TimeElapsedColumn(),
-)
+
+def chunked(seq: list["T"], n: int) -> Generator[list["T"], None, None]:
+    for i in range(0, len(seq), n):
+        yield list(seq[i : i + n])
+
+
+def progress_factory() -> Progress:
+    return Progress(
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TimeElapsedColumn(),
+    )
 
 
 class ProgressBar:
@@ -39,14 +46,9 @@ class ProgressBar:
                         column.render(task)
 
 
-def chunked(seq: list["T"], n: int) -> Generator[list["T"], None, None]:
-    for i in range(0, len(seq), n):
-        yield list(seq[i : i + n])
-
-
 @dataclass(slots=True)
 class ProgressChunkedRunner:
-    base_progress: Progress
+    progress: Progress
     chunk_size: int
     delay: float
 
@@ -60,7 +62,7 @@ class ProgressChunkedRunner:
     ) -> list[Any]:
         results = []
 
-        pbar = ProgressBar(self.base_progress, desc, total=len(data) if known_total else None)
+        pbar = ProgressBar(self.progress, desc, total=len(data) if known_total else None)
 
         for chunk in chunked(seq=data, n=self.chunk_size):
             try:

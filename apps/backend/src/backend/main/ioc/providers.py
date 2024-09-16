@@ -34,7 +34,7 @@ from backend.infrastructure.broker.config import NatsConfig
 from backend.infrastructure.broker.publisher_router import PublisherRouter
 from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.config import DbConfig
-from backend.infrastructure.database.main import create_db_engine
+from backend.infrastructure.database.main import build_postgres_url, create_db_engine
 from backend.infrastructure.database.repositories import (
     ComicRepo,
     TagRepo,
@@ -44,6 +44,7 @@ from backend.infrastructure.database.repositories import (
 from backend.infrastructure.database.transaction import TransactionManager
 from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.filesystem import TempFileManager, TranslationImageFileManager
+from backend.infrastructure.filesystem.config import FilesystemConfig
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.image_converter import ImageConverter
 from backend.infrastructure.xkcd import (
@@ -56,36 +57,49 @@ from backend.infrastructure.xkcd import (
     XkcdZHScraper,
 )
 from backend.presentation.api.config import APIConfig
-from backend.presentation.cli.config import CLIConfig
 from backend.presentation.tg_bot.config import BotConfig
 
 
-class ConfigsProvider(Provider):
+class DatabaseConfigProvider(Provider):
     @provide(scope=Scope.APP)
     def provide_db_config(self) -> DbConfig:
         return load_config(DbConfig, scope="db")
 
-    @provide(scope=Scope.APP)
-    def provide_api_config(self) -> APIConfig:
-        return load_config(APIConfig, scope="api")
 
-    @provide(scope=Scope.APP)
-    def provide_bot_config(self) -> BotConfig:
-        return load_config(BotConfig, scope="bot")
-
+class BrokerConfigProvider(Provider):
     @provide(scope=Scope.APP)
     def provide_broker_config(self) -> NatsConfig:
         return load_config(NatsConfig, scope="nats")
 
+
+class APIConfigProvider(Provider):
     @provide(scope=Scope.APP)
-    def provide_cli_config(self) -> CLIConfig:
-        return load_config(CLIConfig, scope="cli")
+    def provide_api_config(self) -> APIConfig:
+        return load_config(APIConfig, scope="api")
 
 
-class DatabaseProvider(Provider):
+class BotConfigProvider(Provider):
+    @provide(scope=Scope.APP)
+    def provide_bot_config(self) -> BotConfig:
+        return load_config(BotConfig, scope="bot")
+
+
+class FilesystemConfigProvider(Provider):
+    @provide(scope=Scope.APP)
+    def provide_fs_config(self) -> FilesystemConfig:
+        return load_config(FilesystemConfig, scope="fs")
+
+
+class TransactionManagerProvider(Provider):
     @provide(scope=Scope.APP)
     async def provide_db_engine(self, config: DbConfig) -> AsyncIterable[AsyncEngine]:
-        engine = create_db_engine(config)
+        engine = create_db_engine(
+            build_postgres_url(config),
+            echo=config.echo,
+            echo_pool=config.echo,
+            pool_size=config.pool_size,
+            max_overflow=20,
+        )
         yield engine
         await engine.dispose()
 
@@ -102,7 +116,10 @@ class DatabaseProvider(Provider):
             yield session
 
     @provide(scope=Scope.REQUEST)
-    async def provide_transaction(self, session: AsyncSession) -> AsyncIterable[TransactionManager]:
+    async def provide_transaction_manager(
+        self,
+        session: AsyncSession,
+    ) -> AsyncIterable[TransactionManager]:
         async with TransactionManager(session) as transaction:
             yield transaction
 
@@ -111,7 +128,7 @@ class DatabaseProvider(Provider):
 
 class FileManagersProvider(Provider):
     @provide(scope=Scope.APP)
-    async def provide_temp_file_manager(self, config: APIConfig) -> TempFileManager:
+    async def provide_temp_file_manager(self, config: FilesystemConfig) -> TempFileManager:
         config.temp_dir.mkdir(exist_ok=True)
         return TempFileManager(
             temp_dir=config.temp_dir,
@@ -121,7 +138,7 @@ class FileManagersProvider(Provider):
     @provide(scope=Scope.APP)
     async def provide_translation_image_file_manager(
         self,
-        config: APIConfig,
+        config: FilesystemConfig,
         temp_file_manager: TempFileManager,
     ) -> TranslationImageFileManager:
         return TranslationImageFileManager(
