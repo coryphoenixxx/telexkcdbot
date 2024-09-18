@@ -1,9 +1,10 @@
-# mypy: disable-error-code="union-attr"
+# mypy: disable-error-code="union-attr, no-any-return"
 
 import re
 from dataclasses import dataclass
 
-from bs4 import BeautifulSoup, NavigableString, Tag
+from bs4 import BeautifulSoup
+from bs4.element import NavigableString, Tag
 from yarl import URL
 
 from backend.infrastructure.downloader import Downloader

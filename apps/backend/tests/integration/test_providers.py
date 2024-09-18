@@ -17,11 +17,11 @@ class TestDbConfigProvider(Provider):
         url = sqlalchemy.make_url(self._postgres_url)
 
         return DbConfig(
-            host=url.host,
-            port=url.port,
-            user=url.username,
-            password=url.password,
-            dbname=url.database,
+            host=url.host,  # type: ignore
+            port=url.port,  # type: ignore
+            user=url.username,  # type: ignore
+            password=url.password,  # type: ignore
+            dbname=url.database,  # type: ignore
             echo=False,
             pool_size=5,
         )

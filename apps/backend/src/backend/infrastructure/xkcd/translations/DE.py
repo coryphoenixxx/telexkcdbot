@@ -1,4 +1,5 @@
-# mypy: disable-error-code="union-attr"
+# mypy: disable-error-code="union-attr, no-any-return"
+
 
 import re
 from dataclasses import dataclass

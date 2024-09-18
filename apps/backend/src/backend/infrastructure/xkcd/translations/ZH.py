@@ -1,4 +1,4 @@
-# mypy: disable-error-code="union-attr"
+# mypy: disable-error-code="union-attr, no-any-return"
 
 import asyncio
 from collections.abc import Iterable

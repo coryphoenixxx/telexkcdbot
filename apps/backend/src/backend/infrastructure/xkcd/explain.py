@@ -1,9 +1,11 @@
 # mypy: disable-error-code="union-attr"
+import asyncio
 import logging
 import re
 from dataclasses import dataclass
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
+from bs4.element import Tag
 from yarl import URL
 
 from backend.infrastructure.xkcd.base import BaseScraper
@@ -23,6 +25,7 @@ class XkcdExplainScraper(BaseScraper):
 
     async def fetch_one(self, number: int) -> XkcdExplainScrapedData | None:
         url = self.BASE_URL / f"wiki/index.php/{number}"
+
         soup = await self._get_soup(url)
 
         if soup.find("div", {"class": "noarticletext"}):
@@ -31,7 +34,7 @@ class XkcdExplainScraper(BaseScraper):
         try:
             explain_data = XkcdExplainScrapedData(
                 number=number,
-                explain_url=self._extract_real_url(soup),
+                explain_url=await self._extract_real_url(soup),
                 tags=self._extract_tags(soup),
                 raw_transcript=self._extract_transcript_html(soup),
             )
@@ -63,9 +66,14 @@ class XkcdExplainScraper(BaseScraper):
 
         return list(numbers)
 
-    def _extract_real_url(self, soup: BeautifulSoup) -> URL:
-        if rel_url := soup.find(id="ca-nstab-main").find("a").get("href"):
-            return self.BASE_URL.joinpath(str(rel_url)[1:], encoded=True)
+    async def _extract_real_url(self, soup: BeautifulSoup) -> URL:
+        # TODO: level higher
+        for _ in range(3):
+            if tab := soup.find(id="ca-nstab-main"):
+                if rel_url := tab.find("a").get("href"):
+                    return self.BASE_URL.joinpath(str(rel_url)[1:], encoded=True)
+            else:
+                await asyncio.sleep(3)
         raise ExtractError
 
     def _extract_tags(self, soup: BeautifulSoup) -> list[str]:

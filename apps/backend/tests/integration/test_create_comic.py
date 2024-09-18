@@ -1,5 +1,5 @@
 import datetime as dt
-from collections.abc import Generator
+from collections.abc import AsyncGenerator
 
 import pytest
 from dishka import AsyncContainer
@@ -12,7 +12,7 @@ from backend.core.value_objects import ComicID, IssueNumber, TagID, TagName, Tra
 @pytest.fixture(scope="function")
 async def comic_write_service(
     container: AsyncContainer,
-) -> Generator[ComicWriteService, None, None]:
+) -> AsyncGenerator[ComicWriteService, None]:
     async with container() as request_container:
         yield await request_container.get(ComicWriteService)
 

@@ -1,3 +1,4 @@
+from collections.abc import Generator
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,7 @@ def test_images_dir() -> Path:
 
 
 @pytest.fixture(scope="function")
-def clean_up(test_images_dir: Path) -> None:
+def clean_up(test_images_dir: Path) -> Generator[None, None, None]:
     files_before = set(test_images_dir.iterdir())
     yield
     files_after = set(test_images_dir.iterdir())

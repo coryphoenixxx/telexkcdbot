@@ -1,4 +1,4 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 from typing import Any
 
 import pytest
@@ -58,7 +58,7 @@ def make_migrations(postgres_url: str) -> None:
 
 
 @pytest.fixture(scope="session")
-async def container(postgres_url: str, nats_uri: str) -> AsyncContainer:
+async def container(postgres_url: str, nats_uri: str) -> AsyncGenerator[AsyncContainer, None]:
     container = make_async_container(
         TestDbConfigProvider(postgres_url),
         TestNatsConfigProvider(nats_uri),
