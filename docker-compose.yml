@@ -4,14 +4,10 @@ services:
     container_name: app.api
     profiles:
       - core
-    build:
-      context: .
-      dockerfile: build/Dockerfile
-    environment:
-      PYTHONPATH: .:./apps/backend/src
-      CONFIG_PATH: /app/.configs/backend/config.prod.toml
+    extends:
+      file: common.yaml
+      service: config
     volumes:
-      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
       - ./data:/app/data:rw
     command: uv run api
     ports:
@@ -31,18 +27,14 @@ services:
   #      retries: 5
   #      start_period: 10s
 
+
   tg_bot:
     container_name: app.tg_bot
     profiles:
       - core
-    build:
-      context: .
-      dockerfile: build/Dockerfile
-    environment:
-      PYTHONPATH: .:./apps/backend/src
-      CONFIG_PATH: /app/.configs/backend/config.prod.toml
-    volumes:
-      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
+    extends:
+      file: common.yaml
+      service: config
     command: uv run tg_bot
     ports:
       - "5000:5000"
@@ -53,20 +45,17 @@ services:
     networks:
       - backend
 
+
   prepopulation:
     container_name: app.prepopulation
     profiles:
       - prepopulation
-    build:
-      context: .
-      dockerfile: build/Dockerfile
-    environment:
-      PYTHONPATH: .:./apps/backend/src
-      CONFIG_PATH: /app/.configs/backend/config.prod.toml
+    extends:
+      file: common.yaml
+      service: config
     volumes:
-      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
       - ./data:/app/data:rw
-    command: bash -c "uv run cli scrape_and_upload_original &&
+    command: bash -c "uv run cli scrape_and_upload_original --end 60 &&
                       uv run cli scrape_and_upload_translations &&
                       uv run cli extract_and_upload_prescraped_translations"
     tty: true
@@ -79,17 +68,14 @@ services:
     networks:
       - backend
 
+
   worker:
     profiles:
       - core
-    build:
-      context: .
-      dockerfile: build/Dockerfile
-    environment:
-      PYTHONPATH: .:./apps/backend/src
-      CONFIG_PATH: /app/.configs/backend/config.prod.toml
+    extends:
+      file: common.yaml
+      service: config
     volumes:
-      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
       - ./data:/app/data:rw
     command: uv run faststream run --factory backend.main.worker:create_app --log-level error
     depends_on:
@@ -101,6 +87,23 @@ services:
     deploy:
       mode: replicated
       replicas: 2
+
+
+  migrations:
+    container_name: app.migrations
+    profiles:
+      - migrations
+    extends:
+      file: common.yaml
+      service: config
+    command: uv run alembic upgrade head
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    networks:
+      - backend
+
 
   postgres:
     container_name: app.postgres
@@ -132,25 +135,6 @@ services:
     networks:
       - backend
 
-  migrations:
-    container_name: app.migrations
-    profiles:
-      - migrations
-    build:
-      context: .
-      dockerfile: build/Dockerfile
-    environment:
-      PYTHONPATH: .:./apps/backend/src
-      CONFIG_PATH: /app/.configs/backend/config.prod.toml
-    volumes:
-      - ./.configs/backend/config.prod.toml:/app/.configs/backend/config.prod.toml:ro
-    command: uv run alembic upgrade head
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: on-failure
-    networks:
-      - backend
 
   nats:
     container_name: app.nats

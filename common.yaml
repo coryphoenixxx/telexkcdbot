@@ -1,0 +1,13 @@
+services:
+  config:
+    build:
+      context: .
+      dockerfile: build/Dockerfile
+      args:
+        - USERNAME=${USERNAME}
+        - UID=${UID}
+        - GID=${GID}
+    environment:
+      CONFIG_PATH: /app/${CONFIG_PATH}
+    volumes:
+      - ./${CONFIG_PATH}:/app/${CONFIG_PATH}:ro
