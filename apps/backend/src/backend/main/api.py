@@ -22,6 +22,7 @@ from backend.main.ioc.providers import (
     TagServiceProvider,
     TransactionManagerProvider,
     TranslationImageServiceProvider,
+    TranslationServicesProvider,
 )
 from backend.presentation.api.config import APIConfig
 from backend.presentation.api.middlewares import register_middlewares
@@ -31,7 +32,7 @@ from backend.presentation.api.routers import register_routers
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     engine = await app.state.dishka_container.get(AsyncEngine)
-    await check_db_connection(engine)
+    await check_db_connection(engine)  # TODO: handle
     yield
     await app.state.dishka_container.close()
 
@@ -48,6 +49,7 @@ def create_app() -> FastAPI:
         RepositoriesProvider(),
         ComicServicesProvider(),
         TranslationImageServiceProvider(),
+        TranslationServicesProvider(),
         TagServiceProvider(),
     )
 

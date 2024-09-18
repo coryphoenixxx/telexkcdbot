@@ -8,11 +8,11 @@ from backend.core.value_objects import TagID
 
 
 @dataclass(slots=True)
-class TagService:
+class UpdateTagInteractor:
+    tag_repo: TagRepoInterface
     transaction: TransactionManagerInterface
-    repo: TagRepoInterface
 
-    async def update(
+    async def execute(
         self,
         tag_id: TagID,
         dto: TagUpdateDTO,
@@ -22,10 +22,16 @@ class TagService:
             name = dto["name"].value
             data["name"], data["slug"] = name, slugify(name)
 
-        resp_dto = await self.repo.update(tag_id, data)
+        resp_dto = await self.tag_repo.update(tag_id, data)
         await self.transaction.commit()
         return resp_dto
 
-    async def delete(self, tag_id: TagID) -> None:
-        await self.repo.delete(tag_id)
+
+@dataclass(slots=True)
+class DeleteTagInteractor:
+    tag_repo: TagRepoInterface
+    transaction: TransactionManagerInterface
+
+    async def execute(self, tag_id: TagID) -> None:
+        await self.tag_repo.delete(tag_id)
         await self.transaction.commit()

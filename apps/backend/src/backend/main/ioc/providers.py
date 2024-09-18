@@ -18,11 +18,18 @@ from backend.application.comic.interfaces import (
     TranslationRepoInterface,
 )
 from backend.application.comic.services import (
-    ComicDeleteService,
-    ComicReadService,
-    ComicWriteService,
-    TagService,
-    TranslationImageService,
+    AddTranslationInteractor,
+    ComicReader,
+    ConvertAndUpdateTranslationImageInteractor,
+    CreateComicInteractor,
+    DeleteComicInteractor,
+    DeleteTagInteractor,
+    DeleteTranslationDraftInteractor,
+    FullUpdateComicInteractor,
+    FullUpdateTranslationInteractor,
+    PublishTranslationDraftInteractor,
+    TranslationReader,
+    UpdateTagInteractor,
 )
 from backend.application.common.dtos import ImageFormat
 from backend.application.common.interfaces import (
@@ -204,17 +211,33 @@ class RepositoriesProvider(Provider):
 class ComicServicesProvider(Provider):
     scope = Scope.REQUEST
 
-    comic_create_service = provide(ComicWriteService)
-    comic_delete_service = provide(ComicDeleteService)
-    comic_read_service = provide(ComicReadService)
-
-
-class TranslationImageServiceProvider(Provider):
-    translation_image_service = provide(TranslationImageService, scope=Scope.REQUEST)
+    create_comic_interactor = provide(CreateComicInteractor)
+    full_update_comic_interactor = provide(FullUpdateComicInteractor)
+    delete_comic_interactor = provide(DeleteComicInteractor)
+    comic_reader = provide(ComicReader)
 
 
 class TagServiceProvider(Provider):
-    tag_service = provide(TagService, scope=Scope.REQUEST)
+    scope = Scope.REQUEST
+
+    update_tag_interactor = provide(UpdateTagInteractor)
+    delete_tag_interactor = provide(DeleteTagInteractor)
+
+
+class TranslationServicesProvider(Provider):
+    scope = Scope.REQUEST
+
+    add_translation_interactor = provide(AddTranslationInteractor)
+    full_update_translation_interactor = provide(FullUpdateTranslationInteractor)
+    publish_translation_draft_interactor = provide(PublishTranslationDraftInteractor)
+    delete_translation_draft_interactor = provide(DeleteTranslationDraftInteractor)
+    translation_reader = provide(TranslationReader)
+
+
+class TranslationImageServiceProvider(Provider):
+    scope = Scope.REQUEST
+
+    translation_image_interactor = provide(ConvertAndUpdateTranslationImageInteractor)
 
 
 class HTTPProviders(Provider):

@@ -13,15 +13,16 @@ from backend.core.value_objects import TranslationImageID
 logger = logging.getLogger(__name__)
 
 
+# TODO: redesign
 @dataclass(slots=True)
-class TranslationImageService:
-    repo: TranslationImageRepoInterface
-    transaction: TransactionManagerInterface
+class ConvertAndUpdateTranslationImageInteractor:
+    translation_image_repo: TranslationImageRepoInterface
     file_manager: TranslationImageFileManagerInterface
     converter: ImageConverterInterface
+    transaction: TransactionManagerInterface
 
-    async def convert_and_update(self, image_id: TranslationImageID) -> None:
-        image_dto = await self.repo.get_by_id(image_id)
+    async def execute(self, image_id: TranslationImageID) -> None:
+        image_dto = await self.translation_image_repo.get_by_id(image_id)
 
         if image_dto is None:
             raise TranslationImageNotFoundError(image_id)
@@ -34,5 +35,5 @@ class TranslationImageService:
             logger.warning(err.message)
         else:
             converted_rel_path = self.file_manager.abs_to_rel(converted_abs_path)
-            await self.repo.update_converted(image_id, converted_rel_path)
+            await self.translation_image_repo.update_converted(image_id, converted_rel_path)
             await self.transaction.commit()

@@ -9,7 +9,7 @@ import click
 from dishka import AsyncContainer
 
 from backend.application.comic.dtos import TranslationRequestDTO, TranslationResponseDTO
-from backend.application.comic.services import ComicReadService, ComicWriteService
+from backend.application.comic.services import AddTranslationInteractor, ComicReader
 from backend.application.common.pagination import ComicFilterParams
 from backend.application.upload.upload_image_manager import UploadImageManager
 from backend.application.utils import cast_or_none
@@ -61,7 +61,7 @@ async def get_number_comic_id_map(container: AsyncContainer) -> dict[int, int]:
     number_comic_id_map = {}
 
     async with container() as request_container:
-        service: ComicReadService = await request_container.get(ComicReadService)
+        service: ComicReader = await request_container.get(ComicReader)
 
         _, comics = await service.get_list(query_params=ComicFilterParams())
         for comic in comics:
@@ -84,8 +84,8 @@ async def upload_one_translation(
     temp_image_id = upload_image_manager.read_from_file(data.image_path)
 
     async with container() as request_container:
-        service: ComicWriteService = await request_container.get(ComicWriteService)
-        return await service.add_translation(
+        service: AddTranslationInteractor = await request_container.get(AddTranslationInteractor)
+        return await service.execute(
             comic_id=ComicID(number_comic_id_map[data.number]),
             dto=TranslationRequestDTO(
                 language=Language(data.language),

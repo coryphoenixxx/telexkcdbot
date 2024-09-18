@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from starlette import status
 
 from backend.application.comic.exceptions import TagNotFoundError
-from backend.application.comic.services.tag import TagService
+from backend.application.comic.services import DeleteTagInteractor, UpdateTagInteractor
 from backend.core.value_objects import TagID
 from backend.presentation.api.controllers.schemas import (
     TagResponseWBlacklistStatusSchema,
@@ -25,10 +25,10 @@ async def update_tag(
     tag_id: int,
     schema: TagUpdateQuerySchema = Depends(),
     *,
-    service: FromDishka[TagService],
+    service: FromDishka[UpdateTagInteractor],
 ) -> TagResponseWBlacklistStatusSchema:
     return TagResponseWBlacklistStatusSchema.from_dto(
-        dto=await service.update(TagID(tag_id), schema.to_dto())
+        dto=await service.execute(TagID(tag_id), schema.to_dto())
     )
 
 
@@ -42,6 +42,6 @@ async def update_tag(
 async def delete_tag(
     tag_id: int,
     *,
-    service: FromDishka[TagService],
+    service: FromDishka[DeleteTagInteractor],
 ) -> None:
-    await service.delete(tag_id=TagID(tag_id))
+    await service.execute(tag_id=TagID(tag_id))

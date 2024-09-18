@@ -1,5 +1,4 @@
 # mypy: disable-error-code="union-attr"
-import asyncio
 import logging
 import re
 from dataclasses import dataclass
@@ -67,13 +66,9 @@ class XkcdExplainScraper(BaseScraper):
         return list(numbers)
 
     async def _extract_real_url(self, soup: BeautifulSoup) -> URL:
-        # TODO: level higher
-        for _ in range(3):
-            if tab := soup.find(id="ca-nstab-main"):
-                if rel_url := tab.find("a").get("href"):
-                    return self.BASE_URL.joinpath(str(rel_url)[1:], encoded=True)
-            else:
-                await asyncio.sleep(3)
+        if tab := soup.find(id="ca-nstab-main"):
+            if rel_url := tab.find("a").get("href"):
+                return self.BASE_URL.joinpath(str(rel_url)[1:], encoded=True)
         raise ExtractError
 
     def _extract_tags(self, soup: BeautifulSoup) -> list[str]:

@@ -6,7 +6,7 @@ from dishka import AsyncContainer
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.application.comic.dtos import ComicRequestDTO, ComicResponseDTO
-from backend.application.comic.services import ComicReadService, ComicWriteService
+from backend.application.comic.services import ComicReader, CreateComicInteractor
 from backend.application.upload.upload_image_manager import UploadImageManager
 from backend.application.utils import cast_or_none
 from backend.core.value_objects import IssueNumber, TagName
@@ -49,7 +49,7 @@ async def check_db(container: AsyncContainer) -> None:
         raise click.Abort from None
 
     async with container() as request_container:
-        service = await request_container.get(ComicReadService)
+        service = await request_container.get(ComicReader)
         latest = await service.get_latest_issue_number()
 
         if latest:
@@ -68,8 +68,8 @@ async def upload_one(
         temp_image_id = upload_image_manager.read_from_file(original_data.image_path)
 
     async with container() as request_container:
-        service: ComicWriteService = await request_container.get(ComicWriteService)
-        return await service.create(
+        service: CreateComicInteractor = await request_container.get(CreateComicInteractor)
+        return await service.execute(
             dto=ComicRequestDTO(
                 number=IssueNumber(original_data.number),
                 title=original_data.title,

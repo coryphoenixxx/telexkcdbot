@@ -1,5 +1,6 @@
 import logging.config
 import random
+from itertools import chain
 
 import click
 
@@ -39,7 +40,6 @@ async def scrape_and_upload_translations_command(
     db_numbers = set(number_comic_id_map.keys())
 
     with progress_factory() as progress:
-        scraped_translations = []
         runner = ProgressChunkedRunner(progress, chunk_size, delay)
 
         ru_scraper: XkcdRUScraper = await container.get(XkcdRUScraper)
@@ -48,8 +48,6 @@ async def scrape_and_upload_translations_command(
             coro=ru_scraper.fetch_one,
             data=list(db_numbers & set(await ru_scraper.get_all_nums())),
         )
-
-        scraped_translations.extend(ru_translation_list)
 
         de_scraper: XkcdDEScraper = await container.get(XkcdDEScraper)
         latest = await de_scraper.fetch_latest_number()
@@ -60,8 +58,6 @@ async def scrape_and_upload_translations_command(
             known_total=False,
         )
 
-        scraped_translations.extend(de_translation_list)
-
         es_scraper: XkcdESScraper = await container.get(XkcdESScraper)
         es_translation_list = await runner.run(
             desc=f"Spanish translations scraping ({es_scraper.BASE_URL})",
@@ -71,16 +67,12 @@ async def scrape_and_upload_translations_command(
             filter_numbers=db_numbers,
         )
 
-        scraped_translations.extend(es_translation_list)
-
         fr_scraper: XkcdFRScraper = await container.get(XkcdFRScraper)
         fr_translation_list = await runner.run(
             desc=f"French translations scraping ({fr_scraper.BASE_URL}):",
             coro=fr_scraper.fetch_one,
             data=list(db_numbers & set((await fr_scraper.fetch_number_data_map()).keys())),
         )
-
-        scraped_translations.extend(fr_translation_list)
 
         zh_scraper: XkcdZHScraper = await container.get(XkcdZHScraper)
         zh_translation_list = await runner.run(
@@ -93,7 +85,15 @@ async def scrape_and_upload_translations_command(
             ],
         )
 
-        scraped_translations.extend(zh_translation_list)
+        scraped_translations = list(
+            chain(
+                ru_translation_list,
+                de_translation_list,
+                es_translation_list,
+                fr_translation_list,
+                zh_translation_list,
+            )
+        )
 
         random.shuffle(scraped_translations)  # reduce DDOS when downloading images
         await runner.run(

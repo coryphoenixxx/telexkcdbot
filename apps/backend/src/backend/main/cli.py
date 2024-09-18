@@ -15,9 +15,8 @@ from backend.main.ioc.providers import (
     PublisherRouterProvider,
     RepositoriesProvider,
     ScrapersProvider,
-    TagServiceProvider,
     TransactionManagerProvider,
-    TranslationImageServiceProvider,
+    TranslationServicesProvider,
 )
 from backend.presentation.cli.commands.extract_and_upload_prescraped_translations import (
     extract_and_upload_prescraped_translations_command,
@@ -43,12 +42,11 @@ def main(ctx: click.Context) -> None:
         TransactionManagerProvider(),
         RepositoriesProvider(),
         FileManagersProvider(),
+        PublisherRouterProvider(),
+        ComicServicesProvider(),
+        TranslationServicesProvider(),
         HTTPProviders(),
         ScrapersProvider(),
-        ComicServicesProvider(),
-        TranslationImageServiceProvider(),
-        TagServiceProvider(),
-        PublisherRouterProvider(),
     )
 
     ctx.meta["container"] = container

@@ -11,10 +11,12 @@ from backend.application.comic.exceptions import (
     TranslationIsAlreadyPublishedError,
     TranslationNotFoundError,
 )
-from backend.application.comic.services.comic import (
-    ComicDeleteService,
-    ComicReadService,
-    ComicWriteService,
+from backend.application.comic.services import (
+    AddTranslationInteractor,
+    DeleteTranslationDraftInteractor,
+    FullUpdateTranslationInteractor,
+    PublishTranslationDraftInteractor,
+    TranslationReader,
 )
 from backend.core.value_objects import ComicID, Language, TranslationID
 from backend.presentation.api.controllers.schemas import (
@@ -42,10 +44,10 @@ async def add_translation(
     comic_id: int,
     schema: TranslationRequestSchema,
     *,
-    service: FromDishka[ComicWriteService],
+    service: FromDishka[AddTranslationInteractor],
 ) -> TranslationWLanguageResponseSchema:
     return TranslationWLanguageResponseSchema.from_dto(
-        dto=await service.add_translation(ComicID(comic_id), schema.to_dto())
+        dto=await service.execute(ComicID(comic_id), schema.to_dto())
     )
 
 
@@ -63,10 +65,10 @@ async def add_translation_draft(
     comic_id: int,
     schema: TranslationDraftRequestSchema,
     *,
-    service: FromDishka[ComicWriteService],
+    service: FromDishka[AddTranslationInteractor],
 ) -> TranslationWLanguageResponseSchema:
     return TranslationWLanguageResponseSchema.from_dto(
-        dto=await service.add_translation(ComicID(comic_id), schema.to_dto())
+        dto=await service.execute(ComicID(comic_id), schema.to_dto())
     )
 
 
@@ -81,9 +83,9 @@ async def add_translation_draft(
 async def publish_translation_draft(
     translation_id: int,
     *,
-    service: FromDishka[ComicWriteService],
+    service: FromDishka[PublishTranslationDraftInteractor],
 ) -> None:
-    await service.publish_translation_draft(TranslationID(translation_id))
+    await service.execute(TranslationID(translation_id))
 
 
 @router.put(
@@ -100,10 +102,10 @@ async def update_translation(
     translation_id: int,
     schema: TranslationRequestSchema,
     *,
-    service: FromDishka[ComicWriteService],
+    service: FromDishka[FullUpdateTranslationInteractor],
 ) -> TranslationWLanguageResponseSchema:
     return TranslationWLanguageResponseSchema.from_dto(
-        dto=await service.update_translation(TranslationID(translation_id), schema.to_dto())
+        dto=await service.execute(TranslationID(translation_id), schema.to_dto())
     )
 
 
@@ -118,9 +120,9 @@ async def update_translation(
 async def delete_translation(
     translation_id: int,
     *,
-    service: FromDishka[ComicDeleteService],
+    service: FromDishka[DeleteTranslationDraftInteractor],
 ) -> None:
-    await service.delete_translation(TranslationID(translation_id))
+    await service.execute(TranslationID(translation_id))
 
 
 @router.get(
@@ -133,10 +135,10 @@ async def delete_translation(
 async def get_translation_by_id(
     translation_id: int,
     *,
-    service: FromDishka[ComicReadService],
+    service: FromDishka[TranslationReader],
 ) -> TranslationWDraftStatusSchema:
     return TranslationWDraftStatusSchema.from_dto(
-        dto=await service.get_translation_by_id(TranslationID(translation_id))
+        dto=await service.get_by_id(TranslationID(translation_id))
     )
 
 
@@ -150,9 +152,9 @@ async def get_translation_by_id(
 async def get_translation_raw_transcript(
     translation_id: int,
     *,
-    service: FromDishka[ComicReadService],
+    service: FromDishka[TranslationReader],
 ) -> str:
-    dto = await service.get_translation_by_id(TranslationID(translation_id))
+    dto = await service.get_by_id(TranslationID(translation_id))
     return dto.raw_transcript
 
 
@@ -167,23 +169,7 @@ async def get_translation_by_language(
     comic_id: int,
     language: Language,
     *,
-    service: FromDishka[ComicReadService],
+    service: FromDishka[TranslationReader],
 ) -> TranslationWLanguageResponseSchema:
-    dto = await service.get_translation_by_language(ComicID(comic_id), language)
+    dto = await service.get_by_language(ComicID(comic_id), language)
     return TranslationWLanguageResponseSchema.from_dto(dto)
-
-
-@router.get(
-    "/comics/{comic_id}/translations",
-    status_code=status.HTTP_200_OK,
-    responses={
-        status.HTTP_404_NOT_FOUND: {"model": ComicNotFoundError},
-    },
-)
-async def get_comic_translations(
-    comic_id: int,
-    *,
-    service: FromDishka[ComicReadService],
-) -> list[TranslationWLanguageResponseSchema]:
-    dtos = await service.get_translations(ComicID(comic_id))
-    return [TranslationWLanguageResponseSchema.from_dto(dto) for dto in dtos]

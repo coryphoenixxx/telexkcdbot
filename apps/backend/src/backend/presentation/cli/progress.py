@@ -1,16 +1,12 @@
 import asyncio
-from collections.abc import Callable, Coroutine, Generator
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass
+from itertools import batched
 from typing import Any, TypeVar
 
 from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, TimeElapsedColumn
 
 T = TypeVar("T")
-
-
-def chunked(seq: list["T"], n: int) -> Generator[list["T"], None, None]:
-    for i in range(0, len(seq), n):
-        yield list(seq[i : i + n])
 
 
 def progress_factory() -> Progress:
@@ -65,13 +61,12 @@ class ProgressChunkedRunner:
 
         pbar = ProgressBar(self.progress, desc, total=len(data) if known_total else None)
 
-        for chunk in chunked(seq=data, n=self.chunk_size):
+        for chunk in batched(iterable=data, n=self.chunk_size):
             try:
                 async with asyncio.TaskGroup() as tg:
                     tasks = [tg.create_task(coro(value, **kwargs)) for value in chunk]
                     for fut in asyncio.as_completed(tasks):
-                        result = await fut
-                        if result:
+                        if result := await fut:
                             results.append(result)
                             pbar.advance()
             except* Exception as errors:

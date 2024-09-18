@@ -1,11 +1,30 @@
-from .comic import ComicDeleteService, ComicReadService, ComicWriteService
-from .tag import TagService
-from .translation_image import TranslationImageService
+from .comic import (
+    ComicReader,
+    CreateComicInteractor,
+    DeleteComicInteractor,
+    FullUpdateComicInteractor,
+)
+from .tag import DeleteTagInteractor, UpdateTagInteractor
+from .translation import (
+    AddTranslationInteractor,
+    DeleteTranslationDraftInteractor,
+    FullUpdateTranslationInteractor,
+    PublishTranslationDraftInteractor,
+    TranslationReader,
+)
+from .translation_image import ConvertAndUpdateTranslationImageInteractor
 
 __all__ = [
-    "ComicWriteService",
-    "ComicReadService",
-    "ComicDeleteService",
-    "TranslationImageService",
-    "TagService",
+    "CreateComicInteractor",
+    "FullUpdateComicInteractor",
+    "DeleteComicInteractor",
+    "ComicReader",
+    "UpdateTagInteractor",
+    "DeleteTagInteractor",
+    "AddTranslationInteractor",
+    "FullUpdateTranslationInteractor",
+    "PublishTranslationDraftInteractor",
+    "DeleteTranslationDraftInteractor",
+    "TranslationReader",
+    "ConvertAndUpdateTranslationImageInteractor",
 ]

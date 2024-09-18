@@ -12,7 +12,7 @@ from aiogram.types import (
 from aiogram.utils.markdown import hbold, hlink
 from dishka import FromDishka
 
-from backend.application.comic.services import ComicReadService
+from backend.application.comic.services import ComicReader
 from backend.core.value_objects import IssueNumber
 from backend.presentation.api.controllers.schemas import (
     ComicResponseSchema,
@@ -59,7 +59,7 @@ def calc_next_number(data: str, cur_pos: IssueNumber, latest: IssueNumber) -> Is
         case "nav_prev":
             next_number = cur_pos.value - 1
             if next_number <= 0:
-                next_number = latest
+                next_number = latest.value
         case "nav_random":
             next_number = randint(1, latest.value)  # noqa: S311
         case "nav_next":
@@ -67,7 +67,7 @@ def calc_next_number(data: str, cur_pos: IssueNumber, latest: IssueNumber) -> Is
             if next_number > latest.value:
                 next_number = 1
         case "nav_last":
-            next_number = latest
+            next_number = latest.value
         case _:
             raise ValueError("")
 
@@ -82,7 +82,7 @@ async def get_comic_by_number_handler(
     msg: Message,
     *,
     config: FromDishka[BotConfig],
-    service: FromDishka[ComicReadService],
+    service: FromDishka[ComicReader],
     state: FSMContext,
 ) -> None:
     issue_number = IssueNumber(int(msg.text))
@@ -110,7 +110,7 @@ async def navigation(
     callback: CallbackQuery,
     *,
     config: FromDishka[BotConfig],
-    service: FromDishka[ComicReadService],
+    service: FromDishka[ComicReader],
     state: FSMContext,
 ) -> None:
     latest = await service.get_latest_issue_number()

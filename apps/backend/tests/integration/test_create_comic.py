@@ -5,19 +5,19 @@ import pytest
 from dishka import AsyncContainer
 
 from backend.application.comic.dtos import ComicRequestDTO, ComicResponseDTO, TagResponseDTO
-from backend.application.comic.services import ComicWriteService
+from backend.application.comic.services import CreateComicInteractor
 from backend.core.value_objects import ComicID, IssueNumber, TagID, TagName, TranslationID
 
 
 @pytest.fixture(scope="function")
-async def comic_write_service(
+async def create_comic_interactor(
     container: AsyncContainer,
-) -> AsyncGenerator[ComicWriteService, None]:
+) -> AsyncGenerator[CreateComicInteractor, None]:
     async with container() as request_container:
-        yield await request_container.get(ComicWriteService)
+        yield await request_container.get(CreateComicInteractor)
 
 
-async def test_create_comic_success(comic_write_service: ComicWriteService) -> None:
+async def test_create_comic_success(create_comic_interactor: CreateComicInteractor) -> None:
     request = ComicRequestDTO(
         number=IssueNumber(1),
         title="SOME TITLE",
@@ -32,7 +32,7 @@ async def test_create_comic_success(comic_write_service: ComicWriteService) -> N
         temp_image_id=None,
     )
 
-    assert await comic_write_service.create(request) == ComicResponseDTO(
+    assert await create_comic_interactor.execute(request) == ComicResponseDTO(
         id=ComicID(value=1),
         number=request.number,
         title=request.title,
