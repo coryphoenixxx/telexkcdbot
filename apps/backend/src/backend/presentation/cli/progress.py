@@ -15,7 +15,7 @@ def progress_factory() -> Progress:
         BarColumn(),
         MofNCompleteColumn(),
         TimeElapsedColumn(),
-        auto_refresh=False,
+        refresh_per_second=5,
     )
 
 
@@ -27,7 +27,7 @@ class ProgressBar:
         self._counter = 0
 
     def advance(self, step: int = 1) -> None:
-        self._progress.update(self._task_id, advance=step, refresh=True)
+        self._progress.update(self._task_id, advance=step)
         self._counter += 1
 
     def finish(self) -> None:

@@ -4,7 +4,6 @@ from pathlib import Path
 from uuid import uuid4
 
 import aiofiles
-from aiofiles import os as aos
 
 from backend.application.common.interfaces.file_storages import (
     StreamReaderProtocol,
@@ -58,10 +57,6 @@ class TempFileManager(TempFileManagerInterface):
         shutil.move(path, self.temp_dir / str(temp_file_id))
 
         return temp_file_id
-
-    async def remove_by_id(self, temp_file_id: TempFileID) -> None:
-        path = self.temp_dir / str(temp_file_id)
-        await aos.remove(path)
 
     def get_abs_path_by_id(self, temp_file_id: TempFileID) -> Path:
         return self.temp_dir / str(temp_file_id)

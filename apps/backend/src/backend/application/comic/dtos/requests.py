@@ -21,8 +21,8 @@ class TranslationRequestDTO:
 @dataclass(slots=True, kw_only=True)
 class TranslationImageRequestDTO:
     translation_id: TranslationID
-    original: Path
-    converted: Path | None = None
+    original_path: Path
+    converted_path: Path | None = None  # TODO: check
 
 
 @dataclass(slots=True, kw_only=True)
@@ -40,7 +40,7 @@ class ComicRequestDTO:
     temp_image_id: TempFileID | None
 
     @property
-    def original(self) -> TranslationRequestDTO:
+    def original_translation(self) -> TranslationRequestDTO:
         return TranslationRequestDTO(
             language=Language.EN,
             title=self.title,

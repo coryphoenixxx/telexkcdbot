@@ -10,11 +10,11 @@ from backend.application.comic.interfaces import ComicRepoInterface, Translation
 from backend.application.common.interfaces import TransactionManagerInterface
 from backend.core.value_objects import ComicID, Language, TranslationID
 
-from .mixin import ProcessImageMixin
+from .mixins import ProcessTranslationImageMixin
 
 
 @dataclass(slots=True)
-class AddTranslationInteractor(ProcessImageMixin):
+class AddTranslationInteractor(ProcessTranslationImageMixin):
     translation_repo: TranslationRepoInterface
     comic_repo: ComicRepoInterface
     transaction: TransactionManagerInterface
@@ -29,17 +29,20 @@ class AddTranslationInteractor(ProcessImageMixin):
 
         translation = await self.translation_repo.create(comic_id, dto)
         number = await self.comic_repo.get_issue_number_by_id(comic_id)
-        image_dto = await self._create_image(translation.id, number, dto)
+        image = await self.create_image(translation.id, number, dto)
 
         await self.transaction.commit()
 
-        await self._convert(image_dto)
+        await self.process_image_in_background(
+            temp_image_id=dto.temp_image_id,
+            image_dto=image,
+        )
 
         return await self.translation_repo.get_by_id(translation.id)
 
 
 @dataclass(slots=True)
-class FullUpdateTranslationInteractor(ProcessImageMixin):
+class FullUpdateTranslationInteractor(ProcessTranslationImageMixin):
     comic_repo: ComicRepoInterface
     translation_repo: TranslationRepoInterface
     transaction: TransactionManagerInterface
@@ -58,11 +61,14 @@ class FullUpdateTranslationInteractor(ProcessImageMixin):
 
         translation = await self.translation_repo.update(translation_id, dto)
         number = await self.comic_repo.get_issue_number_by_id(translation.comic_id)
-        image_dto = await self._create_image(translation.id, number, dto)
+        image = await self.create_image(translation.id, number, dto)
 
         await self.transaction.commit()
 
-        await self._convert(image_dto)
+        await self.process_image_in_background(
+            temp_image_id=dto.temp_image_id,
+            image_dto=image,
+        )
 
         return await self.translation_repo.get_by_id(translation.id)
 

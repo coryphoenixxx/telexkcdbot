@@ -15,12 +15,12 @@ from dishka.integrations.aiogram import setup_dishka
 
 from backend.infrastructure.config_loader import load_config
 from backend.main.ioc.providers import (
+    AppConfigProvider,
     BotConfigProvider,
     BrokerConfigProvider,
     ComicServicesProvider,
     DatabaseConfigProvider,
     FileManagersProvider,
-    FilesystemConfigProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
     TransactionManagerProvider,
@@ -87,10 +87,10 @@ async def polling_run(bot: Bot, dp: Dispatcher) -> None:
 
 def main() -> None:
     container = make_async_container(
+        AppConfigProvider(),
         DatabaseConfigProvider(),
         BotConfigProvider(),
         BrokerConfigProvider(),
-        FilesystemConfigProvider(),
         TransactionManagerProvider(),
         FileManagersProvider(),
         RepositoriesProvider(),

@@ -18,8 +18,8 @@ class TranslationImageRepo(BaseRepo, TranslationImageRepoInterface):
             insert(TranslationImageModel)
             .values(
                 translation_id=None,
-                original=str(dto.original),
-                converted=cast_or_none(str, dto.converted),
+                original=str(dto.original_path),
+                converted=cast_or_none(str, dto.converted_path),
             )
             .returning(TranslationImageModel)
         )
@@ -38,14 +38,14 @@ class TranslationImageRepo(BaseRepo, TranslationImageRepoInterface):
 
         return image.to_dto()
 
-    async def update_converted(
+    async def set_converted_path(
         self,
-        image_id: TranslationImageID,
+        translation_image_id: TranslationImageID,
         converted_rel_path: Path,
     ) -> None:
         stmt = (
             update(TranslationImageModel)
-            .where(and_(TranslationImageModel.image_id == image_id.value))
+            .where(and_(TranslationImageModel.image_id == translation_image_id.value))
             .values(
                 converted=str(converted_rel_path),
             )
@@ -55,7 +55,6 @@ class TranslationImageRepo(BaseRepo, TranslationImageRepoInterface):
         await self._session.execute(stmt)
 
     async def get_by_id(self, image_id: TranslationImageID) -> TranslationImageResponseDTO | None:
-        image = await self._get_model_by_id(TranslationImageModel, image_id.value)
-        if image:
+        if image := await self._get_model_by_id(TranslationImageModel, image_id.value):
             return image.to_dto()
         return None

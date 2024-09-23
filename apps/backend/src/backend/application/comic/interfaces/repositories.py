@@ -105,9 +105,9 @@ class TranslationRepoInterface(Protocol):
 class TranslationImageRepoInterface(Protocol):
     async def create(self, dto: TranslationImageRequestDTO) -> TranslationImageResponseDTO: ...
 
-    async def update_converted(
+    async def set_converted_path(
         self,
-        image_id: TranslationImageID,
+        translation_image_id: TranslationImageID,
         converted_rel_path: Path,
     ) -> None: ...
 

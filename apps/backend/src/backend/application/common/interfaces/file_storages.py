@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import Protocol
 
-from backend.core.value_objects import IssueNumber, Language, TempFileID
+from backend.application.common.dtos import ImageObj
+from backend.core.value_objects import TempFileID
 
 
 class StreamReaderProtocol(Protocol):
@@ -17,21 +18,8 @@ class TempFileManagerInterface(Protocol):
 
     def safe_move(self, path: Path) -> TempFileID: ...
 
-    async def remove_by_id(self, temp_file_id: TempFileID) -> None: ...
-
     def get_abs_path_by_id(self, temp_file_id: TempFileID) -> Path: ...
 
 
-class TranslationImageFileManagerInterface(Protocol):
-    async def persist(
-        self,
-        temp_image_id: TempFileID,
-        number: IssueNumber | None,
-        title: str,
-        language: Language,
-        is_draft: bool,
-    ) -> Path: ...
-
-    def rel_to_abs(self, path: Path) -> Path: ...
-
-    def abs_to_rel(self, path: Path) -> Path: ...
+class ImageFileManagerInterface(Protocol):
+    async def persist(self, image: ImageObj, save_path: Path) -> None: ...

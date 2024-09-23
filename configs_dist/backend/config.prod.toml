@@ -1,3 +1,9 @@
+[app]
+upload_max_size = 10485760
+file_storage = "s3"
+temp_dir = "/app/data/temp"
+
+
 [api]
 host = "0.0.0.0"
 port = 8000
@@ -18,6 +24,10 @@ secret_token = "secret"
 path = "/bot/webhook"
 
 
+[cli]
+prescraped_dir = "/app/data/prescraped"
+
+
 [db]
 host = "app.postgres"
 port = 5432
@@ -29,10 +39,14 @@ pool_size = 100
 
 
 [fs]
-temp_dir = "/app/data/temp"
-static_dir = "/app/data/static"
-prescraped_dir = "/app/data/prescraped"
-upload_max_size = 10485760
+root_dir = "/app/data/static"
+
+
+[s3]
+bucket = "xkcdworld-static"
+endpoint_url = "https://storage.yandexcloud.net"
+aws_access_key_id = ""
+aws_secret_access_key = ""
 
 
 [nats]

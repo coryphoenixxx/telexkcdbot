@@ -3,5 +3,5 @@ from pathlib import Path
 
 
 @dataclass(slots=True)
-class FSConfig:
-    root_dir: Path
+class CLIConfig:
+    prescraped_dir: Path

@@ -6,11 +6,12 @@ from dishka import make_async_container
 
 from backend.main.ioc.providers import (
     APIConfigProvider,
+    AppConfigProvider,
     BrokerConfigProvider,
+    CLIConfigProvider,
     ComicServicesProvider,
     DatabaseConfigProvider,
     FileManagersProvider,
-    FilesystemConfigProvider,
     HTTPProviders,
     PublisherRouterProvider,
     RepositoriesProvider,
@@ -35,10 +36,11 @@ def main(ctx: click.Context) -> None:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
     container = make_async_container(
+        AppConfigProvider(),
         DatabaseConfigProvider(),
         BrokerConfigProvider(),
-        FilesystemConfigProvider(),
         APIConfigProvider(),
+        CLIConfigProvider(),
         TransactionManagerProvider(),
         RepositoriesProvider(),
         FileManagersProvider(),

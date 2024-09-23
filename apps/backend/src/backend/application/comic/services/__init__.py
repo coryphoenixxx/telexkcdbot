@@ -12,7 +12,7 @@ from .translation import (
     PublishTranslationDraftInteractor,
     TranslationReader,
 )
-from .translation_image import ConvertAndUpdateTranslationImageInteractor
+from .translation_image import ProcessTranslationImageInteractor
 
 __all__ = [
     "CreateComicInteractor",
@@ -26,5 +26,5 @@ __all__ = [
     "PublishTranslationDraftInteractor",
     "DeleteTranslationDraftInteractor",
     "TranslationReader",
-    "ConvertAndUpdateTranslationImageInteractor",
+    "ProcessTranslationImageInteractor",
 ]

@@ -11,10 +11,10 @@ from dishka import AsyncContainer
 from backend.application.comic.dtos import TranslationRequestDTO, TranslationResponseDTO
 from backend.application.comic.services import AddTranslationInteractor, ComicReader
 from backend.application.common.pagination import ComicFilterParams
+from backend.application.config import AppConfig
 from backend.application.upload.upload_image_manager import UploadImageManager
 from backend.application.utils import cast_or_none
 from backend.core.value_objects import ComicID, Language
-from backend.infrastructure.filesystem.config import FilesystemConfig
 from backend.infrastructure.xkcd.dtos import XkcdTranslationScrapedData
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,7 @@ def clean_up(f: Callable[..., Any]) -> Callable[..., Any]:
             return f(*args, **kwargs)
         except BaseException:
             container = ctx.meta["container"]
-            config: FilesystemConfig = asyncio.run(container.get(FilesystemConfig))
+            config: AppConfig = asyncio.run(container.get(AppConfig))
             clean_temp_dir(temp_dir=config.temp_dir)
             raise
 

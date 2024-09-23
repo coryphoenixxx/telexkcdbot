@@ -140,5 +140,5 @@ dmypy.json
 cython_debug/
 
 .idea
-data/
-/.configs/
+data
+configs

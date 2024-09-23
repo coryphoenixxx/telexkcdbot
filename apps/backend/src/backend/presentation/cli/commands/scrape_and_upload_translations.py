@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 @click.command()
 @click.option("--chunk_size", type=int, default=100, callback=positive_number)
-@click.option("--delay", type=float, default=0.1, callback=positive_number)
+@click.option("--delay", type=float, default=1, callback=positive_number)
 @click.pass_context
 @clean_up
 @async_command

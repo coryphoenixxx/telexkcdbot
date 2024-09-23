@@ -1,13 +1,17 @@
-from .file_storages import TempFileManagerInterface, TranslationImageFileManagerInterface
-from .publisher_router import ConvertImageMessage, NewComicMessage, PublisherRouterInterface
+from .file_storages import ImageFileManagerInterface, TempFileManagerInterface
+from .publisher_router import (
+    NewComicMessage,
+    ProcessTranslationImageMessage,
+    PublisherRouterInterface,
+)
 from .transaction import TransactionManagerInterface
 
 __all__ = [
     "PublisherRouterInterface",
     "TransactionManagerInterface",
-    "ConvertImageMessage",
+    "ProcessTranslationImageMessage",
     "NewComicMessage",
     "PublisherRouterInterface",
     "TempFileManagerInterface",
-    "TranslationImageFileManagerInterface",
+    "ImageFileManagerInterface",
 ]

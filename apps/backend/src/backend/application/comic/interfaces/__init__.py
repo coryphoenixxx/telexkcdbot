@@ -1,6 +1,6 @@
 from backend.application.common.interfaces.file_storages import (
+    ImageFileManagerInterface,
     TempFileManagerInterface,
-    TranslationImageFileManagerInterface,
 )
 
 from .image_converter import ImageConverterInterface
@@ -12,7 +12,7 @@ from .repositories import (
 )
 
 __all__ = [
-    "TranslationImageFileManagerInterface",
+    "ImageFileManagerInterface",
     "TempFileManagerInterface",
     "ComicRepoInterface",
     "TagRepoInterface",

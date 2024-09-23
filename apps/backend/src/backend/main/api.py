@@ -12,11 +12,11 @@ from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.main import check_db_connection
 from backend.main.ioc.providers import (
     APIConfigProvider,
+    AppConfigProvider,
     BrokerConfigProvider,
     ComicServicesProvider,
     DatabaseConfigProvider,
     FileManagersProvider,
-    FilesystemConfigProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
     TagServiceProvider,
@@ -39,8 +39,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 def create_app() -> FastAPI:
     container = make_async_container(
+        AppConfigProvider(),
         DatabaseConfigProvider(),
-        FilesystemConfigProvider(),
         BrokerConfigProvider(),
         APIConfigProvider(),
         TransactionManagerProvider(),

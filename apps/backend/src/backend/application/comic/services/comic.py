@@ -16,11 +16,11 @@ from backend.application.common.interfaces import (
 from backend.application.common.pagination import ComicFilterParams, Limit, Order, TotalCount
 from backend.core.value_objects import ComicID, IssueNumber
 
-from .mixin import ProcessImageMixin
+from .mixins import ProcessTranslationImageMixin
 
 
 @dataclass(slots=True)
-class CreateComicInteractor(ProcessImageMixin):
+class CreateComicInteractor(ProcessTranslationImageMixin):
     comic_repo: ComicRepoInterface
     translation_repo: TranslationRepoInterface
     tag_repo: TagRepoInterface
@@ -29,18 +29,22 @@ class CreateComicInteractor(ProcessImageMixin):
     async def execute(self, dto: ComicRequestDTO) -> ComicResponseDTO:
         comic_id = await self.comic_repo.create(dto)
         await self.tag_repo.create_many(comic_id, dto.tags)
-        translation = await self.translation_repo.create(comic_id, dto.original)
-        image_dto = await self._create_image(translation.id, dto.number, dto.original)
+        original_translation = dto.original_translation
+        translation = await self.translation_repo.create(comic_id, original_translation)
+        image = await self.create_image(translation.id, dto.number, original_translation)
 
         await self.transaction.commit()
 
-        await self._convert(image_dto)
+        await self.process_image_in_background(
+            temp_image_id=original_translation.temp_image_id,
+            image_dto=image,
+        )
 
         return await self.comic_repo.get_by(comic_id)
 
 
 @dataclass(slots=True)
-class FullUpdateComicInteractor(ProcessImageMixin):
+class FullUpdateComicInteractor(ProcessTranslationImageMixin):
     comic_repo: ComicRepoInterface
     translation_repo: TranslationRepoInterface
     tag_repo: TagRepoInterface
@@ -49,12 +53,19 @@ class FullUpdateComicInteractor(ProcessImageMixin):
     async def execute(self, comic_id: ComicID, dto: ComicRequestDTO) -> ComicResponseDTO:
         await self.comic_repo.update(comic_id, dto)
         await self.tag_repo.create_many(comic_id, dto.tags)
-        translation = await self.translation_repo.update_original(comic_id, dto.original)
-        image_dto = await self._create_image(translation.id, dto.number, dto.original)
+        original_translation = dto.original_translation
+        translation = await self.translation_repo.update_original(
+            comic_id=comic_id,
+            dto=original_translation,
+        )
+        image = await self.create_image(translation.id, dto.number, original_translation)
 
         await self.transaction.commit()
 
-        await self._convert(image_dto)
+        await self.process_image_in_background(
+            temp_image_id=original_translation.temp_image_id,
+            image_dto=image,
+        )
 
         return await self.comic_repo.get_by(comic_id)
 

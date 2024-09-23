@@ -11,22 +11,22 @@ from sqlalchemy.ext.asyncio import (
 from backend.application.comic.interfaces import (
     ComicRepoInterface,
     ImageConverterInterface,
+    ImageFileManagerInterface,
     TagRepoInterface,
     TempFileManagerInterface,
-    TranslationImageFileManagerInterface,
     TranslationImageRepoInterface,
     TranslationRepoInterface,
 )
 from backend.application.comic.services import (
     AddTranslationInteractor,
     ComicReader,
-    ConvertAndUpdateTranslationImageInteractor,
     CreateComicInteractor,
     DeleteComicInteractor,
     DeleteTagInteractor,
     DeleteTranslationDraftInteractor,
     FullUpdateComicInteractor,
     FullUpdateTranslationInteractor,
+    ProcessTranslationImageInteractor,
     PublishTranslationDraftInteractor,
     TranslationReader,
     UpdateTagInteractor,
@@ -36,6 +36,7 @@ from backend.application.common.interfaces import (
     PublisherRouterInterface,
     TransactionManagerInterface,
 )
+from backend.application.config import AppConfig, FileStorageType
 from backend.application.upload.upload_image_manager import UploadImageManager
 from backend.infrastructure.broker.config import NatsConfig
 from backend.infrastructure.broker.publisher_router import PublisherRouter
@@ -50,10 +51,12 @@ from backend.infrastructure.database.repositories import (
 )
 from backend.infrastructure.database.transaction import TransactionManager
 from backend.infrastructure.downloader import Downloader
-from backend.infrastructure.filesystem import TempFileManager, TranslationImageFileManager
-from backend.infrastructure.filesystem.config import FilesystemConfig
+from backend.infrastructure.filesystem import ImageFSFileManager, TempFileManager
+from backend.infrastructure.filesystem.config import FSConfig
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.image_converter import ImageConverter
+from backend.infrastructure.s3.client import ImageS3FileManager
+from backend.infrastructure.s3.config import S3Config
 from backend.infrastructure.xkcd import (
     XkcdDEScraper,
     XkcdESScraper,
@@ -64,7 +67,14 @@ from backend.infrastructure.xkcd import (
     XkcdZHScraper,
 )
 from backend.presentation.api.config import APIConfig
+from backend.presentation.cli.config import CLIConfig
 from backend.presentation.tg_bot.config import BotConfig
+
+
+class AppConfigProvider(Provider):
+    @provide(scope=Scope.APP)
+    def provide_app_config(self) -> AppConfig:
+        return load_config(AppConfig, scope="app")
 
 
 class DatabaseConfigProvider(Provider):
@@ -79,6 +89,12 @@ class BrokerConfigProvider(Provider):
         return load_config(NatsConfig, scope="nats")
 
 
+class CLIConfigProvider(Provider):
+    @provide(scope=Scope.APP)
+    def provide_cli_config(self) -> CLIConfig:
+        return load_config(CLIConfig, scope="cli")
+
+
 class APIConfigProvider(Provider):
     @provide(scope=Scope.APP)
     def provide_api_config(self) -> APIConfig:
@@ -89,12 +105,6 @@ class BotConfigProvider(Provider):
     @provide(scope=Scope.APP)
     def provide_bot_config(self) -> BotConfig:
         return load_config(BotConfig, scope="bot")
-
-
-class FilesystemConfigProvider(Provider):
-    @provide(scope=Scope.APP)
-    def provide_fs_config(self) -> FilesystemConfig:
-        return load_config(FilesystemConfig, scope="fs")
 
 
 class TransactionManagerProvider(Provider):
@@ -135,7 +145,7 @@ class TransactionManagerProvider(Provider):
 
 class FileManagersProvider(Provider):
     @provide(scope=Scope.APP)
-    async def provide_temp_file_manager(self, config: FilesystemConfig) -> TempFileManager:
+    async def provide_temp_file_manager(self, config: AppConfig) -> TempFileManager:
         config.temp_dir.mkdir(exist_ok=True)
         return TempFileManager(
             temp_dir=config.temp_dir,
@@ -143,15 +153,16 @@ class FileManagersProvider(Provider):
         )
 
     @provide(scope=Scope.APP)
-    async def provide_translation_image_file_manager(
+    async def provide_file_storage_interface(
         self,
-        config: FilesystemConfig,
-        temp_file_manager: TempFileManager,
-    ) -> TranslationImageFileManager:
-        return TranslationImageFileManager(
-            static_dir=config.static_dir,
-            temp_file_manager=temp_file_manager,
-        )
+        app_config: AppConfig,
+    ) -> ImageFileManagerInterface:
+        match app_config.file_storage:
+            case FileStorageType.FS:
+                config = load_config(FSConfig, scope="fs")
+                return ImageFSFileManager(root_dir=config.root_dir)
+            case FileStorageType.S3:
+                return ImageS3FileManager(config=load_config(S3Config, scope="s3"))
 
     @provide(scope=Scope.APP)
     def provide_upload_image_manager(
@@ -161,12 +172,9 @@ class FileManagersProvider(Provider):
         return UploadImageManager(temp_file_manager, tuple(ImageFormat))
 
     image_converter = provide(ImageConverter, scope=Scope.APP)
-
     image_converter_interface = alias(source=ImageConverter, provides=ImageConverterInterface)
+
     temp_file_manager_interface = alias(source=TempFileManager, provides=TempFileManagerInterface)
-    translation_image_file_manager_interface = alias(
-        source=TranslationImageFileManager, provides=TranslationImageFileManagerInterface
-    )
 
 
 class PublisherRouterProvider(Provider):
@@ -237,7 +245,7 @@ class TranslationServicesProvider(Provider):
 class TranslationImageServiceProvider(Provider):
     scope = Scope.REQUEST
 
-    translation_image_interactor = provide(ConvertAndUpdateTranslationImageInteractor)
+    translation_image_interactor = provide(ProcessTranslationImageInteractor)
 
 
 class HTTPProviders(Provider):

@@ -11,9 +11,9 @@ from testcontainers.nats import NatsContainer
 from testcontainers.postgres import PostgresContainer
 
 from backend.main.ioc.providers import (
+    AppConfigProvider,
     ComicServicesProvider,
     FileManagersProvider,
-    FilesystemConfigProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
     TransactionManagerProvider,
@@ -60,9 +60,9 @@ def make_migrations(postgres_url: str) -> None:
 @pytest.fixture(scope="session")
 async def container(postgres_url: str, nats_uri: str) -> AsyncGenerator[AsyncContainer, None]:
     container = make_async_container(
+        AppConfigProvider(),
         TestDbConfigProvider(postgres_url),
         TestNatsConfigProvider(nats_uri),
-        FilesystemConfigProvider(),
         TransactionManagerProvider(),
         FileManagersProvider(),
         RepositoriesProvider(),

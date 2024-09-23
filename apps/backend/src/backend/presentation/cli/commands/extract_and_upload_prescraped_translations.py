@@ -9,7 +9,6 @@ import click
 from yarl import URL
 
 from backend.core.value_objects import Language
-from backend.infrastructure.filesystem.config import FilesystemConfig
 from backend.infrastructure.xkcd.dtos import XkcdTranslationScrapedData
 from backend.presentation.cli.common import (
     async_command,
@@ -18,6 +17,7 @@ from backend.presentation.cli.common import (
     positive_number,
     upload_one_translation,
 )
+from backend.presentation.cli.config import CLIConfig
 from backend.presentation.cli.progress import ProgressChunkedRunner, progress_factory
 
 
@@ -90,7 +90,7 @@ async def extract_and_upload_prescraped_translations_command(
     number_comic_id_map = await get_number_comic_id_map(container)
     db_numbers = set(number_comic_id_map.keys())
 
-    cli_config: FilesystemConfig = await container.get(FilesystemConfig)
+    cli_config: CLIConfig = await container.get(CLIConfig)
 
     with TemporaryDirectory() as temp_dir:
         try:
