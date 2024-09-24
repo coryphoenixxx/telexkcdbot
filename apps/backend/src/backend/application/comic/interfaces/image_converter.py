@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from backend.application.common.dtos import ImageObj
+from backend.core.value_objects import ImageObj
 
 
 class ImageConverterInterface(Protocol):

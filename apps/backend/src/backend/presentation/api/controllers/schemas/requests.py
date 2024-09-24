@@ -1,13 +1,13 @@
 import datetime as dt
 from typing import Annotated
-from uuid import UUID
 
 from annotated_types import MaxLen, MinLen
 from pydantic import BaseModel, HttpUrl, PositiveInt
 
 from backend.application.comic.dtos import ComicRequestDTO, TagUpdateDTO, TranslationRequestDTO
+from backend.application.common.interfaces.file_storages import TempFileID
 from backend.application.utils import cast_or_none
-from backend.core.value_objects import IssueNumber, Language, TagName, TempFileID
+from backend.core.value_objects import IssueNumber, Language, TagName
 
 
 class ComicRequestSchema(BaseModel):
@@ -21,7 +21,7 @@ class ComicRequestSchema(BaseModel):
     click_url: HttpUrl | None
     is_interactive: bool
     tags: list[Annotated[str, MinLen(2), MaxLen(50)]]
-    temp_image_id: UUID | None
+    temp_image_id: TempFileID | None
 
     def to_dto(self) -> ComicRequestDTO:
         return ComicRequestDTO(
@@ -46,7 +46,7 @@ class TranslationRequestSchema(BaseModel):
     raw_transcript: str
     translator_comment: str
     source_url: HttpUrl | None
-    temp_image_id: UUID | None
+    temp_image_id: TempFileID | None
 
     def to_dto(self) -> TranslationRequestDTO:
         return TranslationRequestDTO(

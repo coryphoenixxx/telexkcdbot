@@ -21,15 +21,11 @@ class UploadImageIsEmptyError(BaseAppError):
 
 @dataclass(slots=True)
 class UnsupportedImageFormatError(BaseAppError):
-    format: str | None
     supported_formats: tuple[str, ...]
 
     @property
     def message(self) -> str:
-        return (
-            f"Unsupported image format ({self.format}). "
-            f"Supported formats: {', '.join(self.supported_formats)}."
-        )
+        return f"Unsupported image format. Supported formats: {', '.join(self.supported_formats)}."
 
 
 @dataclass(slots=True)

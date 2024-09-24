@@ -3,7 +3,8 @@ from typing import Any, NoReturn, Protocol
 
 from pydantic import BaseModel
 
-from backend.core.value_objects import TempFileID, TranslationImageID
+from backend.application.common.interfaces.file_storages import TempFileID
+from backend.core.value_objects import TranslationImageID
 
 
 class ProcessTranslationImageMessage(BaseModel):

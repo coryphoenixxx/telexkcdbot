@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 import aioboto3
 
-from backend.application.common.dtos import ImageObj
 from backend.application.common.interfaces.file_storages import ImageFileManagerInterface
+from backend.core.value_objects import ImageObj
 from backend.infrastructure.s3.config import S3Config
 
 if TYPE_CHECKING:

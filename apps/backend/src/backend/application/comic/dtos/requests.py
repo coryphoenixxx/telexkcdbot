@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypedDict
 
-from backend.core.value_objects import IssueNumber, Language, TagName, TempFileID, TranslationID
+from backend.application.common.interfaces.file_storages import TempFileID
+from backend.core.value_objects import IssueNumber, Language, TagName, TranslationID
 
 
 @dataclass(slots=True, kw_only=True)

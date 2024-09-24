@@ -7,7 +7,7 @@ from PIL.Image import Image as PILImage
 
 from backend.application.comic.exceptions.translation_image import ImageConversionError
 from backend.application.comic.interfaces.image_converter import ImageConverterInterface
-from backend.application.common.dtos import ImageFormat, ImageObj
+from backend.core.value_objects import ImageFormat, ImageObj
 
 warnings.simplefilter("ignore", Image.DecompressionBombWarning)
 

@@ -1,57 +1,7 @@
 import importlib.resources
 import json
-from dataclasses import dataclass
 from enum import StrEnum
-from typing import ClassVar, NewType, TypeAlias
-from uuid import UUID
-
-
-@dataclass(slots=True)
-class ValueObject:
-    def __post_init__(self) -> None:
-        self._validate()
-
-    def _validate(self) -> None: ...
-
-
-@dataclass(slots=True)
-class PositiveInt(ValueObject):
-    value: int
-
-    def _validate(self) -> None:
-        if self.value <= 0:
-            raise ValueError("Must be positive integer.")
-
-
-class ComicID(PositiveInt): ...
-
-
-class IssueNumber(PositiveInt): ...
-
-
-class TagID(PositiveInt): ...
-
-
-class TranslationID(PositiveInt): ...
-
-
-class TranslationImageID(PositiveInt): ...
-
-
-TempFileID = NewType("TempFileID", UUID)
-
-
-@dataclass(slots=True)
-class TagName(ValueObject):
-    value: str
-    _min: ClassVar[int] = 2
-    _max: ClassVar[int] = 50
-
-    def _validate(self) -> None:
-        if not (self._min <= len(self.value) <= self._max):
-            raise ValueError(
-                f"Tag name length must be between {self._min} and {self._max} characters."
-            )
+from typing import TypeAlias
 
 
 class LanguageEnum(StrEnum):

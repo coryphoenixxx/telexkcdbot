@@ -8,17 +8,18 @@ from backend.application.comic.dtos import (
     TranslationRequestDTO,
 )
 from backend.application.comic.interfaces import TranslationImageRepoInterface
-from backend.application.common.dtos import ImageFormat, ImageObj
 from backend.application.common.interfaces import (
     ImageFileManagerInterface,
     ProcessTranslationImageMessage,
     PublisherRouterInterface,
 )
+from backend.application.common.interfaces.file_storages import TempFileID
 from backend.application.utils import slugify
 from backend.core.value_objects import (
+    ImageFormat,
+    ImageObj,
     IssueNumber,
     Language,
-    TempFileID,
     TranslationID,
 )
 from backend.infrastructure.filesystem import TempFileManager
@@ -40,7 +41,7 @@ class ProcessTranslationImageMixin:
         if translation.temp_image_id is None:
             return None
 
-        image = ImageObj(self.temp_file_manager.get_abs_path(translation.temp_image_id))
+        image = ImageObj(self.temp_file_manager.get_abs_path(TempFileID(translation.temp_image_id)))
 
         save_path = self._build_image_relative_path(
             number=number,

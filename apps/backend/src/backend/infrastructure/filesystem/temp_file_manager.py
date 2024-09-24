@@ -7,13 +7,13 @@ import aiofiles
 
 from backend.application.common.interfaces.file_storages import (
     StreamReaderProtocol,
+    TempFileID,
     TempFileManagerInterface,
 )
 from backend.application.upload.exceptions import (
     UploadImageIsEmptyError,
     UploadImageSizeExceededLimitError,
 )
-from backend.core.value_objects import TempFileID
 
 
 @dataclass(slots=True)

@@ -1,8 +1,10 @@
 from pathlib import Path
-from typing import Protocol
+from typing import NewType, Protocol
+from uuid import UUID
 
-from backend.application.common.dtos import ImageObj
-from backend.core.value_objects import TempFileID
+from backend.core.value_objects import ImageObj
+
+TempFileID = NewType("TempFileID", UUID)
 
 
 class StreamReaderProtocol(Protocol):

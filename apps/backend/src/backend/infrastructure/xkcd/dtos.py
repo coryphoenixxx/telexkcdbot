@@ -1,15 +1,16 @@
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import BeforeValidator, HttpUrl
-from pydantic.dataclasses import dataclass as pddataclass
+import pydantic as pyd
 from yarl import URL
 
-ExtHttpUrl = Annotated[HttpUrl | URL | str, BeforeValidator(func=lambda x: (HttpUrl(str(x))))]
+ExtHttpUrl = Annotated[
+    pyd.HttpUrl | URL | str,
+    pyd.BeforeValidator(func=lambda x: (pyd.HttpUrl(str(x)))),
+]
 
 
-@pddataclass(slots=True, config={"arbitrary_types_allowed": True, "strict": True})
+@pyd.dataclasses.dataclass(slots=True, config={"arbitrary_types_allowed": True, "strict": True})
 class XkcdOriginalScrapedData:
     number: int
     publication_date: str
@@ -21,7 +22,7 @@ class XkcdOriginalScrapedData:
     image_path: Path | None = None
 
 
-@pddataclass(slots=True, config={"arbitrary_types_allowed": True, "strict": True})
+@pyd.dataclasses.dataclass(slots=True, config={"arbitrary_types_allowed": True, "strict": True})
 class XkcdExplainScrapedData:
     number: int
     explain_url: ExtHttpUrl
@@ -29,7 +30,7 @@ class XkcdExplainScrapedData:
     raw_transcript: str
 
 
-@pddataclass(slots=True, config={"arbitrary_types_allowed": True, "strict": True})
+@pyd.dataclasses.dataclass(slots=True, config={"arbitrary_types_allowed": True, "strict": True})
 class XkcdTranslationScrapedData:
     number: int
     source_url: ExtHttpUrl | None
@@ -39,11 +40,3 @@ class XkcdTranslationScrapedData:
     tooltip: str = ""
     raw_transcript: str = ""
     translator_comment: str = ""
-
-
-@dataclass(slots=True)
-class LimitParams:
-    start: int
-    end: int
-    chunk_size: int
-    delay: float

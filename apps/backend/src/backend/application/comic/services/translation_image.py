@@ -7,12 +7,12 @@ from backend.application.comic.interfaces import (
     ImageFileManagerInterface,
     TranslationImageRepoInterface,
 )
-from backend.application.common.dtos import ImageObj
 from backend.application.common.interfaces import (
     TempFileManagerInterface,
     TransactionManagerInterface,
 )
-from backend.core.value_objects import TempFileID, TranslationImageID
+from backend.application.common.interfaces.file_storages import TempFileID
+from backend.core.value_objects import ImageObj, TranslationImageID
 
 logger = logging.getLogger(__name__)
 

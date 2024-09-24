@@ -2,8 +2,8 @@ import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
-from backend.application.common.dtos import ImageObj
 from backend.application.common.interfaces.file_storages import ImageFileManagerInterface
+from backend.core.value_objects import ImageObj
 
 
 @dataclass(slots=True)

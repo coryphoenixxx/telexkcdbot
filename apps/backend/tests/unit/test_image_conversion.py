@@ -5,7 +5,7 @@ import pytest
 from filetype import filetype
 from PIL import Image
 
-from backend.application.common.dtos import ImageFormat, ImageObj
+from backend.core.value_objects import ImageFormat, ImageObj
 from backend.infrastructure.image_converter import ImageConverter
 
 

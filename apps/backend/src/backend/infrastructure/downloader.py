@@ -5,7 +5,7 @@ from pathlib import Path
 from aiohttp import ClientPayloadError
 from yarl import URL
 
-from backend.core.value_objects import TempFileID
+from backend.application.common.interfaces.file_storages import TempFileID
 from backend.infrastructure.filesystem import TempFileManager
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.http_client.http_codes import HTTPStatusCodes

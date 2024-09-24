@@ -31,7 +31,6 @@ from backend.application.comic.services import (
     TranslationReader,
     UpdateTagInteractor,
 )
-from backend.application.common.dtos import ImageFormat
 from backend.application.common.interfaces import (
     PublisherRouterInterface,
     TransactionManagerInterface,
@@ -164,13 +163,7 @@ class FileManagersProvider(Provider):
             case FileStorageType.S3:
                 return ImageS3FileManager(config=load_config(S3Config, scope="s3"))
 
-    @provide(scope=Scope.APP)
-    def provide_upload_image_manager(
-        self,
-        temp_file_manager: TempFileManager,
-    ) -> UploadImageManager:
-        return UploadImageManager(temp_file_manager, tuple(ImageFormat))
-
+    upload_image_manager = provide(UploadImageManager, scope=Scope.APP)
     image_converter = provide(ImageConverter, scope=Scope.APP)
     image_converter_interface = alias(source=ImageConverter, provides=ImageConverterInterface)
 
