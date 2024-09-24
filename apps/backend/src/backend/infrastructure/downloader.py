@@ -36,7 +36,7 @@ class Downloader:
     async def download(self, url: URL) -> Path:
         for _ in range(self.attempts):
             if temp_file_id := await self._download_attempt(url):
-                return self.temp_file_manager.get_abs_path_by_id(temp_file_id)
+                return self.temp_file_manager.get_abs_path(temp_file_id)
             await asyncio.sleep(self.interval)
         raise DownloadError(str(url), self.attempts, self.interval)
 

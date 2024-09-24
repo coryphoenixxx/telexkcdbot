@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
 import imagesize
 import pillow_avif  # type: ignore[import-untyped] # noqa: F401
@@ -16,7 +17,7 @@ class ImageFormat(StrEnum):
     AVIF = "avif"
 
     @classmethod
-    def _missing_(cls, value: object) -> "ImageFormat | None":
+    def _missing_(cls, value: Any) -> "ImageFormat | None":
         if value == "jpeg":
             for member in cls:
                 if member.value == "jpg":

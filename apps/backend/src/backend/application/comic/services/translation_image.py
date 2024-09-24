@@ -30,7 +30,7 @@ class ProcessTranslationImageInteractor:
         temp_image_id: TempFileID,
         translation_image_id: TranslationImageID,
     ) -> None:
-        original = ImageObj(self.temp_file_manager.get_abs_path_by_id(temp_image_id))
+        original = ImageObj(self.temp_file_manager.get_abs_path(temp_image_id))
 
         try:
             converted = self.converter.convert_to_webp(original)
@@ -55,5 +55,5 @@ class ProcessTranslationImageInteractor:
 
                 await self.transaction.commit()
 
-            original.source.unlink()
             converted.source.unlink()
+        original.source.unlink()

@@ -58,7 +58,7 @@ class TempFileManager(TempFileManagerInterface):
 
         return temp_file_id
 
-    def get_abs_path_by_id(self, temp_file_id: TempFileID) -> Path:
+    def get_abs_path(self, temp_file_id: TempFileID) -> Path:
         return self.temp_dir / str(temp_file_id)
 
     def _generate_id(self) -> TempFileID:

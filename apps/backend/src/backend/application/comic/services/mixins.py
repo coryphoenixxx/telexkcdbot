@@ -40,7 +40,7 @@ class ProcessTranslationImageMixin:
         if translation.temp_image_id is None:
             return None
 
-        image = ImageObj(self.temp_file_manager.get_abs_path_by_id(translation.temp_image_id))
+        image = ImageObj(self.temp_file_manager.get_abs_path(translation.temp_image_id))
 
         save_path = self._build_image_relative_path(
             number=number,
