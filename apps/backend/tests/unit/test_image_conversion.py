@@ -5,7 +5,8 @@ import pytest
 from filetype import filetype
 from PIL import Image
 
-from backend.core.value_objects import ImageFormat, ImageObj
+from backend.domain.value_objects import ImageFileObj
+from backend.domain.value_objects.image_file import ImageFormat
 from backend.infrastructure.image_converter import ImageConverter
 
 
@@ -42,10 +43,10 @@ def test_convert_image_to_webp_success(
     image_filename: str,
     clean_up: None,  # noqa: ARG001
 ) -> None:
-    original = ImageObj(test_images_dir / image_filename)
+    original = ImageFileObj(test_images_dir / image_filename)
     converted = converter.convert_to_webp(original)
 
-    assert str(converted.source).endswith("_converted.webp")
+    assert str(converted.source).endswith("_converted")
     assert original.source.parent == original.source.parent
     assert filetype.guess_extension(converted.source) == ImageFormat.WEBP
     assert converted.size < original.size

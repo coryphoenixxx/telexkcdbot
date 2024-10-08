@@ -27,7 +27,7 @@ class XkcdExplainScrapedData:
     number: int
     explain_url: ExtHttpUrl
     tags: list[str]
-    raw_transcript: str
+    transcript: str
 
 
 @pyd.dataclasses.dataclass(slots=True, config={"arbitrary_types_allowed": True, "strict": True})
@@ -38,5 +38,5 @@ class XkcdTranslationScrapedData:
     language: str
     image_path: Path
     tooltip: str = ""
-    raw_transcript: str = ""
+    transcript: str = ""
     translator_comment: str = ""

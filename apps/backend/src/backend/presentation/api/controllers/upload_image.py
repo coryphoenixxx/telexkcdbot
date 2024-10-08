@@ -3,15 +3,12 @@ from dishka.integrations.fastapi import DishkaRoute
 from fastapi import APIRouter, UploadFile
 from starlette import status
 
-from backend.application.upload.exceptions import (
-    UnsupportedImageFormatError,
-    UploadedImageReadError,
-    UploadImageIsEmptyError,
-    UploadImageSizeExceededLimitError,
+from backend.application.image.exceptions import (
+    ImageIsEmptyError,
+    ImageSizeExceededLimitError,
 )
-from backend.application.upload.upload_image_manager import (
-    UploadImageManager,
-)
+from backend.application.image.services import UploadImageInteractor
+from backend.domain.value_objects.image_file import ImageReadError, UnsupportedImageFormatError
 from backend.presentation.api.controllers.schemas import TempImageSchema
 
 router = APIRouter(tags=["Images"], route_class=DishkaRoute)
@@ -22,10 +19,10 @@ router = APIRouter(tags=["Images"], route_class=DishkaRoute)
     status_code=status.HTTP_201_CREATED,
     responses={
         status.HTTP_400_BAD_REQUEST: {
-            "model": UploadImageIsEmptyError | UploadedImageReadError,
+            "model": ImageIsEmptyError | ImageReadError,
         },
         status.HTTP_413_REQUEST_ENTITY_TOO_LARGE: {
-            "model": UploadImageSizeExceededLimitError,
+            "model": ImageSizeExceededLimitError,
         },
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {
             "model": UnsupportedImageFormatError,
@@ -35,9 +32,9 @@ router = APIRouter(tags=["Images"], route_class=DishkaRoute)
 async def upload_image(
     image_file: UploadFile | None = None,
     *,
-    upload_image_manager: FromDishka[UploadImageManager],
+    interactor: FromDishka[UploadImageInteractor],
 ) -> TempImageSchema:
     if image_file is None or image_file.filename is None:
-        raise UploadImageIsEmptyError
-
-    return TempImageSchema(temp_image_id=await upload_image_manager.read_from_stream(image_file))
+        raise ImageIsEmptyError
+    image_id = await interactor.execute(image_file)
+    return TempImageSchema(image_id=image_id.value)

@@ -35,7 +35,7 @@ class XkcdExplainScraper(BaseScraper):
                 number=number,
                 explain_url=await self._extract_real_url(soup),
                 tags=self._extract_tags(soup),
-                raw_transcript=self._extract_transcript_html(soup),
+                transcript=self._extract_transcript_html(soup),
             )
         except Exception as err:
             raise ScrapeError(url) from err
@@ -76,11 +76,13 @@ class XkcdExplainScraper(BaseScraper):
 
         if li_tags := soup.find(id="mw-normal-catlinks").find_all("li"):
             tag_lower_set = set()
-            for tag in [li.text for li in li_tags]:
-                tag_lower = tag.lower()
-                if not any(bad_word in tag_lower for bad_word in self.bad_tags):
-                    if tag_lower not in tag_lower_set:
-                        tags.add(tag)
+            for tag in {li.text for li in li_tags}:
+                tag_lower: str = tag.lower().strip()
+
+                if tag_lower not in tag_lower_set and not any(
+                    bad_word in tag_lower for bad_word in self.bad_tags
+                ):
+                    tags.add(tag)
                     tag_lower_set.add(tag_lower)
 
         return sorted(tags)

@@ -1,6 +1,8 @@
 import importlib.resources
 from collections.abc import AsyncIterable
+from typing import TYPE_CHECKING
 
+import aioboto3
 from dishka import Provider, Scope, alias, provide
 from faststream.nats import JStream, NatsBroker
 from sqlalchemy.ext.asyncio import (
@@ -10,33 +12,33 @@ from sqlalchemy.ext.asyncio import (
 
 from backend.application.comic.interfaces import (
     ComicRepoInterface,
-    ImageConverterInterface,
-    ImageFileManagerInterface,
     TagRepoInterface,
-    TempFileManagerInterface,
-    TranslationImageRepoInterface,
     TranslationRepoInterface,
 )
 from backend.application.comic.services import (
     AddTranslationInteractor,
     ComicReader,
     CreateComicInteractor,
+    CreateManyTagsInteractor,
+    CreateTagInteractor,
     DeleteComicInteractor,
     DeleteTagInteractor,
-    DeleteTranslationDraftInteractor,
-    FullUpdateComicInteractor,
-    FullUpdateTranslationInteractor,
-    ProcessTranslationImageInteractor,
-    PublishTranslationDraftInteractor,
+    DeleteTranslationInteractor,
+    TagReader,
     TranslationReader,
+    UpdateComicInteractor,
     UpdateTagInteractor,
+    UpdateTranslationInteractor,
 )
 from backend.application.common.interfaces import (
+    ImageFileManagerInterface,
     PublisherRouterInterface,
+    TempFileManagerInterface,
     TransactionManagerInterface,
 )
 from backend.application.config import AppConfig, FileStorageType
-from backend.application.upload.upload_image_manager import UploadImageManager
+from backend.application.image.interfaces import ImageConverterInterface, ImageRepoInterface
+from backend.application.image.services import ProcessImageInteractor, UploadImageInteractor
 from backend.infrastructure.broker.config import NatsConfig
 from backend.infrastructure.broker.publisher_router import PublisherRouter
 from backend.infrastructure.config_loader import load_config
@@ -44,8 +46,8 @@ from backend.infrastructure.database.config import DbConfig
 from backend.infrastructure.database.main import build_postgres_url, create_db_engine
 from backend.infrastructure.database.repositories import (
     ComicRepo,
+    ImageRepo,
     TagRepo,
-    TranslationImageRepo,
     TranslationRepo,
 )
 from backend.infrastructure.database.transaction import TransactionManager
@@ -54,8 +56,8 @@ from backend.infrastructure.filesystem import ImageFSFileManager, TempFileManage
 from backend.infrastructure.filesystem.config import FSConfig
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.image_converter import ImageConverter
-from backend.infrastructure.s3.client import ImageS3FileManager
 from backend.infrastructure.s3.config import S3Config
+from backend.infrastructure.s3.manager import ImageS3FileManager
 from backend.infrastructure.xkcd import (
     XkcdDEScraper,
     XkcdESScraper,
@@ -68,6 +70,9 @@ from backend.infrastructure.xkcd import (
 from backend.presentation.api.config import APIConfig
 from backend.presentation.cli.config import CLIConfig
 from backend.presentation.tg_bot.config import BotConfig
+
+if TYPE_CHECKING:
+    from types_aiobotocore_s3.client import S3Client  # noqa: F401
 
 
 class AppConfigProvider(Provider):
@@ -151,23 +156,30 @@ class FileManagersProvider(Provider):
             size_limit=config.upload_max_size,
         )
 
+    temp_file_manager_interface = alias(source=TempFileManager, provides=TempFileManagerInterface)
+
     @provide(scope=Scope.APP)
     async def provide_file_storage_interface(
         self,
         app_config: AppConfig,
-    ) -> ImageFileManagerInterface:
+    ) -> AsyncIterable[ImageFileManagerInterface]:
         match app_config.file_storage:
             case FileStorageType.FS:
-                config = load_config(FSConfig, scope="fs")
-                return ImageFSFileManager(root_dir=config.root_dir)
+                fs_config = load_config(FSConfig, scope="fs")
+                yield ImageFSFileManager(root_dir=fs_config.root_dir)
             case FileStorageType.S3:
-                return ImageS3FileManager(config=load_config(S3Config, scope="s3"))
+                s3_config = load_config(S3Config, scope="s3")
 
-    upload_image_manager = provide(UploadImageManager, scope=Scope.APP)
+                async with aioboto3.Session().client(
+                    "s3",
+                    endpoint_url=s3_config.endpoint_url,
+                    aws_access_key_id=s3_config.aws_access_key_id,
+                    aws_secret_access_key=s3_config.aws_secret_access_key,
+                ) as s3:  # type: S3Client
+                    yield ImageS3FileManager(client=s3, bucket=s3_config.bucket)
+
     image_converter = provide(ImageConverter, scope=Scope.APP)
     image_converter_interface = alias(source=ImageConverter, provides=ImageConverterInterface)
-
-    temp_file_manager_interface = alias(source=TempFileManager, provides=TempFileManagerInterface)
 
 
 class PublisherRouterProvider(Provider):
@@ -198,47 +210,51 @@ class RepositoriesProvider(Provider):
 
     comic_repo = provide(ComicRepo)
     translation_repo = provide(TranslationRepo)
-    translation_image_repo = provide(TranslationImageRepo)
+    translation_image_repo = provide(ImageRepo)
     tag_repo = provide(TagRepo)
 
     comic_repo_interface = alias(source=ComicRepo, provides=ComicRepoInterface)
     translation_repo_interface = alias(source=TranslationRepo, provides=TranslationRepoInterface)
-    translation_image_repo_interface = alias(
-        source=TranslationImageRepo, provides=TranslationImageRepoInterface
-    )
+    translation_image_repo_interface = alias(source=ImageRepo, provides=ImageRepoInterface)
     tag_repo_interface = alias(source=TagRepo, provides=TagRepoInterface)
 
 
-class ComicServicesProvider(Provider):
+class TagServicesProvider(Provider):
     scope = Scope.REQUEST
 
-    create_comic_interactor = provide(CreateComicInteractor)
-    full_update_comic_interactor = provide(FullUpdateComicInteractor)
-    delete_comic_interactor = provide(DeleteComicInteractor)
-    comic_reader = provide(ComicReader)
-
-
-class TagServiceProvider(Provider):
-    scope = Scope.REQUEST
-
+    create_tag_interactor = provide(CreateTagInteractor)
+    create_many_tags_interactor = provide(CreateManyTagsInteractor)
     update_tag_interactor = provide(UpdateTagInteractor)
     delete_tag_interactor = provide(DeleteTagInteractor)
+
+    tag_reader = provide(TagReader)
+
+
+class ImageServiceProvider(Provider):
+    scope = Scope.REQUEST
+
+    upload_image_interactor = provide(UploadImageInteractor)
+    process_image_interactor = provide(ProcessImageInteractor)
 
 
 class TranslationServicesProvider(Provider):
     scope = Scope.REQUEST
 
     add_translation_interactor = provide(AddTranslationInteractor)
-    full_update_translation_interactor = provide(FullUpdateTranslationInteractor)
-    publish_translation_draft_interactor = provide(PublishTranslationDraftInteractor)
-    delete_translation_draft_interactor = provide(DeleteTranslationDraftInteractor)
+    update_translation_interactor = provide(UpdateTranslationInteractor)
+    delete_translation_interactor = provide(DeleteTranslationInteractor)
+
     translation_reader = provide(TranslationReader)
 
 
-class TranslationImageServiceProvider(Provider):
+class ComicServicesProvider(Provider):
     scope = Scope.REQUEST
 
-    translation_image_interactor = provide(ProcessTranslationImageInteractor)
+    create_comic_interactor = provide(CreateComicInteractor)
+    full_update_comic_interactor = provide(UpdateComicInteractor)
+    delete_comic_interactor = provide(DeleteComicInteractor)
+
+    comic_reader = provide(ComicReader)
 
 
 class HTTPProviders(Provider):

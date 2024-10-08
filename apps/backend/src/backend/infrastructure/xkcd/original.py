@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 from yarl import URL
 
-from backend.application.utils import cast_or_none
+from backend.domain.utils import cast_or_none
 from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.http_client.http_codes import HTTPStatusCodes
 from backend.infrastructure.xkcd import BaseScraper

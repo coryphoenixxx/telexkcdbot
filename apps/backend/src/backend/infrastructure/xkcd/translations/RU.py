@@ -39,7 +39,7 @@ class XkcdRUScraper(BaseScraper):
                 title=self._extract_title(soup),
                 tooltip=self._extract_tooltip(soup),
                 image_path=await self.downloader.download(url=self._extract_image_url(soup)),
-                raw_transcript=self._extract_transcript(soup),
+                transcript=self._extract_transcript(soup),
                 translator_comment=self._extract_comment(soup),
                 language="RU",
             )

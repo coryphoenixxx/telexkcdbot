@@ -1,10 +1,8 @@
 from pathlib import Path
-from typing import NewType, Protocol
-from uuid import UUID
+from typing import Protocol
 
-from backend.core.value_objects import ImageObj
-
-TempFileID = NewType("TempFileID", UUID)
+from backend.domain.value_objects import ImageFileObj
+from backend.domain.value_objects.common import TempFileUUID
 
 
 class StreamReaderProtocol(Protocol):
@@ -16,12 +14,16 @@ class TempFileManagerInterface(Protocol):
         self,
         stream: StreamReaderProtocol,
         chunk_size: int,
-    ) -> TempFileID: ...
+    ) -> TempFileUUID: ...
 
-    def safe_move(self, path: Path) -> TempFileID: ...
+    def safe_move(self, path: Path) -> TempFileUUID: ...
 
-    def get_abs_path(self, temp_file_id: TempFileID) -> Path: ...
+    def get_abs_path(self, temp_file_id: TempFileUUID) -> Path: ...
 
 
 class ImageFileManagerInterface(Protocol):
-    async def persist(self, image: ImageObj, save_path: Path) -> None: ...
+    async def persist(self, image: ImageFileObj, save_path: Path) -> None: ...
+
+    async def move(self, path_from: Path, path_to: Path) -> None: ...
+
+    async def delete(self, path: Path) -> None: ...

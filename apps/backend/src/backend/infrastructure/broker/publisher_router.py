@@ -6,7 +6,7 @@ from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
 
 from backend.application.common.interfaces import (
     NewComicMessage,
-    ProcessTranslationImageMessage,
+    PostProcessImageMessage,
     PublisherRouterInterface,
 )
 
@@ -21,7 +21,7 @@ class PublisherRouter(PublisherRouterInterface):
         raise NotImplementedError
 
     @publish.register  # type: ignore[arg-type]
-    async def _(self, msg: ProcessTranslationImageMessage, **kwargs: Any) -> None:
+    async def _(self, msg: PostProcessImageMessage, **kwargs: Any) -> None:
         await self.converter_publisher.publish(msg, **kwargs)
 
     @publish.register  # type: ignore[arg-type]

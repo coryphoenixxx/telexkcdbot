@@ -8,7 +8,7 @@ from zipfile import ZipFile
 import click
 from yarl import URL
 
-from backend.core.value_objects import Language
+from backend.domain.value_objects import Language
 from backend.infrastructure.xkcd.dtos import XkcdTranslationScrapedData
 from backend.presentation.cli.common import (
     async_command,
@@ -50,12 +50,10 @@ def extract_prescraped_translations(
             csv_reader = csv.DictReader(f)
 
             for row in csv_reader:
-                number, title, tooltip, source_url = (
-                    int(row["number"]),
-                    row["title"],
-                    row["tooltip"],
-                    URL(url) if (url := row["source_url"]) else None,
-                )
+                number = int(row["number"])
+                title = row["title"]
+                tooltip = row["tooltip"]
+                source_url = URL(url) if (url := row["source_url"]) else None
 
                 if number not in filter_numbers:
                     continue

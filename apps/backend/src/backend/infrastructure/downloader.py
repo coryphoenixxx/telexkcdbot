@@ -5,7 +5,7 @@ from pathlib import Path
 from aiohttp import ClientPayloadError
 from yarl import URL
 
-from backend.application.common.interfaces.file_storages import TempFileID
+from backend.domain.value_objects import TempFileUUID
 from backend.infrastructure.filesystem import TempFileManager
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.http_client.http_codes import HTTPStatusCodes
@@ -20,7 +20,7 @@ class DownloadError(Exception):
     @property
     def message(self) -> str:
         return (
-            f"Couldn't download the file "
+            f"Couldn't download file "
             f"(url={self.url}, attempts={self.attempts}, interval={self.interval})."
         )
 
@@ -40,7 +40,7 @@ class Downloader:
             await asyncio.sleep(self.interval)
         raise DownloadError(str(url), self.attempts, self.interval)
 
-    async def _download_attempt(self, url: URL) -> TempFileID | None:
+    async def _download_attempt(self, url: URL) -> TempFileUUID | None:
         try:
             async with self.http_client.safe_get(url=url) as response:
                 if response.status == HTTPStatusCodes.OK_200:

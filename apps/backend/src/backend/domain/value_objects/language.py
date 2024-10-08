@@ -22,16 +22,19 @@ class LanguageEnum(StrEnum):
         return self._native  # type: ignore[attr-defined, no-any-return]
 
 
-def _get_language_data() -> dict[str, tuple[str, str, str]]:
-    with (
-        importlib.resources.files("assets")
-        .joinpath("language_data.json")
-        .open("r", encoding="utf-8") as f
-    ):
-        return {
-            code.upper(): (code.upper(), name, native)
-            for code, name, native in sorted(json.load(f))
-        }
+def _load_language_data() -> dict[str, tuple[str, str, str]]:
+    try:
+        with (
+            importlib.resources.files("assets")
+            .joinpath("language_data.json")
+            .open("r", encoding="utf-8") as f
+        ):
+            return {
+                code.upper(): (code.upper(), name, native)
+                for code, name, native in sorted(json.load(f))
+            }
+    except (FileNotFoundError, json.JSONDecodeError) as err:
+        raise RuntimeError("Failed to load language data.") from err
 
 
-Language: TypeAlias = LanguageEnum("Language", _get_language_data())  # type: ignore[valid-type, call-arg, arg-type]
+Language: TypeAlias = LanguageEnum("Language", _load_language_data())  # type: ignore[valid-type, call-arg, arg-type]

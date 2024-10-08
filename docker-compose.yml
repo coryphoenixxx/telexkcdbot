@@ -55,7 +55,7 @@ services:
       service: config
     volumes:
       - ./data:/app/data:rw
-    command: bash -c "uv run cli scrape_and_upload_original --end 60 &&
+    command: bash -c "uv run cli scrape_and_upload_original &&
                       uv run cli scrape_and_upload_translations &&
                       uv run cli extract_and_upload_prescraped_translations"
     tty: true

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from backend.application.common.exceptions import BaseAppError
+from backend.domain.exceptions import BaseAppError
 
 
 @dataclass(slots=True)

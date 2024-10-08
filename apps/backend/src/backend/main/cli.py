@@ -13,9 +13,11 @@ from backend.main.ioc.providers import (
     DatabaseConfigProvider,
     FileManagersProvider,
     HTTPProviders,
+    ImageServiceProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
     ScrapersProvider,
+    TagServicesProvider,
     TransactionManagerProvider,
     TranslationServicesProvider,
 )
@@ -45,8 +47,10 @@ def main(ctx: click.Context) -> None:
         RepositoriesProvider(),
         FileManagersProvider(),
         PublisherRouterProvider(),
-        ComicServicesProvider(),
+        TagServicesProvider(),
+        ImageServiceProvider(),
         TranslationServicesProvider(),
+        ComicServicesProvider(),
         HTTPProviders(),
         ScrapersProvider(),
     )

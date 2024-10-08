@@ -10,6 +10,6 @@ class FileStorageType(StrEnum):
 
 @dataclass(slots=True)
 class AppConfig:
-    upload_max_size: int
-    file_storage: FileStorageType
+    upload_max_size: int  # TODO: move to image context?
+    file_storage: FileStorageType  # TODO: move files context?
     temp_dir: Path

@@ -1,7 +1,2 @@
-from .image_file_manager import ImageFSFileManager
-from .temp_file_manager import TempFileManager
-
-__all__ = [
-    "TempFileManager",
-    "ImageFSFileManager",
-]
+from .image_file_manager import ImageFSFileManager as ImageFSFileManager
+from .temp_file_manager import TempFileManager as TempFileManager

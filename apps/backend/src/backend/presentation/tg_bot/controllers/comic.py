@@ -13,7 +13,7 @@ from aiogram.utils.markdown import hbold, hlink
 from dishka import FromDishka
 
 from backend.application.comic.services import ComicReader
-from backend.core.value_objects import IssueNumber
+from backend.domain.value_objects import IssueNumber
 from backend.presentation.api.controllers.schemas import (
     ComicResponseSchema,
     TranslationImageResponseSchema,
@@ -82,12 +82,12 @@ async def get_comic_by_number_handler(
     msg: Message,
     *,
     config: FromDishka[BotConfig],
-    service: FromDishka[ComicReader],
+    reader: FromDishka[ComicReader],
     state: FSMContext,
 ) -> None:
     issue_number = IssueNumber(int(msg.text))
 
-    comic = ComicResponseSchema.from_dto(dto=await service.get_by_issue_number(issue_number))
+    comic = ComicResponseSchema.from_data(data=await reader.get_by_issue_number(issue_number))
 
     image_url = build_image_url(webhook_url=config.webhook.url, image=comic.image)
 
@@ -110,10 +110,13 @@ async def navigation(
     callback: CallbackQuery,
     *,
     config: FromDishka[BotConfig],
-    service: FromDishka[ComicReader],
+    reader: FromDishka[ComicReader],
     state: FSMContext,
 ) -> None:
-    latest = await service.get_latest_issue_number()
+    latest = await reader.get_latest_issue_number()
+
+    if latest is None:
+        raise  # noqa: PLE0704
 
     next_number = calc_next_number(
         data=callback.data,
@@ -121,9 +124,9 @@ async def navigation(
         latest=latest,
     )
 
-    dto = await service.get_by_issue_number(next_number)
+    dto = await reader.get_by_issue_number(next_number)
 
-    comic = ComicResponseSchema.from_dto(dto=dto)
+    comic = ComicResponseSchema.from_data(data=dto)
 
     image_url = build_image_url(webhook_url=config.webhook.url, image=comic.image)
 

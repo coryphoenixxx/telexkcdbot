@@ -5,9 +5,9 @@ from typing import ClassVar
 from PIL import Image, ImageSequence
 from PIL.Image import Image as PILImage
 
-from backend.application.comic.exceptions.translation_image import ImageConversionError
-from backend.application.comic.interfaces.image_converter import ImageConverterInterface
-from backend.core.value_objects import ImageFormat, ImageObj
+from backend.application.image.exceptions import ImageConversionError
+from backend.application.image.interfaces import ImageConverterInterface
+from backend.domain.value_objects.image_file import ImageFileObj, ImageFormat
 
 warnings.simplefilter("ignore", Image.DecompressionBombWarning)
 
@@ -17,17 +17,15 @@ class ImageConverter(ImageConverterInterface):
     MAX_IMAGE_PIXELS: ClassVar[int] = int(1024 * 1024 * 1024 // 4 // 3)
     MAX_WEBP_SIDE_SIZE: ClassVar[int] = 16383
 
-    def convert_to_webp(self, original: ImageObj) -> ImageObj:
+    def convert_to_webp(self, original: ImageFileObj) -> ImageFileObj:
         with Image.open(original.source) as image:
             if self._has_too_large_side_sizes(image):
-                raise ImageConversionError(original.source, "The image is too large.")
+                raise ImageConversionError(original.source, "Image is too large.")
 
             if self._is_animation(image):
-                raise ImageConversionError(original.source, "The image is an animation.")
+                raise ImageConversionError(original.source, "Image is an animation.")
 
-            converted_abs_path = original.source.with_name(
-                original.source.stem + "_converted"
-            ).with_suffix(".webp")
+            converted_abs_path = original.source.with_name(original.source.stem + "_converted")
 
             image.save(
                 fp=converted_abs_path,
@@ -37,13 +35,13 @@ class ImageConverter(ImageConverterInterface):
                 optimize=True,
             )
 
-        converted = ImageObj(converted_abs_path)
+        converted = ImageFileObj(converted_abs_path)
 
         if converted.size > original.size:
             converted.source.unlink()
             raise ImageConversionError(
-                original.source,
-                "The converted image file size is larger than the original image file size.",
+                path=original.source,
+                reason="Converted image file size is larger than original image file size.",
             )
 
         return converted

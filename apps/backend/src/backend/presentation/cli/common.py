@@ -8,13 +8,15 @@ from typing import Any
 import click
 from dishka import AsyncContainer
 
-from backend.application.comic.dtos import TranslationRequestDTO, TranslationResponseDTO
+from backend.application.comic.commands import TranslationCreateCommand
+from backend.application.comic.filters import ComicFilters
 from backend.application.comic.services import AddTranslationInteractor, ComicReader
-from backend.application.common.pagination import ComicFilterParams
+from backend.application.common.pagination import Pagination
 from backend.application.config import AppConfig
-from backend.application.upload.upload_image_manager import UploadImageManager
-from backend.application.utils import cast_or_none
-from backend.core.value_objects import ComicID, Language
+from backend.application.image.services import UploadImageInteractor
+from backend.domain.entities import TranslationStatus
+from backend.domain.utils import cast_or_none
+from backend.domain.value_objects import Language, TranslationId
 from backend.infrastructure.xkcd.dtos import XkcdTranslationScrapedData
 
 logger = logging.getLogger(__name__)
@@ -61,12 +63,12 @@ async def get_number_comic_id_map(container: AsyncContainer) -> dict[int, int]:
     number_comic_id_map = {}
 
     async with container() as request_container:
-        service: ComicReader = await request_container.get(ComicReader)
+        reader: ComicReader = await request_container.get(ComicReader)
 
-        _, comics = await service.get_list(query_params=ComicFilterParams())
+        _, comics = await reader.get_list(filters=ComicFilters(), pagination=Pagination())
         for comic in comics:
             if comic.number:
-                number_comic_id_map[comic.number.value] = comic.id.value
+                number_comic_id_map[comic.number] = comic.id
 
         if not number_comic_id_map:
             logger.error("There are no comics in the database.")
@@ -79,22 +81,29 @@ async def upload_one_translation(
     data: XkcdTranslationScrapedData,
     number_comic_id_map: dict[int, int],
     container: AsyncContainer,
-) -> TranslationResponseDTO:
-    upload_image_manager = await container.get(UploadImageManager)
-    temp_image_id = upload_image_manager.read_from_file(data.image_path)
-
+) -> TranslationId:
     async with container() as request_container:
-        service: AddTranslationInteractor = await request_container.get(AddTranslationInteractor)
-        return await service.execute(
-            comic_id=ComicID(number_comic_id_map[data.number]),
-            dto=TranslationRequestDTO(
+        image_ids = []
+        if data.image_path:
+            upload_image_interactor: UploadImageInteractor = await request_container.get(
+                UploadImageInteractor
+            )
+            image_id = await upload_image_interactor.execute(data.image_path)
+            image_ids.append(image_id.value)
+
+        add_translation_interactor: AddTranslationInteractor = await request_container.get(
+            AddTranslationInteractor
+        )
+        return await add_translation_interactor.execute(
+            command=TranslationCreateCommand(
+                comic_id=number_comic_id_map[data.number],
                 language=Language(data.language),
                 title=data.title,
                 tooltip=data.tooltip,
-                raw_transcript=data.raw_transcript,
+                transcript=data.transcript,
                 translator_comment=data.translator_comment,
                 source_url=cast_or_none(str, data.source_url),
-                temp_image_id=temp_image_id,
-                is_draft=False,
+                status=TranslationStatus.PUBLISHED,
+                image_ids=image_ids,
             ),
         )

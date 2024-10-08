@@ -16,7 +16,7 @@ XKCD_NUMBER_PATTERN = re.compile(r".*xkcd.com/(.*)")
 
 @dataclass(slots=True)
 class XkcdESScraper(BaseScraper):
-    BASE_URL = URL("https://es.xkcd.com/")
+    BASE_URL = URL("https://es.xkcd.com")
     downloader: Downloader
     all_links: list[URL] = field(init=False)
 
@@ -41,7 +41,8 @@ class XkcdESScraper(BaseScraper):
                 image_path=await self.downloader.download(url=self._extract_image_url(soup)),
                 language="ES",
             )
-            if translation_data.title == "Geografía":  # fix: https://es.xkcd.com/strips/geografia/
+            # fix for https://es.xkcd.com/strips/geografia/
+            if translation_data.title == "Geografía":
                 translation_data.number = 1472
         except Exception as err:
             raise ScrapeError(url) from err

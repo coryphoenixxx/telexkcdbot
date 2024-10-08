@@ -17,11 +17,11 @@ from backend.main.ioc.providers import (
     ComicServicesProvider,
     DatabaseConfigProvider,
     FileManagersProvider,
+    ImageServiceProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
-    TagServiceProvider,
+    TagServicesProvider,
     TransactionManagerProvider,
-    TranslationImageServiceProvider,
     TranslationServicesProvider,
 )
 from backend.presentation.api.config import APIConfig
@@ -48,9 +48,9 @@ def create_app() -> FastAPI:
         PublisherRouterProvider(),
         RepositoriesProvider(),
         ComicServicesProvider(),
-        TranslationImageServiceProvider(),
+        ImageServiceProvider(),
         TranslationServicesProvider(),
-        TagServiceProvider(),
+        TagServicesProvider(),
     )
 
     app = FastAPI(

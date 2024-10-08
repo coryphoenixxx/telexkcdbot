@@ -1,60 +1,68 @@
-from pathlib import Path
+from collections.abc import Iterable
 
-from sqlalchemy import and_, update
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import joinedload
 
-from backend.application.comic.dtos import TranslationImageRequestDTO, TranslationImageResponseDTO
-from backend.application.comic.interfaces import TranslationImageRepoInterface
-from backend.application.utils import cast_or_none
-from backend.core.value_objects import TranslationImageID
-from backend.infrastructure.database.models import TranslationImageModel, TranslationModel
+from backend.application.image.exceptions import ImageNotFoundError
+from backend.application.image.interfaces import ImageRepoInterface
+from backend.domain.entities import ImageEntity, ImageLinkType, NewImageEntity
+from backend.domain.utils import cast_or_none
+from backend.domain.value_objects import ImageId, PositiveInt
+from backend.infrastructure.database.mappers import map_image_model_to_entity
+from backend.infrastructure.database.models import ImageModel
 from backend.infrastructure.database.repositories import BaseRepo
 
 
-class TranslationImageRepo(BaseRepo, TranslationImageRepoInterface):
-    async def create(self, dto: TranslationImageRequestDTO) -> TranslationImageResponseDTO:
-        stmt = (
-            insert(TranslationImageModel)
+class ImageRepo(BaseRepo, ImageRepoInterface):
+    async def create(self, image: NewImageEntity) -> ImageId:
+        image_id: int = await self.session.scalar(  # type: ignore[assignment]
+            insert(ImageModel)
             .values(
-                translation_id=None,
-                original=str(dto.original_path),
-                converted=cast_or_none(str, dto.converted_path),
+                temp_image_id=image.temp_image_id.value if image.temp_image_id else None,
+                link_type=image.link_type,
+                link_id=image.link_id.value if image.link_id else None,
+                original_path=cast_or_none(str, image.original_path),
+                converted_path=cast_or_none(str, image.converted_path),
+                converted_2x_path=cast_or_none(str, image.converted_2x_path),
+                is_deleted=image.is_deleted,
             )
-            .returning(TranslationImageModel)
+            .returning(ImageModel.image_id)
+        )
+        return ImageId(image_id)
+
+    async def update(self, image: ImageEntity) -> None:
+        await self.session.execute(
+            update(ImageModel)
+            .where(ImageModel.image_id == image.id.value)
+            .values(
+                temp_image_id=image.temp_image_id.value if image.temp_image_id else None,
+                link_type=image.link_type,
+                link_id=image.link_id.value if image.link_id else None,
+                original_path=cast_or_none(str, image.original_path),
+                converted_path=cast_or_none(str, image.converted_path),
+                converted_2x_path=cast_or_none(str, image.converted_2x_path),
+                is_deleted=image.is_deleted,
+            )
         )
 
-        image = (await self._session.execute(stmt)).scalar_one()
-
-        translation = await self._get_model_by_id(
-            TranslationModel,
-            dto.translation_id.value,
-            options=joinedload(TranslationModel.image),
-        )
-        if translation:
-            translation.image = image  # TODO: Also unattached old image if exists
-
-        await self._session.flush()
-
-        return image.to_dto()
-
-    async def set_converted_path(
+    async def get_linked_image_ids(
         self,
-        translation_image_id: TranslationImageID,
-        converted_rel_path: Path,
-    ) -> None:
-        stmt = (
-            update(TranslationImageModel)
-            .where(and_(TranslationImageModel.image_id == translation_image_id.value))
-            .values(
-                converted=str(converted_rel_path),
+        link_type: ImageLinkType,
+        link_id: PositiveInt,
+    ) -> Iterable[ImageId]:
+        images_ids: Iterable[int] = await self.session.scalars(
+            select(ImageModel.image_id).where(
+                ImageModel.link_id == link_id.value,
+                ImageModel.link_type == link_type,
             )
-            .returning(TranslationImageModel.image_id)
         )
 
-        await self._session.execute(stmt)
+        return [ImageId(image_id) for image_id in images_ids]
 
-    async def get_by_id(self, image_id: TranslationImageID) -> TranslationImageResponseDTO | None:
-        if image := await self._get_model_by_id(TranslationImageModel, image_id.value):
-            return image.to_dto()
-        return None
+    async def load(self, image_id: ImageId) -> ImageEntity:
+        image: ImageModel | None = await self.session.get(ImageModel, image_id.value)
+
+        if image is None:
+            raise ImageNotFoundError(image_id)
+
+        return map_image_model_to_entity(image)

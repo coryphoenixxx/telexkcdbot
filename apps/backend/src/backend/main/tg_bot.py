@@ -21,10 +21,10 @@ from backend.main.ioc.providers import (
     ComicServicesProvider,
     DatabaseConfigProvider,
     FileManagersProvider,
+    ImageServiceProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
     TransactionManagerProvider,
-    TranslationImageServiceProvider,
 )
 from backend.presentation.tg_bot.config import BotAppConfig, BotConfig, BotRunMode, WebhookConfig
 from backend.presentation.tg_bot.controllers.comic import router as comic_router
@@ -96,7 +96,7 @@ def main() -> None:
         RepositoriesProvider(),
         PublisherRouterProvider(),
         ComicServicesProvider(),
-        TranslationImageServiceProvider(),
+        ImageServiceProvider(),
     )
 
     config = load_config(BotConfig, scope="bot")

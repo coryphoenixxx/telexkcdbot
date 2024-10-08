@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import datetime as dt
 from logging import getLogger
 
@@ -5,11 +6,15 @@ import click
 from dishka import AsyncContainer
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from backend.application.comic.dtos import ComicRequestDTO, ComicResponseDTO
-from backend.application.comic.services import ComicReader, CreateComicInteractor
-from backend.application.upload.upload_image_manager import UploadImageManager
-from backend.application.utils import cast_or_none
-from backend.core.value_objects import IssueNumber, TagName
+from backend.application.comic.commands import ComicCreateCommand, TagCreateCommand
+from backend.application.comic.services import (
+    ComicReader,
+    CreateComicInteractor,
+    CreateManyTagsInteractor,
+)
+from backend.application.image.services import UploadImageInteractor
+from backend.domain.utils import cast_or_none
+from backend.domain.value_objects import ComicId, TagId
 from backend.infrastructure.database.main import check_db_connection
 from backend.infrastructure.xkcd import (
     XkcdExplainScraper,
@@ -49,41 +54,64 @@ async def check_db(container: AsyncContainer) -> None:
         raise click.Abort from None
 
     async with container() as request_container:
-        service = await request_container.get(ComicReader)
-        latest = await service.get_latest_issue_number()
+        reader = await request_container.get(ComicReader)
+        latest = await reader.get_latest_issue_number()
 
         if latest:
-            logger.error("The database already contains some comics.")
+            logger.error("Database already contains some comics.")
             raise click.Abort
 
 
 async def upload_one(
     data: tuple[XkcdOriginalScrapedData, XkcdExplainScrapedData],
     container: AsyncContainer,
-) -> ComicResponseDTO:
-    original_data, explain = data
-    temp_image_id = None
-    if original_data.image_path:
-        upload_image_manager = await container.get(UploadImageManager)
-        temp_image_id = upload_image_manager.read_from_file(original_data.image_path)
+) -> ComicId:
+    original_data, explain_data = data
 
     async with container() as request_container:
-        service: CreateComicInteractor = await request_container.get(CreateComicInteractor)
-        return await service.execute(
-            dto=ComicRequestDTO(
-                number=IssueNumber(original_data.number),
+        image_ids = []
+        if original_data.image_path:
+            upload_image_interactor: UploadImageInteractor = await request_container.get(
+                UploadImageInteractor
+            )
+            image_id = await upload_image_interactor.execute(original_data.image_path)
+            image_ids.append(image_id.value)
+
+        tag_ids: Sequence[TagId] = []
+        if explain_data.tags:
+            create_many_tags_interactor: CreateManyTagsInteractor = await request_container.get(
+                CreateManyTagsInteractor
+            )
+
+            tag_ids = await create_many_tags_interactor.execute(
+                commands=[
+                    TagCreateCommand(
+                        name=name,
+                        is_visible=True,
+                        from_explainxkcd=True,
+                    )
+                    for name in explain_data.tags
+                ]
+            )
+
+        create_comic_interactor: CreateComicInteractor = await request_container.get(
+            CreateComicInteractor
+        )
+        return await create_comic_interactor.execute(
+            command=ComicCreateCommand(
+                number=original_data.number,
                 title=original_data.title,
                 publication_date=dt.strptime(  # noqa: DTZ007
                     original_data.publication_date, "%Y-%m-%d"
                 ).date(),
                 tooltip=original_data.tooltip,
-                raw_transcript=explain.raw_transcript,
+                transcript=explain_data.transcript,
                 xkcd_url=str(original_data.xkcd_url),
-                explain_url=cast_or_none(str, explain.explain_url),
+                explain_url=cast_or_none(str, explain_data.explain_url),
                 click_url=cast_or_none(str, original_data.click_url),
                 is_interactive=original_data.is_interactive,
-                tags=[TagName(tag) for tag in explain.tags],
-                temp_image_id=temp_image_id,
+                tag_ids=[tag_id.value for tag_id in tag_ids],
+                image_ids=image_ids,
             )
         )
 

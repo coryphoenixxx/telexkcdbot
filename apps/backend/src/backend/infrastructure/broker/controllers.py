@@ -1,8 +1,9 @@
 from dishka import FromDishka
 from faststream.nats import JStream, NatsRouter
 
-from backend.application.comic.services import ProcessTranslationImageInteractor
-from backend.application.common.interfaces import ProcessTranslationImageMessage
+from backend.application.common.interfaces import PostProcessImageMessage
+from backend.application.image.services import ProcessImageInteractor
+from backend.domain.value_objects import ImageId
 
 router = NatsRouter()
 
@@ -15,11 +16,8 @@ router = NatsRouter()
     durable="durable_name",
 )
 async def process_image(
-    msg: ProcessTranslationImageMessage,
+    msg: PostProcessImageMessage,
     *,
-    service: FromDishka[ProcessTranslationImageInteractor],
+    interactor: FromDishka[ProcessImageInteractor],
 ) -> None:
-    await service.execute(
-        temp_image_id=msg.temp_image_id,
-        translation_image_id=msg.translation_image_id,
-    )
+    await interactor.execute(image_id=ImageId(msg.image_id))

@@ -5,15 +5,13 @@ from uuid import uuid4
 
 import aiofiles
 
-from backend.application.common.interfaces.file_storages import (
+from backend.application.common.exceptions import TempFileNotFoundError
+from backend.application.common.interfaces import (
     StreamReaderProtocol,
-    TempFileID,
     TempFileManagerInterface,
 )
-from backend.application.upload.exceptions import (
-    UploadImageIsEmptyError,
-    UploadImageSizeExceededLimitError,
-)
+from backend.application.image.exceptions import ImageIsEmptyError, ImageSizeExceededLimitError
+from backend.domain.value_objects.common import TempFileUUID
 
 
 @dataclass(slots=True)
@@ -25,41 +23,40 @@ class TempFileManager(TempFileManagerInterface):
         self,
         stream: StreamReaderProtocol,
         chunk_size: int,
-    ) -> TempFileID:
-        temp_file_id = self._generate_id()
+    ) -> TempFileUUID:
+        temp_file_id = TempFileUUID(uuid4())
 
-        async with aiofiles.open(self.temp_dir / str(temp_file_id), "wb") as f:
+        async with aiofiles.open(self.temp_dir / str(temp_file_id.value), "wb") as f:
             file_size = 0
 
             while chunk := await stream.read(chunk_size):
                 file_size += len(chunk)
 
                 if file_size > self.size_limit:
-                    raise UploadImageSizeExceededLimitError(self.size_limit)
+                    raise ImageSizeExceededLimitError(self.size_limit)
 
                 await f.write(chunk)
 
             if file_size == 0:
-                raise UploadImageIsEmptyError
+                raise ImageIsEmptyError
 
             return temp_file_id
 
-    def safe_move(self, path: Path) -> TempFileID:
+    def safe_move(self, path: Path) -> TempFileUUID:
         file_size = path.stat().st_size
 
         if file_size == 0:
-            raise UploadImageIsEmptyError
+            raise ImageIsEmptyError  # TODO: isolate file errors and image errors
         if file_size > self.size_limit:
-            raise UploadImageSizeExceededLimitError(self.size_limit)
+            raise ImageSizeExceededLimitError(self.size_limit)
 
-        temp_file_id = self._generate_id()
+        temp_file_id = TempFileUUID(uuid4())
 
-        shutil.move(path, self.temp_dir / str(temp_file_id))
+        shutil.move(path, self.temp_dir / str(temp_file_id.value))
 
         return temp_file_id
 
-    def get_abs_path(self, temp_file_id: TempFileID) -> Path:
-        return self.temp_dir / str(temp_file_id)
-
-    def _generate_id(self) -> TempFileID:
-        return TempFileID(uuid4())
+    def get_abs_path(self, temp_file_id: TempFileUUID) -> Path:
+        if not (abs_path := self.temp_dir / str(temp_file_id.value)).exists():
+            raise TempFileNotFoundError(temp_file_id)
+        return abs_path
