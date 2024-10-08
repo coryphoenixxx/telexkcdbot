@@ -1,0 +1,53 @@
+[app]
+upload_max_size = 10485760
+file_storage = "s3"
+temp_dir = "/app/data/temp"
+
+
+[api]
+host = "0.0.0.0"
+port = 8000
+
+
+[bot]
+token = ""
+admin_id = 1234567890
+run_method = "WEBHOOK"
+
+[bot.app]
+host = "0.0.0.0"
+port = 5000
+
+[bot.webhook]
+url = ""
+secret_token = "secret"
+path = "/bot/webhook"
+
+
+[cli]
+prescraped_dir = "/app/data/prescraped"
+
+
+[db]
+host = "app.postgres"
+port = 5432
+dbname = "appdb"
+user = "admin"
+password = "password"
+echo = false
+pool_size = 100
+
+
+[fs]
+root_dir = "/app/data/static"
+
+
+[s3]
+bucket = "xkcdworld-static"
+endpoint_url = "https://storage.yandexcloud.net"
+aws_access_key_id = ""
+aws_secret_access_key = ""
+
+
+[nats]
+url = "nats://app.nats:4222"

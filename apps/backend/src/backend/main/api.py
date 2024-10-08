@@ -10,17 +10,21 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.main import check_db_connection
-from backend.main.configs.api import APIConfig
 from backend.main.ioc.providers import (
+    APIConfigProvider,
+    AppConfigProvider,
+    BrokerConfigProvider,
     ComicServicesProvider,
-    ConfigsProvider,
-    DatabaseProvider,
+    DatabaseConfigProvider,
     FileManagersProvider,
+    ImageServiceProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
-    TagServiceProvider,
-    TranslationImageServiceProvider,
+    TagServicesProvider,
+    TransactionManagerProvider,
+    TranslationServicesProvider,
 )
+from backend.presentation.api.config import APIConfig
 from backend.presentation.api.middlewares import register_middlewares
 from backend.presentation.api.routers import register_routers
 
@@ -28,21 +32,25 @@ from backend.presentation.api.routers import register_routers
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     engine = await app.state.dishka_container.get(AsyncEngine)
-    await check_db_connection(engine)
+    await check_db_connection(engine)  # TODO: handle
     yield
     await app.state.dishka_container.close()
 
 
 def create_app() -> FastAPI:
     container = make_async_container(
-        ConfigsProvider(),
-        DatabaseProvider(),
+        AppConfigProvider(),
+        DatabaseConfigProvider(),
+        BrokerConfigProvider(),
+        APIConfigProvider(),
+        TransactionManagerProvider(),
         FileManagersProvider(),
         PublisherRouterProvider(),
         RepositoriesProvider(),
         ComicServicesProvider(),
-        TranslationImageServiceProvider(),
-        TagServiceProvider(),
+        ImageServiceProvider(),
+        TranslationServicesProvider(),
+        TagServicesProvider(),
     )
 
     app = FastAPI(

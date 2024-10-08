@@ -1,8 +1,7 @@
 import asyncio
 
 from dishka import make_async_container
-from dishka.integrations.faststream import FastStreamProvider
-from dishka.integrations.faststream import setup_dishka as setup_ioc
+from dishka.integrations.faststream import FastStreamProvider, setup_dishka
 from faststream import FastStream
 from faststream.nats import NatsBroker
 
@@ -10,11 +9,13 @@ from backend.infrastructure.broker.config import NatsConfig
 from backend.infrastructure.broker.controllers import router
 from backend.infrastructure.config_loader import load_config
 from backend.main.ioc.providers import (
-    ConfigsProvider,
-    DatabaseProvider,
+    AppConfigProvider,
+    BrokerConfigProvider,
+    DatabaseConfigProvider,
     FileManagersProvider,
+    ImageServiceProvider,
     RepositoriesProvider,
-    TranslationImageServiceProvider,
+    TransactionManagerProvider,
 )
 
 
@@ -30,18 +31,18 @@ def create_app() -> FastStream:
 
     app = FastStream(broker)
 
-    setup_ioc(
-        make_async_container(
-            ConfigsProvider(),
-            DatabaseProvider(),
-            FileManagersProvider(),
-            RepositoriesProvider(),
-            TranslationImageServiceProvider(),
-            FastStreamProvider(),
-        ),
-        app,
-        auto_inject=True,
+    container = make_async_container(
+        AppConfigProvider(),
+        DatabaseConfigProvider(),
+        BrokerConfigProvider(),
+        TransactionManagerProvider(),
+        FileManagersProvider(),
+        RepositoriesProvider(),
+        ImageServiceProvider(),
+        FastStreamProvider(),
     )
+
+    setup_dishka(container, app, auto_inject=True)
 
     return app
 

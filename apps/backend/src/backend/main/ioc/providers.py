@@ -1,5 +1,8 @@
+import importlib.resources
 from collections.abc import AsyncIterable
+from typing import TYPE_CHECKING
 
+import aioboto3
 from dishka import Provider, Scope, alias, provide
 from faststream.nats import JStream, NatsBroker
 from sqlalchemy.ext.asyncio import (
@@ -9,43 +12,53 @@ from sqlalchemy.ext.asyncio import (
 
 from backend.application.comic.interfaces import (
     ComicRepoInterface,
-    ImageConverterInterface,
     TagRepoInterface,
-    TempFileManagerInterface,
-    TranslationImageFileManagerInterface,
-    TranslationImageRepoInterface,
     TranslationRepoInterface,
 )
 from backend.application.comic.services import (
-    ComicDeleteService,
-    ComicReadService,
-    ComicWriteService,
-    TagService,
-    TranslationImageService,
+    AddTranslationInteractor,
+    ComicReader,
+    CreateComicInteractor,
+    CreateManyTagsInteractor,
+    CreateTagInteractor,
+    DeleteComicInteractor,
+    DeleteTagInteractor,
+    DeleteTranslationInteractor,
+    TagReader,
+    TranslationReader,
+    UpdateComicInteractor,
+    UpdateTagInteractor,
+    UpdateTranslationInteractor,
 )
-from backend.application.common.dtos import ImageFormat
 from backend.application.common.interfaces import (
+    ImageFileManagerInterface,
     PublisherRouterInterface,
+    TempFileManagerInterface,
     TransactionManagerInterface,
 )
-from backend.application.upload.upload_image_manager import UploadImageManager
+from backend.application.config import AppConfig, FileStorageType
+from backend.application.image.interfaces import ImageConverterInterface, ImageRepoInterface
+from backend.application.image.services import ProcessImageInteractor, UploadImageInteractor
 from backend.infrastructure.broker.config import NatsConfig
 from backend.infrastructure.broker.publisher_router import PublisherRouter
 from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.config import DbConfig
-from backend.infrastructure.database.main import create_db_engine
+from backend.infrastructure.database.main import build_postgres_url, create_db_engine
 from backend.infrastructure.database.repositories import (
     ComicRepo,
+    ImageRepo,
     TagRepo,
-    TranslationImageRepo,
     TranslationRepo,
 )
 from backend.infrastructure.database.transaction import TransactionManager
 from backend.infrastructure.downloader import Downloader
-from backend.infrastructure.filesystem import TempFileManager, TranslationImageFileManager
+from backend.infrastructure.filesystem import ImageFSFileManager, TempFileManager
+from backend.infrastructure.filesystem.config import FSConfig
 from backend.infrastructure.http_client import AsyncHttpClient
 from backend.infrastructure.image_converter import ImageConverter
-from backend.infrastructure.xkcd.scrapers import (
+from backend.infrastructure.s3.config import S3Config
+from backend.infrastructure.s3.manager import ImageS3FileManager
+from backend.infrastructure.xkcd import (
     XkcdDEScraper,
     XkcdESScraper,
     XkcdExplainScraper,
@@ -54,32 +67,60 @@ from backend.infrastructure.xkcd.scrapers import (
     XkcdRUScraper,
     XkcdZHScraper,
 )
-from backend.main.configs.api import APIConfig
-from backend.main.configs.bot import BotConfig
+from backend.presentation.api.config import APIConfig
+from backend.presentation.cli.config import CLIConfig
+from backend.presentation.tg_bot.config import BotConfig
+
+if TYPE_CHECKING:
+    from types_aiobotocore_s3.client import S3Client  # noqa: F401
 
 
-class ConfigsProvider(Provider):
+class AppConfigProvider(Provider):
+    @provide(scope=Scope.APP)
+    def provide_app_config(self) -> AppConfig:
+        return load_config(AppConfig, scope="app")
+
+
+class DatabaseConfigProvider(Provider):
     @provide(scope=Scope.APP)
     def provide_db_config(self) -> DbConfig:
         return load_config(DbConfig, scope="db")
 
-    @provide(scope=Scope.APP)
-    def provide_api_config(self) -> APIConfig:
-        return load_config(APIConfig, scope="api")
 
-    @provide(scope=Scope.APP)
-    def provide_bot_config(self) -> BotConfig:
-        return load_config(BotConfig, scope="bot")
-
+class BrokerConfigProvider(Provider):
     @provide(scope=Scope.APP)
     def provide_broker_config(self) -> NatsConfig:
         return load_config(NatsConfig, scope="nats")
 
 
-class DatabaseProvider(Provider):
+class CLIConfigProvider(Provider):
+    @provide(scope=Scope.APP)
+    def provide_cli_config(self) -> CLIConfig:
+        return load_config(CLIConfig, scope="cli")
+
+
+class APIConfigProvider(Provider):
+    @provide(scope=Scope.APP)
+    def provide_api_config(self) -> APIConfig:
+        return load_config(APIConfig, scope="api")
+
+
+class BotConfigProvider(Provider):
+    @provide(scope=Scope.APP)
+    def provide_bot_config(self) -> BotConfig:
+        return load_config(BotConfig, scope="bot")
+
+
+class TransactionManagerProvider(Provider):
     @provide(scope=Scope.APP)
     async def provide_db_engine(self, config: DbConfig) -> AsyncIterable[AsyncEngine]:
-        engine = create_db_engine(config)
+        engine = create_db_engine(
+            build_postgres_url(config),
+            echo=config.echo,
+            echo_pool=config.echo,
+            pool_size=config.pool_size,
+            max_overflow=20,
+        )
         yield engine
         await engine.dispose()
 
@@ -96,7 +137,10 @@ class DatabaseProvider(Provider):
             yield session
 
     @provide(scope=Scope.REQUEST)
-    async def provide_transaction(self, session: AsyncSession) -> AsyncIterable[TransactionManager]:
+    async def provide_transaction_manager(
+        self,
+        session: AsyncSession,
+    ) -> AsyncIterable[TransactionManager]:
         async with TransactionManager(session) as transaction:
             yield transaction
 
@@ -105,38 +149,37 @@ class DatabaseProvider(Provider):
 
 class FileManagersProvider(Provider):
     @provide(scope=Scope.APP)
-    async def provide_temp_file_manager(self, config: APIConfig) -> TempFileManager:
+    async def provide_temp_file_manager(self, config: AppConfig) -> TempFileManager:
         config.temp_dir.mkdir(exist_ok=True)
         return TempFileManager(
             temp_dir=config.temp_dir,
             size_limit=config.upload_max_size,
         )
 
-    @provide(scope=Scope.APP)
-    async def provide_translation_image_file_manager(
-        self,
-        config: APIConfig,
-        temp_file_manager: TempFileManager,
-    ) -> TranslationImageFileManager:
-        return TranslationImageFileManager(
-            static_dir=config.static_dir,
-            temp_file_manager=temp_file_manager,
-        )
+    temp_file_manager_interface = alias(source=TempFileManager, provides=TempFileManagerInterface)
 
     @provide(scope=Scope.APP)
-    def provide_upload_image_manager(
+    async def provide_file_storage_interface(
         self,
-        temp_file_manager: TempFileManager,
-    ) -> UploadImageManager:
-        return UploadImageManager(temp_file_manager, tuple(ImageFormat))
+        app_config: AppConfig,
+    ) -> AsyncIterable[ImageFileManagerInterface]:
+        match app_config.file_storage:
+            case FileStorageType.FS:
+                fs_config = load_config(FSConfig, scope="fs")
+                yield ImageFSFileManager(root_dir=fs_config.root_dir)
+            case FileStorageType.S3:
+                s3_config = load_config(S3Config, scope="s3")
+
+                async with aioboto3.Session().client(
+                    "s3",
+                    endpoint_url=s3_config.endpoint_url,
+                    aws_access_key_id=s3_config.aws_access_key_id,
+                    aws_secret_access_key=s3_config.aws_secret_access_key,
+                ) as s3:  # type: S3Client
+                    yield ImageS3FileManager(client=s3, bucket=s3_config.bucket)
 
     image_converter = provide(ImageConverter, scope=Scope.APP)
-
     image_converter_interface = alias(source=ImageConverter, provides=ImageConverterInterface)
-    temp_file_manager_interface = alias(source=TempFileManager, provides=TempFileManagerInterface)
-    translation_image_file_manager_interface = alias(
-        source=TranslationImageFileManager, provides=TranslationImageFileManagerInterface
-    )
 
 
 class PublisherRouterProvider(Provider):
@@ -167,31 +210,51 @@ class RepositoriesProvider(Provider):
 
     comic_repo = provide(ComicRepo)
     translation_repo = provide(TranslationRepo)
-    translation_image_repo = provide(TranslationImageRepo)
+    translation_image_repo = provide(ImageRepo)
     tag_repo = provide(TagRepo)
 
     comic_repo_interface = alias(source=ComicRepo, provides=ComicRepoInterface)
     translation_repo_interface = alias(source=TranslationRepo, provides=TranslationRepoInterface)
-    translation_image_repo_interface = alias(
-        source=TranslationImageRepo, provides=TranslationImageRepoInterface
-    )
+    translation_image_repo_interface = alias(source=ImageRepo, provides=ImageRepoInterface)
     tag_repo_interface = alias(source=TagRepo, provides=TagRepoInterface)
+
+
+class TagServicesProvider(Provider):
+    scope = Scope.REQUEST
+
+    create_tag_interactor = provide(CreateTagInteractor)
+    create_many_tags_interactor = provide(CreateManyTagsInteractor)
+    update_tag_interactor = provide(UpdateTagInteractor)
+    delete_tag_interactor = provide(DeleteTagInteractor)
+
+    tag_reader = provide(TagReader)
+
+
+class ImageServiceProvider(Provider):
+    scope = Scope.REQUEST
+
+    upload_image_interactor = provide(UploadImageInteractor)
+    process_image_interactor = provide(ProcessImageInteractor)
+
+
+class TranslationServicesProvider(Provider):
+    scope = Scope.REQUEST
+
+    add_translation_interactor = provide(AddTranslationInteractor)
+    update_translation_interactor = provide(UpdateTranslationInteractor)
+    delete_translation_interactor = provide(DeleteTranslationInteractor)
+
+    translation_reader = provide(TranslationReader)
 
 
 class ComicServicesProvider(Provider):
     scope = Scope.REQUEST
 
-    comic_create_service = provide(ComicWriteService)
-    comic_delete_service = provide(ComicDeleteService)
-    comic_read_service = provide(ComicReadService)
+    create_comic_interactor = provide(CreateComicInteractor)
+    full_update_comic_interactor = provide(UpdateComicInteractor)
+    delete_comic_interactor = provide(DeleteComicInteractor)
 
-
-class TranslationImageServiceProvider(Provider):
-    translation_image_service = provide(TranslationImageService, scope=Scope.REQUEST)
-
-
-class TagServiceProvider(Provider):
-    tag_service = provide(TagService, scope=Scope.REQUEST)
+    comic_reader = provide(ComicReader)
 
 
 class HTTPProviders(Provider):
@@ -215,8 +278,14 @@ class HTTPProviders(Provider):
 class ScrapersProvider(Provider):
     scope = Scope.APP
 
+    @provide(scope=Scope.APP)
+    async def provide_xkcd_explain_scraper(self, client: AsyncHttpClient) -> XkcdExplainScraper:
+        with importlib.resources.open_text("assets", "bad_tags.txt") as f:
+            bad_tags = {line.lower() for line in f.read().splitlines() if line}
+
+        return XkcdExplainScraper(client, bad_tags)
+
     xkcd_original_scraper = provide(XkcdOriginalScraper)
-    xkcd_explain_scraper = provide(XkcdExplainScraper)
 
     xkcd_ru_scraper = provide(XkcdRUScraper)
     xkcd_de_scraper = provide(XkcdDEScraper)

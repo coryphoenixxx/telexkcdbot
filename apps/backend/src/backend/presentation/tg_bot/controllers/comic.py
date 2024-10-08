@@ -12,13 +12,13 @@ from aiogram.types import (
 from aiogram.utils.markdown import hbold, hlink
 from dishka import FromDishka
 
-from backend.application.comic.services import ComicReadService
-from backend.core.value_objects import IssueNumber
-from backend.main.configs.bot import BotConfig
+from backend.application.comic.services import ComicReader
+from backend.domain.value_objects import IssueNumber
 from backend.presentation.api.controllers.schemas import (
     ComicResponseSchema,
     TranslationImageResponseSchema,
 )
+from backend.presentation.tg_bot.config import BotConfig
 from backend.presentation.tg_bot.filters import ComicNumberFilter
 from backend.presentation.tg_bot.keyboards.navigation import build_navigation_keyboard
 
@@ -59,7 +59,7 @@ def calc_next_number(data: str, cur_pos: IssueNumber, latest: IssueNumber) -> Is
         case "nav_prev":
             next_number = cur_pos.value - 1
             if next_number <= 0:
-                next_number = latest
+                next_number = latest.value
         case "nav_random":
             next_number = randint(1, latest.value)  # noqa: S311
         case "nav_next":
@@ -67,7 +67,7 @@ def calc_next_number(data: str, cur_pos: IssueNumber, latest: IssueNumber) -> Is
             if next_number > latest.value:
                 next_number = 1
         case "nav_last":
-            next_number = latest
+            next_number = latest.value
         case _:
             raise ValueError("")
 
@@ -82,12 +82,12 @@ async def get_comic_by_number_handler(
     msg: Message,
     *,
     config: FromDishka[BotConfig],
-    service: FromDishka[ComicReadService],
+    reader: FromDishka[ComicReader],
     state: FSMContext,
 ) -> None:
     issue_number = IssueNumber(int(msg.text))
 
-    comic = ComicResponseSchema.from_dto(dto=await service.get_by_issue_number(issue_number))
+    comic = ComicResponseSchema.from_data(data=await reader.get_by_issue_number(issue_number))
 
     image_url = build_image_url(webhook_url=config.webhook.url, image=comic.image)
 
@@ -110,10 +110,13 @@ async def navigation(
     callback: CallbackQuery,
     *,
     config: FromDishka[BotConfig],
-    service: FromDishka[ComicReadService],
+    reader: FromDishka[ComicReader],
     state: FSMContext,
 ) -> None:
-    latest = await service.get_latest_issue_number()
+    latest = await reader.get_latest_issue_number()
+
+    if latest is None:
+        raise  # noqa: PLE0704
 
     next_number = calc_next_number(
         data=callback.data,
@@ -121,9 +124,9 @@ async def navigation(
         latest=latest,
     )
 
-    dto = await service.get_by_issue_number(next_number)
+    dto = await reader.get_by_issue_number(next_number)
 
-    comic = ComicResponseSchema.from_dto(dto=dto)
+    comic = ComicResponseSchema.from_data(data=dto)
 
     image_url = build_image_url(webhook_url=config.webhook.url, image=comic.image)
 

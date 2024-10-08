@@ -14,16 +14,19 @@ from dishka import AsyncContainer, make_async_container
 from dishka.integrations.aiogram import setup_dishka
 
 from backend.infrastructure.config_loader import load_config
-from backend.main.configs.bot import BotAppConfig, BotConfig, BotRunMode, WebhookConfig
 from backend.main.ioc.providers import (
+    AppConfigProvider,
+    BotConfigProvider,
+    BrokerConfigProvider,
     ComicServicesProvider,
-    ConfigsProvider,
-    DatabaseProvider,
+    DatabaseConfigProvider,
     FileManagersProvider,
+    ImageServiceProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
-    TranslationImageServiceProvider,
+    TransactionManagerProvider,
 )
+from backend.presentation.tg_bot.config import BotAppConfig, BotConfig, BotRunMode, WebhookConfig
 from backend.presentation.tg_bot.controllers.comic import router as comic_router
 from backend.presentation.tg_bot.controllers.start import router as start_router
 
@@ -35,11 +38,11 @@ async def on_startup() -> None:
     logger.info(message)
 
 
-async def on_shutdown(bot: Bot, ioc: AsyncContainer) -> None:
+async def on_shutdown(bot: Bot, container: AsyncContainer) -> None:
     message = "Bot is stopping..."
     logger.info(message)
     await bot.session.close()
-    await ioc.close()
+    await container.close()
 
 
 async def setup_webhook(bot: Bot, config: WebhookConfig) -> None:
@@ -83,14 +86,17 @@ async def polling_run(bot: Bot, dp: Dispatcher) -> None:
 
 
 def main() -> None:
-    ioc = make_async_container(
-        ConfigsProvider(),
-        DatabaseProvider(),
+    container = make_async_container(
+        AppConfigProvider(),
+        DatabaseConfigProvider(),
+        BotConfigProvider(),
+        BrokerConfigProvider(),
+        TransactionManagerProvider(),
         FileManagersProvider(),
         RepositoriesProvider(),
         PublisherRouterProvider(),
         ComicServicesProvider(),
-        TranslationImageServiceProvider(),
+        ImageServiceProvider(),
     )
 
     config = load_config(BotConfig, scope="bot")
@@ -104,9 +110,9 @@ def main() -> None:
     dp.include_router(start_router)
     dp.include_router(comic_router)
     dp.startup.register(partial(on_startup))
-    dp.shutdown.register(partial(on_shutdown, ioc=ioc))
+    dp.shutdown.register(partial(on_shutdown, container=container))
 
-    setup_dishka(container=ioc, router=dp, auto_inject=True)
+    setup_dishka(container=container, router=dp, auto_inject=True)
 
     match config.run_method:
         case BotRunMode.POLLING:

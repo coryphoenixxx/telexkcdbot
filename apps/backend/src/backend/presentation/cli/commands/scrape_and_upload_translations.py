@@ -1,64 +1,33 @@
 import logging.config
 import random
+from itertools import chain
 
 import click
-from dishka import AsyncContainer
 
-from backend.application.comic.dtos import TranslationRequestDTO, TranslationResponseDTO
-from backend.application.comic.services import ComicReadService, ComicWriteService
-from backend.application.common.pagination import ComicFilterParams
-from backend.application.upload.upload_image_manager import UploadImageManager
-from backend.application.utils import cast_or_none
-from backend.core.value_objects import ComicID, Language
-from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers import (
+from backend.infrastructure.xkcd import (
     XkcdDEScraper,
     XkcdESScraper,
     XkcdFRScraper,
     XkcdRUScraper,
     XkcdZHScraper,
 )
-from backend.infrastructure.xkcd.scrapers.dtos import LimitParams, XkcdTranslationScrapedData
-from backend.infrastructure.xkcd.utils import run_concurrently
 from backend.presentation.cli.common import (
-    DatabaseIsEmptyError,
     async_command,
-    base_progress,
-    positive_number_callback,
+    clean_up,
+    get_number_comic_id_map,
+    positive_number,
+    upload_one_translation,
 )
+from backend.presentation.cli.progress import ProgressChunkedRunner, progress_factory
 
 logger = logging.getLogger(__name__)
 
 
-async def download_image_and_upload_coro(
-    data: XkcdTranslationScrapedData,
-    number_comic_id_map: dict[int, int],
-    container: AsyncContainer,
-) -> TranslationResponseDTO:
-    upload_image_manager = await container.get(UploadImageManager)
-    temp_image_id = upload_image_manager.read_from_file(data.image_path)
-
-    async with container() as request_container:
-        service: ComicWriteService = await request_container.get(ComicWriteService)
-        return await service.add_translation(
-            comic_id=ComicID(number_comic_id_map[data.number]),
-            dto=TranslationRequestDTO(
-                language=Language(data.language),
-                title=data.title,
-                tooltip=data.tooltip,
-                raw_transcript=data.raw_transcript,
-                translator_comment=data.translator_comment,
-                source_url=cast_or_none(str, data.source_url),
-                temp_image_id=temp_image_id,
-                is_draft=False,
-            ),
-        )
-
-
 @click.command()
-@click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
-@click.option("--delay", type=float, default=3, callback=positive_number_callback)
+@click.option("--chunk_size", type=int, default=100, callback=positive_number)
+@click.option("--delay", type=float, default=1, callback=positive_number)
 @click.pass_context
+@clean_up
 @async_command
 async def scrape_and_upload_translations_command(
     ctx: click.Context,
@@ -67,51 +36,70 @@ async def scrape_and_upload_translations_command(
 ) -> None:
     container = ctx.meta["container"]
 
-    number_comic_id_map = {}
+    number_comic_id_map = await get_number_comic_id_map(container)
+    db_numbers = set(number_comic_id_map.keys())
 
-    async with container() as request_container:
-        service: ComicReadService = await request_container.get(ComicReadService)
-        _, comics = await service.get_list(query_params=ComicFilterParams())
-        for comic in comics:
-            if comic.number:
-                number_comic_id_map[comic.number.value] = comic.id.value
+    with progress_factory() as progress:
+        runner = ProgressChunkedRunner(progress, chunk_size, delay)
 
-        if not number_comic_id_map:
-            raise DatabaseIsEmptyError("Looks like database is empty.")
+        ru_scraper: XkcdRUScraper = await container.get(XkcdRUScraper)
+        ru_translation_list = await runner.run(
+            desc=f"Russian translations scraping ({ru_scraper.BASE_URL}):",
+            coro=ru_scraper.fetch_one,
+            data=list(db_numbers & set(await ru_scraper.get_all_nums())),
+        )
 
-    db_numbers = sorted(number_comic_id_map.values())
+        de_scraper: XkcdDEScraper = await container.get(XkcdDEScraper)
+        latest = await de_scraper.fetch_latest_number()
+        de_translation_list = await runner.run(
+            desc=f"Deutsch translations scraping ({de_scraper.BASE_URL}):",
+            coro=de_scraper.fetch_one,
+            data=[n for n in db_numbers if n <= latest],
+            known_total=False,
+        )
 
-    limits = LimitParams(
-        start=db_numbers[0],
-        end=db_numbers[-1],
-        chunk_size=chunk_size,
-        delay=delay,
-    )
+        es_scraper: XkcdESScraper = await container.get(XkcdESScraper)
+        es_translation_list = await runner.run(
+            desc=f"Spanish translations scraping ({es_scraper.BASE_URL})",
+            coro=es_scraper.fetch_one,
+            data=await es_scraper.fetch_all_links(),
+            known_total=False,
+            filter_numbers=db_numbers,
+        )
 
-    with base_progress:
-        scraped_translations = []
-        for scraper_type in (
-            XkcdRUScraper,
-            XkcdDEScraper,
-            XkcdESScraper,
-            XkcdZHScraper,
-            XkcdFRScraper,
-        ):
-            scraper = await container.get(scraper_type)
-            scraped_translations.extend(await scraper.fetch_many(limits, base_progress))
+        fr_scraper: XkcdFRScraper = await container.get(XkcdFRScraper)
+        fr_translation_list = await runner.run(
+            desc=f"French translations scraping ({fr_scraper.BASE_URL}):",
+            coro=fr_scraper.fetch_one,
+            data=list(db_numbers & set((await fr_scraper.fetch_number_data_map()).keys())),
+        )
+
+        zh_scraper: XkcdZHScraper = await container.get(XkcdZHScraper)
+        zh_translation_list = await runner.run(
+            desc=f"Chinese translations scraping ({zh_scraper.BASE_URL}):",
+            coro=zh_scraper.fetch_one,
+            data=[
+                link
+                for link in await zh_scraper.fetch_all_links()
+                if int(link.query["id"]) in db_numbers
+            ],
+        )
+
+        scraped_translations = list(
+            chain(
+                ru_translation_list,
+                de_translation_list,
+                es_translation_list,
+                fr_translation_list,
+                zh_translation_list,
+            )
+        )
 
         random.shuffle(scraped_translations)  # reduce DDOS when downloading images
-
-        await run_concurrently(
+        await runner.run(
+            desc="Translations uploading:",
+            coro=upload_one_translation,
             data=scraped_translations,
-            coro=download_image_and_upload_coro,
-            chunk_size=limits.chunk_size,
-            delay=limits.delay,
-            pbar=CustomProgressBar(
-                base_progress,
-                "Translations uploading...",
-                len(scraped_translations),
-            ),
             number_comic_id_map=number_comic_id_map,
             container=container,
         )

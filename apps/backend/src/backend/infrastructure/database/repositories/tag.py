@@ -1,97 +1,110 @@
-from collections.abc import Sequence
-from dataclasses import dataclass
-from typing import Any, NoReturn
+from collections.abc import Iterable, Sequence
+from typing import NoReturn
 
-from sqlalchemy import and_, delete, select, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import DBAPIError, IntegrityError
-from sqlalchemy.orm import joinedload
 
-from backend.application.comic.dtos import TagResponseDTO
-from backend.application.comic.exceptions import TagNameUniqueError, TagNotFoundError
+from backend.application.comic.exceptions import TagNameAlreadyExistsError, TagNotFoundError
 from backend.application.comic.interfaces import TagRepoInterface
-from backend.application.utils import slugify
-from backend.core.value_objects import ComicID, TagID, TagName
-from backend.infrastructure.database.models import ComicModel, TagModel
+from backend.application.comic.responses import TagResponseData
+from backend.domain.entities import NewTagEntity, TagEntity
+from backend.domain.value_objects import TagId, TagName
+from backend.infrastructure.database.mappers import map_tag_model_to_data, map_tag_model_to_entity
+from backend.infrastructure.database.models import TagModel
 from backend.infrastructure.database.repositories import BaseRepo, RepoError
 
 
-@dataclass(slots=True)
-class TempTag:
-    name: str
-    slug: str | None = None
-
-    def __post_init__(self) -> None:
-        self.slug = slugify(self.name)
-
-
 class TagRepo(BaseRepo, TagRepoInterface):
-    async def create_many(
-        self,
-        comic_id: ComicID,
-        tag_names: Sequence[TagName],
-    ) -> Sequence[TagResponseDTO]:
-        if not tag_names:
+    async def create(self, tag: NewTagEntity) -> TagId:
+        stmt = (
+            insert(TagModel)
+            .values(
+                name=tag.name.value,
+                slug=tag.slug,
+                is_visible=tag.is_visible,
+                from_explainxkcd=tag.from_explainxkcd,
+            )
+            .returning(TagModel.tag_id)
+        )
+
+        try:
+            tag_id: int = await self.session.scalar(stmt)  # type: ignore[assignment]
+        except IntegrityError as err:
+            self._handle_db_error(err, tag_name=tag.name)
+
+        return TagId(tag_id)
+
+    async def create_many(self, tags: Sequence[NewTagEntity]) -> Sequence[TagId]:
+        if not tags:
             return []
 
-        temp_tag_objs = [
-            TempTag(name) for name in sorted({tag_name.value for tag_name in tag_names})
-        ]
+        stmt = select(TagModel).where(TagModel.slug.in_(t.slug for t in tags))
 
-        stmt = select(TagModel).where(TagModel.slug.in_(t.slug for t in temp_tag_objs))
+        existing_db_tags: Iterable[TagModel] = (await self.session.scalars(stmt)).all()
 
-        db_tags = (await self._session.scalars(stmt)).all()
+        db_tag_slugs = {t.slug for t in existing_db_tags}
+        new_tags = [t for t in tags if t.slug not in db_tag_slugs]
 
-        db_tag_slugs = {tag.slug for tag in db_tags}
-        new_tag_objs = [t for t in temp_tag_objs if t.slug not in db_tag_slugs]
-
-        if new_tag_objs:
-            await self._session.execute(
+        if new_tags:
+            await self.session.execute(
                 insert(TagModel)
-                .values([{"name": t.name, "slug": t.slug} for t in new_tag_objs])
+                .values(
+                    [
+                        {
+                            "name": tag.name.value,
+                            "slug": tag.name.slug,
+                            "is_visible": tag.is_visible,
+                            "from_explainxkcd": tag.from_explainxkcd,
+                        }
+                        for tag in new_tags
+                    ]
+                )
                 .on_conflict_do_nothing(constraint="uq_tags_slug")
             )
 
-            db_tags = (await self._session.scalars(stmt)).all()
+            new_db_tags: Iterable[TagModel] = (await self.session.scalars(stmt)).all()
 
-        comic = await self._get_model_by_id(
-            ComicModel, comic_id.value, options=joinedload(ComicModel.tags)
+            return [TagId(tag.tag_id) for tag in new_db_tags]
+
+        return [TagId(tag.tag_id) for tag in existing_db_tags]
+
+    async def update(self, tag: TagEntity) -> None:
+        stmt = (
+            update(TagModel)
+            .values(
+                name=tag.name.value,
+                slug=tag.slug,
+                is_visible=tag.is_visible,
+                from_explainxkcd=tag.from_explainxkcd,
+            )
+            .where(TagModel.tag_id == tag.id.value)
         )
 
-        if comic:
-            comic.tags = list(db_tags)
+        try:
+            await self.session.execute(stmt)
+        except IntegrityError as err:
+            self._handle_db_error(err, tag_name=tag.name)
 
-        return [tag.to_dto() for tag in db_tags]
+    async def delete(self, tag_id: TagId) -> None:
+        await self.session.execute(delete(TagModel).where(TagModel.tag_id == tag_id.value))
 
-    async def update(self, tag_id: TagID, data: dict[str, Any]) -> TagResponseDTO:
-        if data:
-            stmt = update(TagModel).values(**data).where(and_(TagModel.tag_id == tag_id.value))
-            try:
-                await self._session.execute(stmt)
-            except IntegrityError as err:
-                self._handle_db_error(data["name"], err)
+    async def get_by_id(self, tag_id: TagId) -> TagResponseData:
+        return map_tag_model_to_data(tag=await self._get_by_id(tag_id))
 
-        tag = await self._get_by_id(tag_id)
+    async def load(self, tag_id: TagId) -> TagEntity:
+        return map_tag_model_to_entity(tag=await self._get_by_id(tag_id))  # TODO: with_for_update?
 
-        return tag.to_dto()
-
-    async def delete(self, tag_id: TagID) -> None:
-        await self._session.execute(delete(TagModel).where(and_(TagModel.tag_id == tag_id.value)))
-
-    async def get_by_id(self, tag_id: TagID) -> TagResponseDTO:
-        tag = await self._get_by_id(tag_id)
-        return tag.to_dto()
-
-    async def _get_by_id(self, tag_id: TagID) -> TagModel:
-        tag = await self._get_model_by_id(TagModel, tag_id.value)
-        if not tag:
+    async def _get_by_id(self, tag_id: TagId) -> TagModel:
+        tag = await self.session.get(TagModel, tag_id.value)
+        if tag is None:
             raise TagNotFoundError(tag_id.value)
         return tag
 
-    def _handle_db_error(self, name: str, err: DBAPIError) -> NoReturn:
+    def _handle_db_error(self, err: DBAPIError, *, tag_name: TagName) -> NoReturn:
         cause = str(err.__cause__)
 
         if "uq_tags_slug" in cause:
-            raise TagNameUniqueError(name)
+            raise TagNameAlreadyExistsError(tag_name.value)
 
-        raise RepoError from err
+        raise RepoError from err  # TODO: check

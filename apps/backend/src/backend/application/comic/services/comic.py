@@ -1,218 +1,167 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 
-from backend.application.comic.dtos import (
-    ComicRequestDTO,
-    ComicResponseDTO,
-    TranslationImageRequestDTO,
-    TranslationImageResponseDTO,
-    TranslationRequestDTO,
-    TranslationResponseDTO,
-)
-from backend.application.comic.exceptions import (
-    OriginalTranslationOperationForbiddenError,
-    TranslationIsAlreadyPublishedError,
-    TranslationNotFoundError,
-)
+from backend.application.comic.commands import ComicCreateCommand, ComicUpdateCommand
+from backend.application.comic.filters import ComicFilters
 from backend.application.comic.interfaces import (
     ComicRepoInterface,
-    TagRepoInterface,
-    TranslationImageRepoInterface,
     TranslationRepoInterface,
 )
-from backend.application.common.interfaces import (
-    ConvertImageMessage,
-    PublisherRouterInterface,
-    TransactionManagerInterface,
-    TranslationImageFileManagerInterface,
+from backend.application.comic.responses import (
+    ComicCompactResponseData,
+    ComicResponseData,
+    TranslationResponseData,
 )
-from backend.application.common.pagination import ComicFilterParams, Limit, Order, TotalCount
-from backend.core.value_objects import ComicID, IssueNumber, Language, TranslationID
+from backend.application.comic.services.mixins import (
+    ProcessTranslationImageMixin,
+    TranslationImagePathData,
+)
+from backend.application.common.interfaces import (
+    TransactionManagerInterface,
+)
+from backend.application.common.pagination import Pagination
+from backend.domain.entities import ImageLinkType, TranslationStatus
+from backend.domain.value_objects import (
+    ComicId,
+    ImageId,
+    IssueNumber,
+    Language,
+    TagId,
+    TranslationId,
+)
 
 
 @dataclass(slots=True)
-class ComicWriteService:
+class CreateComicInteractor(ProcessTranslationImageMixin):
+    comic_repo: ComicRepoInterface
     transaction: TransactionManagerInterface
+
+    async def execute(self, command: ComicCreateCommand) -> ComicId:
+        new_comic, tag_ids, image_ids = command.unpack()
+
+        comic_id, original_translation_id = await self.comic_repo.create(new_comic)
+        await self.comic_repo.relink_tags(comic_id, tag_ids)
+        await self.create_images(
+            link_id=original_translation_id,
+            image_ids=image_ids,
+            path_data=TranslationImagePathData(
+                number=new_comic.number,
+                title=new_comic.title,
+                language=Language.EN,
+                status=TranslationStatus.PUBLISHED,
+            ),
+        )
+
+        await self.transaction.commit()
+
+        await self.postprocess_images_in_background(image_ids)
+
+        return comic_id
+
+
+@dataclass(slots=True)
+class UpdateComicInteractor(ProcessTranslationImageMixin):
     comic_repo: ComicRepoInterface
     translation_repo: TranslationRepoInterface
-    translation_image_repo: TranslationImageRepoInterface
-    tag_repo: TagRepoInterface
-    image_file_manager: TranslationImageFileManagerInterface
-    publisher: PublisherRouterInterface
+    transaction: TransactionManagerInterface
 
-    async def create(self, dto: ComicRequestDTO) -> ComicResponseDTO:
-        comic_id = await self.comic_repo.create(dto)
-        await self.tag_repo.create_many(comic_id, dto.tags)
-        translation = await self.translation_repo.create(comic_id, dto.original)
-        image_dto = await self._create_image(translation.id, dto.number, dto.original)
+    async def execute(self, command: ComicUpdateCommand) -> None:
+        comic_id = ComicId(command["comic_id"])
+        comic = await self.comic_repo.load(comic_id)
 
-        await self.transaction.commit()
+        # TODO: rename_images_flag = False
+        if "title" in command:
+            comic.set_title(command["title"])
+        if "tooltip" in command:
+            comic.tooltip = command["tooltip"]
+        if "click_url" in command:
+            comic.explain_url = command["click_url"]
+        if "explain_url" in command:
+            comic.explain_url = command["explain_url"]
+        if "is_interactive" in command:
+            comic.is_interactive = command["is_interactive"]
+        if "transcript" in command:
+            comic.transcript = command["transcript"]
 
-        await self._convert(image_dto)
+        await self.comic_repo.update(comic)
 
-        return await self.comic_repo.get_by(comic_id)
-
-    async def update(self, comic_id: ComicID, dto: ComicRequestDTO) -> ComicResponseDTO:
-        await self.comic_repo.update(comic_id, dto)
-        await self.tag_repo.create_many(comic_id, dto.tags)
-        translation = await self.translation_repo.update_original(comic_id, dto.original)
-        image_dto = await self._create_image(translation.id, dto.number, dto.original)
-
-        await self.transaction.commit()
-
-        await self._convert(image_dto)
-
-        return await self.comic_repo.get_by(comic_id)
-
-    async def add_translation(
-        self,
-        comic_id: ComicID,
-        dto: TranslationRequestDTO,
-    ) -> TranslationResponseDTO:
-        if dto.language == Language.EN:
-            raise OriginalTranslationOperationForbiddenError
-
-        translation = await self.translation_repo.create(comic_id, dto)
-        number = await self.comic_repo.get_issue_number_by_id(comic_id)
-        image_dto = await self._create_image(translation.id, number, dto)
-
-        await self.transaction.commit()
-
-        await self._convert(image_dto)
-
-        return await self.translation_repo.get_by_id(translation.id)
-
-    async def update_translation(
-        self,
-        translation_id: TranslationID,
-        dto: TranslationRequestDTO,
-    ) -> TranslationResponseDTO:
-        if dto.language == Language.EN:
-            raise OriginalTranslationOperationForbiddenError
-
-        db_translation = await self.translation_repo.get_by_id(translation_id)
-        if db_translation.language == Language.EN:
-            raise OriginalTranslationOperationForbiddenError
-
-        translation = await self.translation_repo.update(translation_id, dto)
-        number = await self.comic_repo.get_issue_number_by_id(translation.comic_id)
-        image_dto = await self._create_image(translation.id, number, dto)
-
-        await self.transaction.commit()
-
-        await self._convert(image_dto)
-
-        return await self.translation_repo.get_by_id(translation.id)
-
-    async def publish_translation_draft(self, translation_id: TranslationID) -> None:
-        # TODO: redesign
-        candidate = await self.translation_repo.get_by_id(translation_id)
-
-        if candidate.is_draft:
-            if published := await self.translation_repo.get_by_language(
-                comic_id=candidate.comic_id,
-                language=candidate.language,
-            ):
-                await self.translation_repo.update_draft_status(published.id, True)
-            await self.translation_repo.update_draft_status(candidate.id, False)
-            await self.transaction.commit()
-        else:
-            raise TranslationIsAlreadyPublishedError
-
-    async def _create_image(
-        self,
-        translation_id: TranslationID,
-        number: IssueNumber | None,
-        dto: TranslationRequestDTO,
-    ) -> TranslationImageResponseDTO | None:
-        image_dto = None
-
-        if dto.temp_image_id:
-            image_rel_path = await self.image_file_manager.persist(
-                temp_image_id=dto.temp_image_id,
-                number=number,
-                title=dto.title,
-                language=dto.language,
-                is_draft=dto.is_draft,
+        if "tag_ids" in command:
+            tag_ids = [TagId(tag_id) for tag_id in command["tag_ids"]]
+            await self.comic_repo.relink_tags(
+                comic_id=comic_id,
+                tag_ids=tag_ids,
             )
 
-            image_dto = await self.translation_image_repo.create(
-                dto=TranslationImageRequestDTO(
-                    translation_id=translation_id,
-                    original=image_rel_path,
+        created_image_ids: list[ImageId] = []
+        if "image_ids" in command:
+            image_ids = [ImageId(image_id) for image_id in command["image_ids"]]
+            created_image_ids.extend(
+                await self.process_images(
+                    link_id=comic.original_translation_id,
+                    image_ids=image_ids,
+                    path_data=TranslationImagePathData(
+                        number=comic.number,
+                        title=comic.title,
+                        language=Language.EN,
+                        status=TranslationStatus.PUBLISHED,
+                    ),
                 )
             )
 
-        return image_dto
+        await self.transaction.commit()
 
-    async def _convert(self, image_dto: TranslationImageResponseDTO | None) -> None:
-        if image_dto:
-            await self.publisher.publish(ConvertImageMessage(image_id=image_dto.id.value))
+        await self.postprocess_images_in_background(created_image_ids)
 
 
 @dataclass(slots=True)
-class ComicDeleteService:
-    transaction: TransactionManagerInterface
+class DeleteComicInteractor(ProcessTranslationImageMixin):
     comic_repo: ComicRepoInterface
     translation_repo: TranslationRepoInterface
+    transaction: TransactionManagerInterface
 
-    async def delete(self, comic_id: ComicID) -> None:
+    async def execute(self, comic_id: ComicId) -> None:
+        translations = await self.comic_repo.get_translations(comic_id)
+
+        to_delete_image_ids: list[ImageId] = []
+        for translation in translations:
+            linked_image_ids = await self.image_repo.get_linked_image_ids(
+                link_type=ImageLinkType.TRANSLATION,
+                link_id=TranslationId(translation.id),
+            )
+            to_delete_image_ids.extend(linked_image_ids)
+
+        await self.delete_images(to_delete_image_ids)
         await self.comic_repo.delete(comic_id)
         await self.transaction.commit()
 
-    async def delete_translation(self, translation_id: TranslationID) -> None:
-        translation = await self.translation_repo.get_by_id(translation_id)
-
-        if translation.language == Language.EN:
-            raise OriginalTranslationOperationForbiddenError
-
-        await self.translation_repo.delete(translation_id)
-        await self.transaction.commit()
-
 
 @dataclass(slots=True)
-class ComicReadService:
+class ComicReader:
     comic_repo: ComicRepoInterface
-    translation_repo: TranslationRepoInterface
 
-    async def get_by_id(self, comic_id: ComicID) -> ComicResponseDTO:
+    async def get_by_id(self, comic_id: ComicId) -> ComicResponseData:
         return await self.comic_repo.get_by(comic_id)
 
-    async def get_by_issue_number(self, number: IssueNumber) -> ComicResponseDTO:
+    async def get_by_issue_number(self, number: IssueNumber) -> ComicResponseData:
         return await self.comic_repo.get_by(number)
 
-    async def get_by_slug(self, slug: str) -> ComicResponseDTO:
+    async def get_by_slug(self, slug: str) -> ComicResponseData:
         return await self.comic_repo.get_by(slug)
 
     async def get_latest_issue_number(self) -> IssueNumber | None:
-        _, comics = await self.comic_repo.get_list(
-            filter_params=ComicFilterParams(
-                limit=Limit(1),
-                order=Order.DESC,
-            )
-        )
-
-        if comics:
-            return comics[0].number
-        return None
+        return await self.comic_repo.get_latest_issue_number()
 
     async def get_list(
         self,
-        query_params: ComicFilterParams,
-    ) -> tuple[TotalCount, list[ComicResponseDTO]]:
-        return await self.comic_repo.get_list(query_params)
+        filters: ComicFilters,
+        pagination: Pagination,
+    ) -> tuple[int, Sequence[ComicCompactResponseData]]:
+        return await self.comic_repo.get_list(filters, pagination)
 
-    async def get_translation_by_id(self, translation_id: TranslationID) -> TranslationResponseDTO:
-        return await self.translation_repo.get_by_id(translation_id)
-
-    async def get_translation_by_language(
+    async def get_translations(
         self,
-        comic_id: ComicID,
-        language: Language,
-    ) -> TranslationResponseDTO:
-        translation = await self.translation_repo.get_by_language(comic_id, language)
-        if not translation:
-            raise TranslationNotFoundError(language)
-        return translation
-
-    async def get_translations(self, comic_id: ComicID) -> list[TranslationResponseDTO]:
-        return await self.comic_repo.get_translations(comic_id)
+        comic_id: ComicId,
+        language: Language | None,
+        status: TranslationStatus | None,
+    ) -> list[TranslationResponseData]:
+        return await self.comic_repo.get_translations(comic_id, language, status)

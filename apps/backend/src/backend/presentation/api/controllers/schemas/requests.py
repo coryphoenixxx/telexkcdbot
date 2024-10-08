@@ -1,81 +1,124 @@
 import datetime as dt
-from typing import Annotated
-from uuid import UUID
 
-from annotated_types import MaxLen, MinLen
-from pydantic import BaseModel, HttpUrl, PositiveInt
+from pydantic import BaseModel, HttpUrl
 
-from backend.application.comic.dtos import ComicRequestDTO, TagUpdateDTO, TranslationRequestDTO
-from backend.application.utils import cast_or_none
-from backend.core.value_objects import IssueNumber, Language, TagName, TempFileID
+from backend.application.comic.commands import (
+    ComicCreateCommand,
+    ComicUpdateCommand,
+    TagCreateCommand,
+    TagUpdateCommand,
+    TranslationCreateCommand,
+    TranslationUpdateCommand,
+)
+from backend.domain.entities import TranslationStatus
+from backend.domain.utils import cast_or_none
+from backend.domain.value_objects import Language
 
 
-class ComicRequestSchema(BaseModel):
-    number: PositiveInt | None
+class ComicCreateSchema(BaseModel):
+    number: int | None
     title: str
     publication_date: dt.date
     tooltip: str
-    raw_transcript: str
+    transcript: str
     xkcd_url: HttpUrl | None
-    explain_url: HttpUrl
+    explain_url: HttpUrl | None
     click_url: HttpUrl | None
     is_interactive: bool
-    tags: list[Annotated[str, MinLen(2), MaxLen(50)]]
-    temp_image_id: UUID | None
+    tag_ids: list[int]
+    image_ids: list[int]
 
-    def to_dto(self) -> ComicRequestDTO:
-        return ComicRequestDTO(
-            number=cast_or_none(IssueNumber, self.number),
-            title=self.title,
+    def to_command(self) -> ComicCreateCommand:
+        return ComicCreateCommand(
+            number=self.number,
             publication_date=self.publication_date,
-            tooltip=self.tooltip,
-            raw_transcript=self.raw_transcript,
-            xkcd_url=cast_or_none(str, self.xkcd_url),
             explain_url=cast_or_none(str, self.explain_url),
             click_url=cast_or_none(str, self.click_url),
             is_interactive=self.is_interactive,
-            tags=[TagName(tag) for tag in self.tags],
-            temp_image_id=cast_or_none(TempFileID, self.temp_image_id),
+            title=self.title,
+            tooltip=self.tooltip,
+            transcript=self.transcript,
+            xkcd_url=cast_or_none(str, self.xkcd_url),
+            tag_ids=self.tag_ids,
+            image_ids=self.image_ids,
         )
 
 
-class TranslationRequestSchema(BaseModel):
+class ComicUpdateSchema(BaseModel):
+    title: str | None = None
+    tooltip: str | None = None
+    click_url: HttpUrl | None = None
+    explain_url: HttpUrl | None = None
+    is_interactive: bool | None = None
+    transcript: str | None = None
+    tag_ids: list[int] | None = None
+    image_ids: list[int] | None = None
+
+    def to_command(self, comic_id: int) -> ComicUpdateCommand:
+        return ComicUpdateCommand(  # type: ignore[no-any-return]
+            comic_id=comic_id,
+            **self.model_dump(exclude_unset=True),  # type: ignore[typeddict-item]
+        )
+
+
+class TranslationCreateSchema(BaseModel):
+    language: str
     title: str
-    language: Language
     tooltip: str
-    raw_transcript: str
+    transcript: str
     translator_comment: str
     source_url: HttpUrl | None
-    temp_image_id: UUID | None
+    status: TranslationStatus
+    image_ids: list[int]
 
-    def to_dto(self) -> TranslationRequestDTO:
-        return TranslationRequestDTO(
-            title=self.title,
+    def to_command(self, comic_id: int) -> TranslationCreateCommand:
+        return TranslationCreateCommand(
+            comic_id=comic_id,
             language=Language(self.language),
+            title=self.title,
             tooltip=self.tooltip,
-            raw_transcript=self.raw_transcript,
+            transcript=self.transcript,
             translator_comment=self.translator_comment,
             source_url=cast_or_none(str, self.source_url),
-            temp_image_id=cast_or_none(TempFileID, self.temp_image_id),
-            is_draft=False,
+            status=self.status,
+            image_ids=self.image_ids,
         )
 
 
-class TranslationDraftRequestSchema(TranslationRequestSchema):
-    def to_dto(self) -> TranslationRequestDTO:
-        dto = super().to_dto()
-        dto.is_draft = True
-        return dto
+class TranslationUpdateSchema(BaseModel):
+    language: Language | None = None
+    title: str | None = None
+    tooltip: str | None = None
+    transcript: str | None = None
+    translator_comment: str | None = None
+    source_url: str | None = None
+    status: TranslationStatus | None = None
+    image_ids: list[int] | None = None
+
+    def to_command(self, translation_id: int) -> TranslationUpdateCommand:
+        return TranslationUpdateCommand(  # type: ignore[no-any-return]
+            translation_id=translation_id,
+            **self.model_dump(exclude_unset=True),  # type: ignore[typeddict-item]
+        )
 
 
-class TagUpdateQuerySchema(BaseModel):
+class TagCreateSchema(BaseModel):
+    name: str
+
+    def to_command(self) -> TagCreateCommand:
+        return TagCreateCommand(
+            name=self.name,
+            is_visible=True,
+            from_explainxkcd=False,
+        )
+
+
+class TagUpdateSchema(BaseModel):
     name: str | None = None
-    is_blacklisted: bool | None = None
+    is_visible: bool | None = None
 
-    def to_dto(self) -> TagUpdateDTO:
-        dumped = self.model_dump(exclude_none=True)
-
-        if name := dumped.get("name"):
-            dumped.update(name=TagName(name))
-
-        return TagUpdateDTO(**dumped)  # type: ignore[typeddict-item, no-any-return]
+    def to_command(self, tag_id: int) -> TagUpdateCommand:
+        return TagUpdateCommand(  # type: ignore[no-any-return]
+            tag_id=tag_id,
+            **self.model_dump(exclude_unset=True),  # type: ignore[typeddict-item]
+        )

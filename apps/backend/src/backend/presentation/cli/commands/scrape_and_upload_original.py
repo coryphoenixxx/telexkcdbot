@@ -1,103 +1,128 @@
+from collections.abc import Sequence
 from datetime import datetime as dt
+from logging import getLogger
 
 import click
 from dishka import AsyncContainer
-from rich.progress import Progress
+from sqlalchemy.ext.asyncio import AsyncEngine
 
-from backend.application.comic.dtos import ComicRequestDTO, ComicResponseDTO
-from backend.application.comic.services import ComicReadService, ComicWriteService
-from backend.application.upload.upload_image_manager import UploadImageManager
-from backend.application.utils import cast_or_none
-from backend.core.value_objects import IssueNumber, TagName
-from backend.infrastructure.xkcd.pbar import CustomProgressBar
-from backend.infrastructure.xkcd.scrapers import (
+from backend.application.comic.commands import ComicCreateCommand, TagCreateCommand
+from backend.application.comic.services import (
+    ComicReader,
+    CreateComicInteractor,
+    CreateManyTagsInteractor,
+)
+from backend.application.image.services import UploadImageInteractor
+from backend.domain.utils import cast_or_none
+from backend.domain.value_objects import ComicId, TagId
+from backend.infrastructure.database.main import check_db_connection
+from backend.infrastructure.xkcd import (
     XkcdExplainScraper,
     XkcdOriginalScraper,
 )
-from backend.infrastructure.xkcd.scrapers.dtos import (
-    LimitParams,
-    XkcdOriginalWithExplainScrapedData,
+from backend.infrastructure.xkcd.dtos import (
+    XkcdExplainScrapedData,
+    XkcdOriginalScrapedData,
 )
-from backend.infrastructure.xkcd.utils import run_concurrently
 from backend.presentation.cli.common import (
-    DatabaseIsNotEmptyError,
     async_command,
-    base_progress,
-    positive_number_callback,
+    clean_up,
+    positive_number,
 )
+from backend.presentation.cli.progress import ProgressChunkedRunner, progress_factory
+
+logger = getLogger(__name__)
 
 
-async def scrape_original_with_explain_data(
-    original_scraper: XkcdOriginalScraper,
-    explain_scraper: XkcdExplainScraper,
-    limits: LimitParams,
-    progress: Progress,
-) -> list[XkcdOriginalWithExplainScrapedData]:
-    original_data_list = await original_scraper.fetch_many(limits, progress)
-    explain_data_list = await explain_scraper.fetch_many(limits, progress)
+async def calc_numbers(start: int, end: int | None, container: AsyncContainer) -> list[int]:
+    if end is None:
+        original_scraper: XkcdOriginalScraper = await container.get(XkcdOriginalScraper)
+        end = await original_scraper.fetch_latest_number()
 
-    data = []
+    if start > end:
+        raise click.BadParameter(f"`start` (={start}) must be <= `end` (={end})")
 
-    for original_data, explain_data in zip(
-        sorted(original_data_list, key=lambda d: d.number),
-        sorted(explain_data_list, key=lambda d: d.number),
-        strict=True,
-    ):
-        data.append(
-            XkcdOriginalWithExplainScrapedData(
-                number=original_data.number,
-                publication_date=original_data.publication_date,
-                xkcd_url=original_data.xkcd_url,
-                title=original_data.title,
-                tooltip=original_data.tooltip,
-                click_url=original_data.click_url,
-                is_interactive=original_data.is_interactive,
-                image_path=original_data.image_path,
-                explain_url=explain_data.explain_url,
-                tags=explain_data.tags,
-                raw_transcript=explain_data.raw_transcript,
-            )
-        )
-
-    return data
+    return list(range(start, end + 1))
 
 
-async def download_image_and_upload_coro(
-    data: XkcdOriginalWithExplainScrapedData,
-    container: AsyncContainer,
-) -> ComicResponseDTO:
-    temp_image_id = None
-    if data.image_path:
-        upload_image_manager = await container.get(UploadImageManager)
-        temp_image_id = upload_image_manager.read_from_file(data.image_path)
+async def check_db(container: AsyncContainer) -> None:
+    engine = await container.get(AsyncEngine)
+    try:
+        await check_db_connection(engine)
+    except OSError as err:
+        logger.exception("Database connection failed: %s", err.strerror)
+        raise click.Abort from None
 
     async with container() as request_container:
-        service: ComicWriteService = await request_container.get(ComicWriteService)
-        return await service.create(
-            dto=ComicRequestDTO(
-                number=IssueNumber(data.number),
-                title=data.title,
+        reader = await request_container.get(ComicReader)
+        latest = await reader.get_latest_issue_number()
+
+        if latest:
+            logger.error("Database already contains some comics.")
+            raise click.Abort
+
+
+async def upload_one(
+    data: tuple[XkcdOriginalScrapedData, XkcdExplainScrapedData],
+    container: AsyncContainer,
+) -> ComicId:
+    original_data, explain_data = data
+
+    async with container() as request_container:
+        image_ids = []
+        if original_data.image_path:
+            upload_image_interactor: UploadImageInteractor = await request_container.get(
+                UploadImageInteractor
+            )
+            image_id = await upload_image_interactor.execute(original_data.image_path)
+            image_ids.append(image_id.value)
+
+        tag_ids: Sequence[TagId] = []
+        if explain_data.tags:
+            create_many_tags_interactor: CreateManyTagsInteractor = await request_container.get(
+                CreateManyTagsInteractor
+            )
+
+            tag_ids = await create_many_tags_interactor.execute(
+                commands=[
+                    TagCreateCommand(
+                        name=name,
+                        is_visible=True,
+                        from_explainxkcd=True,
+                    )
+                    for name in explain_data.tags
+                ]
+            )
+
+        create_comic_interactor: CreateComicInteractor = await request_container.get(
+            CreateComicInteractor
+        )
+        return await create_comic_interactor.execute(
+            command=ComicCreateCommand(
+                number=original_data.number,
+                title=original_data.title,
                 publication_date=dt.strptime(  # noqa: DTZ007
-                    data.publication_date, "%Y-%m-%d"
+                    original_data.publication_date, "%Y-%m-%d"
                 ).date(),
-                tooltip=data.tooltip,
-                raw_transcript=data.raw_transcript,
-                xkcd_url=str(data.xkcd_url),
-                explain_url=cast_or_none(str, data.explain_url),
-                click_url=cast_or_none(str, data.click_url),
-                is_interactive=data.is_interactive,
-                tags=[TagName(tag) for tag in data.tags],
-                temp_image_id=temp_image_id,
+                tooltip=original_data.tooltip,
+                transcript=explain_data.transcript,
+                xkcd_url=str(original_data.xkcd_url),
+                explain_url=cast_or_none(str, explain_data.explain_url),
+                click_url=cast_or_none(str, original_data.click_url),
+                is_interactive=original_data.is_interactive,
+                tag_ids=[tag_id.value for tag_id in tag_ids],
+                image_ids=image_ids,
             )
         )
 
 
 @click.command()
-@click.option("--start", type=int, default=1, callback=positive_number_callback)
-@click.option("--end", type=int, callback=positive_number_callback)
-@click.option("--chunk_size", type=int, default=100, callback=positive_number_callback)
-@click.option("--delay", type=float, default=3, callback=positive_number_callback)
+@click.option("--start", type=int, default=1, callback=positive_number)
+@click.option("--end", type=int, callback=positive_number)
+@click.option("--chunk_size", type=int, default=100, callback=positive_number)
+@click.option("--delay", type=float, default=0.1, callback=positive_number)
 @click.pass_context
+@clean_up
 @async_command
 async def scrape_and_upload_original_command(
     ctx: click.Context,
@@ -108,38 +133,38 @@ async def scrape_and_upload_original_command(
 ) -> None:
     container = ctx.meta["container"]
 
+    await check_db(container)
+    numbers = await calc_numbers(start, end, container)
+
     original_scraper: XkcdOriginalScraper = await container.get(XkcdOriginalScraper)
     explain_scraper: XkcdExplainScraper = await container.get(XkcdExplainScraper)
-    if end is None:
-        end = await original_scraper.fetch_latest_number()
 
-    limits = LimitParams(start, end, chunk_size, delay)
+    with progress_factory() as progress:
+        runner = ProgressChunkedRunner(progress, chunk_size, delay)
 
-    async with container() as request_container:
-        service = await request_container.get(ComicReadService)
-        latest = await service.get_latest_issue_number()
-
-        if latest:
-            raise DatabaseIsNotEmptyError("Looks like database is not empty.")
-
-    with base_progress:
-        original_with_explain_data = await scrape_original_with_explain_data(
-            original_scraper=original_scraper,
-            explain_scraper=explain_scraper,
-            limits=limits,
-            progress=base_progress,
+        original_data_list = await runner.run(
+            desc=f"Original data scraping ({original_scraper.BASE_URL}):",
+            coro=original_scraper.fetch_one,
+            data=numbers,
         )
-        await run_concurrently(
-            data=original_with_explain_data,
-            coro=download_image_and_upload_coro,
-            chunk_size=limits.chunk_size,
-            delay=limits.delay,
-            pbar=CustomProgressBar(
-                base_progress,
-                "Original data uploading...",
-                len(original_with_explain_data),
+
+        explain_runner = ProgressChunkedRunner(progress, chunk_size // 5, delay * 5)
+
+        explain_data_list = await explain_runner.run(
+            desc=f"Explain data scraping ({explain_scraper.BASE_URL}):",
+            coro=explain_scraper.fetch_one,
+            data=numbers,
+        )
+
+        await runner.run(
+            desc="Original data uploading:",
+            coro=upload_one,
+            data=list(
+                zip(
+                    sorted(original_data_list, key=lambda d: d.number),
+                    sorted(explain_data_list, key=lambda d: d.number),
+                    strict=True,
+                )
             ),
             container=container,
         )
-
-    await container.close()

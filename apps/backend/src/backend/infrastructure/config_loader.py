@@ -41,7 +41,7 @@ def get_config_data(
     if scope:
         scoped_data = config_data.get(scope)
         if scoped_data is None:
-            raise LoadConfigError(f"Invalid scope ({scope}).")
+            raise LoadConfigError(f"Invalid config scope ({scope}).")
         config_data = scoped_data
 
     return Retort().load(config_data, typ)

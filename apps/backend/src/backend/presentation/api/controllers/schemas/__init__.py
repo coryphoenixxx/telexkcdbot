@@ -1,40 +1,15 @@
-from .requests import (
-    ComicRequestSchema,
-    TagUpdateQuerySchema,
-    TranslationDraftRequestSchema,
-    TranslationRequestSchema,
-)
-from .responses import (
-    ComicResponseSchema,
-    ComicsWMetadata,
-    ComicWTranslationsResponseSchema,
-    OKResponseSchema,
-    PaginationSchema,
-    TagResponseSchema,
-    TagResponseWBlacklistStatusSchema,
-    TempImageSchema,
-    TranslationImageResponseSchema,
-    TranslationResponseSchema,
-    TranslationWDraftStatusSchema,
-    TranslationWLanguageResponseSchema,
-)
-
-__all__ = [
-    "ComicRequestSchema",
-    "TranslationRequestSchema",
-    "TranslationDraftRequestSchema",
-    "TagUpdateQuerySchema",
-    "ComicResponseSchema",
-    "OKResponseSchema",
-    "TempImageSchema",
-    "PaginationSchema",
-    "TagResponseSchema",
-    "TagResponseWBlacklistStatusSchema",
-    "ComicResponseSchema",
-    "TranslationResponseSchema",
-    "ComicWTranslationsResponseSchema",
-    "ComicsWMetadata",
-    "TranslationImageResponseSchema",
-    "TranslationWLanguageResponseSchema",
-    "TranslationWDraftStatusSchema",
-]
+from .requests import ComicCreateSchema as ComicCreateSchema
+from .requests import ComicUpdateSchema as ComicUpdateSchema
+from .requests import TagCreateSchema as TagCreateSchema
+from .requests import TagUpdateSchema as TagUpdateSchema
+from .requests import TranslationCreateSchema as TranslationCreateSchema
+from .requests import TranslationUpdateSchema as TranslationUpdateSchema
+from .responses import ComicResponseSchema as ComicResponseSchema
+from .responses import ComicsWPaginationSchema as ComicsWPaginationSchema
+from .responses import ComicWTranslationsResponseSchema as ComicWTranslationsResponseSchema
+from .responses import OKResponseSchema as OKResponseSchema
+from .responses import PaginationSchema as PaginationSchema
+from .responses import TagResponseSchema as TagResponseSchema
+from .responses import TempImageSchema as TempImageSchema
+from .responses import TranslationImageResponseSchema as TranslationImageResponseSchema
+from .responses import TranslationResponseSchema as TranslationResponseSchema

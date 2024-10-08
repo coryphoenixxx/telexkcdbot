@@ -1,19 +1,29 @@
-FROM python:3.12-slim AS poetry
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
+ARG USERNAME=$USERNAME
+ARG UID=$UID
+ARG GID=$GID
+
+RUN groupadd --gid $GID $USERNAME \
+    && useradd --uid $UID --gid $GID -m $USERNAME
+
+USER $USERNAME
+
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-WORKDIR /apps
-RUN pip3 install --no-cache-dir poetry
 
-
-FROM poetry AS base
-COPY apps/backend/pyproject.toml pyproject.toml
-RUN poetry install --no-root --only main
-
-
-FROM base AS main
-RUN apt-get update \
- && apt-get install -y --no-install-recommends curl \
- && rm -rf /var/lib/apt/lists/*
-COPY apps/backend /app/backend
 WORKDIR /app/backend
-RUN poetry install --only main
+
+RUN --mount=type=cache,target=/opt/.cache/uv,uid=${UID},gid=${GID} \
+    --mount=type=bind,source=/apps/backend/uv.lock,target=uv.lock \
+    --mount=type=bind,source=/apps/backend/pyproject.toml,target=pyproject.toml \
+    uv sync --frozen --no-install-project --no-dev
+
+ADD apps/backend /app/backend
+
+RUN --mount=type=cache,target=/opt/.cache/uv,uid=${UID},gid=${GID} \
+    uv sync --frozen --no-dev
+
+ENTRYPOINT []

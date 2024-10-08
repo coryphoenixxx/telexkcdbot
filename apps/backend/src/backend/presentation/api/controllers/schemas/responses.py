@@ -1,22 +1,19 @@
 import datetime as dt
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Self
 
-from pydantic import BaseModel, HttpUrl, PositiveInt
+from pydantic import BaseModel, HttpUrl
 
-from backend.application.common.pagination import TotalCount
-from backend.application.utils import cast_or_none
-from backend.core.value_objects import (
-    Language,
-    TempFileID,
-)
+from backend.domain.entities import TranslationStatus
+from backend.domain.utils import cast_or_none
+from backend.domain.value_objects import Language
 
 if TYPE_CHECKING:
-    from backend.application.comic.dtos import (
-        ComicResponseDTO,
-        TagResponseDTO,
-        TranslationImageResponseDTO,
-        TranslationResponseDTO,
+    from backend.application.comic.responses import (
+        ComicCompactResponseData,
+        ComicResponseData,
+        TagResponseData,
+        TranslationImageResponseData,
+        TranslationResponseData,
     )
 
 
@@ -25,33 +22,49 @@ class OKResponseSchema(BaseModel):
 
 
 class TempImageSchema(BaseModel):
-    temp_image_id: TempFileID
+    image_id: int
 
 
 class PaginationSchema(BaseModel):
-    total: TotalCount
-    limit: PositiveInt | None
-    offset: PositiveInt | None
+    total: int
+    limit: int | None
+    offset: int | None
 
 
 class TagResponseSchema(BaseModel):
-    id: PositiveInt
+    id: int
     name: str
+    is_visible: bool
+    from_explainxkcd: bool
 
     @classmethod
-    def from_dto(cls, dto: "TagResponseDTO") -> Self:
-        return cls(id=dto.id.value, name=dto.name.value)
-
-
-class TagResponseWBlacklistStatusSchema(TagResponseSchema):
-    is_blacklisted: bool
-
-    @classmethod
-    def from_dto(cls, dto: "TagResponseDTO") -> Self:
+    def from_data(cls, data: "TagResponseData") -> Self:
         return cls(
-            id=dto.id.value,
-            name=dto.name.value,
-            is_blacklisted=dto.is_blacklisted,
+            id=data.id,
+            name=data.name,
+            is_visible=data.is_visible,
+            from_explainxkcd=data.from_explainxkcd,
+        )
+
+
+class TranslationImageResponseSchema(BaseModel):
+    id: int
+    translation_id: int | None
+    original: str | None
+    converted: str | None
+    converted_2x: str | None
+
+    @classmethod
+    def from_data(
+        cls,
+        data: "TranslationImageResponseData",
+    ) -> Self:
+        return cls(
+            id=data.id,
+            translation_id=data.translation_id,
+            original=data.original,
+            converted=data.converted,
+            converted_2x=data.converted_2x,
         )
 
 
@@ -67,150 +80,98 @@ class ComicResponseSchema(BaseModel):
     tags: list[TagResponseSchema]
     translation_id: int
     tooltip: str
-    image: "TranslationImageResponseSchema | None"
+    images: list[TranslationImageResponseSchema]
     has_translations: list[Language]
 
     @classmethod
-    def from_dto(cls, dto: "ComicResponseDTO") -> Self:
+    def from_data(cls, data: "ComicResponseData") -> Self:
         return cls(
-            id=dto.id.value,
-            number=dto.number.value if dto.number else None,
-            title=dto.title,
-            publication_date=dto.publication_date,
-            translation_id=dto.translation_id.value,
-            tooltip=dto.tooltip,
-            xkcd_url=cast_or_none(HttpUrl, dto.xkcd_url),
-            explain_url=cast_or_none(HttpUrl, dto.explain_url),
-            click_url=cast_or_none(HttpUrl, dto.click_url),
-            is_interactive=dto.is_interactive,
-            tags=[TagResponseSchema.from_dto(dto) for dto in dto.tags],
-            image=TranslationImageResponseSchema.from_dto(dto.image) if dto.image else None,
-            has_translations=dto.has_translations,
+            id=data.id,
+            number=data.number,
+            title=data.title,
+            publication_date=data.publication_date,
+            translation_id=data.translation_id,
+            tooltip=data.tooltip,
+            xkcd_url=cast_or_none(HttpUrl, data.xkcd_url),
+            explain_url=cast_or_none(HttpUrl, data.explain_url),
+            click_url=cast_or_none(HttpUrl, data.click_url),
+            is_interactive=data.is_interactive,
+            tags=[TagResponseSchema.from_data(data) for data in data.tags],
+            images=[TranslationImageResponseSchema.from_data(image) for image in data.images],
+            has_translations=data.has_translations,
         )
 
 
-class TranslationResponseBaseSchema(BaseModel):
+class ComicCompactResponseSchema(BaseModel):
+    id: int
+    number: int | None
+    title: str
+    publication_date: dt.date
+    image_url: str | None
+
+    @classmethod
+    def from_data(cls, data: "ComicCompactResponseData") -> Self:
+        return cls(
+            id=data.id,
+            number=data.number if data.number else None,
+            title=data.title,
+            publication_date=data.publication_date,
+            image_url=data.image_url,
+        )
+
+
+class TranslationResponseSchema(BaseModel):
     id: int
     comic_id: int
     title: str
     tooltip: str
     translator_comment: str
     source_url: HttpUrl | None
-    image: "TranslationImageResponseSchema | None"
+    images: list[TranslationImageResponseSchema]
+    language: Language
+    status: TranslationStatus
 
-
-class TranslationResponseSchema(TranslationResponseBaseSchema):
     @classmethod
-    def from_dto(
+    def from_data(
         cls,
-        dto: "TranslationResponseDTO",
-    ) -> Mapping[Language, Self]:
-        return {
-            dto.language: cls(
-                id=dto.id.value,
-                comic_id=dto.comic_id.value,
-                title=dto.title,
-                tooltip=dto.tooltip,
-                translator_comment=dto.translator_comment,
-                source_url=cast_or_none(HttpUrl, dto.source_url),
-                image=TranslationImageResponseSchema.from_dto(dto.image) if dto.image else None,
-            ),
-        }
+        data: "TranslationResponseData",
+    ) -> Self:
+        return cls(
+            id=data.id,
+            comic_id=data.comic_id,
+            language=data.language,
+            title=data.title,
+            tooltip=data.tooltip,
+            translator_comment=data.translator_comment,
+            source_url=cast_or_none(HttpUrl, data.source_url),
+            status=data.status,
+            images=[TranslationImageResponseSchema.from_data(image) for image in data.images],
+        )
 
 
 class ComicWTranslationsResponseSchema(ComicResponseSchema):
-    translations: dict[Language, "TranslationResponseSchema"]
-
-    @staticmethod
-    def _prepare_and_filter(
-        translations: list["TranslationResponseDTO"],
-        filter_languages: list[Language] | None = None,
-    ) -> dict[Language, TranslationResponseSchema]:
-        translation_map: dict[Language, TranslationResponseSchema] = {}
-        for tr in translations:
-            if not filter_languages or tr.language in filter_languages:
-                translation_map.update(TranslationResponseSchema.from_dto(tr))
-
-        return translation_map
+    translations: list[TranslationResponseSchema]
 
     @classmethod
-    def from_dto(
-        cls,
-        dto: "ComicResponseDTO",
-        filter_languages: list[Language] | None = None,
-    ) -> Self:
+    def from_data(cls, data: "ComicResponseData") -> Self:
         return cls(
-            id=dto.id.value,
-            number=dto.number.value if dto.number else None,
-            title=dto.title,
-            publication_date=dto.publication_date,
-            translation_id=dto.translation_id.value,
-            tooltip=dto.tooltip,
-            xkcd_url=cast_or_none(HttpUrl, dto.xkcd_url),
-            explain_url=cast_or_none(HttpUrl, dto.explain_url),
-            click_url=cast_or_none(HttpUrl, dto.click_url),
-            is_interactive=dto.is_interactive,
-            tags=[TagResponseSchema.from_dto(dto) for dto in dto.tags],
-            image=TranslationImageResponseSchema.from_dto(dto.image) if dto.image else None,
-            has_translations=dto.has_translations,
-            translations=cls._prepare_and_filter(dto.translations, filter_languages),
+            id=data.id,
+            number=data.number if data.number else None,
+            title=data.title,
+            publication_date=data.publication_date,
+            translation_id=data.translation_id,
+            tooltip=data.tooltip,
+            xkcd_url=cast_or_none(HttpUrl, data.xkcd_url),
+            explain_url=cast_or_none(HttpUrl, data.explain_url),
+            click_url=cast_or_none(HttpUrl, data.click_url),
+            is_interactive=data.is_interactive,
+            tags=[TagResponseSchema.from_data(data) for data in data.tags],
+            images=[TranslationImageResponseSchema.from_data(image) for image in data.images],
+            has_translations=data.has_translations,
+            translations=[TranslationResponseSchema.from_data(tr) for tr in data.translations],
         )
 
 
-class ComicsWMetadata(BaseModel):
+class ComicsWPaginationSchema(BaseModel):
     meta: PaginationSchema
-    data: list[ComicResponseSchema]
-
-
-class TranslationImageResponseSchema(BaseModel):
-    id: int
-    translation_id: int | None
-    original: str
-    converted: str | None
-
-    @classmethod
-    def from_dto(
-        cls,
-        dto: "TranslationImageResponseDTO",
-    ) -> Self:
-        return cls(
-            id=dto.id.value,
-            translation_id=dto.translation_id.value if dto.translation_id else None,
-            original=str(dto.original),
-            converted=str(dto.converted),
-        )
-
-
-class TranslationWLanguageResponseSchema(TranslationResponseBaseSchema):
-    language: Language
-
-    @classmethod
-    def from_dto(cls, dto: "TranslationResponseDTO") -> Self:
-        return cls(
-            id=dto.id.value,
-            comic_id=dto.comic_id.value,
-            language=dto.language,
-            title=dto.title,
-            tooltip=dto.tooltip,
-            translator_comment=dto.translator_comment,
-            source_url=cast_or_none(HttpUrl, dto.source_url),
-            image=TranslationImageResponseSchema.from_dto(dto.image) if dto.image else None,
-        )
-
-
-class TranslationWDraftStatusSchema(TranslationWLanguageResponseSchema):
-    is_draft: bool
-
-    @classmethod
-    def from_dto(cls, dto: "TranslationResponseDTO") -> Self:
-        return cls(
-            id=dto.id.value,
-            comic_id=dto.comic_id.value,
-            language=dto.language,
-            title=dto.title,
-            tooltip=dto.tooltip,
-            translator_comment=dto.translator_comment,
-            source_url=cast_or_none(HttpUrl, dto.source_url),
-            image=TranslationImageResponseSchema.from_dto(dto.image) if dto.image else None,
-            is_draft=dto.is_draft,
-        )
+    data: list[ComicCompactResponseSchema]

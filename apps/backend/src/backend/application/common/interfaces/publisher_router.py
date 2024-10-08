@@ -4,7 +4,7 @@ from typing import Any, NoReturn, Protocol
 from pydantic import BaseModel
 
 
-class ConvertImageMessage(BaseModel):
+class PostProcessImageMessage(BaseModel):
     image_id: int
 
 
@@ -18,7 +18,7 @@ class PublisherRouterInterface(Protocol):
         raise NotImplementedError
 
     @publish.register  # type: ignore[arg-type]
-    async def _(self, msg: ConvertImageMessage, **kwargs: Any) -> None: ...
+    async def _(self, msg: PostProcessImageMessage, **kwargs: Any) -> None: ...
 
     @publish.register  # type: ignore[arg-type]
     async def _(self, msg: NewComicMessage, **kwargs: Any) -> None: ...

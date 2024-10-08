@@ -1,11 +1,13 @@
-from .comic import ComicDeleteService, ComicReadService, ComicWriteService
-from .tag import TagService
-from .translation_image import TranslationImageService
-
-__all__ = [
-    "ComicWriteService",
-    "ComicReadService",
-    "ComicDeleteService",
-    "TranslationImageService",
-    "TagService",
-]
+from .comic import ComicReader as ComicReader
+from .comic import CreateComicInteractor as CreateComicInteractor
+from .comic import DeleteComicInteractor as DeleteComicInteractor
+from .comic import UpdateComicInteractor as UpdateComicInteractor
+from .tag import CreateManyTagsInteractor as CreateManyTagsInteractor
+from .tag import CreateTagInteractor as CreateTagInteractor
+from .tag import DeleteTagInteractor as DeleteTagInteractor
+from .tag import TagReader as TagReader
+from .tag import UpdateTagInteractor as UpdateTagInteractor
+from .translation import AddTranslationInteractor as AddTranslationInteractor
+from .translation import DeleteTranslationInteractor as DeleteTranslationInteractor
+from .translation import TranslationReader as TranslationReader
+from .translation import UpdateTranslationInteractor as UpdateTranslationInteractor
