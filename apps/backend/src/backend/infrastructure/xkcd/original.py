@@ -19,7 +19,7 @@ IMAGE_URL_PATTERN = re.compile(r"https://imgs.xkcd.com/comics/(.*?).(jpg|jpeg|pn
 
 @dataclass(slots=True)
 class XkcdOriginalScraper(BaseScraper):
-    BASE_URL = URL("https://xkcd.com/")
+    BASE_URL = URL("https://xkcd.com")
     downloader: Downloader
 
     async def fetch_latest_number(self) -> int:

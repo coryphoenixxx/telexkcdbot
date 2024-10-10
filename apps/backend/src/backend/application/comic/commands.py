@@ -54,6 +54,8 @@ class ComicCreateCommand:
 
 class ComicUpdateCommand(TypedDict, total=False):
     comic_id: Required[int]
+    image_ids: Required[list[int]]
+    number: int | None
     title: str
     tooltip: str
     click_url: str | None
@@ -61,7 +63,6 @@ class ComicUpdateCommand(TypedDict, total=False):
     is_interactive: bool
     transcript: str
     tag_ids: list[int]
-    image_ids: list[int]
 
 
 @dataclass(slots=True, kw_only=True)
@@ -94,6 +95,7 @@ class TranslationCreateCommand:
 
 class TranslationUpdateCommand(TypedDict, total=False):
     translation_id: Required[int]
+    image_ids: Required[list[int]]
     language: Language
     title: str
     tooltip: str
@@ -101,7 +103,6 @@ class TranslationUpdateCommand(TypedDict, total=False):
     translator_comment: str
     source_url: str | None
     status: TranslationStatus
-    image_ids: list[int]
 
 
 @dataclass(slots=True, kw_only=True)

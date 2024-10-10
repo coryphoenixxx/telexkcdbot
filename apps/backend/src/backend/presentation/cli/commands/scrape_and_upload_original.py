@@ -148,7 +148,7 @@ async def scrape_and_upload_original_command(
             data=numbers,
         )
 
-        explain_runner = ProgressChunkedRunner(progress, chunk_size // 5, delay * 5)
+        explain_runner = ProgressChunkedRunner(progress, chunk_size // 4, delay * 10)
 
         explain_data_list = await explain_runner.run(
             desc=f"Explain data scraping ({explain_scraper.BASE_URL}):",

@@ -1,7 +1,7 @@
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Self
+from typing import ClassVar, Self
 from uuid import uuid4
 
 from backend.application.common.interfaces import (
@@ -23,87 +23,86 @@ from backend.domain.value_objects import (
 from backend.domain.value_objects.image_file import ImageFileObj, ImageFormat
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, kw_only=True)
 class TranslationImagePathData:
     number: IssueNumber | None
-    title: TranslationTitle
+    original_title: TranslationTitle
+    translation_title: TranslationTitle
+    language: Language = Language.EN
+    status: TranslationStatus = TranslationStatus.PUBLISHED
+
+
+@dataclass(slots=True, kw_only=True)
+class TranslationImagePathBuilder:
+    _ROOT: ClassVar[str] = "images/comics/"
+
+    number: IssueNumber | None
     language: Language
-    status: TranslationStatus
-
-
-@dataclass(slots=True)
-class TranslationImageFilename:
-    slug: str
+    original_slug: str
+    translation_slug: str
+    random_part: str = field(default_factory=lambda: uuid4().hex[:12])
+    status: TranslationStatus | None
     dimensions: tuple[int, int]
-    fmt: ImageFormat
     mark: str = ""
-    random_part: str | None = None
-
-    def __post_init__(self) -> None:
-        if self.random_part is None:
-            self.random_part = uuid4().hex[:12]
+    fmt: ImageFormat
 
     @classmethod
-    def build(cls, filename: str) -> Self:
+    def from_path(cls, path: Path) -> Self:
         try:
+            parent_dir_path, filename = str(path.parent), path.name
             name, fmt = filename.rsplit(".", 1)
-            slug, random_part, dimensions_raw, *mark = name.split("_")
-            w, h = dimensions_raw.split("x")
-            dimensions = (int(w), int(h))
-        except ValueError:
-            raise ValueError(f"Filename `{filename}` has an invalid format.") from None
+            translation_slug, random_part, dimensions_raw, *mark = name.split("_")
+            w_str, h_str = dimensions_raw.split("x")
+
+            is_published = "drafts" not in parent_dir_path
+            is_extra = "extras" in parent_dir_path
+
+            parent_dir_path = parent_dir_path.replace(cls._ROOT, "")
+            dir_parts = parent_dir_path.split("/")
+
+            if is_extra:
+                if is_published:
+                    _, original_slug, lang_str = dir_parts
+                else:
+                    _, original_slug, lang_str, _ = dir_parts
+                number = None
+            else:
+                original_slug = translation_slug
+                number_str, lang_str = dir_parts[:2]
+                number = IssueNumber(int(number_str))
+
+            language = Language(lang_str)
+
+        except (ValueError, IndexError) as err:
+            raise ValueError(f"Path `{path}` has an invalid format: {err}") from None
         return cls(
-            slug=slug,
+            number=number,
+            language=language,
+            original_slug=original_slug,
+            translation_slug=translation_slug,
             random_part=random_part,
-            dimensions=dimensions,
+            status=TranslationStatus.PUBLISHED if is_published else None,
+            dimensions=(int(w_str), int(h_str)),
             mark=f"_{mark[0]}" if mark else "",
             fmt=ImageFormat(fmt),
         )
 
-    def generate(self) -> str:
-        return (
-            f"{self.slug}_{self.random_part}_"
-            f"{self.dimensions[0]}x{self.dimensions[1]}{self.mark}.{self.fmt}"
-        )
+    def build(self) -> Path:
+        number = self.number.value if self.number else None
+        w, h = self.dimensions
 
-
-@dataclass(slots=True)
-class RelativeImagePathBuilder:
-    path_data: TranslationImagePathData
-    dimensions: tuple[int, int] | None = None
-    fmt: ImageFormat | None = None
-
-    @property
-    def parent_dir(self) -> Path:
-        number = self.path_data.number.value if self.path_data.number else None
-        status = self.path_data.status
-
-        if number is None and status == TranslationStatus.PUBLISHED:
-            part = f"extras/{self.path_data.title.slug}/{self.path_data.language}/"
-        elif number is None and status != TranslationStatus.PUBLISHED:
-            part = f"extras/{self.path_data.title.slug}/{self.path_data.language}/drafts/"
-        elif number and status == TranslationStatus.PUBLISHED:
-            part = f"{number:05d}/{self.path_data.language}/"
-        elif number and status != TranslationStatus.PUBLISHED:
-            part = f"{number:05d}/{self.path_data.language}/drafts/"
+        if number and self.status == TranslationStatus.PUBLISHED:
+            path_part = f"{number:05d}/{self.language}/"
+        elif number:
+            path_part = f"{number:05d}/{self.language}/drafts/"
+        elif number is None and self.status == TranslationStatus.PUBLISHED:
+            path_part = f"extras/{self.original_slug}/{self.language}/"
         else:
-            raise ValueError(f"Invalid translation image path data ({self.path_data})")
+            path_part = f"extras/{self.original_slug}/{self.language}/drafts/"
 
-        return Path("images/comics/") / part
+        filename = f"{self.translation_slug}_{self.random_part}_{w}x{h}{self.mark}.{self.fmt}"
 
-    @property
-    def filename(self) -> str:
-        if self.dimensions is None or self.fmt is None:
-            raise ValueError("Can't build filename without dimensions or format.")
-        return TranslationImageFilename(
-            slug=self.path_data.title.slug,
-            dimensions=self.dimensions,
-            fmt=self.fmt,
-        ).generate()
-
-    @property
-    def full_path(self) -> Path:
-        return self.parent_dir / self.filename
+        return Path(self._ROOT) / path_part / filename
 
 
 @dataclass(slots=True)
@@ -130,15 +129,19 @@ class ProcessTranslationImageMixin:
 
             image_file = ImageFileObj(
                 source=self.temp_file_manager.get_abs_path(
-                    image.temp_image_id,  # type: ignore[arg-type]
+                    temp_file_id=image.temp_image_id,  # type: ignore[arg-type]
                 )
             )
 
-            original_path = RelativeImagePathBuilder(
-                path_data=path_data,
+            original_path = TranslationImagePathBuilder(
+                number=path_data.number,
+                language=path_data.language,
+                original_slug=path_data.original_title.slug,
+                translation_slug=path_data.translation_title.slug,
+                status=path_data.status,
                 dimensions=image_file.dimensions,
                 fmt=image_file.format,
-            ).full_path
+            ).build()
 
             image.create(ImageLinkType.TRANSLATION, link_id, original_path)
 
@@ -187,15 +190,19 @@ class ProcessTranslationImageMixin:
                 "converted_path",
                 "converted_2x_path",
             ):
-                old_path = getattr(image, path_attr_name)
+                old_path: Path | None = getattr(image, path_attr_name)
                 if old_path is None:
                     continue
 
-                old_filename = TranslationImageFilename.build(old_path.name)
-                old_filename.slug = path_data.title.slug
-                new_filename = old_filename.generate()
+                old_path_obj = TranslationImagePathBuilder.from_path(old_path)
 
-                new_path = RelativeImagePathBuilder(path_data).parent_dir / new_filename
+                old_path_obj.number = path_data.number
+                old_path_obj.original_slug = path_data.original_title.slug
+                old_path_obj.translation_slug = path_data.translation_title.slug
+                old_path_obj.language = path_data.language
+                old_path_obj.status = path_data.status
+
+                new_path = old_path_obj.build()
 
                 setattr(image, path_attr_name, new_path)
 

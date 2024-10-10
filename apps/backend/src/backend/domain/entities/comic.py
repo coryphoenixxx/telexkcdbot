@@ -19,6 +19,9 @@ class ComicEntity:
     original_translation_id: TranslationId
     transcript: str
 
+    def set_number(self, number: int | None) -> None:
+        self.number = IssueNumber(number) if number else None
+
     def set_title(self, title: str) -> None:
         self.title = TranslationTitle(title)
 

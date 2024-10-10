@@ -19,7 +19,7 @@ TRANSCRIPT_TEXT_MAX_LENGTH = 25_000
 
 @dataclass(slots=True)
 class XkcdExplainScraper(BaseScraper):
-    BASE_URL = URL("https://explainxkcd.com/")
+    BASE_URL = URL("https://explainxkcd.com")
     bad_tags: set[str]
 
     async def fetch_one(self, number: int) -> XkcdExplainScrapedData | None:

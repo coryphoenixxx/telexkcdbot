@@ -20,7 +20,7 @@ REPEATED_BR_TAG_PATTERN = re.compile(r"(<br/>| )\1{2,}")
 @dataclass(slots=True)
 class XkcdRUScraper(BaseScraper):
     downloader: Downloader
-    BASE_URL = URL("https://xkcd.ru/")
+    BASE_URL = URL("https://xkcd.ru")
     NUM_LIST_URL = BASE_URL / "num"
 
     async def get_all_nums(self) -> list[int]:

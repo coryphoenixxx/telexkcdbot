@@ -30,8 +30,7 @@ class ImageFSFileManager(ImageFileManagerInterface):
         abs_path = self.root_dir / path
         abs_path.unlink()
 
-        if len(list(abs_path.parent.iterdir())) == 0:
-            abs_path.parent.rmdir()
-
-        if len(list(abs_path.parent.parent.iterdir())) == 0:
-            abs_path.parent.parent.rmdir()
+        current_dir = abs_path.parent
+        while current_dir != self.root_dir and not any(current_dir.iterdir()):
+            current_dir.rmdir()
+            current_dir = current_dir.parent

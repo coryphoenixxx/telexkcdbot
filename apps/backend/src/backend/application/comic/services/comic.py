@@ -28,6 +28,7 @@ from backend.domain.value_objects import (
     Language,
     TagId,
     TranslationId,
+    TranslationTitle,
 )
 
 
@@ -46,9 +47,8 @@ class CreateComicInteractor(ProcessTranslationImageMixin):
             image_ids=image_ids,
             path_data=TranslationImagePathData(
                 number=new_comic.number,
-                title=new_comic.title,
-                language=Language.EN,
-                status=TranslationStatus.PUBLISHED,
+                original_title=new_comic.title,
+                translation_title=new_comic.title,
             ),
         )
 
@@ -69,7 +69,8 @@ class UpdateComicInteractor(ProcessTranslationImageMixin):
         comic_id = ComicId(command["comic_id"])
         comic = await self.comic_repo.load(comic_id)
 
-        # TODO: rename_images_flag = False
+        if "number" in command:
+            comic.set_number(command["number"])
         if "title" in command:
             comic.set_title(command["title"])
         if "tooltip" in command:
@@ -92,20 +93,28 @@ class UpdateComicInteractor(ProcessTranslationImageMixin):
                 tag_ids=tag_ids,
             )
 
-        created_image_ids: list[ImageId] = []
-        if "image_ids" in command:
-            image_ids = [ImageId(image_id) for image_id in command["image_ids"]]
-            created_image_ids.extend(
-                await self.process_images(
-                    link_id=comic.original_translation_id,
-                    image_ids=image_ids,
-                    path_data=TranslationImagePathData(
-                        number=comic.number,
-                        title=comic.title,
-                        language=Language.EN,
-                        status=TranslationStatus.PUBLISHED,
-                    ),
-                )
+        created_image_ids = await self.process_images(
+            link_id=comic.original_translation_id,
+            image_ids=[ImageId(image_id) for image_id in command["image_ids"]],
+            path_data=TranslationImagePathData(
+                number=comic.number,
+                original_title=comic.title,
+                translation_title=comic.title,
+            ),
+        )
+
+        translations = await self.comic_repo.get_translations(comic_id)
+        for translation in translations:
+            await self.process_images(
+                link_id=TranslationId(translation.id),
+                image_ids=[ImageId(image.id) for image in translation.images],
+                path_data=TranslationImagePathData(
+                    number=comic.number,
+                    original_title=comic.title,
+                    translation_title=TranslationTitle(translation.title),
+                    language=translation.language,
+                    status=translation.status,
+                ),
             )
 
         await self.transaction.commit()

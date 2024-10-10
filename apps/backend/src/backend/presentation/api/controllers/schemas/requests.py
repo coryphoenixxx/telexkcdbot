@@ -45,6 +45,7 @@ class ComicCreateSchema(BaseModel):
 
 
 class ComicUpdateSchema(BaseModel):
+    number: int | None = None
     title: str | None = None
     tooltip: str | None = None
     click_url: HttpUrl | None = None
@@ -52,7 +53,7 @@ class ComicUpdateSchema(BaseModel):
     is_interactive: bool | None = None
     transcript: str | None = None
     tag_ids: list[int] | None = None
-    image_ids: list[int] | None = None
+    image_ids: list[int]
 
     def to_command(self, comic_id: int) -> ComicUpdateCommand:
         return ComicUpdateCommand(  # type: ignore[no-any-return]
@@ -93,7 +94,7 @@ class TranslationUpdateSchema(BaseModel):
     translator_comment: str | None = None
     source_url: str | None = None
     status: TranslationStatus | None = None
-    image_ids: list[int] | None = None
+    image_ids: list[int]
 
     def to_command(self, translation_id: int) -> TranslationUpdateCommand:
         return TranslationUpdateCommand(  # type: ignore[no-any-return]
