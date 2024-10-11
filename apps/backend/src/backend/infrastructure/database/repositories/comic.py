@@ -278,13 +278,6 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
 
         return count, results
 
-    async def get_issue_number_by_id(self, comic_id: ComicId) -> IssueNumber | None:
-        stmt = select(ComicModel.number).where(ComicModel.comic_id == comic_id.value)
-
-        number: int | None = await self.session.scalar(stmt)
-
-        return IssueNumber(number) if number else None
-
     async def get_latest_issue_number(self) -> IssueNumber | None:
         number: int | None = await self.session.scalar(
             select(ComicModel.number).limit(1).order_by(ComicModel.number.desc())
@@ -339,11 +332,11 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
         stmt = (
             select(ComicModel)
             .join(TranslationModel)
+            .options(contains_eager(ComicModel.translations))
             .where(
                 ComicModel.comic_id == comic_id.value,
                 TranslationModel.language == Language.EN,
             )
-            .options(contains_eager(ComicModel.translations))
         )
 
         comic: ComicModel | None = (await self.session.scalars(stmt)).unique().one_or_none()

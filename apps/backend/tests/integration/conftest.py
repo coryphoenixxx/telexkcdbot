@@ -14,6 +14,8 @@ from backend.main.ioc.providers import (
     AppConfigProvider,
     ComicServicesProvider,
     FileManagersProvider,
+    ImageConverterProvider,
+    ImageServicesProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
     TransactionManagerProvider,
@@ -67,6 +69,8 @@ async def container(postgres_url: str, nats_uri: str) -> AsyncGenerator[AsyncCon
         FileManagersProvider(),
         RepositoriesProvider(),
         PublisherRouterProvider(),
+        ImageConverterProvider(),
+        ImageServicesProvider(),
         ComicServicesProvider(),
     )
     yield container

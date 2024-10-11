@@ -21,7 +21,7 @@ from backend.main.ioc.providers import (
     ComicServicesProvider,
     DatabaseConfigProvider,
     FileManagersProvider,
-    ImageServiceProvider,
+    ImageServicesProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
     TransactionManagerProvider,
@@ -96,7 +96,7 @@ def main() -> None:
         RepositoriesProvider(),
         PublisherRouterProvider(),
         ComicServicesProvider(),
-        ImageServiceProvider(),
+        ImageServicesProvider(),
     )
 
     config = load_config(BotConfig, scope="bot")

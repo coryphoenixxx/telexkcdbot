@@ -1,4 +1,5 @@
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
 from functools import singledispatchmethod
 from typing import NoReturn, Protocol
 
@@ -21,10 +22,13 @@ from backend.domain.entities import (
 )
 from backend.domain.value_objects import (
     ComicId,
+    ImageId,
     IssueNumber,
     Language,
+    PositiveInt,
     TagId,
     TranslationId,
+    TranslationTitle,
 )
 
 
@@ -52,8 +56,6 @@ class ComicRepoInterface(Protocol):
         filters: ComicFilters,
         pagination: Pagination,
     ) -> tuple[int, Sequence[ComicCompactResponseData]]: ...
-
-    async def get_issue_number_by_id(self, comic_id: ComicId) -> IssueNumber | None: ...
 
     async def get_latest_issue_number(self) -> IssueNumber | None: ...
 
@@ -93,3 +95,32 @@ class TranslationRepoInterface(Protocol):
     async def get_by_id(self, translation_id: TranslationId) -> TranslationResponseData: ...
 
     async def load(self, translation_id: TranslationId) -> TranslationEntity: ...
+
+
+@dataclass(slots=True, kw_only=True)
+class TranslationImagePathData:
+    number: IssueNumber | None
+    original_title: TranslationTitle
+    translation_title: TranslationTitle
+    language: Language = Language.EN
+    status: TranslationStatus = TranslationStatus.PUBLISHED
+
+
+class TranslationImageProcessorInterface(Protocol):
+    async def create_many(
+        self,
+        link_id: PositiveInt,
+        image_ids: Iterable[ImageId],
+        path_data: TranslationImagePathData,
+    ) -> None: ...
+
+    async def update_many(
+        self,
+        link_id: PositiveInt,
+        image_ids: Iterable[ImageId],
+        path_data: TranslationImagePathData,
+    ) -> list[ImageId]: ...
+
+    async def delete_many(self, image_ids: Iterable[ImageId]) -> None: ...
+
+    async def postprocess_in_background(self, image_ids: Iterable[ImageId]) -> None: ...

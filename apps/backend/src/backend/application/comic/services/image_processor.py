@@ -4,6 +4,10 @@ from pathlib import Path
 from typing import ClassVar, Self
 from uuid import uuid4
 
+from backend.application.comic.interfaces import (
+    TranslationImagePathData,
+    TranslationImageProcessorInterface,
+)
 from backend.application.common.interfaces import (
     ImageFileManagerInterface,
     PostProcessImageMessage,
@@ -18,18 +22,8 @@ from backend.domain.value_objects import (
     IssueNumber,
     Language,
     PositiveInt,
-    TranslationTitle,
 )
 from backend.domain.value_objects.image_file import ImageFileObj, ImageFormat
-
-
-@dataclass(slots=True, kw_only=True)
-class TranslationImagePathData:
-    number: IssueNumber | None
-    original_title: TranslationTitle
-    translation_title: TranslationTitle
-    language: Language = Language.EN
-    status: TranslationStatus = TranslationStatus.PUBLISHED
 
 
 @dataclass(slots=True, kw_only=True)
@@ -106,13 +100,13 @@ class TranslationImagePathBuilder:
 
 
 @dataclass(slots=True)
-class ProcessTranslationImageMixin:
+class TranslationImageProcessor(TranslationImageProcessorInterface):
     image_repo: ImageRepoInterface
     temp_file_manager: TempFileManagerInterface
     image_file_manager: ImageFileManagerInterface
     publisher: PublisherRouterInterface
 
-    async def create_images(
+    async def create_many(
         self,
         link_id: PositiveInt,
         image_ids: Iterable[ImageId],
@@ -149,13 +143,7 @@ class ProcessTranslationImageMixin:
 
             await self.image_file_manager.persist(image_file, original_path)
 
-    async def delete_images(self, image_ids: Iterable[ImageId]) -> None:
-        for image_id in image_ids:
-            image = await self.image_repo.load(image_id)
-            image.mark_deleted()
-            await self.image_repo.update(image)
-
-    async def process_images(
+    async def update_many(
         self,
         link_id: PositiveInt,
         image_ids: Iterable[ImageId],
@@ -165,19 +153,25 @@ class ProcessTranslationImageMixin:
             to_create_image_ids,
             to_delete_image_ids,
             to_move_images_image_ids,
-        ) = await self._separate_images(link_id, image_ids)
+        ) = await self._separate(link_id, image_ids)
 
-        await self.create_images(link_id, to_create_image_ids, path_data)
-        await self.delete_images(to_delete_image_ids)
-        await self.move_images(to_move_images_image_ids, path_data)
+        await self.create_many(link_id, to_create_image_ids, path_data)
+        await self.delete_many(to_delete_image_ids)
+        await self._move_images(to_move_images_image_ids, path_data)
 
         return list(to_create_image_ids)
 
-    async def postprocess_images_in_background(self, image_ids: Iterable[ImageId]) -> None:
+    async def delete_many(self, image_ids: Iterable[ImageId]) -> None:
+        for image_id in image_ids:
+            image = await self.image_repo.load(image_id)
+            image.mark_deleted()
+            await self.image_repo.update(image)
+
+    async def postprocess_in_background(self, image_ids: Iterable[ImageId]) -> None:
         for image_id in image_ids:
             await self.publisher.publish(PostProcessImageMessage(image_id=image_id.value))
 
-    async def move_images(
+    async def _move_images(
         self,
         image_ids: Iterable[ImageId],
         path_data: TranslationImagePathData,
@@ -209,7 +203,7 @@ class ProcessTranslationImageMixin:
                 await self.image_file_manager.move(old_path, new_path)
             await self.image_repo.update(image)
 
-    async def _separate_images(
+    async def _separate(
         self,
         link_id: PositiveInt,
         image_ids: Iterable[ImageId],
@@ -223,6 +217,7 @@ class ProcessTranslationImageMixin:
             link_id=link_id,
         )
         image_ids_set, linked_image_ids_set = set(image_ids), set(linked_image_ids)
+
         to_create_image_ids = list(image_ids_set - linked_image_ids_set)
         to_delete_image_ids = list(linked_image_ids_set - image_ids_set)
         to_move_images_image_ids = list(set(image_ids) - set(to_create_image_ids))

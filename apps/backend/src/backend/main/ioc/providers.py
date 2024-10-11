@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import (
 from backend.application.comic.interfaces import (
     ComicRepoInterface,
     TagRepoInterface,
+    TranslationImageProcessorInterface,
     TranslationRepoInterface,
 )
 from backend.application.comic.services import (
@@ -30,6 +31,9 @@ from backend.application.comic.services import (
     UpdateTagInteractor,
     UpdateTranslationInteractor,
 )
+from backend.application.comic.services.image_processor import (
+    TranslationImageProcessor,
+)
 from backend.application.common.interfaces import (
     ImageFileManagerInterface,
     PublisherRouterInterface,
@@ -38,7 +42,7 @@ from backend.application.common.interfaces import (
 )
 from backend.application.config import AppConfig, FileStorageType
 from backend.application.image.interfaces import ImageConverterInterface, ImageRepoInterface
-from backend.application.image.services import ProcessImageInteractor, UploadImageInteractor
+from backend.application.image.services import PostProcessImageInteractor, UploadImageInteractor
 from backend.infrastructure.broker.config import NatsConfig
 from backend.infrastructure.broker.publisher_router import PublisherRouter
 from backend.infrastructure.config_loader import load_config
@@ -169,7 +173,6 @@ class FileManagersProvider(Provider):
                 yield ImageFSFileManager(root_dir=fs_config.root_dir)
             case FileStorageType.S3:
                 s3_config = load_config(S3Config, scope="s3")
-
                 async with aioboto3.Session().client(
                     "s3",
                     endpoint_url=s3_config.endpoint_url,
@@ -178,6 +181,8 @@ class FileManagersProvider(Provider):
                 ) as s3:  # type: S3Client
                     yield ImageS3FileManager(client=s3, bucket=s3_config.bucket)
 
+
+class ImageConverterProvider(Provider):
     image_converter = provide(ImageConverter, scope=Scope.APP)
     image_converter_interface = alias(source=ImageConverter, provides=ImageConverterInterface)
 
@@ -230,11 +235,21 @@ class TagServicesProvider(Provider):
     tag_reader = provide(TagReader)
 
 
-class ImageServiceProvider(Provider):
+class ImageServicesProvider(Provider):
     scope = Scope.REQUEST
 
     upload_image_interactor = provide(UploadImageInteractor)
-    process_image_interactor = provide(ProcessImageInteractor)
+    image_processor = provide(TranslationImageProcessor)
+    image_processor_interface = alias(
+        source=TranslationImageProcessor,
+        provides=TranslationImageProcessorInterface,
+    )
+
+
+class PostProcessImageInteractorProvider(Provider):
+    scope = Scope.REQUEST
+
+    post_process_image_interactor = provide(PostProcessImageInteractor)
 
 
 class TranslationServicesProvider(Provider):

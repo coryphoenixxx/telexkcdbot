@@ -17,7 +17,7 @@ from backend.main.ioc.providers import (
     ComicServicesProvider,
     DatabaseConfigProvider,
     FileManagersProvider,
-    ImageServiceProvider,
+    ImageServicesProvider,
     PublisherRouterProvider,
     RepositoriesProvider,
     TagServicesProvider,
@@ -48,7 +48,7 @@ def create_app() -> FastAPI:
         PublisherRouterProvider(),
         RepositoriesProvider(),
         ComicServicesProvider(),
-        ImageServiceProvider(),
+        ImageServicesProvider(),
         TranslationServicesProvider(),
         TagServicesProvider(),
     )

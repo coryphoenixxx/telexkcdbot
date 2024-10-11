@@ -39,7 +39,7 @@ class UploadImageInteractor:
 
 
 @dataclass(slots=True)
-class ProcessImageInteractor:
+class PostProcessImageInteractor:
     image_repo: ImageRepoInterface
     temp_file_manager: TempFileManagerInterface
     image_file_manager: ImageFileManagerInterface

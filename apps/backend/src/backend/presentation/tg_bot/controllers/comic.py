@@ -1,5 +1,4 @@
 # type: ignore
-
 from random import randint
 
 from aiogram import F, Router
@@ -89,7 +88,7 @@ async def get_comic_by_number_handler(
 
     comic = ComicResponseSchema.from_data(data=await reader.get_by_issue_number(issue_number))
 
-    image_url = build_image_url(webhook_url=config.webhook.url, image=comic.image)
+    image_url = build_image_url(webhook_url=config.webhook.url, image=comic.images[0])
 
     image = image_storage.get_image(image_url)
 
@@ -128,7 +127,7 @@ async def navigation(
 
     comic = ComicResponseSchema.from_data(data=dto)
 
-    image_url = build_image_url(webhook_url=config.webhook.url, image=comic.image)
+    image_url = build_image_url(webhook_url=config.webhook.url, image=comic.images[0])
 
     answer = await callback.message.edit_media(
         media=InputMediaPhoto(

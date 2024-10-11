@@ -13,7 +13,8 @@ from backend.main.ioc.providers import (
     BrokerConfigProvider,
     DatabaseConfigProvider,
     FileManagersProvider,
-    ImageServiceProvider,
+    ImageConverterProvider,
+    PostProcessImageInteractorProvider,
     RepositoriesProvider,
     TransactionManagerProvider,
 )
@@ -38,7 +39,8 @@ def create_app() -> FastStream:
         TransactionManagerProvider(),
         FileManagersProvider(),
         RepositoriesProvider(),
-        ImageServiceProvider(),
+        ImageConverterProvider(),
+        PostProcessImageInteractorProvider(),
         FastStreamProvider(),
     )
 

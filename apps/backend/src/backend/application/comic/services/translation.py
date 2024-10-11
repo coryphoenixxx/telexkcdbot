@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 
 from backend.application.comic.commands import TranslationCreateCommand, TranslationUpdateCommand
-from backend.application.comic.interfaces import ComicRepoInterface, TranslationRepoInterface
-from backend.application.comic.responses import TranslationResponseData
-from backend.application.comic.services.mixins import (
-    ProcessTranslationImageMixin,
+from backend.application.comic.interfaces import (
+    ComicRepoInterface,
     TranslationImagePathData,
+    TranslationImageProcessorInterface,
+    TranslationRepoInterface,
 )
+from backend.application.comic.responses import TranslationResponseData
 from backend.application.common.interfaces import TransactionManagerInterface
 from backend.application.image.interfaces import ImageRepoInterface
 from backend.domain.entities import ImageLinkType
@@ -14,9 +15,10 @@ from backend.domain.value_objects.common import ImageId, TranslationId
 
 
 @dataclass(slots=True)
-class AddTranslationInteractor(ProcessTranslationImageMixin):
+class AddTranslationInteractor:
     translation_repo: TranslationRepoInterface
     comic_repo: ComicRepoInterface
+    image_processor: TranslationImageProcessorInterface
     transaction: TransactionManagerInterface
 
     async def execute(self, command: TranslationCreateCommand) -> TranslationId:
@@ -24,7 +26,7 @@ class AddTranslationInteractor(ProcessTranslationImageMixin):
 
         translation_id = await self.translation_repo.create(new_translation)
         comic = await self.comic_repo.load(new_translation.comic_id)
-        await self.create_images(
+        await self.image_processor.create_many(
             link_id=translation_id,
             image_ids=image_ids,
             path_data=TranslationImagePathData(
@@ -38,15 +40,16 @@ class AddTranslationInteractor(ProcessTranslationImageMixin):
 
         await self.transaction.commit()
 
-        await self.postprocess_images_in_background(image_ids)
+        await self.image_processor.postprocess_in_background(image_ids)
 
         return translation_id
 
 
 @dataclass(slots=True)
-class UpdateTranslationInteractor(ProcessTranslationImageMixin):
+class UpdateTranslationInteractor:
     translation_repo: TranslationRepoInterface
     comic_repo: ComicRepoInterface
+    image_processor: TranslationImageProcessorInterface
     transaction: TransactionManagerInterface
 
     async def execute(self, command: TranslationUpdateCommand) -> TranslationId:
@@ -72,7 +75,7 @@ class UpdateTranslationInteractor(ProcessTranslationImageMixin):
 
         comic = await self.comic_repo.load(translation.comic_id)
 
-        created_image_ids = await self.process_images(
+        created_image_ids = await self.image_processor.update_many(
             link_id=translation_id,
             image_ids=[ImageId(image_id) for image_id in command["image_ids"]],
             path_data=TranslationImagePathData(
@@ -86,15 +89,16 @@ class UpdateTranslationInteractor(ProcessTranslationImageMixin):
 
         await self.transaction.commit()
 
-        await self.postprocess_images_in_background(created_image_ids)
+        await self.image_processor.postprocess_in_background(created_image_ids)
 
         return translation_id
 
 
 @dataclass(slots=True)
-class DeleteTranslationInteractor(ProcessTranslationImageMixin):
+class DeleteTranslationInteractor:
     translation_repo: TranslationRepoInterface
     image_repo: ImageRepoInterface
+    image_processor: TranslationImageProcessorInterface
     transaction: TransactionManagerInterface
 
     async def execute(self, translation_id: TranslationId) -> None:
@@ -105,7 +109,7 @@ class DeleteTranslationInteractor(ProcessTranslationImageMixin):
             link_type=ImageLinkType.TRANSLATION,
             link_id=translation_id,
         )
-        await self.delete_images(linked_image_ids)
+        await self.image_processor.delete_many(linked_image_ids)
         await self.transaction.commit()
 
 
