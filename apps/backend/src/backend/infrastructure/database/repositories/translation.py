@@ -19,10 +19,11 @@ from backend.domain.entities import (
 from backend.domain.value_objects import ComicId, Language
 from backend.domain.value_objects.common import TranslationId
 from backend.infrastructure.database.mappers import (
+    map_translation_entity_to_dict,
     map_translation_model_to_data,
     map_translation_model_to_entity,
 )
-from backend.infrastructure.database.models import TranslationModel
+from backend.infrastructure.database.models import ImageModel, TranslationModel
 from backend.infrastructure.database.repositories import BaseRepo, RepoError
 
 
@@ -31,17 +32,7 @@ class TranslationRepo(BaseRepo, TranslationRepoInterface):
         try:
             translation_id: int = await self.session.scalar(  # type: ignore[assignment]
                 insert(TranslationModel)
-                .values(
-                    comic_id=translation.comic_id.value,
-                    title=translation.title.value,
-                    language=translation.language,
-                    tooltip=translation.tooltip,
-                    transcript=translation.transcript,
-                    translator_comment=translation.translator_comment,
-                    source_url=translation.source_url,
-                    status=translation.status,
-                    searchable_text=translation.searchable_text,
-                )
+                .values(map_translation_entity_to_dict(translation))
                 .returning(TranslationModel.translation_id)
             )
         except IntegrityError as err:
@@ -57,16 +48,7 @@ class TranslationRepo(BaseRepo, TranslationRepoInterface):
         stmt = (
             update(TranslationModel)
             .where(TranslationModel.translation_id == translation.id.value)
-            .values(
-                title=translation.title.value,
-                language=translation.language,
-                tooltip=translation.tooltip,
-                transcript=translation.transcript,
-                translator_comment=translation.translator_comment,
-                source_url=translation.source_url,
-                status=translation.status,
-                searchable_text=translation.searchable_text,
-            )
+            .values(map_translation_entity_to_dict(translation))
         )
 
         try:
@@ -89,6 +71,7 @@ class TranslationRepo(BaseRepo, TranslationRepoInterface):
             .outerjoin(TranslationModel.images)
             .options(contains_eager(TranslationModel.images))
             .where(TranslationModel.translation_id == translation_id.value)
+            .order_by(ImageModel.position_number.asc())
         )
 
         translation: TranslationModel | None = (
@@ -101,7 +84,11 @@ class TranslationRepo(BaseRepo, TranslationRepoInterface):
         return map_translation_model_to_data(translation)
 
     async def load(self, translation_id: TranslationId) -> TranslationEntity:
-        translation = await self.session.get(TranslationModel, translation_id.value)
+        translation = await self.session.get(
+            TranslationModel,
+            translation_id.value,
+            with_for_update=True,
+        )
 
         if translation is None:
             raise TranslationNotFoundError(translation_id)

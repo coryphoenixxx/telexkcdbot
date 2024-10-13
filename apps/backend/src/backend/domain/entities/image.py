@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from enum import IntEnum, StrEnum
 from pathlib import Path
+from typing import Any
 
 from backend.domain.value_objects import ImageId, PositiveInt, TempFileUUID
+from backend.domain.value_objects.image_file import ImageFormat
 
 
 class ImageLinkType(StrEnum):
@@ -17,6 +19,20 @@ class ImageProcessStage(IntEnum):
     ENLARGED = 3
 
 
+@dataclass(slots=True)
+class ImageMeta:
+    format: ImageFormat
+    dimensions: tuple[int, int]
+    size: int
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "format": self.format,
+            "dimensions": self.dimensions,
+            "size": self.size,
+        }
+
+
 @dataclass(slots=True, kw_only=True)
 class ImageEntity:
     id: ImageId
@@ -25,25 +41,10 @@ class ImageEntity:
     link_id: PositiveInt | None = None
     original_path: Path | None = None
     converted_path: Path | None = None
-    converted_2x_path: Path | None = None
+    x2_path: Path | None = None
+    position_number: int | None = None
+    meta: ImageMeta
     is_deleted: bool = False
-
-    @property
-    def stage(self) -> ImageProcessStage:
-        if self.converted_2x_path:
-            return ImageProcessStage.ENLARGED
-        if self.converted_path:
-            return ImageProcessStage.CONVERTED
-        if all(
-            (
-                self.temp_image_id,
-                self.link_type,
-                self.link_id,
-                self.original_path,
-            )
-        ):
-            return ImageProcessStage.CREATED
-        return ImageProcessStage.ORPHAN
 
     def has_another_owner(self, link_type: ImageLinkType, link_id: PositiveInt) -> bool:
         if self.link_type and self.link_id:
@@ -63,11 +64,6 @@ class ImageEntity:
     def set_converted(self, converted_path: Path) -> None:
         self.temp_image_id = None
         self.converted_path = converted_path
-
-    def mark_deleted(self) -> None:
-        self.link_type = None
-        self.link_id = None
-        self.is_deleted = True
 
 
 @dataclass(slots=True, kw_only=True)

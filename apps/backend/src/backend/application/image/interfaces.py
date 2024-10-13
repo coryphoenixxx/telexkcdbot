@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import Protocol
 
 from backend.domain.entities import ImageEntity, ImageLinkType, NewImageEntity
@@ -20,4 +20,8 @@ class ImageRepoInterface(Protocol):
 
     async def update(self, image: ImageEntity) -> None: ...
 
+    async def update_many(self, images: Sequence[ImageEntity]) -> None: ...
+
     async def load(self, image_id: ImageId) -> ImageEntity: ...
+
+    async def load_many(self, image_ids: Iterable[ImageId]) -> Sequence[ImageEntity]: ...

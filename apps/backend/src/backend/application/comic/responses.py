@@ -11,7 +11,8 @@ class TranslationImageResponseData:
     translation_id: int
     original: str | None
     converted: str | None
-    converted_2x: str | None
+    x2: str | None
+    position_number: int
 
 
 @dataclass(slots=True)

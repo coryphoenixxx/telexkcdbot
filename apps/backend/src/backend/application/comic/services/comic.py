@@ -7,7 +7,6 @@ from backend.application.comic.interfaces import (
     ComicRepoInterface,
     TranslationImagePathData,
     TranslationImageProcessorInterface,
-    TranslationRepoInterface,
 )
 from backend.application.comic.responses import (
     ComicCompactResponseData,
@@ -18,8 +17,7 @@ from backend.application.common.interfaces import (
     TransactionManagerInterface,
 )
 from backend.application.common.pagination import Pagination
-from backend.application.image.interfaces import ImageRepoInterface
-from backend.domain.entities import ImageLinkType, TranslationStatus
+from backend.domain.entities import TranslationStatus
 from backend.domain.value_objects import (
     ComicId,
     ImageId,
@@ -42,8 +40,8 @@ class CreateComicInteractor:
 
         comic_id, original_translation_id = await self.comic_repo.create(new_comic)
         await self.comic_repo.relink_tags(comic_id, tag_ids)
-        await self.image_processor.create_many(
-            link_id=original_translation_id,
+        await self.image_processor.create_new(
+            translation_id=original_translation_id,
             image_ids=image_ids,
             path_data=TranslationImagePathData(
                 number=new_comic.number,
@@ -54,7 +52,7 @@ class CreateComicInteractor:
 
         await self.transaction.commit()
 
-        await self.image_processor.postprocess_in_background(image_ids)
+        await self.image_processor.publish_created()
 
         return comic_id
 
@@ -62,7 +60,6 @@ class CreateComicInteractor:
 @dataclass(slots=True)
 class UpdateComicInteractor:
     comic_repo: ComicRepoInterface
-    translation_repo: TranslationRepoInterface
     image_processor: TranslationImageProcessorInterface
     transaction: TransactionManagerInterface
 
@@ -94,8 +91,8 @@ class UpdateComicInteractor:
                 tag_ids=tag_ids,
             )
 
-        created_image_ids = await self.image_processor.update_many(
-            link_id=comic.original_translation_id,
+        await self.image_processor.update_state(
+            translation_id=comic.original_translation_id,
             image_ids=[ImageId(image_id) for image_id in command["image_ids"]],
             path_data=TranslationImagePathData(
                 number=comic.number,
@@ -106,8 +103,8 @@ class UpdateComicInteractor:
 
         translations = await self.comic_repo.get_translations(comic_id)
         for translation in translations:
-            await self.image_processor.update_many(
-                link_id=TranslationId(translation.id),
+            await self.image_processor.update_state(
+                translation_id=TranslationId(translation.id),
                 image_ids=[ImageId(image.id) for image in translation.images],
                 path_data=TranslationImagePathData(
                     number=comic.number,
@@ -120,24 +117,21 @@ class UpdateComicInteractor:
 
         await self.transaction.commit()
 
-        await self.image_processor.postprocess_in_background(created_image_ids)
+        await self.image_processor.publish_created()
 
 
 @dataclass(slots=True)
 class DeleteComicInteractor:
     comic_repo: ComicRepoInterface
-    translation_repo: TranslationRepoInterface
-    image_repo: ImageRepoInterface
     image_processor: TranslationImageProcessorInterface
     transaction: TransactionManagerInterface
 
     async def execute(self, comic_id: ComicId) -> None:
+        comic = await self.comic_repo.load(comic_id)
+        await self.image_processor.delete_linked(comic.original_translation_id)
+
         for translation in await self.comic_repo.get_translations(comic_id):
-            linked_image_ids = await self.image_repo.get_linked_image_ids(
-                link_type=ImageLinkType.TRANSLATION,
-                link_id=TranslationId(translation.id),
-            )
-            await self.image_processor.delete_many(linked_image_ids)
+            await self.image_processor.delete_linked(TranslationId(translation.id))
 
         await self.comic_repo.delete(comic_id)
         await self.transaction.commit()

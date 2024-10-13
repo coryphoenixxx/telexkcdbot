@@ -7,11 +7,12 @@ from typing import NoReturn
 from sqlalchemy import (
     ColumnElement,
     Result,
+    Row,
     and_,
     delete,
     exists,
-    false,
     func,
+    literal,
     select,
     update,
 )
@@ -37,14 +38,17 @@ from backend.application.common.pagination import (
     SortOrder,
 )
 from backend.domain.entities import ComicEntity, ImageLinkType, NewComicEntity, TranslationStatus
+from backend.domain.utils import cast_or_none
 from backend.domain.value_objects import (
     ComicId,
     IssueNumber,
     Language,
     TagId,
+    TranslationTitle,
 )
 from backend.domain.value_objects.common import TranslationId
 from backend.infrastructure.database.mappers import (
+    map_comic_entity_do_dicts,
     map_comic_model_to_data,
     map_comic_model_to_entity,
     map_row_to_compact_data,
@@ -66,32 +70,16 @@ TAG_ID_PATTERN = re.compile(r"Key \(tag_id\)=\((\d+)\)")
 
 class ComicRepo(BaseRepo, ComicRepoInterface):
     async def create(self, new_comic: NewComicEntity) -> tuple[ComicId, TranslationId]:
+        comic_dict, original_translation_dict = map_comic_entity_do_dicts(new_comic)
+
         try:
             comic_id: int = await self.session.scalar(  # type: ignore[assignment]
-                insert(ComicModel)
-                .values(
-                    number=new_comic.number.value if new_comic.number else None,
-                    slug=new_comic.slug,
-                    publication_date=new_comic.publication_date,
-                    explain_url=new_comic.explain_url,
-                    click_url=new_comic.click_url,
-                    is_interactive=new_comic.is_interactive,
-                )
-                .returning(ComicModel.comic_id)
+                insert(ComicModel).values(comic_dict).returning(ComicModel.comic_id)
             )
 
             translation_id: int = await self.session.scalar(  # type: ignore[assignment]
                 insert(TranslationModel)
-                .values(
-                    comic_id=comic_id,
-                    title=new_comic.title.value,
-                    language=Language.EN,
-                    tooltip=new_comic.tooltip,
-                    transcript=new_comic.transcript,
-                    source_url=new_comic.xkcd_url,
-                    status=TranslationStatus.PUBLISHED,
-                    searchable_text=new_comic.searchable_text,
-                )
+                .values(comic_id=comic_id, **original_translation_dict)
                 .returning(TranslationModel.translation_id)
             )
         except IntegrityError as err:
@@ -100,30 +88,17 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
             return ComicId(comic_id), TranslationId(translation_id)
 
     async def update(self, comic: ComicEntity) -> None:
+        comic_dict, original_translation_dict = map_comic_entity_do_dicts(comic)
+
         try:
             await self.session.execute(
-                update(ComicModel)
-                .where(ComicModel.comic_id == comic.id.value)
-                .values(
-                    number=comic.number.value if comic.number else None,
-                    slug=comic.slug,
-                    publication_date=comic.publication_date,
-                    explain_url=comic.explain_url,
-                    click_url=comic.click_url,
-                    is_interactive=comic.is_interactive,
-                )
+                update(ComicModel).where(ComicModel.comic_id == comic.id.value).values(comic_dict)
             )
 
             await self.session.execute(
                 update(TranslationModel)
                 .where(TranslationModel.translation_id == comic.original_translation_id.value)
-                .values(
-                    title=comic.title.value,
-                    tooltip=comic.tooltip,
-                    transcript=comic.transcript,
-                    source_url=comic.xkcd_url,
-                    searchable_text=comic.searchable_text,
-                )
+                .values(original_translation_dict)
             )
         except IntegrityError as err:
             self._handle_db_error(err, entity=comic)
@@ -169,6 +144,7 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
                 where_clause,
                 TranslationModel.status == TranslationStatus.PUBLISHED,
             )
+            .order_by(ImageModel.position_number.asc())
         )
 
         comic: ComicModel | None = (await self.session.scalars(stmt)).unique().one_or_none()
@@ -185,24 +161,17 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
     ) -> tuple[int, Sequence[ComicCompactResponseData]]:
         first_image_subquery = (
             select(
-                ImageModel.image_id,
                 ImageModel.original_path,
                 ImageModel.converted_path,
-                ImageModel.link_id,
-                func.row_number()
-                .over(
-                    partition_by=ImageModel.link_id,
-                    order_by=ImageModel.image_id.asc(),
-                )
-                .label("rn"),
             )
             .where(
+                ImageModel.link_id == TranslationModel.translation_id,
                 ImageModel.link_type == ImageLinkType.TRANSLATION,
-                ImageModel.is_deleted.is_(false()),
+                ImageModel.is_deleted.is_(False),
             )
-            .correlate(TranslationModel)
-            .subquery()
-        )
+            .order_by(ImageModel.position_number.asc())
+            .limit(1)
+        ).lateral("image")
 
         stmt = (
             select(
@@ -214,13 +183,7 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
                 first_image_subquery.c.converted_path,
             )
             .join(ComicModel.translations)
-            .outerjoin(
-                target=first_image_subquery,
-                onclause=and_(
-                    first_image_subquery.c.link_id == TranslationModel.translation_id,
-                    first_image_subquery.c.rn == 1,
-                ),
-            )
+            .outerjoin(first_image_subquery, literal(True))
             .limit(pagination.limit)
             .offset(pagination.offset)
             .where(
@@ -270,7 +233,6 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
             stmt = stmt.order_by(ComicModel.number.desc())
 
         rows: Result[ComicCompactRow] = await self.session.execute(stmt)
-
         count, results = 0, []
         for row in rows:
             results.append(map_row_to_compact_data(row))
@@ -278,12 +240,35 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
 
         return count, results
 
+    async def get_number_and_title_by_id(
+        self,
+        comic_id: ComicId,
+    ) -> tuple[IssueNumber | None, TranslationTitle]:
+        stmt = (
+            select(
+                ComicModel.number,
+                TranslationModel.title,
+            )
+            .join(ComicModel.translations)
+            .where(
+                ComicModel.comic_id == comic_id.value,
+                TranslationModel.language == Language.EN,
+            )
+        )
+
+        row: Row[tuple[int | None, str]] | None = (await self.session.execute(stmt)).one_or_none()
+
+        if row is None:
+            raise ComicNotFoundError(comic_id)
+
+        return cast_or_none(IssueNumber, row.number), TranslationTitle(row.title)
+
     async def get_latest_issue_number(self) -> IssueNumber | None:
         number: int | None = await self.session.scalar(
             select(ComicModel.number).limit(1).order_by(ComicModel.number.desc())
         )
 
-        return IssueNumber(number) if number else None
+        return cast_or_none(IssueNumber, number)
 
     async def get_translations(
         self,
@@ -295,7 +280,10 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
             select(TranslationModel)
             .outerjoin(TranslationModel.images)
             .options(contains_eager(TranslationModel.images))
-            .where(TranslationModel.comic_id == comic_id.value)
+            .where(
+                TranslationModel.comic_id == comic_id.value,
+                TranslationModel.language != Language.EN,
+            )
         )
 
         if language:
@@ -328,7 +316,7 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
             except IntegrityError as err:
                 self._handle_db_error(err)
 
-    async def load(self, comic_id: ComicId) -> ComicEntity:  # TODO: with_for_update?
+    async def load(self, comic_id: ComicId) -> ComicEntity:
         stmt = (
             select(ComicModel)
             .join(TranslationModel)
@@ -337,6 +325,7 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
                 ComicModel.comic_id == comic_id.value,
                 TranslationModel.language == Language.EN,
             )
+            .with_for_update()
         )
 
         comic: ComicModel | None = (await self.session.scalars(stmt)).unique().one_or_none()

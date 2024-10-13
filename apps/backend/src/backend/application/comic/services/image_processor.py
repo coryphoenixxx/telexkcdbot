@@ -1,7 +1,7 @@
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import ClassVar, Self
+from typing import Any, ClassVar, Self
 from uuid import uuid4
 
 from backend.application.comic.interfaces import (
@@ -16,12 +16,12 @@ from backend.application.common.interfaces import (
 )
 from backend.application.image.exceptions import ImageAlreadyHasOwnerError, ImageNotFoundError
 from backend.application.image.interfaces import ImageRepoInterface
-from backend.domain.entities import ImageLinkType, TranslationStatus
+from backend.domain.entities import ImageEntity, ImageLinkType, TranslationStatus
 from backend.domain.value_objects import (
     ImageId,
     IssueNumber,
     Language,
-    PositiveInt,
+    TranslationId,
 )
 from backend.domain.value_objects.image_file import ImageFileObj, ImageFormat
 
@@ -106,120 +106,138 @@ class TranslationImageProcessor(TranslationImageProcessorInterface):
     image_file_manager: ImageFileManagerInterface
     publisher: PublisherRouterInterface
 
-    async def create_many(
+    def __post_init__(self) -> None:
+        self.created_image_ids: list[ImageId] = []
+
+    async def create_new(
         self,
-        link_id: PositiveInt,
-        image_ids: Iterable[ImageId],
+        translation_id: TranslationId,
+        image_ids: list[ImageId],
         path_data: TranslationImagePathData,
     ) -> None:
-        for image_id in image_ids:
-            image = await self.image_repo.load(image_id)
+        image_ids = deduplicate(image_ids)
+        images = await self.image_repo.load_many(image_ids)
 
-            if image.is_deleted:
-                raise ImageNotFoundError(image.id)
+        for index, image in enumerate(images):
+            await self._create_image(translation_id, image, path_data)
+            image.position_number = index
 
-            if image.has_another_owner(ImageLinkType.TRANSLATION, link_id):
-                raise ImageAlreadyHasOwnerError(image_id)
+        await self.image_repo.update_many(images)
 
-            image_file = ImageFileObj(
-                source=self.temp_file_manager.get_abs_path(
-                    temp_file_id=image.temp_image_id,  # type: ignore[arg-type]
-                )
-            )
+    async def delete_linked(self, translation_id: TranslationId) -> None:
+        linked_image_ids = await self._get_linked_images_ids(translation_id)
+        to_delete_images = await self.image_repo.load_many(linked_image_ids)
 
-            original_path = TranslationImagePathBuilder(
-                number=path_data.number,
-                language=path_data.language,
-                original_slug=path_data.original_title.slug,
-                translation_slug=path_data.translation_title.slug,
-                status=path_data.status,
-                dimensions=image_file.dimensions,
-                fmt=image_file.format,
-            ).build()
+        for image in to_delete_images:
+            image.is_deleted = True
 
-            image.create(ImageLinkType.TRANSLATION, link_id, original_path)
+        await self.image_repo.update_many(to_delete_images)
 
-            await self.image_repo.update(image)
-
-            await self.image_file_manager.persist(image_file, original_path)
-
-    async def update_many(
+    async def update_state(
         self,
-        link_id: PositiveInt,
-        image_ids: Iterable[ImageId],
-        path_data: TranslationImagePathData,
-    ) -> list[ImageId]:
-        (
-            to_create_image_ids,
-            to_delete_image_ids,
-            to_move_images_image_ids,
-        ) = await self._separate(link_id, image_ids)
-
-        await self.create_many(link_id, to_create_image_ids, path_data)
-        await self.delete_many(to_delete_image_ids)
-        await self._move_images(to_move_images_image_ids, path_data)
-
-        return list(to_create_image_ids)
-
-    async def delete_many(self, image_ids: Iterable[ImageId]) -> None:
-        for image_id in image_ids:
-            image = await self.image_repo.load(image_id)
-            image.mark_deleted()
-            await self.image_repo.update(image)
-
-    async def postprocess_in_background(self, image_ids: Iterable[ImageId]) -> None:
-        for image_id in image_ids:
-            await self.publisher.publish(PostProcessImageMessage(image_id=image_id.value))
-
-    async def _move_images(
-        self,
-        image_ids: Iterable[ImageId],
+        translation_id: TranslationId,
+        image_ids: list[ImageId],
         path_data: TranslationImagePathData,
     ) -> None:
-        for image_id in image_ids:
-            image = await self.image_repo.load(image_id)
-
-            for path_attr_name in (
-                "original_path",
-                "converted_path",
-                "converted_2x_path",
-            ):
-                old_path: Path | None = getattr(image, path_attr_name)
-                if old_path is None:
-                    continue
-
-                old_path_obj = TranslationImagePathBuilder.from_path(old_path)
-
-                old_path_obj.number = path_data.number
-                old_path_obj.original_slug = path_data.original_title.slug
-                old_path_obj.translation_slug = path_data.translation_title.slug
-                old_path_obj.language = path_data.language
-                old_path_obj.status = path_data.status
-
-                new_path = old_path_obj.build()
-
-                setattr(image, path_attr_name, new_path)
-
-                await self.image_file_manager.move(old_path, new_path)
-            await self.image_repo.update(image)
-
-    async def _separate(
-        self,
-        link_id: PositiveInt,
-        image_ids: Iterable[ImageId],
-    ) -> tuple[
-        Sequence[ImageId],
-        Sequence[ImageId],
-        Sequence[ImageId],
-    ]:
-        linked_image_ids = await self.image_repo.get_linked_image_ids(
-            link_type=ImageLinkType.TRANSLATION,
-            link_id=link_id,
-        )
+        image_ids = deduplicate(image_ids)
+        linked_image_ids = await self._get_linked_images_ids(translation_id)
         image_ids_set, linked_image_ids_set = set(image_ids), set(linked_image_ids)
 
-        to_create_image_ids = list(image_ids_set - linked_image_ids_set)
-        to_delete_image_ids = list(linked_image_ids_set - image_ids_set)
-        to_move_images_image_ids = list(set(image_ids) - set(to_create_image_ids))
+        to_create_image_ids_set = image_ids_set - linked_image_ids_set
+        to_delete_image_ids_set = linked_image_ids_set - image_ids_set
+        to_update_image_ids_set = image_ids_set & linked_image_ids_set
 
-        return to_create_image_ids, to_delete_image_ids, to_move_images_image_ids
+        all_images = await self.image_repo.load_many(image_ids_set | linked_image_ids_set)
+
+        for image in all_images:
+            if image.id in image_ids:
+                image.position_number = image_ids.index(image.id)
+            if image.id in to_create_image_ids_set:
+                await self._create_image(translation_id, image, path_data)
+            if image.id in to_delete_image_ids_set:
+                image.is_deleted = True
+            if image.id in to_update_image_ids_set:
+                await self._move_image_files(image, path_data)
+
+        await self.image_repo.update_many(all_images)
+
+    async def publish_created(self) -> None:
+        for image_id in self.created_image_ids:
+            await self.publisher.publish(PostProcessImageMessage(image_id=image_id.value))
+
+    async def _create_image(
+        self,
+        translation_id: TranslationId,
+        image: ImageEntity,
+        path_data: TranslationImagePathData,
+    ) -> None:
+        if image.is_deleted:
+            raise ImageNotFoundError(image.id)
+
+        if image.has_another_owner(ImageLinkType.TRANSLATION, translation_id):
+            raise ImageAlreadyHasOwnerError(image.id)
+
+        image_file = ImageFileObj(
+            source=self.temp_file_manager.get_abs_path(
+                temp_file_id=image.temp_image_id,  # type: ignore[arg-type]
+            )
+        )
+
+        original_path = TranslationImagePathBuilder(
+            number=path_data.number,
+            language=path_data.language,
+            original_slug=path_data.original_title.slug,
+            translation_slug=path_data.translation_title.slug,
+            status=path_data.status,
+            dimensions=image_file.dimensions,
+            fmt=image_file.format,
+        ).build()
+
+        image.create(
+            link_type=ImageLinkType.TRANSLATION,
+            link_id=translation_id,
+            original_path=original_path,
+        )
+
+        await self.image_file_manager.persist(image_file, original_path)
+
+        self.created_image_ids.append(image.id)
+
+    async def _get_linked_images_ids(self, translation_id: TranslationId) -> Iterable[ImageId]:
+        return await self.image_repo.get_linked_image_ids(ImageLinkType.TRANSLATION, translation_id)
+
+    async def _move_image_files(
+        self,
+        image: ImageEntity,
+        path_data: TranslationImagePathData,
+    ) -> None:
+        for path_attr_name in ("original_path", "converted_path", "x2_path"):
+            old_path: Path | None = getattr(image, path_attr_name)
+            if old_path is None:
+                continue
+
+            old_path_obj = TranslationImagePathBuilder.from_path(old_path)
+
+            old_path_obj.number = path_data.number
+            old_path_obj.original_slug = path_data.original_title.slug
+            old_path_obj.translation_slug = path_data.translation_title.slug
+            old_path_obj.language = path_data.language
+            old_path_obj.status = path_data.status
+
+            new_path = old_path_obj.build()
+
+            setattr(image, path_attr_name, new_path)
+
+            await self.image_file_manager.move(old_path, new_path)
+
+
+def deduplicate(lst: list[Any]) -> list[Any]:
+    seen = set()
+    result = []
+
+    for i in lst:
+        if i not in seen:
+            result.append(i)
+            seen.add(i)
+
+    return result

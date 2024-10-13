@@ -10,23 +10,18 @@ from backend.application.comic.interfaces import TagRepoInterface
 from backend.application.comic.responses import TagResponseData
 from backend.domain.entities import NewTagEntity, TagEntity
 from backend.domain.value_objects import TagId, TagName
-from backend.infrastructure.database.mappers import map_tag_model_to_data, map_tag_model_to_entity
+from backend.infrastructure.database.mappers import (
+    map_tag_entity_to_dict,
+    map_tag_model_to_data,
+    map_tag_model_to_entity,
+)
 from backend.infrastructure.database.models import TagModel
 from backend.infrastructure.database.repositories import BaseRepo, RepoError
 
 
 class TagRepo(BaseRepo, TagRepoInterface):
     async def create(self, tag: NewTagEntity) -> TagId:
-        stmt = (
-            insert(TagModel)
-            .values(
-                name=tag.name.value,
-                slug=tag.slug,
-                is_visible=tag.is_visible,
-                from_explainxkcd=tag.from_explainxkcd,
-            )
-            .returning(TagModel.tag_id)
-        )
+        stmt = insert(TagModel).values(map_tag_entity_to_dict(tag)).returning(TagModel.tag_id)
 
         try:
             tag_id: int = await self.session.scalar(stmt)  # type: ignore[assignment]
@@ -49,17 +44,7 @@ class TagRepo(BaseRepo, TagRepoInterface):
         if new_tags:
             await self.session.execute(
                 insert(TagModel)
-                .values(
-                    [
-                        {
-                            "name": tag.name.value,
-                            "slug": tag.name.slug,
-                            "is_visible": tag.is_visible,
-                            "from_explainxkcd": tag.from_explainxkcd,
-                        }
-                        for tag in new_tags
-                    ]
-                )
+                .values([map_tag_entity_to_dict(tag) for tag in new_tags])
                 .on_conflict_do_nothing(constraint="uq_tags_slug")
             )
 
@@ -72,12 +57,7 @@ class TagRepo(BaseRepo, TagRepoInterface):
     async def update(self, tag: TagEntity) -> None:
         stmt = (
             update(TagModel)
-            .values(
-                name=tag.name.value,
-                slug=tag.slug,
-                is_visible=tag.is_visible,
-                from_explainxkcd=tag.from_explainxkcd,
-            )
+            .values(map_tag_entity_to_dict(tag))
             .where(TagModel.tag_id == tag.id.value)
         )
 
@@ -90,16 +70,17 @@ class TagRepo(BaseRepo, TagRepoInterface):
         await self.session.execute(delete(TagModel).where(TagModel.tag_id == tag_id.value))
 
     async def get_by_id(self, tag_id: TagId) -> TagResponseData:
-        return map_tag_model_to_data(tag=await self._get_by_id(tag_id))
-
-    async def load(self, tag_id: TagId) -> TagEntity:
-        return map_tag_model_to_entity(tag=await self._get_by_id(tag_id))  # TODO: with_for_update?
-
-    async def _get_by_id(self, tag_id: TagId) -> TagModel:
-        tag = await self.session.get(TagModel, tag_id.value)
+        stmt = select(TagModel).where(TagModel.tag_id == tag_id.value)
+        tag: TagModel | None = (await self.session.scalars(stmt)).unique().one_or_none()
         if tag is None:
             raise TagNotFoundError(tag_id.value)
-        return tag
+        return map_tag_model_to_data(tag)
+
+    async def load(self, tag_id: TagId) -> TagEntity:
+        tag: TagModel | None = await self.session.get(TagModel, tag_id.value, with_for_update=True)
+        if tag is None:
+            raise TagNotFoundError(tag_id.value)
+        return map_tag_model_to_entity(tag)
 
     def _handle_db_error(self, err: DBAPIError, *, tag_name: TagName) -> NoReturn:
         cause = str(err.__cause__)

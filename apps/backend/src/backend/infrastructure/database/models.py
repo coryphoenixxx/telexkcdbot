@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import (
@@ -10,6 +11,7 @@ from sqlalchemy import (
     Text,
     func,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from backend.domain.entities import TranslationStatus
@@ -50,8 +52,19 @@ class ImageModel(BaseModel, TimestampMixin):
     link_id: Mapped[int | None] = mapped_column(default=None)
     original_path: Mapped[str | None] = mapped_column(default=None)
     converted_path: Mapped[str | None] = mapped_column(default=None)
-    converted_2x_path: Mapped[str | None] = mapped_column(default=None)
+    x2_path: Mapped[str | None] = mapped_column(default=None)
+    meta: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    position_number: Mapped[int | None] = mapped_column(SmallInteger, default=None)
     is_deleted: Mapped[bool] = mapped_column(default=False)
+
+    __table_args__ = (
+        Index(
+            "ix_image_link_type_link_id",
+            "link_type",
+            "link_id",
+            postgresql_using="btree",
+        ),
+    )
 
 
 class TranslationModel(BaseModel, TimestampMixin):
@@ -80,7 +93,7 @@ class TranslationModel(BaseModel, TimestampMixin):
 
     __table_args__ = (
         Index(
-            "uq_translation_if_not_draft",
+            "uq_translation_if_published",
             "language",
             "comic_id",
             unique=True,
@@ -110,7 +123,7 @@ class ComicTagAssociation(BaseModel):
 class TagModel(BaseModel):
     __tablename__ = "tags"
 
-    tag_id: Mapped[int] = mapped_column(primary_key=True)
+    tag_id: Mapped[int] = mapped_column(SmallInteger, primary_key=True)
     name: Mapped[str]
     slug: Mapped[str] = mapped_column(unique=True)
     is_visible: Mapped[bool] = mapped_column(default=True)

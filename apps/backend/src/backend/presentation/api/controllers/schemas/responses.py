@@ -49,10 +49,11 @@ class TagResponseSchema(BaseModel):
 
 class TranslationImageResponseSchema(BaseModel):
     id: int
-    translation_id: int | None
+    translation_id: int
     original: str | None
     converted: str | None
-    converted_2x: str | None
+    x2: str | None
+    pos: int
 
     @classmethod
     def from_data(
@@ -64,7 +65,8 @@ class TranslationImageResponseSchema(BaseModel):
             translation_id=data.translation_id,
             original=data.original,
             converted=data.converted,
-            converted_2x=data.converted_2x,
+            x2=data.x2,
+            pos=data.position_number,
         )
 
 

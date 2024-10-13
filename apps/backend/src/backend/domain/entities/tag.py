@@ -10,6 +10,9 @@ class TagEntity:
     is_visible: bool
     from_explainxkcd: bool
 
+    def set_name(self, name: str) -> None:
+        self.name = TagName(name)
+
     @property
     def slug(self) -> str:
         return self.name.slug

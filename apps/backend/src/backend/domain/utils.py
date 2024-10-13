@@ -42,6 +42,12 @@ def cast_or_none(cast_to: type["T"], value: Any) -> T | None:
     return None
 
 
+def value_or_none(obj: Any) -> Any:
+    if obj:
+        return obj.value
+    return None
+
+
 def slugify(
     string: str,
     replacements: tuple[tuple[str, str], ...] = (),
