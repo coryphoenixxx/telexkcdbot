@@ -3,6 +3,7 @@
 
 import re
 from dataclasses import dataclass
+from typing import ClassVar
 
 from bs4 import BeautifulSoup
 from yarl import URL
@@ -16,7 +17,8 @@ from backend.infrastructure.xkcd.exceptions import ExtractError, ScrapeError
 
 @dataclass(slots=True)
 class XkcdDEScraper(BaseScraper):
-    BASE_URL = URL("https://xkcde.dapete.net")
+    BASE_URL: ClassVar[URL] = URL("https://xkcde.dapete.net")
+
     downloader: Downloader
 
     async def fetch_latest_number(self) -> int:

@@ -3,6 +3,7 @@
 import ast
 import re
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from yarl import URL
 
@@ -14,7 +15,8 @@ from backend.infrastructure.xkcd.exceptions import ScrapeError
 
 @dataclass(slots=True)
 class XkcdFRScraper(BaseScraper):
-    BASE_URL = URL("https://xkcd.arnaud.at")
+    BASE_URL: ClassVar[URL] = URL("https://xkcd.arnaud.at")
+
     downloader: Downloader
     cached_number_data_map: dict[int, list[str]] = field(init=False)
 

@@ -2,6 +2,7 @@
 import html
 import re
 from dataclasses import dataclass
+from typing import ClassVar
 
 from yarl import URL
 
@@ -13,22 +14,31 @@ from backend.infrastructure.xkcd.dtos import XkcdOriginalScrapedData
 from backend.infrastructure.xkcd.exceptions import ScrapeError
 
 HTML_TAG_PATTERN = re.compile(r"<.*?>")
-X2_IMAGE_URL_PATTERN = re.compile(r"//(.*?) 2x")
-IMAGE_URL_PATTERN = re.compile(r"https://imgs.xkcd.com/comics/(.*?).(jpg|jpeg|png|webp|gif)")
+IMAGE_URL_PATTERN = re.compile(r"https://imgs.xkcd.com/comics/(.*?).(jpg|jpeg|png|gif)")
+IMAGE_X2_SRCSET_PATTERN = re.compile(r"//(imgs.xkcd.com/comics/[^ ]+_2x.png) 2x")
+ENLARGED_IMAGE_PAGE_URL = re.compile(r"https://xkcd.com/\d+([_/])large/?")
+
+KNOWN_ENLARGED_IMAGE_URLS = {
+    256: "https://imgs.xkcd.com/comics/online_communities.png",
+    273: "https://imgs.xkcd.com/comics/electromagnetic_spectrum.png",
+    980: "https://imgs.xkcd.com/comics/money_huge.png",
+    1799: "https://imgs.xkcd.com/comics/bad_map_projection_time_zones_2x.png",
+}
 
 
 @dataclass(slots=True)
 class XkcdOriginalScraper(BaseScraper):
-    BASE_URL = URL("https://xkcd.com")
+    BASE_URL: ClassVar[URL] = URL("https://xkcd.com")
+
     downloader: Downloader
 
     async def fetch_latest_number(self) -> int:
         async with self.client.safe_get(url=self.BASE_URL / "info.0.json") as response:
             json_data = await response.json()
-            return int(json_data["num"])
+        return int(json_data["num"])
 
     async def fetch_one(self, number: int) -> XkcdOriginalScrapedData:
-        url = self.BASE_URL / f"{number!s}/"
+        url = self.BASE_URL / f"{number}/"
 
         if number == HTTPStatusCodes.NOT_FOUND_404:
             return XkcdOriginalScrapedData(
@@ -42,18 +52,18 @@ class XkcdOriginalScraper(BaseScraper):
             async with self.client.safe_get(url / "info.0.json") as response:
                 json_data = await response.json()
 
-            click_url, large_image_page_url = self._process_link(json_data["link"])
+            click_url, enlarged_image_url = await self._handle_link(number, json_data["link"])
 
             image_url = (
-                await self._fetch_large_image_url(large_image_page_url)
+                enlarged_image_url
                 or await self._fetch_2x_image_url(url)
-                or self._process_image_url(json_data["img"])
+                or self._handle_image_url(json_data["img"])
             )
 
             return XkcdOriginalScrapedData(
                 number=json_data["num"],
                 xkcd_url=url,
-                title=self._process_title(json_data["title"]),
+                title=self._clean_title(json_data["title"]),
                 publication_date=self._build_date(
                     y=json_data["year"],
                     m=json_data["month"],
@@ -67,54 +77,46 @@ class XkcdOriginalScraper(BaseScraper):
         except Exception as err:
             raise ScrapeError(url) from err
 
-    async def _fetch_large_image_url(self, url: URL | None) -> URL | None:
-        # №657, №681, №802, №832, №850 ...
-        if not url:
-            return None
-
-        if IMAGE_URL_PATTERN.match(str(url)):
-            return url
-
-        soup = await self._get_soup(url)
-
-        large_image_url = soup.find("img").get("src")
-        if large_image_url:
-            return URL(str(large_image_url))
-
-        return None
-
-    async def _fetch_2x_image_url(self, xkcd_url: URL) -> URL | None:
-        soup = await self._get_soup(xkcd_url)
-
-        if img_tags := soup.css.select("div#comic img"):
-            if srcset := img_tags[0].get("srcset"):
-                if match := X2_IMAGE_URL_PATTERN.search(str(srcset)):
-                    return URL("https://" + match.group(1).strip())
-        return None
-
-    def _process_title(self, title: str) -> str:
+    def _clean_title(self, title: str) -> str:
         # №259, №472
         if HTML_TAG_PATTERN.match(title):
             return HTML_TAG_PATTERN.sub("", title)
 
         return html.unescape(title)
 
-    def _process_link(self, link: str | None) -> tuple[URL | None, URL | None]:
-        click_url, large_image_page_url = None, None
+    async def _handle_link(
+        self,
+        number: int,
+        link_raw: str | None,
+    ) -> tuple[URL | None, URL | None]:
+        click_url, enlarged_image_url = None, None
 
-        if link:
-            url = URL(link)
-            if "large" in url.path:
-                large_image_page_url = url
-            elif "980/huge" in url.path:
-                large_image_page_url = URL("https://imgs.xkcd.com/comics/money_huge.png")
-            elif url.scheme:
-                click_url = url
+        if link_raw:
+            if known_url := KNOWN_ENLARGED_IMAGE_URLS.get(number):
+                enlarged_image_url = URL(known_url)
+            # №657, №681, №802, №832, №850 ...
+            elif ENLARGED_IMAGE_PAGE_URL.match(link_raw):
+                soup = await self._get_soup(URL(link_raw))
+                if enlarged_image_url_src := soup.find("img").get("src"):
+                    enlarged_image_url = URL(enlarged_image_url_src)
+            # №1506, №1525
+            elif URL(link_raw).with_scheme("https") != self.BASE_URL / f"{number}/":
+                click_url = URL(link_raw)
 
-        return click_url, large_image_page_url
+        return click_url, enlarged_image_url
 
-    def _process_image_url(self, url: str) -> URL | None:
-        return URL(url) if IMAGE_URL_PATTERN.match(url) else None
+    async def _fetch_2x_image_url(self, xkcd_url: URL) -> URL | None:
+        soup = await self._get_soup(xkcd_url)
+
+        if img_tags := soup.css.select("div#comic img"):
+            if srcset := img_tags[0].get("srcset"):
+                if match := IMAGE_X2_SRCSET_PATTERN.search(srcset):
+                    return URL("https://" + match.group(1).strip())
+
+        return None
+
+    def _handle_image_url(self, image_url: str) -> URL | None:
+        return URL(image_url) if IMAGE_URL_PATTERN.match(image_url) else None
 
     def _build_date(self, y: str, m: str, d: str) -> str:
         return f"{int(y)}-{int(m):02d}-{int(d):02d}"

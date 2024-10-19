@@ -3,6 +3,7 @@
 import asyncio
 from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import ClassVar
 
 from bs4 import BeautifulSoup
 from yarl import URL
@@ -15,7 +16,8 @@ from backend.infrastructure.xkcd.exceptions import ExtractError, ScrapeError
 
 @dataclass(slots=True)
 class XkcdZHScraper(BaseScraper):
-    BASE_URL = URL("https://xkcd.in")
+    BASE_URL: ClassVar[URL] = URL("https://xkcd.in")
+
     downloader: Downloader
 
     async def fetch_one(self, url: URL) -> XkcdTranslationScrapedData:

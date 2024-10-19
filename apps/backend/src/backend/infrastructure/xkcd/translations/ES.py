@@ -2,6 +2,7 @@
 
 import re
 from dataclasses import dataclass, field
+from typing import ClassVar
 
 from bs4 import BeautifulSoup
 from yarl import URL
@@ -16,7 +17,8 @@ XKCD_NUMBER_PATTERN = re.compile(r".*xkcd.com/(.*)")
 
 @dataclass(slots=True)
 class XkcdESScraper(BaseScraper):
-    BASE_URL = URL("https://es.xkcd.com")
+    BASE_URL: ClassVar[URL] = URL("https://es.xkcd.com")
+
     downloader: Downloader
     all_links: list[URL] = field(init=False)
 

@@ -2,6 +2,7 @@
 import logging
 import re
 from dataclasses import dataclass
+from typing import ClassVar
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
@@ -19,8 +20,8 @@ TRANSCRIPT_TEXT_MAX_LENGTH = 25_000
 
 @dataclass(slots=True)
 class XkcdExplainScraper(BaseScraper):
-    BASE_URL = URL("https://explainxkcd.com")
-    bad_tags: set[str]
+    BASE_URL: ClassVar[URL] = URL("https://explainxkcd.com")
+    BAD_TAGS: set[str]
 
     async def fetch_one(self, number: int) -> XkcdExplainScrapedData | None:
         url = self.BASE_URL / f"wiki/index.php/{number}"
@@ -80,7 +81,7 @@ class XkcdExplainScraper(BaseScraper):
                 tag_lower: str = tag.lower().strip()
 
                 if tag_lower not in tag_lower_set and not any(
-                    bad_word in tag_lower for bad_word in self.bad_tags
+                    bad_word in tag_lower for bad_word in self.BAD_TAGS
                 ):
                     tags.add(tag)
                     tag_lower_set.add(tag_lower)

@@ -2,6 +2,7 @@
 
 import re
 from dataclasses import dataclass
+from typing import ClassVar
 
 from bs4 import BeautifulSoup
 from bs4.element import NavigableString, Tag
@@ -19,9 +20,10 @@ REPEATED_BR_TAG_PATTERN = re.compile(r"(<br/>| )\1{2,}")
 
 @dataclass(slots=True)
 class XkcdRUScraper(BaseScraper):
+    BASE_URL: ClassVar[URL] = URL("https://xkcd.ru")
+    NUM_LIST_URL: ClassVar[URL] = BASE_URL / "num"
+
     downloader: Downloader
-    BASE_URL = URL("https://xkcd.ru")
-    NUM_LIST_URL = BASE_URL / "num"
 
     async def get_all_nums(self) -> list[int]:
         soup = await self._get_soup(self.NUM_LIST_URL)
