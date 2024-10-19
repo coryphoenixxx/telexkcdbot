@@ -1,9 +1,14 @@
 from dishka import FromDishka
-from faststream.nats import JStream, NatsRouter
+from faststream.nats import NatsRouter
 
-from backend.application.common.interfaces import PostProcessImageMessage
-from backend.application.image.services import PostProcessImageInteractor
+from backend.application.common.interfaces import (
+    ConvertImageMessage,
+)
+from backend.application.image.services import (
+    ConvertImageInteractor,
+)
 from backend.domain.value_objects import ImageId
+from backend.infrastructure.broker.stream import stream
 
 router = NatsRouter()
 
@@ -11,13 +16,13 @@ router = NatsRouter()
 @router.subscriber(
     subject="images.convert",
     queue="convert_image_queue",
-    stream=JStream(name="stream_name", max_age=60 * 60, declare=True),
+    stream=stream,
     pull_sub=True,
     durable="durable_name",
 )
 async def process_image(
-    msg: PostProcessImageMessage,
+    msg: ConvertImageMessage,
     *,
-    interactor: FromDishka[PostProcessImageInteractor],
+    interactor: FromDishka[ConvertImageInteractor],
 ) -> None:
     await interactor.execute(image_id=ImageId(msg.image_id))

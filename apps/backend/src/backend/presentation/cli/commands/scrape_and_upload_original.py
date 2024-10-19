@@ -13,8 +13,8 @@ from backend.application.comic.services import (
     CreateManyTagsInteractor,
 )
 from backend.application.image.services import UploadImageInteractor
-from backend.domain.utils import cast_or_none
-from backend.domain.value_objects import ComicId, TagId
+from backend.domain.utils import cast_or_none, value_or_none
+from backend.domain.value_objects import ComicId, ImageId, TagId
 from backend.infrastructure.database.main import check_db_connection
 from backend.infrastructure.xkcd import (
     XkcdExplainScraper,
@@ -69,13 +69,12 @@ async def upload_one(
     original_data, explain_data = data
 
     async with container() as request_container:
-        image_ids = []
+        image_id: ImageId | None = None
         if original_data.image_path:
             upload_image_interactor: UploadImageInteractor = await request_container.get(
                 UploadImageInteractor
             )
             image_id = await upload_image_interactor.execute(original_data.image_path)
-            image_ids.append(image_id.value)
 
         tag_ids: Sequence[TagId] = []
         if explain_data.tags:
@@ -111,7 +110,7 @@ async def upload_one(
                 click_url=cast_or_none(str, original_data.click_url),
                 is_interactive=original_data.is_interactive,
                 tag_ids=[tag_id.value for tag_id in tag_ids],
-                image_ids=image_ids,
+                image_id=value_or_none(image_id),
             )
         )
 

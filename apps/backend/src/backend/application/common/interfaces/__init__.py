@@ -1,7 +1,7 @@
 from .file_storages import ImageFileManagerInterface as ImageFileManagerInterface
 from .file_storages import StreamReaderProtocol as StreamReaderProtocol
 from .file_storages import TempFileManagerInterface as TempFileManagerInterface
+from .publisher_router import ConvertImageMessage as ConvertImageMessage
 from .publisher_router import NewComicMessage as NewComicMessage
-from .publisher_router import PostProcessImageMessage as PostProcessImageMessage
 from .publisher_router import PublisherRouterInterface as PublisherRouterInterface
 from .transaction import TransactionManagerInterface as TransactionManagerInterface

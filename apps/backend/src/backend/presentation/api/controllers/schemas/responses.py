@@ -50,10 +50,7 @@ class TagResponseSchema(BaseModel):
 class TranslationImageResponseSchema(BaseModel):
     id: int
     translation_id: int
-    original: str | None
-    converted: str | None
-    x2: str | None
-    pos: int
+    image_path: str | None
 
     @classmethod
     def from_data(
@@ -63,10 +60,7 @@ class TranslationImageResponseSchema(BaseModel):
         return cls(
             id=data.id,
             translation_id=data.translation_id,
-            original=data.original,
-            converted=data.converted,
-            x2=data.x2,
-            pos=data.position_number,
+            image_path=data.image_path if data.image_path else None,
         )
 
 
@@ -82,7 +76,7 @@ class ComicResponseSchema(BaseModel):
     tags: list[TagResponseSchema]
     translation_id: int
     tooltip: str
-    images: list[TranslationImageResponseSchema]
+    image: TranslationImageResponseSchema | None
     has_translations: list[Language]
 
     @classmethod
@@ -99,7 +93,7 @@ class ComicResponseSchema(BaseModel):
             click_url=cast_or_none(HttpUrl, data.click_url),
             is_interactive=data.is_interactive,
             tags=[TagResponseSchema.from_data(data) for data in data.tags],
-            images=[TranslationImageResponseSchema.from_data(image) for image in data.images],
+            image=TranslationImageResponseSchema.from_data(data.image) if data.image else None,
             has_translations=data.has_translations,
         )
 
@@ -129,7 +123,7 @@ class TranslationResponseSchema(BaseModel):
     tooltip: str
     translator_comment: str
     source_url: HttpUrl | None
-    images: list[TranslationImageResponseSchema]
+    image: TranslationImageResponseSchema | None
     language: Language
     status: TranslationStatus
 
@@ -147,7 +141,7 @@ class TranslationResponseSchema(BaseModel):
             translator_comment=data.translator_comment,
             source_url=cast_or_none(HttpUrl, data.source_url),
             status=data.status,
-            images=[TranslationImageResponseSchema.from_data(image) for image in data.images],
+            image=TranslationImageResponseSchema.from_data(data.image) if data.image else None,
         )
 
 
@@ -168,7 +162,7 @@ class ComicWTranslationsResponseSchema(ComicResponseSchema):
             click_url=cast_or_none(HttpUrl, data.click_url),
             is_interactive=data.is_interactive,
             tags=[TagResponseSchema.from_data(data) for data in data.tags],
-            images=[TranslationImageResponseSchema.from_data(image) for image in data.images],
+            image=TranslationImageResponseSchema.from_data(data.image) if data.image else None,
             has_translations=data.has_translations,
             translations=[TranslationResponseSchema.from_data(tr) for tr in data.translations],
         )

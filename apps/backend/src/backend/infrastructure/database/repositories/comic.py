@@ -7,12 +7,10 @@ from typing import NoReturn
 from sqlalchemy import (
     ColumnElement,
     Result,
-    Row,
     and_,
     delete,
     exists,
     func,
-    literal,
     select,
     update,
 )
@@ -37,14 +35,13 @@ from backend.application.common.pagination import (
     Pagination,
     SortOrder,
 )
-from backend.domain.entities import ComicEntity, ImageLinkType, NewComicEntity, TranslationStatus
+from backend.domain.entities import ComicEntity, NewComicEntity, TranslationStatus
 from backend.domain.utils import cast_or_none
 from backend.domain.value_objects import (
     ComicId,
     IssueNumber,
     Language,
     TagId,
-    TranslationTitle,
 )
 from backend.domain.value_objects.common import TranslationId
 from backend.infrastructure.database.mappers import (
@@ -133,18 +130,17 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
             select(ComicModel)
             .outerjoin(ComicModel.tags)
             .join(ComicModel.translations)
-            .outerjoin(TranslationModel.images)
+            .outerjoin(TranslationModel.image)
             .options(
                 contains_eager(ComicModel.tags),
                 contains_eager(ComicModel.translations).options(
-                    contains_eager(TranslationModel.images)
+                    contains_eager(TranslationModel.image)
                 ),
             )
             .where(
                 where_clause,
                 TranslationModel.status == TranslationStatus.PUBLISHED,
             )
-            .order_by(ImageModel.position_number.asc())
         )
 
         comic: ComicModel | None = (await self.session.scalars(stmt)).unique().one_or_none()
@@ -159,31 +155,16 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
         filters: ComicFilters,
         pagination: Pagination,
     ) -> tuple[int, Sequence[ComicCompactResponseData]]:
-        first_image_subquery = (
-            select(
-                ImageModel.original_path,
-                ImageModel.converted_path,
-            )
-            .where(
-                ImageModel.link_id == TranslationModel.translation_id,
-                ImageModel.link_type == ImageLinkType.TRANSLATION,
-                ImageModel.is_deleted.is_(False),
-            )
-            .order_by(ImageModel.position_number.asc())
-            .limit(1)
-        ).lateral("image")
-
         stmt = (
             select(
                 ComicModel.comic_id,
                 ComicModel.number,
                 ComicModel.publication_date,
                 TranslationModel.title,
-                first_image_subquery.c.original_path,
-                first_image_subquery.c.converted_path,
+                ImageModel.image_path,
             )
             .join(ComicModel.translations)
-            .outerjoin(first_image_subquery, literal(True))
+            .outerjoin(TranslationModel.image)
             .limit(pagination.limit)
             .offset(pagination.offset)
             .where(
@@ -240,29 +221,6 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
 
         return count, results
 
-    async def get_number_and_title_by_id(
-        self,
-        comic_id: ComicId,
-    ) -> tuple[IssueNumber | None, TranslationTitle]:
-        stmt = (
-            select(
-                ComicModel.number,
-                TranslationModel.title,
-            )
-            .join(ComicModel.translations)
-            .where(
-                ComicModel.comic_id == comic_id.value,
-                TranslationModel.language == Language.EN,
-            )
-        )
-
-        row: Row[tuple[int | None, str]] | None = (await self.session.execute(stmt)).one_or_none()
-
-        if row is None:
-            raise ComicNotFoundError(comic_id)
-
-        return cast_or_none(IssueNumber, row.number), TranslationTitle(row.title)
-
     async def get_latest_issue_number(self) -> IssueNumber | None:
         number: int | None = await self.session.scalar(
             select(ComicModel.number).limit(1).order_by(ComicModel.number.desc())
@@ -278,8 +236,8 @@ class ComicRepo(BaseRepo, ComicRepoInterface):
     ) -> list[TranslationResponseData]:
         stmt = (
             select(TranslationModel)
-            .outerjoin(TranslationModel.images)
-            .options(contains_eager(TranslationModel.images))
+            .outerjoin(TranslationModel.image)
+            .options(contains_eager(TranslationModel.image))
             .where(
                 TranslationModel.comic_id == comic_id.value,
                 TranslationModel.language != Language.EN,

@@ -36,7 +36,7 @@ dependencies = [
     "uvicorn>=0.30.6",
     "uvloop>=0.20.0",
     "pip>=24.2",
-    "aioboto3>=13.1.1",
+    "aioboto3>=13.2.0",
 ]
 
 [project.scripts]

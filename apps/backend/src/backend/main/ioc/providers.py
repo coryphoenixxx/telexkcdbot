@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 import aioboto3
 from dishka import Provider, Scope, alias, provide
-from faststream.nats import JStream, NatsBroker
+from faststream.nats import NatsBroker
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import (
 from backend.application.comic.interfaces import (
     ComicRepoInterface,
     TagRepoInterface,
-    TranslationImageProcessorInterface,
+    TranslationImageSaveHelperInterface,
     TranslationRepoInterface,
 )
 from backend.application.comic.services import (
@@ -31,8 +31,8 @@ from backend.application.comic.services import (
     UpdateTagInteractor,
     UpdateTranslationInteractor,
 )
-from backend.application.comic.services.image_processor import (
-    TranslationImageProcessor,
+from backend.application.comic.services.image import (
+    TranslationImageSaveHelper,
 )
 from backend.application.common.interfaces import (
     ImageFileManagerInterface,
@@ -41,10 +41,14 @@ from backend.application.common.interfaces import (
     TransactionManagerInterface,
 )
 from backend.application.config import AppConfig, FileStorageType
-from backend.application.image.interfaces import ImageConverterInterface, ImageRepoInterface
-from backend.application.image.services import PostProcessImageInteractor, UploadImageInteractor
+from backend.application.image.interfaces import ImageFileProcessorInterface, ImageRepoInterface
+from backend.application.image.services import (
+    ConvertImageInteractor,
+    UploadImageInteractor,
+)
 from backend.infrastructure.broker.config import NatsConfig
 from backend.infrastructure.broker.publisher_router import PublisherRouter
+from backend.infrastructure.broker.stream import stream
 from backend.infrastructure.config_loader import load_config
 from backend.infrastructure.database.config import DbConfig
 from backend.infrastructure.database.main import build_postgres_url, create_db_engine
@@ -59,7 +63,7 @@ from backend.infrastructure.downloader import Downloader
 from backend.infrastructure.filesystem import ImageFSFileManager, TempFileManager
 from backend.infrastructure.filesystem.config import FSConfig
 from backend.infrastructure.http_client import AsyncHttpClient
-from backend.infrastructure.image_converter import ImageConverter
+from backend.infrastructure.image_processor import ImageFileProcessor
 from backend.infrastructure.s3.config import S3Config
 from backend.infrastructure.s3.manager import ImageS3FileManager
 from backend.infrastructure.xkcd import (
@@ -183,8 +187,11 @@ class FileManagersProvider(Provider):
 
 
 class ImageConverterProvider(Provider):
-    image_converter = provide(ImageConverter, scope=Scope.APP)
-    image_converter_interface = alias(source=ImageConverter, provides=ImageConverterInterface)
+    image_converter = provide(ImageFileProcessor, scope=Scope.APP)
+    image_converter_interface = alias(
+        source=ImageFileProcessor,
+        provides=ImageFileProcessorInterface,
+    )
 
 
 class PublisherRouterProvider(Provider):
@@ -194,8 +201,6 @@ class PublisherRouterProvider(Provider):
         config: NatsConfig,
     ) -> AsyncIterable[PublisherRouter]:
         broker = NatsBroker(config.url)
-
-        stream = JStream(name="stream_name", max_age=60 * 60, declare=True)
 
         converter_publisher = broker.publisher(subject="images.convert", stream=stream)
         new_comic_publisher = broker.publisher(subject="comics.new", stream=stream)
@@ -239,17 +244,17 @@ class ImageServicesProvider(Provider):
     scope = Scope.REQUEST
 
     upload_image_interactor = provide(UploadImageInteractor)
-    image_processor = provide(TranslationImageProcessor)
+    image_processor = provide(TranslationImageSaveHelper)
     image_processor_interface = alias(
-        source=TranslationImageProcessor,
-        provides=TranslationImageProcessorInterface,
+        source=TranslationImageSaveHelper,
+        provides=TranslationImageSaveHelperInterface,
     )
 
 
 class PostProcessImageInteractorProvider(Provider):
     scope = Scope.REQUEST
 
-    post_process_image_interactor = provide(PostProcessImageInteractor)
+    convert_image_interactor = provide(ConvertImageInteractor)
 
 
 class TranslationServicesProvider(Provider):

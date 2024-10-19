@@ -48,20 +48,17 @@ class ImageModel(BaseModel, TimestampMixin):
 
     image_id: Mapped[int] = mapped_column(primary_key=True)
     temp_image_id: Mapped[UUID | None] = mapped_column()
-    link_type: Mapped[str | None] = mapped_column(default=None)
-    link_id: Mapped[int | None] = mapped_column(default=None)
-    original_path: Mapped[str | None] = mapped_column(default=None)
-    converted_path: Mapped[str | None] = mapped_column(default=None)
-    x2_path: Mapped[str | None] = mapped_column(default=None)
+    entity_type: Mapped[str | None] = mapped_column(default=None)
+    entity_id: Mapped[int | None] = mapped_column(default=None)
+    image_path: Mapped[str | None] = mapped_column(default=None)
     meta: Mapped[dict[str, Any]] = mapped_column(JSONB)
-    position_number: Mapped[int | None] = mapped_column(SmallInteger, default=None)
     is_deleted: Mapped[bool] = mapped_column(default=False)
 
     __table_args__ = (
         Index(
-            "ix_image_link_type_link_id",
-            "link_type",
-            "link_id",
+            "ix_image_entity_type_entity_id",
+            "entity_type",
+            "entity_id",
             postgresql_using="btree",
         ),
     )
@@ -83,12 +80,10 @@ class TranslationModel(BaseModel, TimestampMixin):
 
     comic: Mapped["ComicModel"] = relationship(back_populates="translations")
 
-    images: Mapped[list["ImageModel"]] = relationship(
-        primaryjoin="and_("
-        "ImageModel.link_type == 'TRANSLATION',"
-        "foreign(ImageModel.link_id) == TranslationModel.translation_id,"
-        "ImageModel.is_deleted.is_(false()),"
-        ")",
+    image: Mapped["ImageModel"] = relationship(
+        primaryjoin="and_(ImageModel.entity_type == 'TRANSLATION',"
+        "foreign(ImageModel.entity_id) == TranslationModel.translation_id,"
+        "ImageModel.is_deleted.is_(false()))"
     )
 
     __table_args__ = (

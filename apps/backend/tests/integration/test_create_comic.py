@@ -41,7 +41,7 @@ async def test_create_comic_success(
         click_url=None,
         is_interactive=False,
         tag_ids=[],
-        image_ids=[],
+        image_id=None,
     )
 
     assert await comic_interactor.execute(request) == ComicId(1)
@@ -59,6 +59,6 @@ async def test_create_comic_success(
         is_interactive=request.is_interactive,
         tags=[],
         has_translations=[],
-        images=[],
+        image=None,
         translations=[],
     )

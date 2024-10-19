@@ -9,7 +9,7 @@ from backend.application.common.interfaces import (
     TransactionManagerInterface,
 )
 from backend.application.image.exceptions import ImageConversionError
-from backend.application.image.interfaces import ImageConverterInterface, ImageRepoInterface
+from backend.application.image.interfaces import ImageFileProcessorInterface, ImageRepoInterface
 from backend.domain.entities.image import ImageMeta, NewImageEntity
 from backend.domain.value_objects import ImageFileObj, ImageId
 
@@ -48,39 +48,44 @@ class UploadImageInteractor:
 
 
 @dataclass(slots=True)
-class PostProcessImageInteractor:
+class ConvertImageInteractor:
     image_repo: ImageRepoInterface
     temp_file_manager: TempFileManagerInterface
     image_file_manager: ImageFileManagerInterface
-    converter: ImageConverterInterface
+    image_processor: ImageFileProcessorInterface
     transaction: TransactionManagerInterface
 
     async def execute(self, image_id: ImageId) -> None:
         image = await self.image_repo.load(image_id)
 
-        original_image_file = ImageFileObj(
-            source=self.temp_file_manager.get_abs_path(
-                image.temp_image_id,  # type: ignore[arg-type]
+        old_image_path = image.image_path
+
+        if old_image_path:
+            original_image_file = ImageFileObj(
+                source=self.temp_file_manager.get_abs_path(
+                    image.temp_image_id,  # type: ignore[arg-type]
+                )
             )
-        )
 
-        try:
-            converted_image_file = self.converter.convert_to_webp(original_image_file)
-        except ImageConversionError as err:
-            logger.warning(err.message)
-        else:
-            converted_rel_path = image.original_path.with_name(  # type: ignore[union-attr]
-                image.original_path.stem + "_converted"  # type: ignore[union-attr]
-            ).with_suffix(".webp")
+            try:
+                converted_image_file = self.image_processor.convert_to_webp(original_image_file)
+            except ImageConversionError as err:
+                logger.warning(err.message)
+            else:
+                converted_rel_path = image.image_path.with_name(  # type: ignore[union-attr]
+                    image.image_path.stem + "_converted"  # type: ignore[union-attr]
+                ).with_suffix(".webp")
 
-            await self.image_file_manager.persist(converted_image_file, converted_rel_path)
+                await self.image_file_manager.save(converted_image_file, converted_rel_path)
 
-            image.set_converted(converted_rel_path)
+                image.image_path = converted_rel_path
 
-            await self.image_repo.update(image)
+                await self.image_repo.update(image)
 
-            await self.transaction.commit()
+                await self.transaction.commit()
 
-            converted_image_file.source.unlink()
+                await self.image_file_manager.delete(old_image_path)
 
-        original_image_file.source.unlink()
+                converted_image_file.source.unlink()
+
+            original_image_file.source.unlink()

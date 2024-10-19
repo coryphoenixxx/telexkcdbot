@@ -7,12 +7,12 @@ from PIL import Image
 
 from backend.domain.value_objects import ImageFileObj
 from backend.domain.value_objects.image_file import ImageFormat
-from backend.infrastructure.image_converter import ImageConverter
+from backend.infrastructure.image_processor import ImageFileProcessor
 
 
 @pytest.fixture(scope="session")
-def converter() -> ImageConverter:
-    return ImageConverter()
+def converter() -> ImageFileProcessor:
+    return ImageFileProcessor()
 
 
 @pytest.fixture(scope="session")
@@ -38,7 +38,7 @@ def clean_up(test_images_dir: Path) -> Generator[None, None, None]:
     ],
 )
 def test_convert_image_to_webp_success(
-    converter: ImageConverter,
+    converter: ImageFileProcessor,
     test_images_dir: Path,
     image_filename: str,
     clean_up: None,  # noqa: ARG001

@@ -1,6 +1,6 @@
 import datetime as dt
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 from backend.application.comic.commands import (
     ComicCreateCommand,
@@ -21,12 +21,12 @@ class ComicCreateSchema(BaseModel):
     publication_date: dt.date
     tooltip: str
     transcript: str
-    xkcd_url: HttpUrl | None
-    explain_url: HttpUrl | None
-    click_url: HttpUrl | None
+    xkcd_url: str | None
+    explain_url: str | None
+    click_url: str | None
     is_interactive: bool
     tag_ids: list[int]
-    image_ids: list[int]
+    image_id: int | None
 
     def to_command(self) -> ComicCreateCommand:
         return ComicCreateCommand(
@@ -40,7 +40,7 @@ class ComicCreateSchema(BaseModel):
             transcript=self.transcript,
             xkcd_url=cast_or_none(str, self.xkcd_url),
             tag_ids=self.tag_ids,
-            image_ids=self.image_ids,
+            image_id=self.image_id,
         )
 
 
@@ -48,12 +48,12 @@ class ComicUpdateSchema(BaseModel):
     number: int | None = None
     title: str | None = None
     tooltip: str | None = None
-    click_url: HttpUrl | None = None
-    explain_url: HttpUrl | None = None
+    click_url: str | None = None
+    explain_url: str | None = None
     is_interactive: bool | None = None
     transcript: str | None = None
     tag_ids: list[int] | None = None
-    image_ids: list[int]
+    image_id: int | None = None
 
     def to_command(self, comic_id: int) -> ComicUpdateCommand:
         return ComicUpdateCommand(  # type: ignore[no-any-return]
@@ -68,9 +68,9 @@ class TranslationCreateSchema(BaseModel):
     tooltip: str
     transcript: str
     translator_comment: str
-    source_url: HttpUrl | None
+    source_url: str | None
     status: TranslationStatus
-    image_ids: list[int]
+    image_id: int | None
 
     def to_command(self, comic_id: int) -> TranslationCreateCommand:
         return TranslationCreateCommand(
@@ -82,7 +82,7 @@ class TranslationCreateSchema(BaseModel):
             translator_comment=self.translator_comment,
             source_url=cast_or_none(str, self.source_url),
             status=self.status,
-            image_ids=self.image_ids,
+            image_id=self.image_id,
         )
 
 
@@ -94,7 +94,7 @@ class TranslationUpdateSchema(BaseModel):
     translator_comment: str | None = None
     source_url: str | None = None
     status: TranslationStatus | None = None
-    image_ids: list[int]
+    image_id: int | None = None
 
     def to_command(self, translation_id: int) -> TranslationUpdateCommand:
         return TranslationUpdateCommand(  # type: ignore[no-any-return]

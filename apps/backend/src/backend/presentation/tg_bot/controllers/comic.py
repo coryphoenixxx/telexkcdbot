@@ -46,9 +46,7 @@ def build_caption(comic: ComicResponseSchema) -> str:
 
 
 def build_image_url(webhook_url: str, image: TranslationImageResponseSchema) -> str:
-    if image.converted:
-        return webhook_url + "/static/" + image.converted
-    return image.original
+    return webhook_url + "/static/" + image.image_path
 
 
 def calc_next_number(data: str, cur_pos: IssueNumber, latest: IssueNumber) -> IssueNumber:
@@ -88,7 +86,7 @@ async def get_comic_by_number_handler(
 
     comic = ComicResponseSchema.from_data(data=await reader.get_by_issue_number(issue_number))
 
-    image_url = build_image_url(webhook_url=config.webhook.url, image=comic.images[0])
+    image_url = build_image_url(webhook_url=config.webhook.url, image=comic.image)
 
     image = image_storage.get_image(image_url)
 
@@ -127,7 +125,7 @@ async def navigation(
 
     comic = ComicResponseSchema.from_data(data=dto)
 
-    image_url = build_image_url(webhook_url=config.webhook.url, image=comic.images[0])
+    image_url = build_image_url(webhook_url=config.webhook.url, image=comic.image)
 
     answer = await callback.message.edit_media(
         media=InputMediaPhoto(

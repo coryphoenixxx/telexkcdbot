@@ -32,9 +32,9 @@ class ComicCreateCommand:
     tooltip: str
     transcript: str
     tag_ids: list[int]
-    image_ids: list[int]
+    image_id: int | None
 
-    def unpack(self) -> tuple[NewComicEntity, list[TagId], list[ImageId]]:
+    def unpack(self) -> tuple[NewComicEntity, list[TagId], ImageId | None]:
         return (
             NewComicEntity(
                 number=cast_or_none(IssueNumber, self.number),
@@ -48,13 +48,12 @@ class ComicCreateCommand:
                 transcript=self.transcript,
             ),
             [TagId(tag_id) for tag_id in self.tag_ids],
-            [ImageId(image_id) for image_id in self.image_ids],
+            cast_or_none(ImageId, self.image_id),
         )
 
 
 class ComicUpdateCommand(TypedDict, total=False):
     comic_id: Required[int]
-    image_ids: Required[list[int]]
     number: int | None
     title: str
     tooltip: str
@@ -63,6 +62,7 @@ class ComicUpdateCommand(TypedDict, total=False):
     is_interactive: bool
     transcript: str
     tag_ids: list[int]
+    image_id: int | None
 
 
 @dataclass(slots=True, kw_only=True)
@@ -75,9 +75,9 @@ class TranslationCreateCommand:
     translator_comment: str
     source_url: str | None
     status: TranslationStatus
-    image_ids: list[int]
+    image_id: int | None
 
-    def unpack(self) -> tuple[NewTranslationEntity, list[ImageId]]:
+    def unpack(self) -> tuple[NewTranslationEntity, ImageId | None]:
         return (
             NewTranslationEntity(
                 comic_id=ComicId(self.comic_id),
@@ -89,13 +89,12 @@ class TranslationCreateCommand:
                 source_url=self.source_url,
                 status=self.status,
             ),
-            [ImageId(image_id) for image_id in self.image_ids],
+            cast_or_none(ImageId, self.image_id),
         )
 
 
 class TranslationUpdateCommand(TypedDict, total=False):
     translation_id: Required[int]
-    image_ids: Required[list[int]]
     language: Language
     title: str
     tooltip: str
@@ -103,6 +102,7 @@ class TranslationUpdateCommand(TypedDict, total=False):
     translator_comment: str
     source_url: str | None
     status: TranslationStatus
+    image_id: int | None
 
 
 @dataclass(slots=True, kw_only=True)

@@ -1,5 +1,3 @@
-from collections.abc import Iterable, Sequence
-
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 
@@ -31,26 +29,20 @@ class ImageRepo(BaseRepo, ImageRepoInterface):
             .values(map_image_entity_to_dict(image))
         )
 
-    async def update_many(self, images: Sequence[ImageEntity]) -> None:
-        await self.session.execute(
-            update(ImageModel),
-            [map_image_entity_to_dict(image, with_id=True) for image in images],
-        )
-
-    async def get_linked_image_ids(
+    async def get_linked_image_id(
         self,
         link_type: ImageLinkType,
         link_id: PositiveInt,
-    ) -> Iterable[ImageId]:
-        images_ids: Iterable[int] = await self.session.scalars(
+    ) -> ImageId | None:
+        image_id: int | None = await self.session.scalar(
             select(ImageModel.image_id).where(
-                ImageModel.link_id == link_id.value,
-                ImageModel.link_type == link_type,
+                ImageModel.entity_id == link_id.value,
+                ImageModel.entity_type == link_type,
                 ImageModel.is_deleted.is_(False),
             )
         )
 
-        return [ImageId(image_id) for image_id in images_ids]
+        return ImageId(image_id) if image_id else None
 
     async def load(self, image_id: ImageId) -> ImageEntity:
         image: ImageModel | None = await self.session.get(
@@ -63,12 +55,3 @@ class ImageRepo(BaseRepo, ImageRepoInterface):
             raise ImageNotFoundError(image_id)
 
         return map_image_model_to_entity(image)
-
-    async def load_many(self, image_ids: Iterable[ImageId]) -> Sequence[ImageEntity]:
-        stmt = select(ImageModel).where(
-            ImageModel.image_id.in_(image_id.value for image_id in image_ids)
-        )
-
-        images: Sequence[ImageModel] = (await self.session.scalars(stmt)).all()
-
-        return [map_image_model_to_entity(image) for image in images]

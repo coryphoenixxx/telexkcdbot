@@ -1,22 +1,19 @@
-from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, ClassVar, Self
+from typing import ClassVar, Self
 from uuid import uuid4
 
 from backend.application.comic.interfaces import (
     TranslationImagePathData,
-    TranslationImageProcessorInterface,
+    TranslationImageSaveHelperInterface,
 )
 from backend.application.common.interfaces import (
     ImageFileManagerInterface,
-    PostProcessImageMessage,
-    PublisherRouterInterface,
     TempFileManagerInterface,
 )
 from backend.application.image.exceptions import ImageAlreadyHasOwnerError, ImageNotFoundError
 from backend.application.image.interfaces import ImageRepoInterface
-from backend.domain.entities import ImageEntity, ImageLinkType, TranslationStatus
+from backend.domain.entities import ImageLinkType, TranslationStatus
 from backend.domain.value_objects import (
     ImageId,
     IssueNumber,
@@ -100,77 +97,47 @@ class TranslationImagePathBuilder:
 
 
 @dataclass(slots=True)
-class TranslationImageProcessor(TranslationImageProcessorInterface):
+class TranslationImageSaveHelper(TranslationImageSaveHelperInterface):
     image_repo: ImageRepoInterface
     temp_file_manager: TempFileManagerInterface
     image_file_manager: ImageFileManagerInterface
-    publisher: PublisherRouterInterface
 
-    def __post_init__(self) -> None:
-        self.created_image_ids: list[ImageId] = []
-
-    async def create_new(
+    async def update_image(
         self,
         translation_id: TranslationId,
-        image_ids: list[ImageId],
+        old_image_id: ImageId | None,
+        new_image_id: ImageId | None,
         path_data: TranslationImagePathData,
-    ) -> None:
-        image_ids = deduplicate(image_ids)
-        images = await self.image_repo.load_many(image_ids)
+        move_image_required: bool,
+    ) -> ImageId | None:
+        created_image_id = None
 
-        for index, image in enumerate(images):
-            await self._create_image(translation_id, image, path_data)
-            image.position_number = index
+        if old_image_id is None and new_image_id:
+            await self.create_new_image(translation_id, new_image_id, path_data)
+            created_image_id = new_image_id
 
-        await self.image_repo.update_many(images)
+        elif old_image_id and new_image_id is None:
+            await self.soft_delete_image(old_image_id)
 
-    async def delete_linked(self, translation_id: TranslationId) -> None:
-        linked_image_ids = await self._get_linked_images_ids(translation_id)
-        to_delete_images = await self.image_repo.load_many(linked_image_ids)
+        elif old_image_id and old_image_id == new_image_id:
+            if move_image_required:
+                await self.move_image(old_image_id, path_data)
 
-        for image in to_delete_images:
-            image.is_deleted = True
+        elif new_image_id and old_image_id != new_image_id:
+            await self.create_new_image(translation_id, new_image_id, path_data)
+            created_image_id = new_image_id
+            await self.soft_delete_image(old_image_id)
 
-        await self.image_repo.update_many(to_delete_images)
+        return created_image_id
 
-    async def update_state(
+    async def create_new_image(
         self,
         translation_id: TranslationId,
-        image_ids: list[ImageId],
+        image_id: ImageId,
         path_data: TranslationImagePathData,
     ) -> None:
-        image_ids = deduplicate(image_ids)
-        linked_image_ids = await self._get_linked_images_ids(translation_id)
-        image_ids_set, linked_image_ids_set = set(image_ids), set(linked_image_ids)
+        image = await self.image_repo.load(image_id)
 
-        to_create_image_ids_set = image_ids_set - linked_image_ids_set
-        to_delete_image_ids_set = linked_image_ids_set - image_ids_set
-        to_update_image_ids_set = image_ids_set & linked_image_ids_set
-
-        all_images = await self.image_repo.load_many(image_ids_set | linked_image_ids_set)
-
-        for image in all_images:
-            if image.id in image_ids:
-                image.position_number = image_ids.index(image.id)
-            if image.id in to_create_image_ids_set:
-                await self._create_image(translation_id, image, path_data)
-            if image.id in to_delete_image_ids_set:
-                image.is_deleted = True
-            if image.id in to_update_image_ids_set:
-                await self._move_image_files(image, path_data)
-
-        await self.image_repo.update_many(all_images)
-
-    async def publish_created(self) -> None:
-        for image_id in self.created_image_ids:
-            await self.publisher.publish(PostProcessImageMessage(image_id=image_id.value))
-
-    async def _create_image(
-        self,
-        translation_id: TranslationId,
-        image: ImageEntity,
-        path_data: TranslationImagePathData,
-    ) -> None:
         if image.is_deleted:
             raise ImageNotFoundError(image.id)
 
@@ -186,58 +153,57 @@ class TranslationImageProcessor(TranslationImageProcessorInterface):
         original_path = TranslationImagePathBuilder(
             number=path_data.number,
             language=path_data.language,
-            original_slug=path_data.original_title.slug,
-            translation_slug=path_data.translation_title.slug,
+            original_slug=path_data.original_title_slug,
+            translation_slug=path_data.translation_title_slug,
             status=path_data.status,
             dimensions=image_file.dimensions,
             fmt=image_file.format,
         ).build()
 
         image.create(
-            link_type=ImageLinkType.TRANSLATION,
-            link_id=translation_id,
+            entity_type=ImageLinkType.TRANSLATION,
+            entity_id=translation_id,
             original_path=original_path,
         )
 
-        await self.image_file_manager.persist(image_file, original_path)
+        await self.image_file_manager.save(image_file, original_path)
 
-        self.created_image_ids.append(image.id)
+        await self.image_repo.update(image)
 
-    async def _get_linked_images_ids(self, translation_id: TranslationId) -> Iterable[ImageId]:
-        return await self.image_repo.get_linked_image_ids(ImageLinkType.TRANSLATION, translation_id)
-
-    async def _move_image_files(
+    async def move_image(
         self,
-        image: ImageEntity,
-        path_data: TranslationImagePathData,
+        image_id: ImageId,
+        new_path_data: TranslationImagePathData,
     ) -> None:
-        for path_attr_name in ("original_path", "converted_path", "x2_path"):
-            old_path: Path | None = getattr(image, path_attr_name)
-            if old_path is None:
-                continue
+        image = await self.image_repo.load(image_id)
+
+        if image.image_path:
+            old_path: Path = image.image_path
 
             old_path_obj = TranslationImagePathBuilder.from_path(old_path)
 
-            old_path_obj.number = path_data.number
-            old_path_obj.original_slug = path_data.original_title.slug
-            old_path_obj.translation_slug = path_data.translation_title.slug
-            old_path_obj.language = path_data.language
-            old_path_obj.status = path_data.status
+            old_path_obj.number = new_path_data.number
+            old_path_obj.original_slug = new_path_data.original_title_slug
+            old_path_obj.translation_slug = new_path_data.translation_title_slug
+            old_path_obj.language = new_path_data.language
+            old_path_obj.status = new_path_data.status
 
             new_path = old_path_obj.build()
 
-            setattr(image, path_attr_name, new_path)
+            image.image_path = new_path
 
             await self.image_file_manager.move(old_path, new_path)
 
+            await self.image_repo.update(image)
 
-def deduplicate(lst: list[Any]) -> list[Any]:
-    seen = set()
-    result = []
+    async def soft_delete_image(self, image_id: ImageId | None) -> None:
+        if image_id:
+            image = await self.image_repo.load(image_id)
+            image.is_deleted = True
+            await self.image_repo.update(image)
 
-    for i in lst:
-        if i not in seen:
-            result.append(i)
-            seen.add(i)
-
-    return result
+    async def get_linked_image_id(self, translation_id: TranslationId) -> ImageId | None:
+        return await self.image_repo.get_linked_image_id(
+            link_type=ImageLinkType.TRANSLATION,
+            link_id=translation_id,
+        )

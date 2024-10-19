@@ -15,8 +15,8 @@ from backend.application.common.pagination import Pagination
 from backend.application.config import AppConfig
 from backend.application.image.services import UploadImageInteractor
 from backend.domain.entities import TranslationStatus
-from backend.domain.utils import cast_or_none
-from backend.domain.value_objects import Language, TranslationId
+from backend.domain.utils import cast_or_none, value_or_none
+from backend.domain.value_objects import ImageId, Language, TranslationId
 from backend.infrastructure.xkcd.dtos import XkcdTranslationScrapedData
 
 logger = logging.getLogger(__name__)
@@ -66,13 +66,13 @@ async def get_number_comic_id_map(container: AsyncContainer) -> dict[int, int]:
         reader: ComicReader = await request_container.get(ComicReader)
 
         _, comics = await reader.get_list(filters=ComicFilters(), pagination=Pagination())
+        if not comics:
+            logger.error("There are no comics in the database.")
+            raise click.Abort
+
         for comic in comics:
             if comic.number:
                 number_comic_id_map[comic.number] = comic.id
-
-        if not number_comic_id_map:
-            logger.error("There are no comics in the database.")
-            raise click.Abort
 
     return number_comic_id_map
 
@@ -83,13 +83,12 @@ async def upload_one_translation(
     container: AsyncContainer,
 ) -> TranslationId:
     async with container() as request_container:
-        image_ids = []
+        image_id: ImageId | None = None
         if data.image_path:
             upload_image_interactor: UploadImageInteractor = await request_container.get(
                 UploadImageInteractor
             )
             image_id = await upload_image_interactor.execute(data.image_path)
-            image_ids.append(image_id.value)
 
         add_translation_interactor: AddTranslationInteractor = await request_container.get(
             AddTranslationInteractor
@@ -104,6 +103,6 @@ async def upload_one_translation(
                 translator_comment=data.translator_comment,
                 source_url=cast_or_none(str, data.source_url),
                 status=TranslationStatus.PUBLISHED,
-                image_ids=image_ids,
+                image_id=value_or_none(image_id),
             ),
         )

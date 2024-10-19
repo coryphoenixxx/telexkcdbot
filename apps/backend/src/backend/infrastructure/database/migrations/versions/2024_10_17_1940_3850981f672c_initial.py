@@ -1,9 +1,9 @@
 """
 Initial
 
-Revision ID: fccb60ede4f3
+Revision ID: 3850981f672c
 Revises: 728839411b45
-Create Date: 2024-10-13 05:04:44.623255
+Create Date: 2024-10-17 19:40:26.093312
 
 """
 
@@ -12,7 +12,7 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision = "fccb60ede4f3"
+revision = "3850981f672c"
 down_revision = "728839411b45"
 branch_labels = None
 depends_on = None
@@ -61,17 +61,14 @@ def upgrade() -> None:
         "images",
         sa.Column("image_id", sa.Integer(), nullable=False),
         sa.Column("temp_image_id", sa.Uuid(), nullable=True),
-        sa.Column("link_type", sa.String(), nullable=True),
-        sa.Column("link_id", sa.Integer(), nullable=True),
-        sa.Column("original_path", sa.String(), nullable=True),
-        sa.Column("converted_path", sa.String(), nullable=True),
-        sa.Column("x2_path", sa.String(), nullable=True),
+        sa.Column("entity_type", sa.String(), nullable=True),
+        sa.Column("entity_id", sa.Integer(), nullable=True),
+        sa.Column("image_path", sa.String(), nullable=True),
         sa.Column(
             "meta",
             postgresql.JSONB(astext_type=sa.Text()),  # type: ignore[no-untyped-call]
             nullable=False,
         ),
-        sa.Column("position_number", sa.SmallInteger(), nullable=True),
         sa.Column("is_deleted", sa.Boolean(), nullable=False),
         sa.Column(
             "created_at",
@@ -88,9 +85,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("image_id", name=op.f("pk_images")),
     )
     op.create_index(
-        "ix_image_link_type_link_id",
+        "ix_image_entity_type_entity_id",
         "images",
-        ["link_type", "link_id"],
+        ["entity_type", "entity_id"],
         unique=False,
         postgresql_using="btree",
     )
@@ -184,7 +181,7 @@ def downgrade() -> None:
     op.drop_table("translations")
     op.drop_table("comic_tag_association")
     op.drop_table("tags")
-    op.drop_index("ix_image_link_type_link_id", table_name="images", postgresql_using="btree")
+    op.drop_index("ix_image_entity_type_entity_id", table_name="images", postgresql_using="btree")
     op.drop_table("images")
     op.drop_index(
         "uq_comic_title_if_extra", table_name="comics", postgresql_where=sa.text("number IS NULL")

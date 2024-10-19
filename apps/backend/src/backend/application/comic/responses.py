@@ -9,10 +9,7 @@ from backend.domain.value_objects import Language
 class TranslationImageResponseData:
     id: int
     translation_id: int
-    original: str | None
-    converted: str | None
-    x2: str | None
-    position_number: int
+    image_path: str
 
 
 @dataclass(slots=True)
@@ -25,7 +22,7 @@ class TranslationResponseData:
     transcript: str
     translator_comment: str
     source_url: str | None
-    images: list[TranslationImageResponseData]
+    image: TranslationImageResponseData | None
     status: TranslationStatus
 
 
@@ -51,7 +48,7 @@ class ComicResponseData:
     is_interactive: bool
     has_translations: list[Language]
     tags: list[TagResponseData]
-    images: list[TranslationImageResponseData]
+    image: TranslationImageResponseData | None
     translations: list[TranslationResponseData]
 
 

@@ -104,27 +104,35 @@ class TranslationRepoInterface(Protocol):
 @dataclass(slots=True, kw_only=True)
 class TranslationImagePathData:
     number: IssueNumber | None
-    original_title: TranslationTitle
-    translation_title: TranslationTitle
+    original_title_slug: str
+    translation_title_slug: str
     language: Language = Language.EN
     status: TranslationStatus = TranslationStatus.PUBLISHED
 
 
-class TranslationImageProcessorInterface(Protocol):
-    async def create_new(
+class TranslationImageSaveHelperInterface(Protocol):
+    async def update_image(
         self,
         translation_id: TranslationId,
-        image_ids: list[ImageId],
+        old_image_id: ImageId | None,
+        new_image_id: ImageId | None,
+        path_data: TranslationImagePathData,
+        move_image_required: bool,
+    ) -> ImageId | None: ...
+
+    async def create_new_image(
+        self,
+        translation_id: TranslationId,
+        image_id: ImageId,
         path_data: TranslationImagePathData,
     ) -> None: ...
 
-    async def delete_linked(self, translation_id: TranslationId) -> None: ...
-
-    async def update_state(
+    async def move_image(
         self,
-        translation_id: TranslationId,
-        image_ids: list[ImageId],
-        path_data: TranslationImagePathData,
+        image_id: ImageId,
+        new_path_data: TranslationImagePathData,
     ) -> None: ...
 
-    async def publish_created(self) -> None: ...
+    async def soft_delete_image(self, image_id: ImageId | None) -> None: ...
+
+    async def get_linked_image_id(self, translation_id: TranslationId) -> ImageId | None: ...

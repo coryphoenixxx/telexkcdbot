@@ -12,7 +12,7 @@ class ImageS3FileManager(ImageFileManagerInterface):
     client: S3Client
     bucket: str
 
-    async def persist(
+    async def save(
         self,
         image: ImageFileObj,
         save_path: Path,

@@ -6,14 +6,14 @@ from PIL import Image, ImageSequence
 from PIL.Image import Image as PILImage
 
 from backend.application.image.exceptions import ImageConversionError
-from backend.application.image.interfaces import ImageConverterInterface
+from backend.application.image.interfaces import ImageFileProcessorInterface
 from backend.domain.value_objects.image_file import ImageFileObj, ImageFormat
 
 warnings.simplefilter("ignore", Image.DecompressionBombWarning)
 
 
 @dataclass(slots=True)
-class ImageConverter(ImageConverterInterface):
+class ImageFileProcessor(ImageFileProcessorInterface):
     MAX_IMAGE_PIXELS: ClassVar[int] = int(1024 * 1024 * 1024 // 4 // 3)
     MAX_WEBP_SIDE_SIZE: ClassVar[int] = 16383
 

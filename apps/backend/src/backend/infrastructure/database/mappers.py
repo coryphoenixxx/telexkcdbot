@@ -1,4 +1,3 @@
-from copy import copy
 from pathlib import Path
 from typing import Any
 
@@ -51,21 +50,22 @@ class MappingError(Exception):
         return self._text
 
 
+def map_image_meta_json_to_image_meta_ds(meta: dict[str, Any]) -> ImageMeta:
+    return ImageMeta(
+        format=ImageFormat(meta["format"]),
+        size=meta["size"],
+        dimensions=tuple(meta["dimensions"]),
+    )
+
+
 def map_image_model_to_entity(image: ImageModel) -> ImageEntity:
     return ImageEntity(
         id=ImageId(image.image_id),
         temp_image_id=cast_or_none(TempFileUUID, image.temp_image_id),
-        link_type=cast_or_none(ImageLinkType, image.link_type),
-        link_id=cast_or_none(PositiveInt, image.link_id),
-        original_path=cast_or_none(Path, image.original_path),
-        converted_path=cast_or_none(Path, image.converted_path),
-        x2_path=cast_or_none(Path, image.x2_path),
-        position_number=image.position_number,
-        meta=ImageMeta(
-            format=ImageFormat(image.meta["format"]),
-            size=image.meta["size"],
-            dimensions=image.meta["dimensions"],
-        ),
+        entity_type=cast_or_none(ImageLinkType, image.entity_type),
+        entity_id=cast_or_none(PositiveInt, image.entity_id),
+        image_path=cast_or_none(Path, image.image_path),
+        meta=map_image_meta_json_to_image_meta_ds(image.meta),
         is_deleted=image.is_deleted,
     )
 
@@ -121,17 +121,15 @@ def map_tag_model_to_data(tag: TagModel) -> TagResponseData:
 
 
 def map_image_model_to_data(image: ImageModel) -> TranslationImageResponseData:
-    if image.link_id is None:
+    if image.entity_id is None:
         raise MappingError("Image was probably deleted.")
-    if image.position_number is None:
-        raise MappingError("Translation image haven't position number.")
+    if image.image_path is None:
+        raise MappingError("Image was probably is not created.")
+
     return TranslationImageResponseData(
         id=image.image_id,
-        translation_id=image.link_id,
-        original=image.original_path,
-        converted=image.converted_path,
-        x2=image.x2_path,
-        position_number=image.position_number,
+        translation_id=image.entity_id,
+        image_path=image.image_path,
     )
 
 
@@ -145,13 +143,22 @@ def map_translation_model_to_data(translation: TranslationModel) -> TranslationR
         transcript=translation.transcript,
         translator_comment=translation.translator_comment,
         source_url=translation.source_url,
-        images=[map_image_model_to_data(image) for image in translation.images],
+        image=map_image_model_to_data(translation.image) if translation.image else None,
         status=TranslationStatus(translation.status),
     )
 
 
 def map_comic_model_to_data(comic: ComicModel) -> ComicResponseData:
-    original_translation, translations = _separate_translations(copy(comic.translations))
+    original_translation, translations = None, []
+
+    for translation in comic.translations:
+        if translation.language == Language.EN:
+            original_translation = translation
+        else:
+            translations.append(translation)
+
+    if original_translation is None:
+        raise RepoError("Comic model hasn't english translations.")
 
     return ComicResponseData(
         id=comic.comic_id,
@@ -165,48 +172,32 @@ def map_comic_model_to_data(comic: ComicModel) -> ComicResponseData:
         click_url=comic.click_url,
         is_interactive=comic.is_interactive,
         tags=[map_tag_model_to_data(tag) for tag in comic.tags],
-        images=[map_image_model_to_data(image) for image in original_translation.images],
+        image=(
+            map_image_model_to_data(original_translation.image)
+            if original_translation.image
+            else None
+        ),
         has_translations=[Language(tr.language) for tr in translations],
         translations=[map_translation_model_to_data(translation) for translation in translations],
     )
 
 
-def _separate_translations(
-    translations: list[TranslationModel],
-) -> tuple[TranslationModel, list[TranslationModel]]:
-    for idx, tr in enumerate(translations):
-        if tr.language == Language.EN:
-            original_translation = translations.pop(idx)
-            return original_translation, translations
-    raise RepoError("Comic model hasn't english translations.")
-
-
 def map_row_to_compact_data(row: Row[Any]) -> ComicCompactResponseData:
-    if row.converted_path:
-        image_url = row.converted_path
-    elif row.original_path:
-        image_url = row.original_path
-    else:
-        image_url = None
-
     return ComicCompactResponseData(
         id=row.comic_id,
         number=row.number,
         publication_date=row.publication_date,
         title=row.title,
-        image_url=image_url,
+        image_url=row.image_path,
     )
 
 
 def map_image_entity_to_dict(image: ImageEntity, with_id: bool = False) -> dict[str, Any]:
     d = {
         "temp_image_id": value_or_none(image.temp_image_id),
-        "link_type": image.link_type,
-        "link_id": value_or_none(image.link_id),
-        "original_path": cast_or_none(str, image.original_path),
-        "converted_path": cast_or_none(str, image.converted_path),
-        "x2_path": cast_or_none(str, image.x2_path),
-        "position_number": image.position_number,
+        "entity_type": image.entity_type,
+        "entity_id": value_or_none(image.entity_id),
+        "image_path": cast_or_none(str, image.image_path),
         "meta": image.meta.to_dict(),
         "is_deleted": image.is_deleted,
     }

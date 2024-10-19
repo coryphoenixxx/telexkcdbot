@@ -23,7 +23,7 @@ from backend.infrastructure.database.mappers import (
     map_translation_model_to_data,
     map_translation_model_to_entity,
 )
-from backend.infrastructure.database.models import ImageModel, TranslationModel
+from backend.infrastructure.database.models import TranslationModel
 from backend.infrastructure.database.repositories import BaseRepo, RepoError
 
 
@@ -68,10 +68,9 @@ class TranslationRepo(BaseRepo, TranslationRepoInterface):
     async def get_by_id(self, translation_id: TranslationId) -> TranslationResponseData:
         stmt = (
             select(TranslationModel)
-            .outerjoin(TranslationModel.images)
-            .options(contains_eager(TranslationModel.images))
+            .outerjoin(TranslationModel.image)
+            .options(contains_eager(TranslationModel.image))
             .where(TranslationModel.translation_id == translation_id.value)
-            .order_by(ImageModel.position_number.asc())
         )
 
         translation: TranslationModel | None = (
